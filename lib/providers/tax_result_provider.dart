@@ -35,9 +35,8 @@ class GapStateNotifier extends Notifier<Map<String, bool>> {
 
   int doneCount(List<GapCard> gaps) => gaps.where((g) => isDone(g.id)).length;
 
-  int remainingAmount(List<GapCard> gaps) => gaps
-      .where((g) => !isDone(g.id))
-      .fold(0, (sum, g) => sum + g.gapAmount);
+  int remainingAmount(List<GapCard> gaps) =>
+      gaps.where((g) => !isDone(g.id)).fold(0, (sum, g) => sum + g.gapAmount);
 }
 
 final gapStateProvider = NotifierProvider<GapStateNotifier, Map<String, bool>>(

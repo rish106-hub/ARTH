@@ -92,8 +92,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: QuestionProgressBar(
-                            current: _step, total: 12),
+                        child: QuestionProgressBar(current: _step, total: 12),
                       ),
                     ],
                   ),
@@ -277,9 +276,10 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
   @override
   Widget build(BuildContext context) {
     // Display mirrors the raw text field — strip trailing dot so "2." shows as 2.0.
-    final rawParsed = double.tryParse(
-        _textCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''));
-    final displayLakhs = (rawParsed != null && rawParsed > 0) ? rawParsed : _value;
+    final rawParsed =
+        double.tryParse(_textCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''));
+    final displayLakhs =
+        (rawParsed != null && rawParsed > 0) ? rawParsed : _value;
     final displayText = '₹ ${displayLakhs.toStringAsFixed(1)} Lakhs / year';
     return _QLayout(
       question: 'What is your annual CTC?',
@@ -335,8 +335,7 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -408,7 +407,8 @@ class _SlabIndicator extends StatelessWidget {
         children: [
           Icon(Icons.lightbulb_outline_rounded, size: 14, color: color),
           const SizedBox(width: 8),
-          Expanded(child: Text(bracket, style: AppTextStyles.micro(color: color))),
+          Expanded(
+              child: Text(bracket, style: AppTextStyles.micro(color: color))),
         ],
       ),
     );
@@ -447,7 +447,8 @@ class _Q02Employment extends ConsumerWidget {
             fullWidth: true,
             onTap: () {
               ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(employmentType: EmploymentType.selfEmployed),
+                    (p) =>
+                        p.copyWith(employmentType: EmploymentType.selfEmployed),
                   );
               onNext();
             },
@@ -474,11 +475,26 @@ class _Q03CityState extends ConsumerState<_Q03City> {
 
   static const _metros = ['Delhi', 'Mumbai', 'Chennai', 'Kolkata'];
   static const _cities = [
-    'Delhi', 'Mumbai', 'Chennai', 'Kolkata',
-    'Bengaluru', 'Hyderabad', 'Pune', 'Ahmedabad',
-    'Jaipur', 'Lucknow', 'Indore', 'Bhopal',
-    'Chandigarh', 'Kochi', 'Surat', 'Nagpur',
-    'Coimbatore', 'Visakhapatnam', 'Vadodara', 'Other',
+    'Delhi',
+    'Mumbai',
+    'Chennai',
+    'Kolkata',
+    'Bengaluru',
+    'Hyderabad',
+    'Pune',
+    'Ahmedabad',
+    'Jaipur',
+    'Lucknow',
+    'Indore',
+    'Bhopal',
+    'Chandigarh',
+    'Kochi',
+    'Surat',
+    'Nagpur',
+    'Coimbatore',
+    'Visakhapatnam',
+    'Vadodara',
+    'Other',
   ];
 
   List<String> get _filtered => _cities
@@ -564,8 +580,8 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text('Metro',
-                                style: AppTextStyles.micro(
-                                    color: AppColors.teal)),
+                                style:
+                                    AppTextStyles.micro(color: AppColors.teal)),
                           ),
                       ],
                     ),
@@ -681,7 +697,6 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
               widget.onNext();
             },
           ),
-
           if (_paysRent == true) ...[
             const SizedBox(height: 28),
             Text('How much rent per month?', style: AppTextStyles.h3()),
@@ -701,7 +716,8 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             // Text input — value in thousands so "15" = ₹15,000/month
             TextField(
               controller: _rentTextCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               style: AppTextStyles.body(),
               decoration: InputDecoration(
                 labelText: 'Enter in Thousands',
@@ -827,7 +843,8 @@ class _Q06_80C extends ConsumerStatefulWidget {
 }
 
 class _Q06_80CState extends ConsumerState<_Q06_80C> {
-  late double _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
+  late double
+      _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
   late TextEditingController _textCtrl;
   final _fmt = NumberFormat('#,##,##0', 'en_IN');
 
@@ -920,8 +937,7 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
             style: AppTextStyles.body(),
             decoration: InputDecoration(
               labelText: 'Enter amount in ₹',
-              labelStyle:
-                  AppTextStyles.caption(color: AppColors.textSecondary),
+              labelStyle: AppTextStyles.caption(color: AppColors.textSecondary),
               prefixText: '₹ ',
               prefixStyle: AppTextStyles.body(color: AppColors.gold),
               hintText: '1,50,000',
@@ -942,8 +958,7 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -1036,8 +1051,8 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
     _hasLoan = widget.profile.hasHomeLoan ? true : null;
     _type = widget.profile.propertyType;
     _interestL = (widget.profile.homeLoanInterest / 100000).clamp(0.25, 5.0);
-    _interestTextCtrl = TextEditingController(
-        text: (_interestL * 100000).round().toString());
+    _interestTextCtrl =
+        TextEditingController(text: (_interestL * 100000).round().toString());
   }
 
   @override
@@ -1097,13 +1112,12 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   _type = null;
                 });
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(
-                          hasHomeLoan: false, homeLoanInterest: 0),
+                      (p) =>
+                          p.copyWith(hasHomeLoan: false, homeLoanInterest: 0),
                     );
                 widget.onNext();
               },
             ),
-
             if (_hasLoan == true) ...[
               const SizedBox(height: 24),
               Text('Is the property self-occupied or let out?',
@@ -1118,9 +1132,8 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.selfOccupied);
-                        ref
-                            .read(userProfileProvider.notifier)
-                            .updateField((p) => p.copyWith(
+                        ref.read(userProfileProvider.notifier).updateField(
+                            (p) => p.copyWith(
                                 propertyType: PropertyType.selfOccupied));
                       },
                     ),
@@ -1133,10 +1146,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.letOut);
-                        ref
-                            .read(userProfileProvider.notifier)
-                            .updateField((p) => p.copyWith(
-                                propertyType: PropertyType.letOut));
+                        ref.read(userProfileProvider.notifier).updateField(
+                            (p) =>
+                                p.copyWith(propertyType: PropertyType.letOut));
                       },
                     ),
                   ),
@@ -1149,9 +1161,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               Center(
                 child: Text(
                   '₹ ${(_interestL * 100000).round().toString().replaceAllMapped(
-                    RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-                    (m) => '${m[1]},',
-                  )}',
+                        RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+                        (m) => '${m[1]},',
+                      )}',
                   style: AppTextStyles.displaySmall(color: AppColors.gold),
                 ),
               ),
@@ -1162,14 +1174,13 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                 style: AppTextStyles.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle:
-                      AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1180,8 +1191,8 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.gold, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: AppColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: _onInterestTextChanged,
@@ -1239,8 +1250,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
     setState(() => _extraK = v);
     _npsTextCtrl.text = (v * 1000).round().toString();
     ref.read(userProfileProvider.notifier).updateField(
-          (p) =>
-              p.copyWith(npsExtraContribution: (_extraK * 1000).round()),
+          (p) => p.copyWith(npsExtraContribution: (_extraK * 1000).round()),
         );
   }
 
@@ -1274,8 +1284,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _extraK = 0;
                 });
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(
-                          hasNPS: false, npsExtraContribution: 0),
+                      (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
                 widget.onNext();
               },
@@ -1291,12 +1300,10 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _extraK = 0;
                 });
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(
-                          hasNPS: false, npsExtraContribution: 0),
+                      (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
               },
             ),
-
             if (_choice == 2) ...[
               const SizedBox(height: 16),
               Container(
@@ -1304,7 +1311,8 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 decoration: BoxDecoration(
                   color: AppColors.gold.withValues(alpha: 0.07),
                   borderRadius: AppRadius.card,
-                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1314,21 +1322,19 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                     const SizedBox(height: 6),
                     Text(
                       'National Pension System (NPS) is a government-backed retirement savings scheme. Opening an NPS Tier-1 account and contributing ₹50,000/year gives you an EXTRA ₹50,000 deduction under Section 80CCD(1B) — over and above your 80C limit.',
-                      style: AppTextStyles.micro(color: AppColors.textSecondary),
+                      style:
+                          AppTextStyles.micro(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
               ),
             ],
-
             if (_choice == 0) ...[
               const SizedBox(height: 20),
-              Text(
-                  'How much extra did you contribute beyond 80C?',
+              Text('How much extra did you contribute beyond 80C?',
                   style: AppTextStyles.h3()),
               const SizedBox(height: 4),
-              Text(
-                  '(Voluntary contribution over and above 80CCE limit)',
+              Text('(Voluntary contribution over and above 80CCE limit)',
                   style: AppTextStyles.micro()),
               const SizedBox(height: 12),
               Center(
@@ -1344,14 +1350,13 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 style: AppTextStyles.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle:
-                      AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1362,8 +1367,8 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.gold, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: AppColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: _onNpsTextChanged,
@@ -1468,7 +1473,6 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
               ),
             ],
           ),
-
           if (_parents) ...[
             const SizedBox(height: 24),
             Text('Are your parents above 60?', style: AppTextStyles.h3()),
@@ -1560,8 +1564,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
     setState(() => _interestK = v);
     _edLoanTextCtrl.text = (v * 1000).round().toString();
     ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(
-              educationLoanInterest: (_interestK * 1000).round()),
+          (p) => p.copyWith(educationLoanInterest: (_interestK * 1000).round()),
         );
   }
 
@@ -1597,7 +1600,6 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 widget.onNext();
               },
             ),
-
             if (_hasLoan == true) ...[
               const SizedBox(height: 24),
               Text('Which year of repayment are you in?',
@@ -1643,14 +1645,13 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 style: AppTextStyles.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle:
-                      AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1661,8 +1662,8 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.gold, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: AppColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: _onEdLoanTextChanged,
@@ -1757,7 +1758,6 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
               widget.onNext();
             },
           ),
-
           if (_hasDonations == true) ...[
             const SizedBox(height: 24),
             Text('Approximate amount donated?', style: AppTextStyles.h3()),
@@ -1775,14 +1775,13 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
               style: AppTextStyles.body(),
               decoration: InputDecoration(
                 hintText: 'Enter amount (₹)',
-                hintStyle:
-                    AppTextStyles.body(color: AppColors.textSecondary),
+                hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
                 prefixText: '₹ ',
                 prefixStyle: AppTextStyles.body(color: AppColors.gold),
                 filled: true,
                 fillColor: AppColors.bgCard,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),

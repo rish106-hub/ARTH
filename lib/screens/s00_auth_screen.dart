@@ -203,7 +203,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ],
                     ),
                   ),
-                ).animate(delay: 100.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1),
+                )
+                    .animate(delay: 100.ms)
+                    .fadeIn(duration: 600.ms)
+                    .slideY(begin: 0.1),
 
                 SizedBox(height: size.height * 0.04),
 
@@ -215,8 +218,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     },
                     child: Text(
                       'Already have an account? Sign in',
-                      style: AppTextStyles.caption(
-                          color: AppColors.textSecondary),
+                      style:
+                          AppTextStyles.caption(color: AppColors.textSecondary),
                     ),
                   ),
                 ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
@@ -327,18 +330,15 @@ class _GlassInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.gold, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.alert, width: 1),
+              borderSide: const BorderSide(color: AppColors.alert, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.alert, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.alert, width: 1.5),
             ),
           ),
         ),
@@ -427,7 +427,8 @@ class _GoogleSignInButtonState extends ConsumerState<_GoogleSignInButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isEnabled = ref.watch(googleSignInEnabledProvider).valueOrNull ?? false;
+    final isEnabled =
+        ref.watch(googleSignInEnabledProvider).valueOrNull ?? false;
 
     if (isEnabled) {
       return SizedBox(
@@ -438,8 +439,7 @@ class _GoogleSignInButtonState extends ConsumerState<_GoogleSignInButton> {
             side: const BorderSide(color: AppColors.border),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           ),
           onPressed: _loading ? null : _handleGoogleSignIn,
           icon: _loading

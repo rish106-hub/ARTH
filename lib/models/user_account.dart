@@ -4,14 +4,14 @@ enum AuthMethod { manual, google }
 
 class UserAccount {
   final String name;
-  final String panCard;       // stored masked: AXXXX9999A
+  final String panCard; // stored masked: AXXXX9999A
   final String incomeRange;
   final bool biometricsEnabled;
   final DateTime createdAt;
 
   // Cloud identity (populated after Firebase Auth)
-  final String? uid;          // Firebase UID — null until first sync
-  final String? email;        // Google email — null for manual accounts
+  final String? uid; // Firebase UID — null until first sync
+  final String? email; // Google email — null for manual accounts
   final AuthMethod authMethod;
 
   const UserAccount({
@@ -34,7 +34,8 @@ class UserAccount {
   /// Initials for avatar display (up to 2 chars)
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    if (parts.length >= 2)
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     return name.isNotEmpty ? name[0].toUpperCase() : 'A';
   }
 

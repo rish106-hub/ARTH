@@ -9,7 +9,7 @@ class TaxResult {
   final double newRegimeTaxableIncome;
   final double totalDeductionsOld;
   final TaxRegime betterRegime;
-  final double regimeSavings;  // |old - new|
+  final double regimeSavings; // |old - new|
   final List<GapCard> gaps;
   final int totalGapAmount;
   final int gapCount;

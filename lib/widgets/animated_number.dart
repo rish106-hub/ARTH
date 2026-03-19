@@ -52,8 +52,7 @@ class _AnimatedRupeeNumberState extends State<AnimatedRupeeNumber>
 
   @override
   Widget build(BuildContext context) {
-    final style = widget.style ??
-        AppTextStyles.display(color: AppColors.gold);
+    final style = widget.style ?? AppTextStyles.display(color: AppColors.gold);
 
     return AnimatedBuilder(
       animation: _anim,

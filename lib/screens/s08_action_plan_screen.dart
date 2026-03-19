@@ -75,8 +75,9 @@ class ActionPlanScreen extends ConsumerWidget {
                             isDone: false,
                             onTap: () =>
                                 context.push('/deduction-detail', extra: gap),
-                            onToggle: () =>
-                                ref.read(gapStateProvider.notifier).toggle(gap.id),
+                            onToggle: () => ref
+                                .read(gapStateProvider.notifier)
+                                .toggle(gap.id),
                           )
                               .animate(
                                   delay: Duration(milliseconds: e.key * 60))
@@ -84,7 +85,6 @@ class ActionPlanScreen extends ConsumerWidget {
                               .slideX(begin: 0.05, duration: 300.ms);
                         }),
                       ],
-
                       if (done.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         _SectionHeader(
@@ -97,11 +97,11 @@ class ActionPlanScreen extends ConsumerWidget {
                               isDone: true,
                               onTap: () =>
                                   context.push('/deduction-detail', extra: gap),
-                              onToggle: () =>
-                                  ref.read(gapStateProvider.notifier).toggle(gap.id),
+                              onToggle: () => ref
+                                  .read(gapStateProvider.notifier)
+                                  .toggle(gap.id),
                             )),
                       ],
-
                       if (pending.isEmpty && done.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(40),
@@ -120,10 +120,17 @@ class ActionPlanScreen extends ConsumerWidget {
                 selectedIndex: 1,
                 onTap: (i) {
                   switch (i) {
-                    case 0: context.go('/gap-reveal'); break;
-                    case 1: break;
-                    case 2: context.go('/progress'); break;
-                    case 3: context.go('/settings'); break;
+                    case 0:
+                      context.go('/gap-reveal');
+                      break;
+                    case 1:
+                      break;
+                    case 2:
+                      context.go('/progress');
+                      break;
+                    case 3:
+                      context.go('/settings');
+                      break;
                   }
                 },
               ),
@@ -171,8 +178,7 @@ class _ActionPlanHeader extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total recoverable',
-                      style: AppTextStyles.micro()),
+                  Text('Total recoverable', style: AppTextStyles.micro()),
                   RupeeText(
                     amount: totalGap,
                     style: AppTextStyles.h2(color: AppColors.gold),
@@ -183,8 +189,7 @@ class _ActionPlanHeader extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Still pending',
-                      style: AppTextStyles.micro()),
+                  Text('Still pending', style: AppTextStyles.micro()),
                   RupeeText(
                     amount: remaining,
                     style: AppTextStyles.h2(color: AppColors.amber),
@@ -255,8 +260,7 @@ class _SectionHeader extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               borderRadius: AppRadius.pill,
             ),
-            child: Text('$count',
-                style: AppTextStyles.micro(color: color)),
+            child: Text('$count', style: AppTextStyles.micro(color: color)),
           ),
         ],
       ),

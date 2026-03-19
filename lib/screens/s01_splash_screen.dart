@@ -56,7 +56,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     }
 
     // 3. Check onboarding
-    final done = await ref.read(userProfileProvider.notifier).isOnboardingComplete();
+    final done =
+        await ref.read(userProfileProvider.notifier).isOnboardingComplete();
     if (!mounted) return;
     if (done) {
       await ref.read(userProfileProvider.notifier).load();
@@ -122,9 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               'Not a rupee less. Not a rupee more.',
               style: AppTextStyles.caption(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
-            )
-                .animate(delay: 900.ms)
-                .fadeIn(duration: 600.ms),
+            ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
           ],
         ),
       ),

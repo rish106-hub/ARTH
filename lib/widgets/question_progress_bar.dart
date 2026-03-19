@@ -72,7 +72,9 @@ class SelectChip extends StatelessWidget {
         width: fullWidth ? double.infinity : null,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: selected ? AppColors.gold.withValues(alpha: 0.12) : AppColors.bgCard,
+          color: selected
+              ? AppColors.gold.withValues(alpha: 0.12)
+              : AppColors.bgCard,
           borderRadius: AppRadius.card,
           border: Border.all(
             color: selected ? AppColors.gold : AppColors.border,
@@ -128,7 +130,9 @@ class MultiSelectChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.gold.withValues(alpha: 0.12) : AppColors.bgCard,
+          color: selected
+              ? AppColors.gold.withValues(alpha: 0.12)
+              : AppColors.bgCard,
           borderRadius: AppRadius.pill,
           border: Border.all(
             color: selected ? AppColors.gold : AppColors.border,

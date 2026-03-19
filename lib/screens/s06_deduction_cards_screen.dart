@@ -67,12 +67,14 @@ class DeductionCardsScreen extends ConsumerWidget {
                       isDone: isDone,
                       onTap: () =>
                           context.push('/deduction-detail', extra: gap),
-                      onMarkDone: () => ref
-                          .read(gapStateProvider.notifier)
-                          .toggle(gap.id),
+                      onMarkDone: () =>
+                          ref.read(gapStateProvider.notifier).toggle(gap.id),
                     )
                         .animate(delay: Duration(milliseconds: i * 80))
-                        .slideX(begin: 0.05, duration: 350.ms, curve: Curves.easeOut)
+                        .slideX(
+                            begin: 0.05,
+                            duration: 350.ms,
+                            curve: Curves.easeOut)
                         .fadeIn(duration: 350.ms);
                   },
                 ),
@@ -83,10 +85,18 @@ class DeductionCardsScreen extends ConsumerWidget {
                 selectedIndex: 0,
                 onTap: (i) {
                   switch (i) {
-                    case 0: context.go('/gap-reveal'); break;
-                    case 1: context.go('/action-plan'); break;
-                    case 2: context.go('/progress'); break;
-                    case 3: context.go('/settings'); break;
+                    case 0:
+                      context.go('/gap-reveal');
+                      break;
+                    case 1:
+                      context.go('/action-plan');
+                      break;
+                    case 2:
+                      context.go('/progress');
+                      break;
+                    case 3:
+                      context.go('/settings');
+                      break;
                   }
                 },
               ),
@@ -187,7 +197,8 @@ class _EmptyGapsView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.verified_outlined, size: 64, color: AppColors.gold),
+            const Icon(Icons.verified_outlined,
+                size: 64, color: AppColors.gold),
             const SizedBox(height: 20),
             Text('No gaps found!',
                 style: AppTextStyles.h2(color: AppColors.gold),

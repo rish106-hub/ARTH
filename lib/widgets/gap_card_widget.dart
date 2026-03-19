@@ -50,7 +50,8 @@ class GapCardWidget extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   color: isDone ? AppColors.success : accent,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
                 ),
               ),
               Padding(
@@ -61,17 +62,22 @@ class GapCardWidget extends StatelessWidget {
                     // Section badge + done indicator
                     Row(
                       children: [
-                        _SectionBadge(section: gap.section, accent: accent, isDone: isDone),
+                        _SectionBadge(
+                            section: gap.section,
+                            accent: accent,
+                            isDone: isDone),
                         const Spacer(),
                         if (isDone)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.success.withValues(alpha: 0.15),
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text('Done',
-                                style: AppTextStyles.micro(color: AppColors.success)),
+                                style: AppTextStyles.micro(
+                                    color: AppColors.success)),
                           )
                         else
                           Row(
@@ -82,7 +88,8 @@ class GapCardWidget extends StatelessWidget {
                               const SizedBox(width: 3),
                               Text(
                                 gap.difficultyLabel,
-                                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                                style: AppTextStyles.micro(
+                                    color: AppColors.textSecondary),
                               ),
                             ],
                           ),
@@ -104,7 +111,8 @@ class GapCardWidget extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('You\'re leaving behind',
-                                style: AppTextStyles.micro(color: AppColors.textSecondary)),
+                                style: AppTextStyles.micro(
+                                    color: AppColors.textSecondary)),
                             const SizedBox(height: 2),
                             RupeeText(
                               amount: gap.gapAmount,
@@ -157,7 +165,8 @@ class _SectionBadge extends StatelessWidget {
   final Color accent;
   final bool isDone;
 
-  const _SectionBadge({required this.section, required this.accent, required this.isDone});
+  const _SectionBadge(
+      {required this.section, required this.accent, required this.isDone});
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +246,9 @@ class ActionListItem extends StatelessWidget {
                   Text(
                     gap.title,
                     style: AppTextStyles.bodyMedium(
-                      color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
+                      color: isDone
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),

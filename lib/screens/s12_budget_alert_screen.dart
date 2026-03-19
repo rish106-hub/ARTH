@@ -29,7 +29,8 @@ class BudgetAlertScreen extends ConsumerWidget {
                     shape: BoxShape.circle,
                     color: AppColors.alert.withValues(alpha: 0.12),
                     border: Border.all(
-                        color: AppColors.alert.withValues(alpha: 0.5), width: 1.5),
+                        color: AppColors.alert.withValues(alpha: 0.5),
+                        width: 1.5),
                   ),
                   child: const Icon(Icons.campaign_rounded,
                       color: AppColors.alert, size: 36),
@@ -44,7 +45,10 @@ class BudgetAlertScreen extends ConsumerWidget {
                   'Budget 2026\nChanged India\'s\nTax Slabs.',
                   style: AppTextStyles.h1().copyWith(fontSize: 32, height: 1.2),
                   textAlign: TextAlign.center,
-                ).animate(delay: 300.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1),
+                )
+                    .animate(delay: 300.ms)
+                    .fadeIn(duration: 500.ms)
+                    .slideY(begin: 0.1),
 
                 const SizedBox(height: 16),
 
@@ -58,11 +62,13 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                 // Date badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.alert.withValues(alpha: 0.1),
                     borderRadius: AppRadius.pill,
-                    border: Border.all(color: AppColors.alert.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color: AppColors.alert.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     'Union Budget — February 1, 2026',

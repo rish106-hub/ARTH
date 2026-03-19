@@ -26,7 +26,8 @@ class WelcomeScreen extends StatelessWidget {
                   // Main headline
                   Text(
                     'Most Indians\noverpay their\ntaxes.',
-                    style: AppTextStyles.h1().copyWith(fontSize: 36, height: 1.2),
+                    style:
+                        AppTextStyles.h1().copyWith(fontSize: 36, height: 1.2),
                   )
                       .animate(delay: 200.ms)
                       .fadeIn(duration: 700.ms)
@@ -36,7 +37,8 @@ class WelcomeScreen extends StatelessWidget {
 
                   Text(
                     'ARTH finds what\nyou\'re leaving behind.',
-                    style: AppTextStyles.h2(color: AppColors.gold).copyWith(height: 1.3),
+                    style: AppTextStyles.h2(color: AppColors.gold)
+                        .copyWith(height: 1.3),
                   )
                       .animate(delay: 500.ms)
                       .fadeIn(duration: 700.ms)
@@ -47,9 +49,7 @@ class WelcomeScreen extends StatelessWidget {
                   Text(
                     'The average salaried Indian leaves\n₹50,000 – ₹2,00,000 unclaimed\nevery year. Not this year.',
                     style: AppTextStyles.body(color: AppColors.textSecondary),
-                  )
-                      .animate(delay: 750.ms)
-                      .fadeIn(duration: 600.ms),
+                  ).animate(delay: 750.ms).fadeIn(duration: 600.ms),
 
                   const Spacer(flex: 3),
 
@@ -78,7 +78,8 @@ class WelcomeScreen extends StatelessWidget {
                   Center(
                     child: Text(
                       'Takes 3 minutes. No PAN. No login. No nonsense.',
-                      style: AppTextStyles.micro(color: AppColors.textSecondary),
+                      style:
+                          AppTextStyles.micro(color: AppColors.textSecondary),
                       textAlign: TextAlign.center,
                     ),
                   ).animate(delay: 1100.ms).fadeIn(duration: 500.ms),
@@ -88,7 +89,8 @@ class WelcomeScreen extends StatelessWidget {
                   // Trust badge
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
                         color: AppColors.bgCard,
                         borderRadius: AppRadius.pill,
@@ -102,7 +104,8 @@ class WelcomeScreen extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text(
                             'Nothing you enter leaves your phone',
-                            style: AppTextStyles.micro(color: AppColors.textSecondary),
+                            style: AppTextStyles.micro(
+                                color: AppColors.textSecondary),
                           ),
                         ],
                       ),

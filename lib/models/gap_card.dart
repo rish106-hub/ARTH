@@ -11,19 +11,19 @@ class GapAction {
   const GapAction({required this.label, required this.url});
 
   factory GapAction.fromJson(Map<String, dynamic> json) => GapAction(
-    label: json['label'] as String,
-    url: json['url'] as String,
-  );
+        label: json['label'] as String,
+        url: json['url'] as String,
+      );
 }
 
 @immutable
 class GapCard {
   final String id;
-  final String section;       // e.g. "80C", "80CCD(1B)"
-  final String title;         // e.g. "Investments Gap"
-  final String shortDesc;     // sub-label
-  final String message;       // plain English explanation
-  final int gapAmount;        // rupees
+  final String section; // e.g. "80C", "80CCD(1B)"
+  final String title; // e.g. "Investments Gap"
+  final String shortDesc; // sub-label
+  final String message; // plain English explanation
+  final int gapAmount; // rupees
   final GapDifficulty difficulty;
   final String difficultyLabel;
   final String deadline;
@@ -47,19 +47,19 @@ class GapCard {
   });
 
   GapCard copyWith({bool? isDone, int? gapAmount}) => GapCard(
-    id: id,
-    section: section,
-    title: title,
-    shortDesc: shortDesc,
-    message: message,
-    gapAmount: gapAmount ?? this.gapAmount,
-    difficulty: difficulty,
-    difficultyLabel: difficultyLabel,
-    deadline: deadline,
-    actions: actions,
-    colorHex: colorHex,
-    isDone: isDone ?? this.isDone,
-  );
+        id: id,
+        section: section,
+        title: title,
+        shortDesc: shortDesc,
+        message: message,
+        gapAmount: gapAmount ?? this.gapAmount,
+        difficulty: difficulty,
+        difficultyLabel: difficultyLabel,
+        deadline: deadline,
+        actions: actions,
+        colorHex: colorHex,
+        isDone: isDone ?? this.isDone,
+      );
 
   Color get accentColor {
     if (gapAmount >= 50000) return AppColors.gold;
@@ -69,9 +69,12 @@ class GapCard {
 
   IconData get difficultyIcon {
     switch (difficulty) {
-      case GapDifficulty.easy: return Icons.bolt_rounded;
-      case GapDifficulty.medium: return Icons.tune_rounded;
-      case GapDifficulty.complex: return Icons.account_tree_outlined;
+      case GapDifficulty.easy:
+        return Icons.bolt_rounded;
+      case GapDifficulty.medium:
+        return Icons.tune_rounded;
+      case GapDifficulty.complex:
+        return Icons.account_tree_outlined;
     }
   }
 
@@ -94,7 +97,9 @@ class GapCard {
       difficulty: diff,
       difficultyLabel: json['difficulty_label'] as String? ?? '',
       deadline: json['deadline'] as String? ?? '31 March 2026',
-      actions: actionsJson.map((a) => GapAction.fromJson(a as Map<String, dynamic>)).toList(),
+      actions: actionsJson
+          .map((a) => GapAction.fromJson(a as Map<String, dynamic>))
+          .toList(),
       colorHex: json['color_hex'] as String? ?? 'FF9800',
     );
   }

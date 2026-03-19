@@ -93,8 +93,8 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
 
                       Text(
                         'Tap Share to post on WhatsApp, Instagram, or LinkedIn.\nNo PAN, no salary — only section names and amounts.',
-                        style: AppTextStyles.micro(
-                            color: AppColors.textSecondary),
+                        style:
+                            AppTextStyles.micro(color: AppColors.textSecondary),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -151,7 +151,8 @@ class _ShareCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgPrimary,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+            color: AppColors.gold.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +234,8 @@ class _ShareCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.bgCard,
                 borderRadius: AppRadius.card,
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+                border:
+                    Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
               ),
               child: Column(
                 children: [
@@ -244,7 +246,8 @@ class _ShareCard extends StatelessWidget {
                   ),
                   Text(
                     'arth.app',
-                    style: AppTextStyles.caption(color: AppColors.textSecondary),
+                    style:
+                        AppTextStyles.caption(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -262,9 +265,9 @@ class _ShareCard extends StatelessWidget {
       return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
     }
     return v.toString().replaceAllMapped(
-      RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }
 
@@ -283,11 +286,9 @@ class _ShareItemRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
-              border:
-                  Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
-            child: Text(item.section,
-                style: AppTextStyles.sectionLabel()),
+            child: Text(item.section, style: AppTextStyles.sectionLabel()),
           ),
           const Spacer(),
           RupeeText(

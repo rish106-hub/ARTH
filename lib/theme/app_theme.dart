@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Core palette — Dhan Aesthetic
-  static const Color bgPrimary = Color(0xFF141414);   // Deep Charcoal
-  static const Color bgCard = Color(0xFF1E1E1E);       // Elevated Charcoal
+  static const Color bgPrimary = Color(0xFF141414); // Deep Charcoal
+  static const Color bgCard = Color(0xFF1E1E1E); // Elevated Charcoal
   static const Color bgCardHover = Color(0xFF252525);
   static const Color bgSurface = Color(0xFF2A2A2A);
 
-  static const Color gold = Color(0xFFF5C842);         // Tax Gold
-  static const Color goldLight = Color(0xFFFDE98A);    // Highlight
+  static const Color gold = Color(0xFFF5C842); // Tax Gold
+  static const Color goldLight = Color(0xFFFDE98A); // Highlight
   static const Color goldDim = Color(0xFFB8932E);
 
   static const Color success = Color(0xFF4CAF50);
@@ -27,67 +27,73 @@ class AppColors {
   static const Color border = Color(0xFF333333);
 
   // Gap card colors by size
-  static const Color gapSmall = Color(0xFF26A69A);   // teal < 10k
-  static const Color gapMedium = Color(0xFFFF9800);  // amber 10k-50k
-  static const Color gapLarge = Color(0xFFF5C842);   // gold 50k+
+  static const Color gapSmall = Color(0xFF26A69A); // teal < 10k
+  static const Color gapMedium = Color(0xFFFF9800); // amber 10k-50k
+  static const Color gapLarge = Color(0xFFF5C842); // gold 50k+
 }
 
 class AppTextStyles {
   // Display — gap numbers
   static TextStyle display({Color color = AppColors.gold}) => GoogleFonts.inter(
-    fontSize: 56,
-    fontWeight: FontWeight.w900,
-    color: color,
-    letterSpacing: -1.5,
-    height: 1.0,
-  );
+        fontSize: 56,
+        fontWeight: FontWeight.w900,
+        color: color,
+        letterSpacing: -1.5,
+        height: 1.0,
+      );
 
-  static TextStyle displaySmall({Color color = AppColors.gold}) => GoogleFonts.inter(
-    fontSize: 40,
-    fontWeight: FontWeight.w900,
-    color: color,
-    letterSpacing: -1.0,
-    height: 1.0,
-  );
+  static TextStyle displaySmall({Color color = AppColors.gold}) =>
+      GoogleFonts.inter(
+        fontSize: 40,
+        fontWeight: FontWeight.w900,
+        color: color,
+        letterSpacing: -1.0,
+        height: 1.0,
+      );
 
   // Headings
-  static TextStyle h1({Color color = AppColors.textPrimary}) => GoogleFonts.inter(
-    fontSize: 28,
-    fontWeight: FontWeight.w600,
-    color: color,
-    letterSpacing: -0.5,
-    height: 1.2,
-  );
+  static TextStyle h1({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: -0.5,
+        height: 1.2,
+      );
 
-  static TextStyle h2({Color color = AppColors.textPrimary}) => GoogleFonts.inter(
-    fontSize: 22,
-    fontWeight: FontWeight.w600,
-    color: color,
-    letterSpacing: -0.3,
-    height: 1.3,
-  );
+  static TextStyle h2({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: -0.3,
+        height: 1.3,
+      );
 
-  static TextStyle h3({Color color = AppColors.textPrimary}) => GoogleFonts.inter(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: color,
-    height: 1.3,
-  );
+  static TextStyle h3({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: color,
+        height: 1.3,
+      );
 
   // Body
-  static TextStyle body({Color color = AppColors.textPrimary}) => GoogleFonts.inter(
-    fontSize: 15,
-    fontWeight: FontWeight.w400,
-    color: color,
-    height: 1.5,
-  );
+  static TextStyle body({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+        color: color,
+        height: 1.5,
+      );
 
-  static TextStyle bodyMedium({Color color = AppColors.textPrimary}) => GoogleFonts.inter(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: color,
-    height: 1.5,
-  );
+  static TextStyle bodyMedium({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: color,
+        height: 1.5,
+      );
 
   // Section labels (80C, 80D etc.) — uses Space Grotesk via google_fonts
   static TextStyle sectionLabel({Color color = AppColors.gold}) =>
@@ -99,27 +105,30 @@ class AppTextStyles {
       );
 
   // Micro-copy
-  static TextStyle micro({Color color = AppColors.textSecondary}) => GoogleFonts.inter(
-    fontSize: 12,
-    fontWeight: FontWeight.w300,
-    color: color,
-    height: 1.4,
-  );
+  static TextStyle micro({Color color = AppColors.textSecondary}) =>
+      GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w300,
+        color: color,
+        height: 1.4,
+      );
 
-  static TextStyle caption({Color color = AppColors.textSecondary}) => GoogleFonts.inter(
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: color,
-    height: 1.4,
-  );
+  static TextStyle caption({Color color = AppColors.textSecondary}) =>
+      GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: color,
+        height: 1.4,
+      );
 
   // Button
-  static TextStyle button({Color color = AppColors.bgPrimary}) => GoogleFonts.inter(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: color,
-    letterSpacing: 0.2,
-  );
+  static TextStyle button({Color color = AppColors.bgPrimary}) =>
+      GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: 0.2,
+      );
 }
 
 class AppTheme {

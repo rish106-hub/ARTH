@@ -88,7 +88,8 @@ class SettingsScreen extends ConsumerWidget {
                             _ProfileDetailRow(
                               icon: Icons.account_balance_wallet_outlined,
                               label: 'Annual CTC',
-                              value: '₹ ${(profile.annualCTC / 100000).toStringAsFixed(1)} Lakhs',
+                              value:
+                                  '₹ ${(profile.annualCTC / 100000).toStringAsFixed(1)} Lakhs',
                             ),
                             _ProfileDetailRow(
                               icon: Icons.work_outline_rounded,
@@ -215,10 +216,17 @@ class SettingsScreen extends ConsumerWidget {
                   selectedIndex: 3,
                   onTap: (i) {
                     switch (i) {
-                      case 0: context.go('/gap-reveal'); break;
-                      case 1: context.go('/action-plan'); break;
-                      case 2: context.go('/progress'); break;
-                      case 3: break;
+                      case 0:
+                        context.go('/gap-reveal');
+                        break;
+                      case 1:
+                        context.go('/action-plan');
+                        break;
+                      case 2:
+                        context.go('/progress');
+                        break;
+                      case 3:
+                        break;
                     }
                   },
                 ),
@@ -295,8 +303,7 @@ class _SettingsHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.gold.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
             child: Text(
               'FY 2025-26',
@@ -414,8 +421,8 @@ class _AccountHeroCard extends StatelessWidget {
 
                   // Sync badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.teal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -442,12 +449,9 @@ class _AccountHeroCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-              Divider(
-                  color: Colors.white.withValues(alpha: 0.08), height: 1),
+              Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
               const SizedBox(height: 14),
-
               Row(
                 children: [
                   Expanded(
@@ -509,8 +513,7 @@ class _GuestCard extends StatelessWidget {
               children: [
                 Text('Not signed in', style: AppTextStyles.bodyMedium()),
                 Text('Sign in to sync your data',
-                    style:
-                        AppTextStyles.micro(color: AppColors.textSecondary)),
+                    style: AppTextStyles.micro(color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -767,8 +770,7 @@ class _ProfileDetailRow extends StatelessWidget {
               Icon(icon, size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 10),
               Text(label,
-                  style:
-                      AppTextStyles.caption(color: AppColors.textSecondary)),
+                  style: AppTextStyles.caption(color: AppColors.textSecondary)),
               const Spacer(),
               Text(value, style: AppTextStyles.bodyMedium()),
             ],
@@ -776,10 +778,7 @@ class _ProfileDetailRow extends StatelessWidget {
         ),
         if (!isLast)
           Divider(
-              indent: 42,
-              endIndent: 0,
-              color: AppColors.divider,
-              height: 1),
+              indent: 42, endIndent: 0, color: AppColors.divider, height: 1),
       ],
     );
   }
@@ -837,10 +836,7 @@ class _PrivacyRow extends StatelessWidget {
         ),
         if (!isLast)
           Divider(
-              indent: 64,
-              endIndent: 0,
-              color: AppColors.divider,
-              height: 1),
+              indent: 64, endIndent: 0, color: AppColors.divider, height: 1),
       ],
     );
   }
@@ -1050,8 +1046,8 @@ class _ArthDialog extends StatelessWidget {
         side: BorderSide(color: AppColors.border),
       ),
       title: Text(title, style: AppTextStyles.h3()),
-      content: Text(body,
-          style: AppTextStyles.body(color: AppColors.textSecondary)),
+      content:
+          Text(body, style: AppTextStyles.body(color: AppColors.textSecondary)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),

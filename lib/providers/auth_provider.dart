@@ -33,7 +33,6 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
-final authProvider =
-    StateNotifierProvider<AuthNotifier, UserAccount?>((ref) {
+final authProvider = StateNotifierProvider<AuthNotifier, UserAccount?>((ref) {
   return AuthNotifier(ref.read(authServiceProvider));
 });

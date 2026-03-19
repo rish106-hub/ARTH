@@ -19,8 +19,8 @@ class ProgressTrackerScreen extends ConsumerWidget {
       backgroundColor: AppColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Progress Tracker'),
       body: resultAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.gold)),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold)),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (result) {
           final gaps = result.gaps;
@@ -79,10 +79,17 @@ class ProgressTrackerScreen extends ConsumerWidget {
                 selectedIndex: 2,
                 onTap: (i) {
                   switch (i) {
-                    case 0: context.go('/gap-reveal'); break;
-                    case 1: context.go('/action-plan'); break;
-                    case 2: break;
-                    case 3: context.go('/settings'); break;
+                    case 0:
+                      context.go('/gap-reveal');
+                      break;
+                    case 1:
+                      context.go('/action-plan');
+                      break;
+                    case 2:
+                      break;
+                    case 3:
+                      context.go('/settings');
+                      break;
                   }
                 },
               ),
@@ -133,9 +140,8 @@ class _FYTimeline extends StatelessWidget {
                 child: Text(
                   '$daysLeft days left',
                   style: AppTextStyles.micro(
-                      color: daysLeft <= 30
-                          ? AppColors.alert
-                          : AppColors.amber),
+                      color:
+                          daysLeft <= 30 ? AppColors.alert : AppColors.amber),
                 ),
               ),
             ],
@@ -281,9 +287,7 @@ class _DeadlineTimeline extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        children: _deadlines
-            .map((d) => _DeadlineRow(deadline: d))
-            .toList(),
+        children: _deadlines.map((d) => _DeadlineRow(deadline: d)).toList(),
       ),
     );
   }
@@ -323,10 +327,8 @@ class _DeadlineRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(deadline.label,
-                  style: AppTextStyles.caption()),
-              Text(deadline.date,
-                  style: AppTextStyles.micro(color: color)),
+              Text(deadline.label, style: AppTextStyles.caption()),
+              Text(deadline.date, style: AppTextStyles.micro(color: color)),
             ],
           ),
         ],
@@ -359,7 +361,9 @@ class _GapStatusRow extends StatelessWidget {
         color: AppColors.bgCard,
         borderRadius: AppRadius.card,
         border: Border.all(
-          color: isDone ? AppColors.success.withValues(alpha: 0.3) : AppColors.border,
+          color: isDone
+              ? AppColors.success.withValues(alpha: 0.3)
+              : AppColors.border,
         ),
       ),
       child: Row(
@@ -369,9 +373,7 @@ class _GapStatusRow extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDone
-                  ? AppColors.success
-                  : AppColors.bgSurface,
+              color: isDone ? AppColors.success : AppColors.bgSurface,
               border: Border.all(
                 color: isDone ? AppColors.success : AppColors.border,
               ),
@@ -396,12 +398,10 @@ class _GapStatusRow extends StatelessWidget {
             children: [
               Text(formatRupees(amount),
                   style: AppTextStyles.caption(
-                      color: isDone
-                          ? AppColors.success
-                          : AppColors.textPrimary)),
+                      color:
+                          isDone ? AppColors.success : AppColors.textPrimary)),
               Text(deadline,
-                  style: AppTextStyles.micro(
-                      color: AppColors.textSecondary)),
+                  style: AppTextStyles.micro(color: AppColors.textSecondary)),
             ],
           ),
         ],

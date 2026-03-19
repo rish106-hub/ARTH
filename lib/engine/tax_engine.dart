@@ -17,7 +17,8 @@ class TaxEngine {
     final newTaxable = newResult['taxable'] as double;
     final totalDeductionsOld = oldResult['deductions'] as double;
 
-    final betterRegime = oldTax <= newTax ? TaxRegime.oldRegime : TaxRegime.newRegime;
+    final betterRegime =
+        oldTax <= newTax ? TaxRegime.oldRegime : TaxRegime.newRegime;
     final regimeSavings = (oldTax - newTax).abs();
 
     final totalGapAmount = gaps.fold<int>(0, (sum, g) => sum + g.gapAmount);
@@ -176,8 +177,8 @@ class TaxEngine {
     double rentMinus10 = annualRent - (basic * 0.10);
     if (rentMinus10 < 0) rentMinus10 = 0;
 
-    double exemption = [actualHRA, salaryPercent, rentMinus10]
-        .reduce((a, b) => a < b ? a : b);
+    double exemption =
+        [actualHRA, salaryPercent, rentMinus10].reduce((a, b) => a < b ? a : b);
 
     return exemption.round();
   }
@@ -275,7 +276,6 @@ class TaxEngine {
     _Slab(500000, 1000000, 0.20),
     _Slab(1000000, 999999999, 0.30),
   ];
-
 }
 
 class _Slab {

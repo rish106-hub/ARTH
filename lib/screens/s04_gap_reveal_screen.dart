@@ -167,10 +167,11 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                                 ],
                               ),
                             ),
-                          ).animate(delay: 2000.ms).fadeIn(duration: 600.ms).slideY(begin: 0.3),
-
+                          )
+                              .animate(delay: 2000.ms)
+                              .fadeIn(duration: 600.ms)
+                              .slideY(begin: 0.3),
                           const SizedBox(height: 12),
-
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton(
@@ -180,9 +181,7 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                               child: const Text('Compare Old vs New Regime'),
                             ),
                           ).animate(delay: 2200.ms).fadeIn(duration: 500.ms),
-
                           const SizedBox(height: 12),
-
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.textSecondary,
@@ -195,7 +194,6 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                             icon: const Icon(Icons.checklist_rounded, size: 16),
                             label: const Text('Action Plan'),
                           ).animate(delay: 2400.ms).fadeIn(duration: 500.ms),
-
                           const SizedBox(height: 8),
                         ],
                       ),
@@ -206,10 +204,17 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                       selectedIndex: 0,
                       onTap: (i) {
                         switch (i) {
-                          case 0: break;
-                          case 1: context.go('/action-plan'); break;
-                          case 2: context.go('/progress'); break;
-                          case 3: context.go('/settings'); break;
+                          case 0:
+                            break;
+                          case 1:
+                            context.go('/action-plan');
+                            break;
+                          case 2:
+                            context.go('/progress');
+                            break;
+                          case 3:
+                            context.go('/settings');
+                            break;
                         }
                       },
                     ),
@@ -249,9 +254,7 @@ class _GapDisplay extends StatelessWidget {
           style: AppTextStyles.body(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ).animate(delay: 300.ms).fadeIn(duration: 500.ms),
-
         const SizedBox(height: 20),
-
         if (revealed)
           AnimatedBuilder(
             animation: pulseAnim,
@@ -282,18 +285,14 @@ class _GapDisplay extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-
         const SizedBox(height: 16),
-
         Text(
           'every year in unclaimed\ntax deductions.',
           style: AppTextStyles.h2(color: AppColors.textPrimary)
               .copyWith(height: 1.3),
           textAlign: TextAlign.center,
         ).animate(delay: 800.ms).fadeIn(duration: 600.ms),
-
         const SizedBox(height: 16),
-
         if (gapCount > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

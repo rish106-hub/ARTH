@@ -99,8 +99,9 @@ class DeductionDetailScreen extends ConsumerWidget {
                         backgroundColor: isDone
                             ? AppColors.bgSurface
                             : AppColors.success.withValues(alpha: 0.15),
-                        foregroundColor:
-                            isDone ? AppColors.textSecondary : AppColors.success,
+                        foregroundColor: isDone
+                            ? AppColors.textSecondary
+                            : AppColors.success,
                         elevation: 0,
                         shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -127,7 +128,9 @@ class DeductionDetailScreen extends ConsumerWidget {
                         }
                       },
                       icon: Icon(
-                        isDone ? Icons.undo_rounded : Icons.check_circle_outline_rounded,
+                        isDone
+                            ? Icons.undo_rounded
+                            : Icons.check_circle_outline_rounded,
                         size: 18,
                       ),
                       label: Text(isDone ? 'Mark as Not Done' : 'Mark Done'),
@@ -184,12 +187,11 @@ class _HeroBanner extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: gap.accentColor.withValues(alpha: 0.12),
                   borderRadius: AppRadius.pill,
-                  border: Border.all(
-                      color: gap.accentColor.withValues(alpha: 0.4)),
+                  border:
+                      Border.all(color: gap.accentColor.withValues(alpha: 0.4)),
                 ),
                 child: Text(gap.section,
-                    style:
-                        AppTextStyles.sectionLabel(color: gap.accentColor)),
+                    style: AppTextStyles.sectionLabel(color: gap.accentColor)),
               ),
               const Spacer(),
               Row(
@@ -198,8 +200,8 @@ class _HeroBanner extends StatelessWidget {
                       size: 14, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Text(gap.difficultyLabel,
-                      style: AppTextStyles.micro(
-                          color: AppColors.textSecondary)),
+                      style:
+                          AppTextStyles.micro(color: AppColors.textSecondary)),
                 ],
               ),
             ],
@@ -228,8 +230,7 @@ class _HeroBanner extends StatelessWidget {
               const Icon(Icons.calendar_today_outlined,
                   size: 12, color: AppColors.textSecondary),
               const SizedBox(width: 4),
-              Text('Deadline: ${gap.deadline}',
-                  style: AppTextStyles.micro()),
+              Text('Deadline: ${gap.deadline}', style: AppTextStyles.micro()),
             ],
           ),
         ],
@@ -292,8 +293,7 @@ class _DetailSection extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('•  ',
-                      style: AppTextStyles.body(color: AppColors.gold)),
+                  Text('•  ', style: AppTextStyles.body(color: AppColors.gold)),
                   Expanded(child: Text(d, style: AppTextStyles.body())),
                 ],
               ),
@@ -362,10 +362,8 @@ class _ActionButton extends StatelessWidget {
             backgroundColor: accentColor.withValues(alpha: 0.12),
             foregroundColor: accentColor,
             elevation: 0,
-            shape: RoundedRectangleBorder(
-                borderRadius: AppRadius.card),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: AppRadius.card),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),
           onPressed: () async {

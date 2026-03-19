@@ -124,16 +124,14 @@ class _RegimeContent extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Deduction breakdown (old regime)
-          Text('Old Regime Deduction Stack',
-              style: AppTextStyles.h3()),
+          Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
           const SizedBox(height: 12),
           _DeductionBreakdown(result: result),
 
           const SizedBox(height: 24),
 
           // Income range guidance
-          Text('General Guidance by Income',
-              style: AppTextStyles.h3()),
+          Text('General Guidance by Income', style: AppTextStyles.h3()),
           const SizedBox(height: 12),
           _IncomeGuidance(),
         ],
@@ -216,8 +214,7 @@ class _RegimeCard extends StatelessWidget {
             child: Column(
               children: [
                 Text('Tax payable',
-                    style:
-                        AppTextStyles.micro(color: AppColors.textSecondary)),
+                    style: AppTextStyles.micro(color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 AnimatedRupeeNumber(
                   value: tax.round(),
@@ -227,15 +224,11 @@ class _RegimeCard extends StatelessWidget {
                   duration: const Duration(milliseconds: 1200),
                 ),
                 const SizedBox(height: 12),
-
-                _InfoRow(
-                    label: 'Taxable income',
-                    value: taxableIncome.round()),
+                _InfoRow(label: 'Taxable income', value: taxableIncome.round()),
                 const SizedBox(height: 6),
                 _InfoRow(
                     label: isNew ? 'Std deduction' : 'Deductions',
                     value: deductions.round()),
-
                 if (savings != null && savings! > 0) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -314,7 +307,8 @@ class _SavingsCallout extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb_outline_rounded, color: AppColors.gold, size: 24),
+          const Icon(Icons.lightbulb_outline_rounded,
+              color: AppColors.gold, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -377,7 +371,10 @@ class _DeductionBreakdown extends StatelessWidget {
       child: Column(
         children: items
             .map((item) => Column(
-                  children: [item, Divider(height: 1, color: AppColors.divider)],
+                  children: [
+                    item,
+                    Divider(height: 1, color: AppColors.divider)
+                  ],
                 ))
             .toList(),
       ),
@@ -408,8 +405,7 @@ class _DeductionRow extends StatelessWidget {
               color: AppColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
-            child: Text(section,
-                style: AppTextStyles.sectionLabel()),
+            child: Text(section, style: AppTextStyles.sectionLabel()),
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(label, style: AppTextStyles.caption())),
@@ -458,9 +454,7 @@ class _IncomeGuidance extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        children: _items
-            .map((item) => _GuidanceRow(item: item))
-            .toList(),
+        children: _items.map((item) => _GuidanceRow(item: item)).toList(),
       ),
     );
   }
@@ -501,15 +495,14 @@ class _GuidanceRow extends StatelessWidget {
               color: item.color.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
-            child: Text(item.rec,
-                style: AppTextStyles.micro(color: item.color)),
+            child:
+                Text(item.rec, style: AppTextStyles.micro(color: item.color)),
           ),
           const SizedBox(width: 8),
           Expanded(
             flex: 3,
             child: Text(item.reason,
-                style: AppTextStyles.micro(),
-                textAlign: TextAlign.right),
+                style: AppTextStyles.micro(), textAlign: TextAlign.right),
           ),
         ],
       ),
