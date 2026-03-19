@@ -175,7 +175,7 @@ class _RegimeCard extends StatelessWidget {
         boxShadow: isBetter
             ? [
                 BoxShadow(
-                  color: AppColors.gold.withOpacity(0.08),
+                  color: AppColors.gold.withValues(alpha: 0.08),
                   blurRadius: 20,
                   spreadRadius: 2,
                 )
@@ -190,7 +190,7 @@ class _RegimeCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: isBetter
-                  ? AppColors.gold.withOpacity(0.1)
+                  ? AppColors.gold.withValues(alpha: 0.1)
                   : AppColors.bgSurface,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
@@ -242,7 +242,7 @@ class _RegimeCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
+                      color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: AppRadius.pill,
                     ),
                     child: Column(
@@ -303,14 +303,14 @@ class _SavingsCallout extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.gold.withOpacity(0.1),
-            AppColors.gold.withOpacity(0.03),
+            AppColors.gold.withValues(alpha: 0.1),
+            AppColors.gold.withValues(alpha: 0.03),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -405,7 +405,7 @@ class _DeductionRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.1),
+              color: AppColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
             child: Text(section,
@@ -498,7 +498,7 @@ class _GuidanceRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: item.color.withOpacity(0.1),
+              color: item.color.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
             child: Text(item.rec,

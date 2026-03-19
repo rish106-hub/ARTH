@@ -276,11 +276,6 @@ class TaxEngine {
     _Slab(1000000, 999999999, 0.30),
   ];
 
-  static const List<_Slab> _oldRegimeSlabs80Plus = [
-    _Slab(0, 500000, 0.00),
-    _Slab(500000, 1000000, 0.20),
-    _Slab(1000000, 999999999, 0.30),
-  ];
 }
 
 class _Slab {

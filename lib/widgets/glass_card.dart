@@ -34,12 +34,12 @@ class GlassCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                tint.withOpacity(0.05),
-                tint.withOpacity(0.02),
+                tint.withValues(alpha: 0.05),
+                tint.withValues(alpha: 0.02),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(borderOpacity),
+              color: Colors.white.withValues(alpha: borderOpacity),
               width: 1,
             ),
           ),

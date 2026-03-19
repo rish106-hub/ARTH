@@ -214,8 +214,6 @@ class _Q01CTC extends ConsumerStatefulWidget {
 class _Q01CTCState extends ConsumerState<_Q01CTC> {
   late double _value; // in Lakhs (1.0 – 60.0)
   late TextEditingController _textCtrl;
-  bool _sliderDragging = false;
-
   @override
   void initState() {
     super.initState();
@@ -268,7 +266,6 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
   void _onSliderChanged(double v) {
     setState(() {
       _value = v;
-      _sliderDragging = true;
     });
     // Update text field to show lakhs — won't trigger onChanged
     _textCtrl.text = v.toStringAsFixed(1);
@@ -403,9 +400,9 @@ class _SlabIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -541,7 +538,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                         horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.gold.withOpacity(0.1)
+                          ? AppColors.gold.withValues(alpha: 0.1)
                           : AppColors.bgCard,
                       borderRadius: AppRadius.card,
                       border: Border.all(
@@ -563,7 +560,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.teal.withOpacity(0.15),
+                              color: AppColors.teal.withValues(alpha: 0.15),
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text('Metro',
@@ -1305,9 +1302,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.07),
+                  color: AppColors.gold.withValues(alpha: 0.07),
                   borderRadius: AppRadius.card,
-                  border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1507,7 +1504,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.07),
+                color: AppColors.gold.withValues(alpha: 0.07),
                 borderRadius: AppRadius.card,
               ),
               child: Text(

@@ -38,7 +38,7 @@ class GapCardWidget extends StatelessWidget {
             color: AppColors.bgCard,
             borderRadius: AppRadius.card,
             border: Border.all(
-              color: isDone ? AppColors.border : accent.withOpacity(0.35),
+              color: isDone ? AppColors.border : accent.withValues(alpha: 0.35),
               width: 1,
             ),
           ),
@@ -67,7 +67,7 @@ class GapCardWidget extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.15),
+                              color: AppColors.success.withValues(alpha: 0.15),
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text('Done',
@@ -121,7 +121,7 @@ class GapCardWidget extends StatelessWidget {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: accent.withOpacity(0.12),
+                              color: accent.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(Icons.arrow_forward_rounded,
@@ -164,10 +164,10 @@ class _SectionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: (isDone ? AppColors.success : accent).withOpacity(0.12),
+        color: (isDone ? AppColors.success : accent).withValues(alpha: 0.12),
         borderRadius: AppRadius.pill,
         border: Border.all(
-          color: (isDone ? AppColors.success : accent).withOpacity(0.4),
+          color: (isDone ? AppColors.success : accent).withValues(alpha: 0.4),
           width: 1,
         ),
       ),

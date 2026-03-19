@@ -68,7 +68,7 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.gold.withOpacity(0.04),
+                color: AppColors.gold.withValues(alpha: 0.04),
               ),
             ),
           ),

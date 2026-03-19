@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
-import '../models/gap_card.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/gap_card_widget.dart';
@@ -253,7 +252,7 @@ class _SectionHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: AppRadius.pill,
             ),
             child: Text('$count',

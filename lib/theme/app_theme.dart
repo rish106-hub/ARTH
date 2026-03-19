@@ -149,7 +149,7 @@ class AppTheme {
         activeTrackColor: AppColors.gold,
         inactiveTrackColor: AppColors.bgSurface,
         thumbColor: AppColors.gold,
-        overlayColor: AppColors.gold.withOpacity(0.15),
+        overlayColor: AppColors.gold.withValues(alpha: 0.15),
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
         trackHeight: 4,
         valueIndicatorColor: AppColors.gold,

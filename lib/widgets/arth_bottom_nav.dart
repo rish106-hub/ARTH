@@ -40,12 +40,12 @@ class ArthBottomNav extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.07),
-                  Colors.white.withOpacity(0.03),
+                  Colors.white.withValues(alpha: 0.07),
+                  Colors.white.withValues(alpha: 0.03),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 width: 1,
               ),
             ),
@@ -69,11 +69,11 @@ class ArthBottomNav extends StatelessWidget {
                           height: isSelected ? 36 : 0,
                           decoration: isSelected
                               ? BoxDecoration(
-                                  color: AppColors.gold.withOpacity(0.15),
+                                  color: AppColors.gold.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.gold.withOpacity(0.25),
+                                      color: AppColors.gold.withValues(alpha: 0.25),
                                       blurRadius: 12,
                                       spreadRadius: 2,
                                     ),

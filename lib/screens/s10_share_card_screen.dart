@@ -151,7 +151,7 @@ class _ShareCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgPrimary,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withOpacity(0.4), width: 1.5),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +233,7 @@ class _ShareCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.bgCard,
                 borderRadius: AppRadius.card,
-                border: Border.all(color: AppColors.gold.withOpacity(0.25)),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
               ),
               child: Column(
                 children: [
@@ -281,10 +281,10 @@ class _ShareItemRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.1),
+              color: AppColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
               border:
-                  Border.all(color: AppColors.gold.withOpacity(0.3)),
+                  Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
             child: Text(item.section,
                 style: AppTextStyles.sectionLabel()),

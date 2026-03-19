@@ -185,7 +185,7 @@ class _AmbientParticlesState extends State<_AmbientParticles>
                 height: 6 + i * 3.0,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.gold.withOpacity(opacity),
+                  color: AppColors.gold.withValues(alpha: opacity),
                 ),
               ),
             );

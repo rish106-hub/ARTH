@@ -126,8 +126,8 @@ class _FYTimeline extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: daysLeft <= 30
-                      ? AppColors.alert.withOpacity(0.15)
-                      : AppColors.amber.withOpacity(0.15),
+                      ? AppColors.alert.withValues(alpha: 0.15)
+                      : AppColors.amber.withValues(alpha: 0.15),
                   borderRadius: AppRadius.pill,
                 ),
                 child: Text(
@@ -189,14 +189,14 @@ class _OverallProgress extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.gold.withOpacity(0.08),
+            AppColors.gold.withValues(alpha: 0.08),
             AppColors.bgCard,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withOpacity(0.25)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
@@ -359,7 +359,7 @@ class _GapStatusRow extends StatelessWidget {
         color: AppColors.bgCard,
         borderRadius: AppRadius.card,
         border: Border.all(
-          color: isDone ? AppColors.success.withOpacity(0.3) : AppColors.border,
+          color: isDone ? AppColors.success.withValues(alpha: 0.3) : AppColors.border,
         ),
       ),
       child: Row(

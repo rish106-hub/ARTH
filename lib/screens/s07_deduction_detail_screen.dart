@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../models/gap_card.dart';
@@ -99,7 +98,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDone
                             ? AppColors.bgSurface
-                            : AppColors.success.withOpacity(0.15),
+                            : AppColors.success.withValues(alpha: 0.15),
                         foregroundColor:
                             isDone ? AppColors.textSecondary : AppColors.success,
                         elevation: 0,
@@ -108,7 +107,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                         side: BorderSide(
                           color: isDone
                               ? AppColors.border
-                              : AppColors.success.withOpacity(0.5),
+                              : AppColors.success.withValues(alpha: 0.5),
                         ),
                       ),
                       onPressed: () {
@@ -170,7 +169,7 @@ class _HeroBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         border: Border(
-          bottom: BorderSide(color: gap.accentColor.withOpacity(0.3)),
+          bottom: BorderSide(color: gap.accentColor.withValues(alpha: 0.3)),
           top: BorderSide(color: gap.accentColor, width: 3),
         ),
       ),
@@ -183,10 +182,10 @@ class _HeroBanner extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: gap.accentColor.withOpacity(0.12),
+                  color: gap.accentColor.withValues(alpha: 0.12),
                   borderRadius: AppRadius.pill,
                   border: Border.all(
-                      color: gap.accentColor.withOpacity(0.4)),
+                      color: gap.accentColor.withValues(alpha: 0.4)),
                 ),
                 child: Text(gap.section,
                     style:
@@ -255,9 +254,9 @@ class _MetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
+        color: color.withValues(alpha: 0.06),
         borderRadius: AppRadius.card,
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,14 +359,14 @@ class _ActionButton extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: accentColor.withOpacity(0.12),
+            backgroundColor: accentColor.withValues(alpha: 0.12),
             foregroundColor: accentColor,
             elevation: 0,
             shape: RoundedRectangleBorder(
                 borderRadius: AppRadius.card),
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            side: BorderSide(color: accentColor.withOpacity(0.4)),
+            side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),
           onPressed: () async {
             final uri = Uri.parse(action.url);
