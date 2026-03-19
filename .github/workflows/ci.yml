@@ -57,7 +57,7 @@ jobs:
             "client": [{
               "client_info": {
                 "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
-                "android_client_info": { "package_name": "com.arth.taxgap.debug" }
+                "android_client_info": { "package_name": "com.arth.taxgap" }
               },
               "api_key": [{ "current_key": "CI_PLACEHOLDER_KEY" }],
               "services": {}
