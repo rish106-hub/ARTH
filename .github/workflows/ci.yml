@@ -1,0 +1,77 @@
+name: CI — Build & Analyse
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Flutter Build & Analyse
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed lib/ test/
+
+      - name: Analyse (dart analyse)
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run unit tests
+        run: flutter test --coverage
+
+      # Placeholder google-services.json for CI builds (no real Firebase needed)
+      - name: Write CI google-services.json
+        run: |
+          cat > android/app/google-services.json << 'GSEOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "arth-taxgap-ci",
+              "storage_bucket": ""
+            },
+            "client": [{
+              "client_info": {
+                "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                "android_client_info": { "package_name": "com.arth.taxgap.debug" }
+              },
+              "api_key": [{ "current_key": "CI_PLACEHOLDER_KEY" }],
+              "services": {}
+            }],
+            "configuration_version": "1"
+          }
+          GSEOF
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arth-debug-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7

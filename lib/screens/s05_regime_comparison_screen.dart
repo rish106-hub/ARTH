@@ -1,0 +1,518 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../theme/app_theme.dart';
+import '../models/tax_result.dart';
+import '../providers/tax_result_provider.dart';
+import '../widgets/animated_number.dart';
+import '../widgets/question_progress_bar.dart';
+
+class RegimeComparisonScreen extends ConsumerWidget {
+  const RegimeComparisonScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resultAsync = ref.watch(taxResultProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.bgPrimary,
+      appBar: ArthAppBar(title: 'Old vs New Regime'),
+      body: resultAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (result) => _RegimeContent(result: result),
+      ),
+    );
+  }
+}
+
+class _RegimeContent extends StatelessWidget {
+  final TaxResult result;
+  const _RegimeContent({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Based on your profile:',
+            style: AppTextStyles.caption(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${result.betterRegimeLabel} saves you more money.',
+            style: AppTextStyles.h2(color: AppColors.gold),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Two regime cards side by side
+          Row(
+            children: [
+              Expanded(
+                child: _RegimeCard(
+                  title: 'Old Regime',
+                  tax: result.oldRegimeTax,
+                  taxableIncome: result.oldRegimeTaxableIncome,
+                  deductions: result.totalDeductionsOld,
+                  isBetter: result.isOldBetter,
+                  savings: result.isOldBetter ? result.regimeSavings : null,
+                  isNew: false,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _RegimeCard(
+                  title: 'New Regime',
+                  tax: result.newRegimeTax,
+                  taxableIncome: result.newRegimeTaxableIncome,
+                  deductions: 75000,
+                  isBetter: !result.isOldBetter,
+                  savings: !result.isOldBetter ? result.regimeSavings : null,
+                  isNew: true,
+                ),
+              ),
+            ],
+          )
+              .animate()
+              .slideX(begin: 0.1, duration: 400.ms, curve: Curves.easeOut)
+              .fadeIn(duration: 400.ms),
+
+          const SizedBox(height: 24),
+
+          // Savings callout
+          if (result.regimeSavings > 0)
+            _SavingsCallout(
+              betterRegime: result.betterRegimeLabel,
+              savings: result.regimeSavings,
+              isOldBetter: result.isOldBetter,
+            ),
+
+          const SizedBox(height: 24),
+
+          // Note
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: AppRadius.card,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    result.isOldBetter
+                        ? 'This assumes you claim ALL your eligible deductions in the old regime. If you don\'t, new regime could still win.'
+                        : 'New regime wins with simplified flat slabs and ₹75,000 standard deduction.',
+                    style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Deduction breakdown (old regime)
+          Text('Old Regime Deduction Stack',
+              style: AppTextStyles.h3()),
+          const SizedBox(height: 12),
+          _DeductionBreakdown(result: result),
+
+          const SizedBox(height: 24),
+
+          // Income range guidance
+          Text('General Guidance by Income',
+              style: AppTextStyles.h3()),
+          const SizedBox(height: 12),
+          _IncomeGuidance(),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegimeCard extends StatelessWidget {
+  final String title;
+  final double tax;
+  final double taxableIncome;
+  final double deductions;
+  final bool isBetter;
+  final double? savings;
+  final bool isNew;
+
+  const _RegimeCard({
+    required this.title,
+    required this.tax,
+    required this.taxableIncome,
+    required this.deductions,
+    required this.isBetter,
+    this.savings,
+    required this.isNew,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: AppRadius.card,
+        border: Border.all(
+          color: isBetter ? AppColors.gold : AppColors.border,
+          width: isBetter ? 1.5 : 1,
+        ),
+        boxShadow: isBetter
+            ? [
+                BoxShadow(
+                  color: AppColors.gold.withOpacity(0.08),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                )
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: isBetter
+                  ? AppColors.gold.withOpacity(0.1)
+                  : AppColors.bgSurface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Column(
+              children: [
+                Text(title,
+                    style: AppTextStyles.caption(
+                        color: isBetter
+                            ? AppColors.gold
+                            : AppColors.textSecondary)),
+                if (isBetter) ...[
+                  const SizedBox(height: 2),
+                  Text('Better for you',
+                      style: AppTextStyles.micro(color: AppColors.gold)),
+                ],
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                Text('Tax payable',
+                    style:
+                        AppTextStyles.micro(color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                AnimatedRupeeNumber(
+                  value: tax.round(),
+                  style: AppTextStyles.h2(
+                      color:
+                          isBetter ? AppColors.success : AppColors.textPrimary),
+                  duration: const Duration(milliseconds: 1200),
+                ),
+                const SizedBox(height: 12),
+
+                _InfoRow(
+                    label: 'Taxable income',
+                    value: taxableIncome.round()),
+                const SizedBox(height: 6),
+                _InfoRow(
+                    label: isNew ? 'Std deduction' : 'Deductions',
+                    value: deductions.round()),
+
+                if (savings != null && savings! > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: AppRadius.pill,
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Save more by',
+                            style: AppTextStyles.micro(
+                                color: AppColors.textSecondary)),
+                        RupeeText(
+                          amount: savings!.round(),
+                          style: AppTextStyles.h3(color: AppColors.success),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final int value;
+  const _InfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: AppTextStyles.micro()),
+        Text(formatRupees(value),
+            style: AppTextStyles.micro(color: AppColors.textPrimary)),
+      ],
+    );
+  }
+}
+
+class _SavingsCallout extends StatelessWidget {
+  final String betterRegime;
+  final double savings;
+  final bool isOldBetter;
+
+  const _SavingsCallout({
+    required this.betterRegime,
+    required this.savings,
+    required this.isOldBetter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.gold.withOpacity(0.1),
+            AppColors.gold.withOpacity(0.03),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lightbulb_outline_rounded, color: AppColors.gold, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$betterRegime saves you',
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+                RupeeText(
+                  amount: savings.round(),
+                  style: AppTextStyles.h2(color: AppColors.gold),
+                ),
+                Text(
+                  'more every year.',
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeductionBreakdown extends StatelessWidget {
+  final TaxResult result;
+  const _DeductionBreakdown({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    // Build list of triggered deductions
+    final items = result.gaps
+        .map((g) => _DeductionRow(
+              section: g.section,
+              label: g.title,
+              amount: g.gapAmount,
+            ))
+        .toList();
+
+    if (items.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: AppRadius.card,
+        ),
+        child: Text('No gaps found in old regime deductions.',
+            style: AppTextStyles.caption(color: AppColors.textSecondary)),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: items
+            .map((item) => Column(
+                  children: [item, Divider(height: 1, color: AppColors.divider)],
+                ))
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _DeductionRow extends StatelessWidget {
+  final String section;
+  final String label;
+  final int amount;
+
+  const _DeductionRow({
+    required this.section,
+    required this.label,
+    required this.amount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.1),
+              borderRadius: AppRadius.pill,
+            ),
+            child: Text(section,
+                style: AppTextStyles.sectionLabel()),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: AppTextStyles.caption())),
+          RupeeText(
+            amount: amount,
+            style: AppTextStyles.caption(color: AppColors.gold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IncomeGuidance extends StatelessWidget {
+  const _IncomeGuidance();
+
+  static const _items = [
+    _GuidanceItem(
+        range: 'Up to ₹12 lakh',
+        rec: 'New Regime',
+        reason: '₹60,000 rebate makes effective tax zero',
+        color: AppColors.success),
+    _GuidanceItem(
+        range: '₹12L – ₹15L',
+        rec: 'Compare both',
+        reason: 'Depends on HRA and investments',
+        color: AppColors.amber),
+    _GuidanceItem(
+        range: '₹15L – ₹50L',
+        rec: 'Old Regime',
+        reason: 'Wins with full deductions stack',
+        color: AppColors.gold),
+    _GuidanceItem(
+        range: 'Above ₹50L',
+        rec: 'Consult CA',
+        reason: 'Surcharge impact matters',
+        color: AppColors.textSecondary),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: _items
+            .map((item) => _GuidanceRow(item: item))
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _GuidanceItem {
+  final String range;
+  final String rec;
+  final String reason;
+  final Color color;
+  const _GuidanceItem(
+      {required this.range,
+      required this.rec,
+      required this.reason,
+      required this.color});
+}
+
+class _GuidanceRow extends StatelessWidget {
+  final _GuidanceItem item;
+  const _GuidanceRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.divider)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(item.range, style: AppTextStyles.caption()),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: item.color.withOpacity(0.1),
+              borderRadius: AppRadius.pill,
+            ),
+            child: Text(item.rec,
+                style: AppTextStyles.micro(color: item.color)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(item.reason,
+                style: AppTextStyles.micro(),
+                textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+}

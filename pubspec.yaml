@@ -1,0 +1,68 @@
+name: arth
+description: "ARTH - India's First Tax Gap Intelligence App. Not a rupee less. Not a rupee more."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # Local persistence
+  shared_preferences: ^2.3.1
+
+  # Firebase (using latest compatible set — Spark free tier, India-available)
+  firebase_core: ^3.15.1
+  firebase_auth: ^5.3.4
+  firebase_remote_config: ^5.4.4
+  firebase_messaging: ^15.2.5
+  firebase_analytics: ^11.4.4
+  cloud_firestore: ^5.6.5
+
+  # Google Sign-In (wired but feature-flagged via Remote Config)
+  google_sign_in: ^6.2.2
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  # Animations
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.0
+
+  # Sharing & Screenshot
+  share_plus: ^10.1.4
+  screenshot: ^3.0.0
+
+  # URL launching (action deeplinks)
+  url_launcher: ^6.3.0
+
+  # Formatting
+  intl: ^0.19.0
+
+  # Biometric authentication
+  local_auth: ^2.3.0
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/tax_data.json
+    - assets/lottie/coins.json
+
+  # SpaceGrotesk is loaded via google_fonts package at runtime — no local asset needed.

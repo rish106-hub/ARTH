@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237352355014",
+    "project_id": "collprep-51b6d",
+    "storage_bucket": "collprep-51b6d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237352355014:android:3ee36e965c0fa0969583c7",
+        "android_client_info": {
+          "package_name": "com.arth.taxgap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC40edMSuds_ucp3caWurPrqNEQPNgPqkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

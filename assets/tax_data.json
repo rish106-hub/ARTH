@@ -1,0 +1,307 @@
+{
+  "_meta": {
+    "version": "FY2025-26",
+    "assessment_year": "AY2026-27",
+    "last_updated": "2026-02-01",
+    "source": "Income Tax Act 1961 | Finance Act 2025 | CBDT | incometaxindia.gov.in",
+    "cess_rate": 0.04,
+    "default_regime": "new"
+  },
+  "tax_regimes": {
+    "new_regime": {
+      "standard_deduction_INR": 75000,
+      "rebate_87A": {
+        "amount_INR": 60000,
+        "applicable_if_net_taxable_income_upto_INR": 1200000
+      },
+      "slabs": [
+        { "from": 0, "to": 400000, "rate": 0.0 },
+        { "from": 400000, "to": 800000, "rate": 0.05 },
+        { "from": 800000, "to": 1200000, "rate": 0.10 },
+        { "from": 1200000, "to": 1600000, "rate": 0.15 },
+        { "from": 1600000, "to": 2000000, "rate": 0.20 },
+        { "from": 2000000, "to": 2400000, "rate": 0.25 },
+        { "from": 2400000, "to": 999999999, "rate": 0.30 }
+      ]
+    },
+    "old_regime": {
+      "standard_deduction_INR": 50000,
+      "professional_tax_INR": 2500,
+      "rebate_87A": {
+        "amount_INR": 12500,
+        "applicable_if_net_taxable_income_upto_INR": 500000
+      },
+      "slabs_below_60": [
+        { "from": 0, "to": 250000, "rate": 0.0 },
+        { "from": 250000, "to": 500000, "rate": 0.05 },
+        { "from": 500000, "to": 1000000, "rate": 0.20 },
+        { "from": 1000000, "to": 999999999, "rate": 0.30 }
+      ],
+      "slabs_60_to_79": [
+        { "from": 0, "to": 300000, "rate": 0.0 },
+        { "from": 300000, "to": 500000, "rate": 0.05 },
+        { "from": 500000, "to": 1000000, "rate": 0.20 },
+        { "from": 1000000, "to": 999999999, "rate": 0.30 }
+      ],
+      "slabs_80_plus": [
+        { "from": 0, "to": 500000, "rate": 0.0 },
+        { "from": 500000, "to": 1000000, "rate": 0.20 },
+        { "from": 1000000, "to": 999999999, "rate": 0.30 }
+      ]
+    }
+  },
+  "deductions": {
+    "80C": { "max": 150000, "label": "80C Investments", "instruments": ["EPF", "PPF", "ELSS", "LIC", "NSC", "Tax-Saving FD", "Home Loan Principal", "Tuition Fees"] },
+    "80CCD_1B": { "max": 50000, "label": "Extra NPS Contribution", "note": "Over and above 80C limit" },
+    "80D_self_below60": { "max": 25000 },
+    "80D_self_above60": { "max": 50000 },
+    "80D_parents_below60": { "max": 25000 },
+    "80D_parents_above60": { "max": 50000 },
+    "section_24b_self_occupied": { "max": 200000 },
+    "80TTA": { "max": 10000 },
+    "80TTB": { "max": 50000 }
+  },
+  "decision_tree_triggers": [
+    {
+      "id": "T01_80C_gap",
+      "section": "80C",
+      "title": "Investments Gap",
+      "condition_key": "invested80C",
+      "condition_op": "less_than",
+      "condition_value": 150000,
+      "gap_formula": "150000_minus_invested",
+      "max_gap": 150000,
+      "short_desc": "Mutual Funds, PPF, LIC",
+      "message": "You can invest more in ELSS or PPF to fully use 80C.",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (20 min online)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Open ELSS SIP", "url": "https://groww.in/mutual-funds/tax-saving" },
+        { "label": "Deposit in PPF", "url": "https://www.indiapost.gov.in/Financial/Pages/Content/ppf.aspx" }
+      ],
+      "color_hex": "FF9800"
+    },
+    {
+      "id": "T02_80CCD1B_nps",
+      "section": "80CCD(1B)",
+      "title": "Extra NPS Contribution",
+      "condition_key": "npsExtraContribution",
+      "condition_op": "equals",
+      "condition_value": 0,
+      "gap_formula": "fixed_50000",
+      "max_gap": 50000,
+      "short_desc": "National Pension System",
+      "message": "Open NPS Tier-1 and invest ₹50,000 extra for additional deduction beyond 80C.",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (30 min, NSDL app)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Open NPS on NSDL", "url": "https://enps.nsdl.com" }
+      ],
+      "color_hex": "F5C842"
+    },
+    {
+      "id": "T03_80D_self",
+      "section": "80D",
+      "title": "Health Insurance — Self",
+      "condition_key": "hasHealthInsuranceSelf",
+      "condition_op": "is_false",
+      "condition_value": null,
+      "gap_formula": "fixed_25000",
+      "max_gap": 25000,
+      "short_desc": "Self / Spouse / Children",
+      "message": "No health insurance detected. Buy a plan to claim ₹25,000 deduction under 80D.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (1 day research)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Compare Health Plans", "url": "https://www.policybazaar.com/health-insurance/" }
+      ],
+      "color_hex": "FF9800"
+    },
+    {
+      "id": "T04_80D_parents_below60",
+      "section": "80D",
+      "title": "Health Insurance — Parents",
+      "condition_key": "hasHealthInsuranceParents",
+      "condition_op": "is_false_and_parents_below60",
+      "condition_value": null,
+      "gap_formula": "fixed_25000",
+      "max_gap": 25000,
+      "short_desc": "Parents below 60",
+      "message": "Cover your parents under health insurance to claim ₹25,000 more under 80D.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (add parents to policy)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Add Parents to Policy", "url": "https://www.policybazaar.com/health-insurance/family-health-insurance/" }
+      ],
+      "color_hex": "FF9800"
+    },
+    {
+      "id": "T05_80D_parents_above60",
+      "section": "80D",
+      "title": "Health Insurance — Senior Parents",
+      "condition_key": "hasHealthInsuranceParents",
+      "condition_op": "is_false_and_parents_above60",
+      "condition_value": null,
+      "gap_formula": "fixed_50000",
+      "max_gap": 50000,
+      "short_desc": "Parents 60+ — Higher limit",
+      "message": "Senior parents uncovered. Add them to claim ₹50,000 under 80D.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (senior health plan)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Senior Citizen Health Plans", "url": "https://www.policybazaar.com/health-insurance/senior-citizen-health-insurance/" }
+      ],
+      "color_hex": "F5C842"
+    },
+    {
+      "id": "T06_80GG_rent",
+      "section": "80GG",
+      "title": "Rent — No HRA Employer",
+      "condition_key": "paysRentNoHRA",
+      "condition_op": "is_true",
+      "condition_value": null,
+      "gap_formula": "80GG_formula",
+      "max_gap": 60000,
+      "short_desc": "You pay rent but no HRA",
+      "message": "You pay rent but get no HRA. File Form 10BA and claim rent deduction under 80GG.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (file Form 10BA)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Download Form 10BA", "url": "https://www.incometaxindia.gov.in/forms/income-tax%20rules/form_10ba.pdf" }
+      ],
+      "color_hex": "26A69A"
+    },
+    {
+      "id": "T07_80E_education_loan",
+      "section": "80E",
+      "title": "Education Loan Interest",
+      "condition_key": "hasEducationLoan",
+      "condition_op": "is_true_and_within_8_years",
+      "condition_value": null,
+      "gap_formula": "education_loan_interest",
+      "max_gap": 200000,
+      "short_desc": "Entire interest, no cap",
+      "message": "Your education loan interest is fully deductible under 80E. No upper limit for 8 years.",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (interest certificate from bank)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Get Interest Certificate", "url": "https://www.incometaxindia.gov.in" }
+      ],
+      "color_hex": "26A69A"
+    },
+    {
+      "id": "T08_section24b_home_loan",
+      "section": "Section 24(b)",
+      "title": "Home Loan Interest",
+      "condition_key": "hasHomeLoanSelfOccupied",
+      "condition_op": "is_true",
+      "condition_value": null,
+      "gap_formula": "home_loan_interest_capped_200000",
+      "max_gap": 200000,
+      "short_desc": "Up to ₹2 lakh deduction",
+      "message": "Claim your home loan interest up to ₹2 lakh under Section 24(b).",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (interest certificate)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Get Loan Statement", "url": "https://www.incometaxindia.gov.in" }
+      ],
+      "color_hex": "F5C842"
+    },
+    {
+      "id": "T09_80TTA",
+      "section": "80TTA",
+      "title": "Savings Account Interest",
+      "condition_key": "ageBelow60",
+      "condition_op": "is_true",
+      "condition_value": null,
+      "gap_formula": "fixed_10000",
+      "max_gap": 10000,
+      "short_desc": "Up to ₹10,000 tax-free",
+      "message": "Your savings account interest up to ₹10,000 is tax-free under 80TTA.",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (auto-claimed on ITR)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Claim on ITR Portal", "url": "https://eportal.incometax.gov.in" }
+      ],
+      "color_hex": "26A69A"
+    },
+    {
+      "id": "T10_80TTB_senior",
+      "section": "80TTB",
+      "title": "FD + Savings Interest (Senior)",
+      "condition_key": "ageAbove60",
+      "condition_op": "is_true",
+      "condition_value": null,
+      "gap_formula": "fixed_50000",
+      "max_gap": 50000,
+      "short_desc": "FD + savings interest, ₹50,000",
+      "message": "All your FD and savings interest up to ₹50,000 is deductible under 80TTB.",
+      "difficulty": "easy",
+      "difficulty_label": "Easy (auto-claimed on ITR)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Claim on ITR Portal", "url": "https://eportal.incometax.gov.in" }
+      ],
+      "color_hex": "26A69A"
+    },
+    {
+      "id": "T11_regime_switch",
+      "section": "Regime Choice",
+      "title": "Wrong Tax Regime",
+      "condition_key": "regime_suboptimal",
+      "condition_op": "computed",
+      "condition_value": null,
+      "gap_formula": "regime_difference",
+      "max_gap": 500000,
+      "short_desc": "Switch and save",
+      "message": "You may be in the wrong tax regime. Switch to save more.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (file Form 10-IEA)",
+      "deadline": "31 July 2026",
+      "actions": [
+        { "label": "Read Regime Comparison", "url": "https://www.incometaxindia.gov.in" }
+      ],
+      "color_hex": "F5C842"
+    },
+    {
+      "id": "T12_80CCD2_employer_nps",
+      "section": "80CCD(2)",
+      "title": "Employer NPS Contribution",
+      "condition_key": "employerNpsContribution",
+      "condition_op": "equals",
+      "condition_value": 0,
+      "gap_formula": "10_percent_basic",
+      "max_gap": 150000,
+      "short_desc": "Ask HR — works in both regimes",
+      "message": "Ask HR to route part of your CTC to NPS under 80CCD(2). Saves tax in BOTH regimes.",
+      "difficulty": "medium",
+      "difficulty_label": "Medium (HR request)",
+      "deadline": "31 March 2026",
+      "actions": [
+        { "label": "Email HR Template", "url": "https://www.incometaxindia.gov.in" }
+      ],
+      "color_hex": "26A69A"
+    }
+  ],
+  "regime_comparison": {
+    "breakeven_deductions_INR": 375000,
+    "income_guidance": [
+      { "range": "Up to ₹12 lakh", "recommendation": "new", "reason": "₹60,000 rebate makes effective tax zero" },
+      { "range": "₹12L – ₹15L", "recommendation": "compare", "reason": "Depends on HRA and investments" },
+      { "range": "₹15L – ₹50L", "recommendation": "old", "reason": "Old regime wins with full deductions" },
+      { "range": "Above ₹50L", "recommendation": "consult_ca", "reason": "Surcharge impact matters" }
+    ]
+  },
+  "metro_cities": ["Delhi", "Mumbai", "Chennai", "Kolkata", "New Delhi"],
+  "hra_metro_percent": 0.50,
+  "hra_non_metro_percent": 0.40
+}

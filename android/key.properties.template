@@ -1,0 +1,13 @@
+# Copy this file to android/key.properties and fill in your values.
+# NEVER commit key.properties to git — it is in .gitignore.
+#
+# To generate a keystore:
+#   keytool -genkey -v -keystore arth-release.jks -alias arth \
+#           -keyalg RSA -keysize 2048 -validity 10000
+#
+# Then move arth-release.jks to android/app/arth-release.jks
+
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=arth
+storeFile=app/arth-release.jks
