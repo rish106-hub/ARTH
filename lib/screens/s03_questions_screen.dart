@@ -165,8 +165,8 @@ class _QLayout extends StatelessWidget {
     this.microCopy,
     required this.content,
     this.onNext,
-    this.canProceed = true,
-    this.nextLabel = 'Continue →',
+    this.canProceed = true, // ignore: unused_element_parameter
+    this.nextLabel = 'Continue →', // ignore: unused_element_parameter
   });
 
   @override
