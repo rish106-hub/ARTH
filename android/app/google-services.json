@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "237352355014",
-    "project_id": "collprep-51b6d",
-    "storage_bucket": "collprep-51b6d.firebasestorage.app"
+    "project_number": "101289118169",
+    "project_id": "arth-tax-gap",
+    "storage_bucket": "arth-tax-gap.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:237352355014:android:3ee36e965c0fa0969583c7",
+        "mobilesdk_app_id": "1:101289118169:android:c77fee1e94aa0c29f2b1c8",
         "android_client_info": {
           "package_name": "com.arth.taxgap"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC40edMSuds_ucp3caWurPrqNEQPNgPqkU"
+          "current_key": "AIzaSyBmRSGRPrny9mnJtLxupQ1sdS2pBOg-CSU"
         }
       ],
       "services": {

@@ -1,12 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// ARTH Firebase Options
+// ARTH Firebase Options — project: arth-tax-gap
 //
-// Generated values from Firebase project: collprep-51b6d
-// Android app: com.arth.taxgap (ARTH)
-//
-// To regenerate (e.g. after adding iOS):
+// To regenerate after adding iOS or other platforms:
 //   dart pub global activate flutterfire_cli
-//   flutterfire configure --project=collprep-51b6d
+//   flutterfire configure --project=arth-tax-gap
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
@@ -22,16 +19,16 @@ class DefaultFirebaseOptions {
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions not configured for $defaultTargetPlatform. '
-          'Run: flutterfire configure --project=collprep-51b6d',
+          'Run: flutterfire configure --project=arth-tax-gap',
         );
     }
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC40edMSuds_ucp3caWurPrqNEQPNgPqkU',
-    appId: '1:237352355014:android:3ee36e965c0fa0969583c7',
-    messagingSenderId: '237352355014',
-    projectId: 'collprep-51b6d',
-    storageBucket: 'collprep-51b6d.firebasestorage.app',
+    apiKey: 'AIzaSyBmRSGRPrny9mnJtLxupQ1sdS2pBOg-CSU',
+    appId: '1:101289118169:android:c77fee1e94aa0c29f2b1c8',
+    messagingSenderId: '101289118169',
+    projectId: 'arth-tax-gap',
+    storageBucket: 'arth-tax-gap.firebasestorage.app',
   );
 }
