@@ -30,5 +30,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '101289118169',
     projectId: 'arth-tax-gap',
     storageBucket: 'arth-tax-gap.firebasestorage.app',
+    // Web OAuth client (used by Google Sign-In on Android)
+    androidClientId: '101289118169-j0io6jjcdf947ss7bdfpjovk4dacfr4d.apps.googleusercontent.com',
   );
 }

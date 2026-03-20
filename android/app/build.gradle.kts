@@ -49,9 +49,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            // No suffix — keeps package name consistent across build types
-        }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")

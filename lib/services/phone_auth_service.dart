@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// Handles Firebase Phone Auth — send OTP + verify OTP.
 ///
@@ -67,11 +68,13 @@ class PhoneAuthService {
   }
 
   // ── Verify OTP ────────────────────────────────────────────────────────────
-  /// Returns the Firebase [User] on success, throws [FirebaseAuthException] on
-  /// invalid / expired code, or [StateError] if sendOtp was never called.
+  /// Returns the Firebase [User] on success.
+  /// Throws [FirebaseAuthException] on invalid/expired code,
+  /// [StateError] if [sendOtp] was never called,
+  /// or [Exception] with a readable message for platform-layer failures.
   Future<User?> verifyOtp(String smsCode) async {
     if (_verificationId == null) {
-      throw StateError('No verificationId — call sendOtp first.');
+      throw StateError('Session expired. Please go back and request a new OTP.');
     }
 
     final credential = PhoneAuthProvider.credential(
@@ -79,8 +82,12 @@ class PhoneAuthService {
       smsCode: smsCode.trim(),
     );
 
-    final userCred = await _signInOrLink(credential);
-    return userCred.user;
+    try {
+      final userCred = await _signInOrLink(credential);
+      return userCred.user;
+    } on PlatformException catch (e) {
+      throw Exception(_platformErrorMessage(e));
+    }
   }
 
   // ── Resend OTP ────────────────────────────────────────────────────────────
@@ -103,12 +110,35 @@ class PhoneAuthService {
       try {
         return await current.linkWithCredential(credential);
       } on FirebaseAuthException catch (e) {
-        // If linking fails (e.g. phone already used), fall back to direct sign-in
-        if (kDebugMode) debugPrint('[PhoneAuth] link failed (${e.code}), signing in directly');
-        return await _auth.signInWithCredential(credential);
+        // Only fall back to direct sign-in when the phone is already linked elsewhere
+        const fallbackCodes = {
+          'credential-already-in-use',
+          'provider-already-linked',
+          'account-exists-with-different-credential',
+        };
+        if (fallbackCodes.contains(e.code)) {
+          if (kDebugMode) debugPrint('[PhoneAuth] link fallback (${e.code}), signing in directly');
+          return await _auth.signInWithCredential(credential);
+        }
+        rethrow; // e.g. invalid-verification-code, session-expired → propagate
       }
     }
     return await _auth.signInWithCredential(credential);
+  }
+
+  /// Converts a PlatformException (native layer error) into a readable message.
+  String _platformErrorMessage(PlatformException e) {
+    if (kDebugMode) debugPrint('[PhoneAuth] PlatformException: ${e.code} — ${e.message}');
+    final code = e.code.toLowerCase();
+    if (code.contains('network')) return 'No internet connection. Please check your network.';
+    if (code.contains('quota')) return 'SMS quota exceeded. Please try again later.';
+    if (code.contains('app-not-authorized') || code.contains('not_authorized')) {
+      return 'App not authorized for Phone Auth. Check SHA-1 in Firebase Console.';
+    }
+    if (code.contains('too-many-requests') || code.contains('too_many')) {
+      return 'Too many attempts. Please wait and try again.';
+    }
+    return 'Verification error (${e.code}). Please try again.';
   }
 
   String _mapError(String code) {

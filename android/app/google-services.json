@@ -12,7 +12,28 @@
           "package_name": "com.arth.taxgap"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "101289118169-2pc3euomugj9msjk30vc9l3p1l4hv0k6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arth.taxgap",
+            "certificate_hash": "7c0fa0179426943c74310d2230bf1d37b54ba200"
+          }
+        },
+        {
+          "client_id": "101289118169-mq0skc8km0dmpkl3knaukls8mfskcvgu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arth.taxgap",
+            "certificate_hash": "b6b51c6dd2aab225be6be6eb5788101be3fc18d8"
+          }
+        },
+        {
+          "client_id": "101289118169-j0io6jjcdf947ss7bdfpjovk4dacfr4d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBmRSGRPrny9mnJtLxupQ1sdS2pBOg-CSU"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "101289118169-j0io6jjcdf947ss7bdfpjovk4dacfr4d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

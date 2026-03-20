@@ -163,8 +163,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     } on FirebaseAuthException catch (e) {
       _setError(_mapOtpError(e.code));
-    } catch (_) {
-      _setError('Verification failed. Please try again.');
+    } on StateError catch (e) {
+      // verificationId expired (e.g. hot-restart between steps)
+      _setError(e.message);
+    } catch (e) {
+      // PlatformException or other — show the real message for easier debugging
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      _setError(msg.isNotEmpty ? msg : 'Verification failed. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
