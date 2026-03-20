@@ -1,15 +1,21 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/google_auth_service.dart';
+import '../services/phone_auth_service.dart';
 
 // ── Google Auth Service ────────────────────────────────────────────────────
 final googleAuthServiceProvider = Provider<GoogleAuthService>(
   (_) => GoogleAuthService(),
 );
 
+// ── Phone Auth Service ─────────────────────────────────────────────────────
+final phoneAuthServiceProvider = Provider<PhoneAuthService>(
+  (_) => PhoneAuthService(),
+);
+
 // ── Remote Config helper ───────────────────────────────────────────────────
 /// Fetches all Remote Config flags once per app session.
-/// Fails silently — all flags default to false when Firebase is unavailable.
+/// Fails silently — defaults to true so both auth methods work out of the box.
 final _remoteConfigProvider = FutureProvider<FirebaseRemoteConfig>((ref) async {
   try {
     final rc = FirebaseRemoteConfig.instance;
@@ -18,10 +24,9 @@ final _remoteConfigProvider = FutureProvider<FirebaseRemoteConfig>((ref) async {
       minimumFetchInterval: const Duration(hours: 1),
     ));
     await rc.setDefaults({
-      'google_sign_in_enabled': false,
-      // OTP disabled until Firebase Phone Auth is configured.
-      // Flip to true in Firebase Console → Remote Config when ready.
-      'phone_otp_enabled': false,
+      // Both enabled — Firebase project arth-tax-gap is live.
+      'google_sign_in_enabled': true,
+      'phone_otp_enabled': true,
     });
     await rc.fetchAndActivate();
     return rc;
@@ -32,7 +37,7 @@ final _remoteConfigProvider = FutureProvider<FirebaseRemoteConfig>((ref) async {
 
 // ── Individual feature flags ───────────────────────────────────────────────
 
-/// Controls whether the Google Sign-In button is active (V2).
+/// Controls whether the Google Sign-In button is active.
 /// Toggle: Firebase Console → Remote Config → `google_sign_in_enabled`
 final googleSignInEnabledProvider = FutureProvider<bool>((ref) async {
   final rc = await ref.watch(_remoteConfigProvider.future);
@@ -40,7 +45,6 @@ final googleSignInEnabledProvider = FutureProvider<bool>((ref) async {
 });
 
 /// Controls whether phone OTP verification is required at sign-in.
-/// Default: false — accounts are created locally without SMS.
 /// Toggle: Firebase Console → Remote Config → `phone_otp_enabled`
 final phoneOtpEnabledProvider = FutureProvider<bool>((ref) async {
   final rc = await ref.watch(_remoteConfigProvider.future);

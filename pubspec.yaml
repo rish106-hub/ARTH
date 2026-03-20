@@ -86,5 +86,6 @@ flutter:
   assets:
     - assets/tax_data.json
     - assets/lottie/coins.json
+    - assets/images/
 
   # SpaceGrotesk is loaded via google_fonts package at runtime — no local asset needed.

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,11 @@ import '../providers/feature_flags_provider.dart';
 import '../widgets/glass_card.dart';
 
 // ─── AUTH STEPS ───────────────────────────────────────────────────────────────
-enum _AuthStep { details, otp }
+enum _AuthStep {
+  details,     // Step 1 — name + phone number
+  otp,         // Step 2 — OTP verification (phone or Google flow)
+  googlePhone, // Step 2b — add phone number after Google sign-in
+}
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -20,16 +25,24 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _otpCtrl = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl           = TextEditingController();
+  final _phoneCtrl          = TextEditingController();
+  final _otpCtrl            = TextEditingController();
+  final _formKey            = GlobalKey<FormState>();
+  final _otpFormKey         = GlobalKey<FormState>();
+  final _googlePhoneFormKey = GlobalKey<FormState>();
 
-  _AuthStep _step = _AuthStep.details;
-  bool _biometricsEnabled = false;
-  bool _biometricsAvailable = false;
-  bool _loading = false;
-  bool _isReturningUser = false;
+  _AuthStep _step               = _AuthStep.details;
+  bool _biometricsEnabled       = false;
+  bool _biometricsAvailable     = false;
+  bool _loading                 = false;
+  bool _isReturningUser         = false;
+  String? _errorMessage;
+  int  _resendSeconds           = 0;
+  bool _canResend               = false;
+
+  // Holds the Google-signed-in account until phone is verified
+  UserAccount? _pendingGoogleAccount;
 
   static final _phoneRegex = RegExp(r'^[6-9]\d{9}$');
 
@@ -53,25 +66,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (mounted) setState(() => _biometricsAvailable = available);
   }
 
-  /// If a saved account exists with this phone, pre-fill name (returning user).
   Future<void> _checkReturningUser() async {
     final existing = ref.read(authProvider);
     if (existing != null && existing.phone.isNotEmpty) {
       if (mounted) {
         setState(() {
-          _nameCtrl.text = existing.name;
-          _phoneCtrl.text = existing.phone;
+          _nameCtrl.text  = existing.name;
+          _phoneCtrl.text = existing.phone.replaceAll(RegExp(r'\D'), '');
           _isReturningUser = true;
         });
       }
     }
   }
 
+  void _setError(String? msg) {
+    if (mounted) setState(() => _errorMessage = msg);
+  }
+
+  // ── Validators ─────────────────────────────────────────────────────────────
   String? _validateName(String? v) {
     if (v == null || v.trim().isEmpty) return 'Full name is required';
-    final trimmed = v.trim();
-    if (trimmed.length < 2) return 'Enter a valid name';
-    if (RegExp(r"""[<>"';&]""").hasMatch(trimmed)) return 'Invalid characters';
+    if (v.trim().length < 2) return 'Enter a valid name';
+    if (RegExp(r"""[<>"';&]""").hasMatch(v.trim())) return 'Invalid characters';
     return null;
   }
 
@@ -90,56 +106,214 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return null;
   }
 
-  /// Step 1 — validate details and either send OTP or skip straight to account.
+  // ── Step 1: Continue — sends OTP via Firebase Phone Auth ──────────────────
   Future<void> _onContinue() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
+    _setError(null);
     setState(() => _loading = true);
-    try {
-      final otpEnabled =
-          await ref.read(phoneOtpEnabledProvider.future).catchError((_) => false);
 
-      if (otpEnabled) {
-        // TODO: trigger Firebase Phone Auth SMS here when Firebase is restored.
-        // await FirebaseAuth.instance.verifyPhoneNumber(phoneNumber: '+91${_phoneCtrl.text.trim()}', ...);
-        if (mounted) setState(() => _step = _AuthStep.otp);
-      } else {
-        // OTP disabled — create / restore account directly
-        await _finalizeAccount(otp: null);
-      }
+    try {
+      final phone = '+91${_phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '')}';
+
+      await ref.read(phoneAuthServiceProvider).sendOtp(
+        phoneNumber: phone,
+        onCodeSent: (_) {
+          if (mounted) {
+            setState(() {
+              _step = _AuthStep.otp;
+              _otpCtrl.clear();
+            });
+            _startResendTimer();
+          }
+        },
+        onError: (msg) => _setError(msg),
+        onAutoVerified: () async {
+          // Android auto-read SMS — finalize immediately without OTP entry
+          final fbUser = FirebaseAuth.instance.currentUser;
+          if (fbUser != null && mounted) {
+            await _finalizeManualAccount(uid: fbUser.uid);
+          }
+        },
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  /// Step 2 — verify OTP (currently bypassed until Firebase is live).
+  // ── Step 2: Verify OTP (manual phone flow) ─────────────────────────────────
   Future<void> _onVerifyOtp() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(_otpFormKey.currentState?.validate() ?? false)) return;
+    _setError(null);
     setState(() => _loading = true);
+
     try {
-      // TODO: verify OTP with Firebase when live
-      // await FirebaseAuth.instance.signInWithCredential(...)
-      await _finalizeAccount(otp: _otpCtrl.text.trim());
+      final user = await ref
+          .read(phoneAuthServiceProvider)
+          .verifyOtp(_otpCtrl.text.trim());
+
+      if (user == null) {
+        _setError('Verification failed. Please try again.');
+        return;
+      }
+
+      if (_pendingGoogleAccount != null) {
+        await _saveGoogleAccountWithPhone(user);
+      } else {
+        await _finalizeManualAccount(uid: user.uid);
+      }
+    } on FirebaseAuthException catch (e) {
+      _setError(_mapOtpError(e.code));
+    } catch (_) {
+      _setError('Verification failed. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _finalizeAccount({required String? otp}) async {
-    final phone = _phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
+  // ── Google Sign-In ─────────────────────────────────────────────────────────
+  Future<void> _onGoogleSignIn() async {
+    _setError(null);
+    setState(() => _loading = true);
+
+    try {
+      final account =
+          await ref.read(googleAuthServiceProvider).signInWithGoogle();
+      if (account == null) return; // user cancelled
+
+      // Google account already has phone number (rare) — go directly
+      if (account.phone.isNotEmpty) {
+        await ref.read(authProvider.notifier).saveAccount(account);
+        if (mounted) context.go('/welcome');
+        return;
+      }
+
+      // No phone yet — collect it in Step 2b
+      if (mounted) {
+        setState(() {
+          _pendingGoogleAccount = account;
+          _nameCtrl.text = account.name;
+          _phoneCtrl.clear();
+          _step = _AuthStep.googlePhone;
+        });
+      }
+    } catch (_) {
+      _setError('Google Sign-In failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // ── Step 2b: Google user adds phone → send OTP ─────────────────────────────
+  Future<void> _onGooglePhoneContinue() async {
+    if (!(_googlePhoneFormKey.currentState?.validate() ?? false)) return;
+    _setError(null);
+    setState(() => _loading = true);
+
+    try {
+      final phone =
+          '+91${_phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '')}';
+
+      await ref.read(phoneAuthServiceProvider).sendOtp(
+        phoneNumber: phone,
+        onCodeSent: (_) {
+          if (mounted) {
+            setState(() {
+              _step = _AuthStep.otp;
+              _otpCtrl.clear();
+            });
+            _startResendTimer();
+          }
+        },
+        onError: (msg) => _setError(msg),
+        onAutoVerified: () async {
+          final fbUser = FirebaseAuth.instance.currentUser;
+          if (fbUser != null && _pendingGoogleAccount != null && mounted) {
+            await _saveGoogleAccountWithPhone(fbUser);
+          }
+        },
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  Future<void> _finalizeManualAccount({required String uid}) async {
     final account = UserAccount(
       name: _nameCtrl.text.trim(),
-      phone: phone,
+      phone: _phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), ''),
       incomeRange: '',
       biometricsEnabled: _biometricsEnabled,
       createdAt: DateTime.now(),
+      uid: uid,
       authMethod: AuthMethod.manual,
     );
-
     await ref.read(authProvider.notifier).saveAccount(account);
     if (mounted) context.go('/welcome');
   }
 
+  Future<void> _saveGoogleAccountWithPhone(User fbUser) async {
+    final phone = _phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
+    final updated = _pendingGoogleAccount!.copyWith(
+      phone: phone,
+      biometricsEnabled: _biometricsEnabled,
+    );
+    await ref.read(authProvider.notifier).saveAccount(updated);
+    if (mounted) context.go('/welcome');
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _resendSeconds = 30;
+      _canResend = false;
+    });
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      setState(() {
+        _resendSeconds--;
+        if (_resendSeconds <= 0) _canResend = true;
+      });
+      return _resendSeconds > 0;
+    });
+  }
+
+  Future<void> _onResendOtp() async {
+    if (!_canResend) return;
+    _setError(null);
+    setState(() => _loading = true);
+    try {
+      final phone =
+          '+91${_phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '')}';
+      await ref.read(phoneAuthServiceProvider).resendOtp(
+        phoneNumber: phone,
+        onCodeSent: (_) {
+          if (mounted) {
+            setState(() => _otpCtrl.clear());
+            _startResendTimer();
+          }
+        },
+        onError: (msg) => _setError(msg),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _mapOtpError(String code) {
+    switch (code) {
+      case 'invalid-verification-code':
+        return 'Incorrect OTP. Please check and try again.';
+      case 'session-expired':
+        return 'OTP expired. Tap Resend to get a new one.';
+      case 'credential-already-in-use':
+        return 'This number is already linked to another account.';
+      default:
+        return 'Verification failed ($code). Please try again.';
+    }
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -171,18 +345,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     .fadeIn(duration: 600.ms)
                     .slideY(begin: -0.2),
                 SizedBox(height: size.height * 0.05),
+
+                if (_errorMessage != null) ...[
+                  _ErrorBanner(message: _errorMessage!)
+                      .animate()
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: -0.1),
+                  const SizedBox(height: 12),
+                ],
+
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 350),
                   transitionBuilder: (child, anim) =>
                       FadeTransition(opacity: anim, child: child),
-                  child: _step == _AuthStep.details
-                      ? _DetailsCard(key: const ValueKey('details'), state: this)
-                      : _OtpCard(key: const ValueKey('otp'), state: this),
+                  child: switch (_step) {
+                    _AuthStep.details => _DetailsCard(
+                        key: const ValueKey('details'), state: this),
+                    _AuthStep.googlePhone => _GooglePhoneCard(
+                        key: const ValueKey('googlePhone'), state: this),
+                    _AuthStep.otp => _OtpCard(
+                        key: const ValueKey('otp'), state: this),
+                  },
                 )
                     .animate(delay: 100.ms)
                     .fadeIn(duration: 600.ms)
                     .slideY(begin: 0.1),
+
                 SizedBox(height: size.height * 0.04),
+
                 if (_step == _AuthStep.details)
                   Center(
                     child: TextButton(
@@ -200,6 +390,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── ERROR BANNER ─────────────────────────────────────────────────────────────
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.alert.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.alert.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: AppColors.alert, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message,
+                style: AppTextStyles.caption(color: AppColors.alert)),
+          ),
+        ],
       ),
     );
   }
@@ -233,7 +452,6 @@ class _DetailsCard extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // Full Name
             _GlassInputField(
               controller: state._nameCtrl,
               label: 'Full Name',
@@ -245,7 +463,6 @@ class _DetailsCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Phone Number
             _GlassInputField(
               controller: state._phoneCtrl,
               label: 'Mobile Number',
@@ -264,19 +481,17 @@ class _DetailsCard extends StatelessWidget {
                 .animate(delay: 350.ms)
                 .fadeIn(duration: 300.ms),
 
-            const SizedBox(height: 16),
-
-            // Biometrics toggle
-            if (state._biometricsAvailable)
+            if (state._biometricsAvailable) ...[
+              const SizedBox(height: 16),
               _BiometricsToggle(
                 value: state._biometricsEnabled,
                 onChanged: (v) =>
                     state.setState(() => state._biometricsEnabled = v),
               ).animate(delay: 400.ms).fadeIn(duration: 400.ms),
+            ],
 
             const SizedBox(height: 28),
 
-            // Continue / Send OTP button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -284,19 +499,21 @@ class _DetailsCard extends StatelessWidget {
                 onPressed: state._loading ? null : state._onContinue,
                 child: state._loading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 20, width: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
-                      )
-                    : Text(state._isReturningUser ? 'Sign In' : 'Continue'),
+                            strokeWidth: 2, color: Colors.black))
+                    : Text(state._isReturningUser ? 'Send OTP' : 'Continue'),
               ),
             ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
 
             const SizedBox(height: 16),
-            _GoogleSignInButton().animate(delay: 600.ms).fadeIn(duration: 400.ms),
+            _OrDivider().animate(delay: 560.ms).fadeIn(duration: 300.ms),
+            const SizedBox(height: 16),
+
+            _GoogleSignInButton(
+              onTap: state._onGoogleSignIn,
+              loading: state._loading,
+            ).animate(delay: 600.ms).fadeIn(duration: 400.ms),
           ],
         ),
       ),
@@ -304,29 +521,110 @@ class _DetailsCard extends StatelessWidget {
   }
 }
 
-// ─── OTP CARD (Step 2) ────────────────────────────────────────────────────────
-class _OtpCard extends StatelessWidget {
+// ─── GOOGLE PHONE CARD (Step 2b) ──────────────────────────────────────────────
+class _GooglePhoneCard extends StatelessWidget {
   final _AuthScreenState state;
-  const _OtpCard({super.key, required this.state});
+  const _GooglePhoneCard({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
-    final maskedPhone = state._phoneCtrl.text.isNotEmpty
-        ? '••••••${state._phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '').substring(6)}'
-        : '';
+    final name = state._pendingGoogleAccount?.name ?? '';
 
     return GlassCard(
       blur: 16,
       padding: const EdgeInsets.all(28),
       child: Form(
-        key: state._formKey,
+        key: state._googlePhoneFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => state.setState(() => state._step = _AuthStep.details),
+                  onTap: () => state.setState(() {
+                    state._step = _AuthStep.details;
+                    state._pendingGoogleAccount = null;
+                  }),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: AppColors.gold, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Text('One more step', style: AppTextStyles.h2()),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Hi $name 👋  Add your mobile number so we can verify your identity with OTP.',
+              style: AppTextStyles.caption(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 28),
+
+            _GlassInputField(
+              controller: state._phoneCtrl,
+              label: 'Mobile Number',
+              hint: '9876543210',
+              validator: state._validatePhone,
+              keyboardType: TextInputType.phone,
+              prefixText: '+91  ',
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+            ),
+
+            const SizedBox(height: 28),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: AppButtons.primaryGold,
+                onPressed:
+                    state._loading ? null : state._onGooglePhoneContinue,
+                child: state._loading
+                    ? const SizedBox(
+                        height: 20, width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.black))
+                    : const Text('Send OTP'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── OTP CARD (Step 2 / 2b) ───────────────────────────────────────────────────
+class _OtpCard extends StatelessWidget {
+  final _AuthScreenState state;
+  const _OtpCard({super.key, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final digits = state._phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
+    final masked = digits.length >= 4
+        ? '••••••${digits.substring(digits.length - 4)}'
+        : digits;
+    final isGoogleFlow = state._pendingGoogleAccount != null;
+
+    return GlassCard(
+      blur: 16,
+      padding: const EdgeInsets.all(28),
+      child: Form(
+        key: state._otpFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => state.setState(() {
+                    state._step = isGoogleFlow
+                        ? _AuthStep.googlePhone
+                        : _AuthStep.details;
+                    state._otpCtrl.clear();
+                  }),
                   child: const Icon(Icons.arrow_back_rounded,
                       color: AppColors.gold, size: 22),
                 ),
@@ -335,22 +633,24 @@ class _OtpCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'We sent a 6-digit code to +91 $maskedPhone',
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+            RichText(
+              text: TextSpan(
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                children: [
+                  const TextSpan(text: 'We sent a 6-digit code to '),
+                  TextSpan(
+                    text: '+91 $masked',
+                    style:
+                        AppTextStyles.caption(color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 28),
 
-            _GlassInputField(
+            _OtpInputField(
               controller: state._otpCtrl,
-              label: 'One-Time Password',
-              hint: '• • • • • •',
               validator: state._validateOtp,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
-              ],
             ),
 
             const SizedBox(height: 28),
@@ -359,30 +659,33 @@ class _OtpCard extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 style: AppButtons.primaryGold,
-                onPressed: state._loading ? null : state._onVerifyOtp,
+                onPressed:
+                    state._loading ? null : state._onVerifyOtp,
                 child: state._loading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 20, width: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
-                      )
+                            strokeWidth: 2, color: Colors.black))
                     : const Text('Verify & Continue'),
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             Center(
-              child: TextButton(
-                onPressed: state._loading ? null : state._onContinue,
-                child: Text(
-                  'Resend OTP',
-                  style: AppTextStyles.caption(color: AppColors.gold),
-                ),
-              ),
+              child: state._canResend
+                  ? TextButton(
+                      onPressed:
+                          state._loading ? null : state._onResendOtp,
+                      child: Text('Resend OTP',
+                          style: AppTextStyles.caption(
+                              color: AppColors.gold)),
+                    )
+                  : Text(
+                      'Resend in ${state._resendSeconds}s',
+                      style: AppTextStyles.caption(
+                          color: AppColors.textMuted),
+                    ),
             ),
           ],
         ),
@@ -391,33 +694,113 @@ class _OtpCard extends StatelessWidget {
   }
 }
 
+// ─── OTP INPUT FIELD ──────────────────────────────────────────────────────────
+class _OtpInputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String? Function(String?)? validator;
+  const _OtpInputField({required this.controller, this.validator});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      autofocus: true,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      style: const TextStyle(
+        fontFamily: 'SpaceGrotesk',
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+        letterSpacing: 16,
+      ),
+      decoration: InputDecoration(
+        hintText: '------',
+        hintStyle: TextStyle(
+          fontFamily: 'SpaceGrotesk',
+          fontSize: 24,
+          color: AppColors.textMuted,
+          letterSpacing: 12,
+        ),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.04),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: AppColors.gold, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: AppColors.alert, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: AppColors.alert, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── OR DIVIDER ───────────────────────────────────────────────────────────────
+class _OrDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+            child: Divider(
+                color: Colors.white.withValues(alpha: 0.1), height: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('or',
+              style: AppTextStyles.micro(color: AppColors.textMuted)),
+        ),
+        Expanded(
+            child: Divider(
+                color: Colors.white.withValues(alpha: 0.1), height: 1)),
+      ],
+    );
+  }
+}
+
 // ─── OTP STATUS BADGE ─────────────────────────────────────────────────────────
-/// Shows whether OTP verification is active or skipped (feature-flagged).
 class _OtpStatusBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final otpEnabled = ref.watch(phoneOtpEnabledProvider).valueOrNull ?? false;
     return Row(
       children: [
-        Icon(
-          otpEnabled ? Icons.verified_rounded : Icons.info_outline_rounded,
-          size: 12,
-          color: otpEnabled ? AppColors.teal : AppColors.textMuted,
-        ),
+        const Icon(Icons.verified_rounded, size: 12, color: AppColors.teal),
         const SizedBox(width: 5),
         Text(
-          otpEnabled
-              ? 'OTP will be sent via SMS'
-              : 'OTP verification coming soon — account created locally',
-          style: AppTextStyles.micro(
-              color: otpEnabled ? AppColors.teal : AppColors.textMuted),
+          'OTP will be sent via SMS to verify your number',
+          style: AppTextStyles.micro(color: AppColors.teal),
         ),
       ],
     );
   }
 }
 
-// ─── AUTH HEADER ─────────────────────────────────────────────────────────────
+// ─── AUTH HEADER ──────────────────────────────────────────────────────────────
 class _AuthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -426,7 +809,7 @@ class _AuthHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
+            const Text(
               '₹',
               style: TextStyle(
                 fontFamily: 'Inter',
@@ -437,7 +820,7 @@ class _AuthHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
+            const Text(
               'ARTH',
               style: TextStyle(
                 fontFamily: 'SpaceGrotesk',
@@ -517,11 +900,13 @@ class _GlassInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+              borderSide:
+                  const BorderSide(color: AppColors.gold, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.alert, width: 1),
+              borderSide:
+                  const BorderSide(color: AppColors.alert, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -552,11 +937,9 @@ class _BiometricsToggle extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.fingerprint_rounded,
-            color: value ? AppColors.gold : AppColors.textSecondary,
-            size: 22,
-          ),
+          Icon(Icons.fingerprint_rounded,
+              color: value ? AppColors.gold : AppColors.textSecondary,
+              size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -565,8 +948,8 @@ class _BiometricsToggle extends StatelessWidget {
                 Text('Enable Face / Fingerprint Unlock',
                     style: AppTextStyles.bodyMedium()),
                 Text('Use biometrics to open ARTH faster',
-                    style:
-                        AppTextStyles.micro(color: AppColors.textSecondary)),
+                    style: AppTextStyles.micro(
+                        color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -582,107 +965,43 @@ class _BiometricsToggle extends StatelessWidget {
   }
 }
 
-// ─── GOOGLE SIGN-IN (FEATURE-FLAGGED V2) ─────────────────────────────────────
-class _GoogleSignInButton extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_GoogleSignInButton> createState() =>
-      _GoogleSignInButtonState();
-}
-
-class _GoogleSignInButtonState extends ConsumerState<_GoogleSignInButton> {
-  bool _loading = false;
-
-  Future<void> _handleGoogleSignIn() async {
-    setState(() => _loading = true);
-    try {
-      final account =
-          await ref.read(googleAuthServiceProvider).signInWithGoogle();
-      if (account != null && mounted) {
-        await ref.read(authProvider.notifier).saveAccount(account);
-        if (mounted) context.go('/welcome');
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
+// ─── GOOGLE SIGN-IN BUTTON ────────────────────────────────────────────────────
+class _GoogleSignInButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool loading;
+  const _GoogleSignInButton({required this.onTap, required this.loading});
 
   @override
   Widget build(BuildContext context) {
-    final isEnabled =
-        ref.watch(googleSignInEnabledProvider).valueOrNull ?? false;
-
-    if (isEnabled) {
-      return SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.textPrimary,
-            side: const BorderSide(color: AppColors.border),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          ),
-          onPressed: _loading ? null : _handleGoogleSignIn,
-          icon: _loading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.gold),
-                )
-              : const Icon(Icons.g_mobiledata_rounded, size: 22),
-          label: Text(_loading ? 'Signing in…' : 'Continue with Google'),
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
-      );
-    }
-
-    // Feature flag off — greyed out with V2 badge
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Opacity(
-          opacity: 0.4,
-          child: SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 14),
+        onPressed: loading ? null : onTap,
+        icon: loading
+            ? const SizedBox(
+                width: 18, height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.gold))
+            : Image.asset(
+                'assets/images/google_logo.png',
+                width: 20,
+                height: 20,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.g_mobiledata_rounded,
+                  size: 24,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              onPressed: null,
-              icon: const Icon(Icons.g_mobiledata_rounded, size: 22),
-              label: const Text('Continue with Google'),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'V2',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ),
-      ],
+        label: Text(loading ? 'Signing in…' : 'Continue with Google'),
+      ),
     );
   }
 }
