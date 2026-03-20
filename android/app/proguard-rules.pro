@@ -19,3 +19,8 @@
 
 # Keep app entry points
 -keep class com.arth.taxgap.** { *; }
+
+# Play Core (used by Flutter deferred components — suppress missing class warnings)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
