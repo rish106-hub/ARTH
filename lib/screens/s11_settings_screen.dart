@@ -411,7 +411,7 @@ class _AccountHeroCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          account.panCard ?? '',
+                          account.displayIdentifier,
                           style: AppTextStyles.caption(
                               color: AppColors.textSecondary),
                         ),

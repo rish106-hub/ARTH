@@ -49,7 +49,7 @@ class GoogleAuthService {
 
       return UserAccount(
         name: fbUser.displayName ?? googleUser.displayName ?? 'ARTH User',
-        panCard: '', // PAN not available via Google — user fills it in
+        phone: '', // Phone not provided by Google — user adds it later
         incomeRange: '',
         biometricsEnabled: false,
         createdAt: DateTime.now(),

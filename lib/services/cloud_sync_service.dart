@@ -42,7 +42,7 @@ class CloudSyncService {
     try {
       await _db.collection('users').doc(uid).set({
         'name': account.name,
-        'pan_masked': account.panCard,
+        'phone_masked': UserAccount.maskPhone(account.phone),
         'email': account.email,
         'auth_method': account.authMethod.name,
         'biometrics_enabled': account.biometricsEnabled,

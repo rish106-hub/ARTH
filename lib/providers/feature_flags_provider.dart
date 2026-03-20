@@ -17,20 +17,32 @@ final _remoteConfigProvider = FutureProvider<FirebaseRemoteConfig>((ref) async {
       fetchTimeout: const Duration(seconds: 10),
       minimumFetchInterval: const Duration(hours: 1),
     ));
-    await rc.setDefaults({'google_sign_in_enabled': false});
+    await rc.setDefaults({
+      'google_sign_in_enabled': false,
+      // OTP disabled until Firebase Phone Auth is configured.
+      // Flip to true in Firebase Console → Remote Config when ready.
+      'phone_otp_enabled': false,
+    });
     await rc.fetchAndActivate();
     return rc;
   } catch (_) {
-    // Return default-values-only instance if Firebase is not configured
     return FirebaseRemoteConfig.instance;
   }
 });
 
 // ── Individual feature flags ───────────────────────────────────────────────
 
-/// Controls whether the Google Sign-In button is active.
-/// Toggle in Firebase Console → Remote Config → `google_sign_in_enabled`
+/// Controls whether the Google Sign-In button is active (V2).
+/// Toggle: Firebase Console → Remote Config → `google_sign_in_enabled`
 final googleSignInEnabledProvider = FutureProvider<bool>((ref) async {
   final rc = await ref.watch(_remoteConfigProvider.future);
   return rc.getBool('google_sign_in_enabled');
+});
+
+/// Controls whether phone OTP verification is required at sign-in.
+/// Default: false — accounts are created locally without SMS.
+/// Toggle: Firebase Console → Remote Config → `phone_otp_enabled`
+final phoneOtpEnabledProvider = FutureProvider<bool>((ref) async {
+  final rc = await ref.watch(_remoteConfigProvider.future);
+  return rc.getBool('phone_otp_enabled');
 });
