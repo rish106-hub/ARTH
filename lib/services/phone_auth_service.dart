@@ -18,7 +18,8 @@ class PhoneAuthService {
 
   // ── Send OTP ──────────────────────────────────────────────────────────────
   Future<void> sendOtp({
-    required String phoneNumber, // must include country code, e.g. +919876543210
+    required String
+        phoneNumber, // must include country code, e.g. +919876543210
     required void Function(String verificationId) onCodeSent,
     required void Function(String errorMessage) onError,
     void Function()? onAutoVerified, // called when Android auto-reads SMS
@@ -50,7 +51,9 @@ class PhoneAuthService {
 
         // ── Failure ───────────────────────────────────────────────────────
         verificationFailed: (FirebaseAuthException e) {
-          if (kDebugMode) debugPrint('[PhoneAuth] verificationFailed: ${e.code} — ${e.message}');
+          if (kDebugMode)
+            debugPrint(
+                '[PhoneAuth] verificationFailed: ${e.code} — ${e.message}');
           final msg = _mapError(e.code);
           onError(msg);
         },
@@ -74,7 +77,8 @@ class PhoneAuthService {
   /// or [Exception] with a readable message for platform-layer failures.
   Future<User?> verifyOtp(String smsCode) async {
     if (_verificationId == null) {
-      throw StateError('Session expired. Please go back and request a new OTP.');
+      throw StateError(
+          'Session expired. Please go back and request a new OTP.');
     }
 
     final credential = PhoneAuthProvider.credential(
@@ -117,7 +121,9 @@ class PhoneAuthService {
           'account-exists-with-different-credential',
         };
         if (fallbackCodes.contains(e.code)) {
-          if (kDebugMode) debugPrint('[PhoneAuth] link fallback (${e.code}), signing in directly');
+          if (kDebugMode)
+            debugPrint(
+                '[PhoneAuth] link fallback (${e.code}), signing in directly');
           return await _auth.signInWithCredential(credential);
         }
         rethrow; // e.g. invalid-verification-code, session-expired → propagate
@@ -128,11 +134,15 @@ class PhoneAuthService {
 
   /// Converts a PlatformException (native layer error) into a readable message.
   String _platformErrorMessage(PlatformException e) {
-    if (kDebugMode) debugPrint('[PhoneAuth] PlatformException: ${e.code} — ${e.message}');
+    if (kDebugMode)
+      debugPrint('[PhoneAuth] PlatformException: ${e.code} — ${e.message}');
     final code = e.code.toLowerCase();
-    if (code.contains('network')) return 'No internet connection. Please check your network.';
-    if (code.contains('quota')) return 'SMS quota exceeded. Please try again later.';
-    if (code.contains('app-not-authorized') || code.contains('not_authorized')) {
+    if (code.contains('network'))
+      return 'No internet connection. Please check your network.';
+    if (code.contains('quota'))
+      return 'SMS quota exceeded. Please try again later.';
+    if (code.contains('app-not-authorized') ||
+        code.contains('not_authorized')) {
       return 'App not authorized for Phone Auth. Check SHA-1 in Firebase Console.';
     }
     if (code.contains('too-many-requests') || code.contains('too_many')) {

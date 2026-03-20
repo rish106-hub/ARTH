@@ -87,7 +87,8 @@ class GoogleAuthService {
         authMethod: AuthMethod.google,
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('[GoogleAuth] linkAnonymousToGoogle failed: $e');
+      if (kDebugMode)
+        debugPrint('[GoogleAuth] linkAnonymousToGoogle failed: $e');
       return null;
     }
   }
