@@ -30,7 +30,7 @@ class CloudSyncService {
       user ??= (await _auth.signInAnonymously()).user;
       return user?.uid;
     } catch (e) {
-      debugPrint('[CloudSync] Anonymous sign-in failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] Anonymous sign-in failed: $e');
       return null;
     }
   }
@@ -51,7 +51,7 @@ class CloudSyncService {
         'app_version': '1.0.0',
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[CloudSync] syncAccount failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] syncAccount failed: $e');
     }
   }
 
@@ -87,7 +87,7 @@ class CloudSyncService {
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[CloudSync] syncProfile failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] syncProfile failed: $e');
     }
   }
 
@@ -105,7 +105,7 @@ class CloudSyncService {
         'done_at': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('[CloudSync] markGapDone failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] markGapDone failed: $e');
     }
   }
 
@@ -120,7 +120,7 @@ class CloudSyncService {
           .get();
       return snap.docs.map((d) => d['gap_id'] as String).toSet();
     } catch (e) {
-      debugPrint('[CloudSync] loadDoneGaps failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] loadDoneGaps failed: $e');
       return {};
     }
   }
@@ -130,7 +130,7 @@ class CloudSyncService {
     try {
       await _auth.signOut();
     } catch (e) {
-      debugPrint('[CloudSync] signOut failed: $e');
+      if (kDebugMode) debugPrint('[CloudSync] signOut failed: $e');
     }
   }
 }

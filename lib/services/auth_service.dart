@@ -62,13 +62,13 @@ class AuthService {
         await prefs.setString(_accountKey, withUid.toJsonString());
         // Sync to Firestore in background — don't await
         _cloud.syncAccount(withUid).catchError(
-              (e) => debugPrint('[AuthService] background sync failed: $e'),
+              (e) { if (kDebugMode) debugPrint('[AuthService] background sync failed: $e'); },
             );
       }
     } else {
       // Already has UID — just sync in background
       _cloud.syncAccount(account).catchError(
-            (e) => debugPrint('[AuthService] background sync failed: $e'),
+            (e) { if (kDebugMode) debugPrint('[AuthService] background sync failed: $e'); },
           );
     }
   }
@@ -80,7 +80,7 @@ class AuthService {
       if (raw == null || raw.isEmpty) return null;
       return UserAccount.fromJsonString(raw);
     } catch (e) {
-      debugPrint('[AuthService] loadAccount failed: $e');
+      if (kDebugMode) debugPrint('[AuthService] loadAccount failed: $e');
       return null;
     }
   }

@@ -58,7 +58,7 @@ class GoogleAuthService {
         authMethod: AuthMethod.google,
       );
     } catch (e) {
-      debugPrint('[GoogleAuth] signInWithGoogle failed: $e');
+      if (kDebugMode) debugPrint('[GoogleAuth] signInWithGoogle failed: $e');
       return null;
     }
   }
@@ -87,7 +87,7 @@ class GoogleAuthService {
         authMethod: AuthMethod.google,
       );
     } catch (e) {
-      debugPrint('[GoogleAuth] linkAnonymousToGoogle failed: $e');
+      if (kDebugMode) debugPrint('[GoogleAuth] linkAnonymousToGoogle failed: $e');
       return null;
     }
   }
