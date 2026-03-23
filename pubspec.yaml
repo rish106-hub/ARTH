@@ -28,7 +28,7 @@ dependencies:
   cloud_firestore: ^5.6.5
 
   # Google Sign-In (wired but feature-flagged via Remote Config)
-  google_sign_in: ^6.2.2
+  google_sign_in: ^7.2.0
 
   # Fonts
   google_fonts: ^6.2.1
