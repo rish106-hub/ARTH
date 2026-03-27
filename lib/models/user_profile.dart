@@ -41,6 +41,10 @@ extension AgeGroupExtension on AgeGroup {
 
 @immutable
 class UserProfile {
+  // Personal info
+  final String name;
+  final String email;
+
   // Q01
   final int annualCTC; // in rupees
 
@@ -98,6 +102,8 @@ class UserProfile {
   int get approximateBasicSalary => (annualCTC * 0.40).round();
 
   const UserProfile({
+    this.name = '',
+    this.email = '',
     this.annualCTC = 1000000,
     this.employmentType = EmploymentType.salaried,
     this.city = 'Bengaluru',
@@ -123,6 +129,8 @@ class UserProfile {
   });
 
   UserProfile copyWith({
+    String? name,
+    String? email,
     int? annualCTC,
     EmploymentType? employmentType,
     String? city,
@@ -147,6 +155,8 @@ class UserProfile {
     AgeGroup? ageGroup,
   }) {
     return UserProfile(
+      name: name ?? this.name,
+      email: email ?? this.email,
       annualCTC: annualCTC ?? this.annualCTC,
       employmentType: employmentType ?? this.employmentType,
       city: city ?? this.city,
@@ -177,6 +187,8 @@ class UserProfile {
   }
 
   Map<String, dynamic> toJson() => {
+        'name': name,
+        'email': email,
         'annualCTC': annualCTC,
         'employmentType': employmentType.index,
         'city': city,
@@ -202,6 +214,8 @@ class UserProfile {
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+        name: json['name'] ?? '',
+        email: json['email'] ?? '',
         annualCTC: json['annualCTC'] ?? 1000000,
         employmentType: EmploymentType.values[json['employmentType'] ?? 0],
         city: json['city'] ?? 'Bengaluru',

@@ -19,7 +19,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
-  int _step = 0; // 0–11 main steps
+  int _step = 0; // 0–13 main steps (0-1: name/email, 2-13: tax questions)
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
   void _next() {
     HapticFeedback.lightImpact();
-    if (_step < 11) {
+    if (_step < 13) {
       setState(() => _step++);
       _slideCtrl.reset();
       _slideCtrl.forward();
@@ -92,7 +92,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: QuestionProgressBar(current: _step, total: 12),
+                        child: QuestionProgressBar(current: _step, total: 14),
                       ),
                     ],
                   ),
@@ -122,32 +122,177 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   Widget _buildStep(BuildContext context, UserProfile p, int step) {
     switch (step) {
       case 0:
-        return _Q01CTC(profile: p, onNext: _next);
+        return _Q00Name(profile: p, onNext: _next);
       case 1:
-        return _Q02Employment(profile: p, onNext: _next);
+        return _Q00Email(profile: p, onNext: _next);
       case 2:
-        return _Q03City(profile: p, onNext: _next);
+        return _Q01CTC(profile: p, onNext: _next);
       case 3:
-        return _Q04Rent(profile: p, onNext: _next);
+        return _Q02Employment(profile: p, onNext: _next);
       case 4:
-        return _Q05HRA(profile: p, onNext: _next);
+        return _Q03City(profile: p, onNext: _next);
       case 5:
-        return _Q06_80C(profile: p, onNext: _next);
+        return _Q04Rent(profile: p, onNext: _next);
       case 6:
-        return _Q07HomeLoan(profile: p, onNext: _next);
+        return _Q05HRA(profile: p, onNext: _next);
       case 7:
-        return _Q08NPS(profile: p, onNext: _next);
+        return _Q06_80C(profile: p, onNext: _next);
       case 8:
-        return _Q09HealthInsurance(profile: p, onNext: _next);
+        return _Q07HomeLoan(profile: p, onNext: _next);
       case 9:
-        return _Q10EducationLoan(profile: p, onNext: _next);
+        return _Q08NPS(profile: p, onNext: _next);
       case 10:
-        return _Q11Donations(profile: p, onNext: _next);
+        return _Q09HealthInsurance(profile: p, onNext: _next);
       case 11:
+        return _Q10EducationLoan(profile: p, onNext: _next);
+      case 12:
+        return _Q11Donations(profile: p, onNext: _next);
+      case 13:
         return _Q12Age(profile: p, onNext: _next);
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+// ─── Q00: Name ────────────────────────────────────────────────────────────────
+class _Q00Name extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _Q00Name({required this.profile, required this.onNext});
+
+  @override
+  ConsumerState<_Q00Name> createState() => _Q00NameState();
+}
+
+class _Q00NameState extends ConsumerState<_Q00Name> {
+  late TextEditingController _textCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl = TextEditingController(text: widget.profile.name);
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    ref.read(userProfileProvider.notifier).updateField(
+      (p) => p.copyWith(name: value.trim()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: "What's your name?",
+      microCopy: "This helps us personalize your report.",
+      content: TextField(
+        controller: _textCtrl,
+        onChanged: _onTextChanged,
+        decoration: InputDecoration(
+          hintText: 'Enter your name',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        style: const TextStyle(
+          color: Color(0xFFFFFFFF),
+          fontSize: 16,
+          fontFamily: 'Inter',
+        ),
+        cursorColor: const Color(0xFFF5C842),
+      ),
+      onNext: widget.onNext,
+      canProceed: _textCtrl.text.trim().isNotEmpty,
+    );
+  }
+}
+
+// ─── Q00: Email ───────────────────────────────────────────────────────────────
+class _Q00Email extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _Q00Email({required this.profile, required this.onNext});
+
+  @override
+  ConsumerState<_Q00Email> createState() => _Q00EmailState();
+}
+
+class _Q00EmailState extends ConsumerState<_Q00Email> {
+  late TextEditingController _textCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl = TextEditingController(text: widget.profile.email);
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    ref.read(userProfileProvider.notifier).updateField(
+      (p) => p.copyWith(email: value.trim()),
+    );
+  }
+
+  bool _isValidEmail(String email) {
+    return email.contains('@') && email.contains('.') && email.length > 5;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: "What's your email?",
+      microCopy: "We'll send your report here. No spam.",
+      content: TextField(
+        controller: _textCtrl,
+        onChanged: _onTextChanged,
+        keyboardType: TextInputType.emailAddress,
+        decoration: InputDecoration(
+          hintText: 'your.email@domain.com',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        style: const TextStyle(
+          color: Color(0xFFFFFFFF),
+          fontSize: 16,
+          fontFamily: 'Inter',
+        ),
+        cursorColor: const Color(0xFFF5C842),
+      ),
+      onNext: widget.onNext,
+      canProceed: _isValidEmail(_textCtrl.text.trim()),
+    );
   }
 }
 
