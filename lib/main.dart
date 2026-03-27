@@ -21,7 +21,7 @@ void main() async {
     statusBarIconBrightness: Brightness.light,
   ));
 
-  // Firebase initialization — graceful fallback if google-services.json missing
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

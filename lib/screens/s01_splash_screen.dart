@@ -39,23 +39,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
 
     if (account == null) {
-      // First install — go to auth
       context.go('/auth');
       return;
     }
 
-    // 2. Account exists — check biometrics
-    if (account.biometricsEnabled) {
-      final success = await ref.read(authProvider.notifier).authenticate();
-      if (!mounted) return;
-      if (!success) {
-        // Auth failed — stay on auth screen for manual login
-        context.go('/auth');
-        return;
-      }
-    }
-
-    // 3. Check onboarding
+    // 2. Check onboarding
     final done =
         await ref.read(userProfileProvider.notifier).isOnboardingComplete();
     if (!mounted) return;

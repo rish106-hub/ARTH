@@ -27,9 +27,6 @@ dependencies:
   firebase_analytics: ^11.4.4
   cloud_firestore: ^5.6.5
 
-  # Google Sign-In (wired but feature-flagged via Remote Config)
-  google_sign_in: ^6.2.2
-
   # Fonts
   google_fonts: ^6.2.1
 
@@ -46,9 +43,6 @@ dependencies:
 
   # Formatting
   intl: ^0.19.0
-
-  # Biometric authentication
-  local_auth: ^2.3.0
 
   # Icons
   cupertino_icons: ^1.0.6

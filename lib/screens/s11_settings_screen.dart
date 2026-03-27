@@ -411,7 +411,7 @@ class _AccountHeroCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          account.displayIdentifier,
+                          account.email,
                           style: AppTextStyles.caption(
                               color: AppColors.textSecondary),
                         ),
@@ -708,18 +708,13 @@ class _AccountSecurityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final biometricsOn = account?.biometricsEnabled as bool? ?? false;
     return _GlassSection(
       children: [
         _PrivacyRow(
-          icon: biometricsOn
-              ? Icons.fingerprint_rounded
-              : Icons.fingerprint_rounded,
-          iconColor: biometricsOn ? AppColors.teal : AppColors.textSecondary,
-          label: 'Biometric Unlock',
-          description: biometricsOn
-              ? 'Face / fingerprint unlock is enabled.'
-              : 'Biometric unlock is off. Re-create account to enable.',
+          icon: Icons.lock_outline_rounded,
+          iconColor: AppColors.teal,
+          label: 'Data Privacy',
+          description: 'Your data stays on this device. Nothing is shared.',
           isLast: true,
         ),
       ],

@@ -10,8 +10,7 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
   }
 
   Future<void> _load() async {
-    final account = await _service.loadAccount();
-    state = account;
+    state = await _service.loadAccount();
   }
 
   Future<void> saveAccount(UserAccount account) async {
@@ -23,10 +22,6 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
     await _service.clearAccount();
     state = null;
   }
-
-  Future<bool> hasBiometrics() => _service.hasBiometrics();
-
-  Future<bool> authenticate() => _service.authenticate();
 
   bool get isLoggedIn => state != null;
 }
