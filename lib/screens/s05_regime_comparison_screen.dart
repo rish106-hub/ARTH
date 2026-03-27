@@ -36,105 +36,128 @@ class _RegimeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Based on your profile:',
-            style: AppTextStyles.caption(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${result.betterRegimeLabel} saves you more money.',
-            style: AppTextStyles.h2(color: AppColors.gold),
-          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final useStackedCards = constraints.maxWidth < 380;
 
-          const SizedBox(height: 24),
-
-          // Two regime cards side by side
-          Row(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _RegimeCard(
-                  title: 'Old Regime',
-                  tax: result.oldRegimeTax,
-                  taxableIncome: result.oldRegimeTaxableIncome,
-                  deductions: result.totalDeductionsOld,
-                  isBetter: result.isOldBetter,
-                  savings: result.isOldBetter ? result.regimeSavings : null,
-                  isNew: false,
+              Text(
+                'Based on your profile:',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${result.betterRegimeLabel} saves you more money.',
+                style: AppTextStyles.h2(color: AppColors.gold),
+              ),
+              const SizedBox(height: 24),
+              (useStackedCards
+                      ? Column(
+                          children: [
+                            _RegimeCard(
+                              title: 'Old Regime',
+                              tax: result.oldRegimeTax,
+                              taxableIncome: result.oldRegimeTaxableIncome,
+                              deductions: result.totalDeductionsOld,
+                              isBetter: result.isOldBetter,
+                              savings:
+                                  result.isOldBetter ? result.regimeSavings : null,
+                              isNew: false,
+                            ),
+                            const SizedBox(height: 12),
+                            _RegimeCard(
+                              title: 'New Regime',
+                              tax: result.newRegimeTax,
+                              taxableIncome: result.newRegimeTaxableIncome,
+                              deductions: 75000,
+                              isBetter: !result.isOldBetter,
+                              savings: !result.isOldBetter
+                                  ? result.regimeSavings
+                                  : null,
+                              isNew: true,
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: _RegimeCard(
+                                title: 'Old Regime',
+                                tax: result.oldRegimeTax,
+                                taxableIncome: result.oldRegimeTaxableIncome,
+                                deductions: result.totalDeductionsOld,
+                                isBetter: result.isOldBetter,
+                                savings: result.isOldBetter
+                                    ? result.regimeSavings
+                                    : null,
+                                isNew: false,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _RegimeCard(
+                                title: 'New Regime',
+                                tax: result.newRegimeTax,
+                                taxableIncome: result.newRegimeTaxableIncome,
+                                deductions: 75000,
+                                isBetter: !result.isOldBetter,
+                                savings: !result.isOldBetter
+                                    ? result.regimeSavings
+                                    : null,
+                                isNew: true,
+                              ),
+                            ),
+                          ],
+                        ))
+                  .animate()
+                  .slideX(begin: 0.1, duration: 400.ms, curve: Curves.easeOut)
+                  .fadeIn(duration: 400.ms),
+              const SizedBox(height: 24),
+              if (result.regimeSavings > 0)
+                _SavingsCallout(
+                  betterRegime: result.betterRegimeLabel,
+                  savings: result.regimeSavings,
+                  isOldBetter: result.isOldBetter,
+                ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.bgCard,
+                  borderRadius: AppRadius.card,
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline_rounded,
+                        size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        result.isOldBetter
+                            ? 'This comparison uses amounts you entered plus modeled rent/HRA. Health-insurance and bank-interest deductions are not auto-applied without rupee inputs.'
+                            : 'This comparison is conservative: it uses entered amounts plus modeled rent/HRA, and does not auto-claim insurance or bank-interest deductions.',
+                        style:
+                            AppTextStyles.micro(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _RegimeCard(
-                  title: 'New Regime',
-                  tax: result.newRegimeTax,
-                  taxableIncome: result.newRegimeTaxableIncome,
-                  deductions: 75000,
-                  isBetter: !result.isOldBetter,
-                  savings: !result.isOldBetter ? result.regimeSavings : null,
-                  isNew: true,
-                ),
-              ),
+              const SizedBox(height: 24),
+              Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
+              const SizedBox(height: 12),
+              _DeductionBreakdown(result: result),
+              const SizedBox(height: 24),
+              Text('General Guidance by Income', style: AppTextStyles.h3()),
+              const SizedBox(height: 12),
+              _IncomeGuidance(),
             ],
-          )
-              .animate()
-              .slideX(begin: 0.1, duration: 400.ms, curve: Curves.easeOut)
-              .fadeIn(duration: 400.ms),
-
-          const SizedBox(height: 24),
-
-          // Savings callout
-          if (result.regimeSavings > 0)
-            _SavingsCallout(
-              betterRegime: result.betterRegimeLabel,
-              savings: result.regimeSavings,
-              isOldBetter: result.isOldBetter,
-            ),
-
-          const SizedBox(height: 24),
-
-          // Note
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              borderRadius: AppRadius.card,
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline_rounded,
-                    size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    result.isOldBetter
-                        ? 'This assumes you claim ALL your eligible deductions in the old regime. If you don\'t, new regime could still win.'
-                        : 'New regime wins with simplified flat slabs and ₹75,000 standard deduction.',
-                    style: AppTextStyles.micro(color: AppColors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Deduction breakdown (old regime)
-          Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
-          const SizedBox(height: 12),
-          _DeductionBreakdown(result: result),
-
-          const SizedBox(height: 24),
-
-          // Income range guidance
-          Text('General Guidance by Income', style: AppTextStyles.h3()),
-          const SizedBox(height: 12),
-          _IncomeGuidance(),
-        ],
+          );
+        },
       ),
     );
   }
@@ -268,11 +291,24 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.micro()),
-        Text(formatRupees(value),
-            style: AppTextStyles.micro(color: AppColors.textPrimary)),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.micro(),
+            softWrap: true,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            formatRupeesCompact(value),
+            style: AppTextStyles.micro(color: AppColors.textPrimary),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
@@ -291,6 +327,7 @@ class _SavingsCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 360;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -306,6 +343,7 @@ class _SavingsCallout extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.lightbulb_outline_rounded,
               color: AppColors.gold, size: 24),
@@ -318,9 +356,14 @@ class _SavingsCallout extends StatelessWidget {
                   '$betterRegime saves you',
                   style: AppTextStyles.caption(color: AppColors.textSecondary),
                 ),
-                RupeeText(
-                  amount: savings.round(),
-                  style: AppTextStyles.h2(color: AppColors.gold),
+                Text(
+                  formatRupeesCompact(savings.round()),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: (isCompact
+                          ? AppTextStyles.h3(color: AppColors.gold)
+                          : AppTextStyles.h2(color: AppColors.gold))
+                      .copyWith(height: 1.1),
                 ),
                 Text(
                   'more every year.',
@@ -398,6 +441,7 @@ class _DeductionRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -408,10 +452,21 @@ class _DeductionRow extends StatelessWidget {
             child: Text(section, style: AppTextStyles.sectionLabel()),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: AppTextStyles.caption())),
-          RupeeText(
-            amount: amount,
-            style: AppTextStyles.caption(color: AppColors.gold),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.caption(),
+              softWrap: true,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              formatRupeesCompact(amount),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: AppColors.gold),
+            ),
           ),
         ],
       ),
@@ -478,34 +533,62 @@ class _GuidanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 380;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.divider)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(item.range, style: AppTextStyles.caption()),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.1),
-              borderRadius: AppRadius.pill,
+      child: isCompact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.range, style: AppTextStyles.caption()),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: item.color.withValues(alpha: 0.1),
+                        borderRadius: AppRadius.pill,
+                      ),
+                      child: Text(item.rec,
+                          style: AppTextStyles.micro(color: item.color)),
+                    ),
+                    Text(item.reason, style: AppTextStyles.micro()),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(item.range, style: AppTextStyles.caption()),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: item.color.withValues(alpha: 0.1),
+                    borderRadius: AppRadius.pill,
+                  ),
+                  child: Text(item.rec,
+                      style: AppTextStyles.micro(color: item.color)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: Text(item.reason,
+                      style: AppTextStyles.micro(),
+                      textAlign: TextAlign.right),
+                ),
+              ],
             ),
-            child:
-                Text(item.rec, style: AppTextStyles.micro(color: item.color)),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: Text(item.reason,
-                style: AppTextStyles.micro(), textAlign: TextAlign.right),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -134,34 +134,48 @@ class _GapSummaryHeader extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Gap', style: AppTextStyles.micro()),
-                  RupeeText(
-                    amount: totalGap,
-                    style: AppTextStyles.h2(color: AppColors.gold),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total Gap', style: AppTextStyles.micro()),
+                    Text(
+                      formatRupeesCompact(totalGap),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.h2(color: AppColors.gold),
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Still recoverable', style: AppTextStyles.micro()),
-                  RupeeText(
-                    amount: remaining,
-                    style: AppTextStyles.h2(color: AppColors.amber),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Still recoverable', style: AppTextStyles.micro()),
+                    Text(
+                      formatRupeesCompact(remaining),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: AppTextStyles.h2(color: AppColors.amber),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(
+              SizedBox(
+                width: 180,
                 child: ClipRRect(
                   borderRadius: AppRadius.pill,
                   child: LinearProgressIndicator(
@@ -173,7 +187,6 @@ class _GapSummaryHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
               Text(
                 '$doneCount of $totalCount done',
                 style: AppTextStyles.micro(color: AppColors.textSecondary),

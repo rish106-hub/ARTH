@@ -125,23 +125,28 @@ class _FYTimeline extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('FY 2025-26', style: AppTextStyles.h3()),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: daysLeft <= 30
-                      ? AppColors.alert.withValues(alpha: 0.15)
-                      : AppColors.amber.withValues(alpha: 0.15),
-                  borderRadius: AppRadius.pill,
-                ),
-                child: Text(
-                  '$daysLeft days left',
-                  style: AppTextStyles.micro(
-                      color:
-                          daysLeft <= 30 ? AppColors.alert : AppColors.amber),
+              Expanded(child: Text('FY 2025-26', style: AppTextStyles.h3())),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: daysLeft <= 30
+                        ? AppColors.alert.withValues(alpha: 0.15)
+                        : AppColors.amber.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.pill,
+                  ),
+                  child: Text(
+                    '$daysLeft days left',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.micro(
+                        color:
+                            daysLeft <= 30 ? AppColors.alert : AppColors.amber),
+                  ),
                 ),
               ),
             ],
@@ -160,9 +165,9 @@ class _FYTimeline extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Apr 2025', style: AppTextStyles.micro()),
+              Expanded(child: Text('Apr 2025', style: AppTextStyles.micro())),
+              const SizedBox(width: 8),
               Text('Mar 31, 2026', style: AppTextStyles.micro()),
             ],
           ),
@@ -215,8 +220,10 @@ class _OverallProgress extends StatelessWidget {
                     Text('Claimed so far',
                         style: AppTextStyles.micro(
                             color: AppColors.textSecondary)),
-                    RupeeText(
-                      amount: claimed,
+                    Text(
+                      formatRupeesCompact(claimed),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.h2(color: AppColors.success),
                     ),
                   ],
@@ -229,8 +236,11 @@ class _OverallProgress extends StatelessWidget {
                     Text('Still to claim',
                         style: AppTextStyles.micro(
                             color: AppColors.textSecondary)),
-                    RupeeText(
-                      amount: remaining,
+                    Text(
+                      formatRupeesCompact(remaining),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
                       style: AppTextStyles.h2(color: AppColors.gold),
                     ),
                   ],
@@ -314,22 +324,26 @@ class _DeadlineRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: AppColors.divider)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 8,
             height: 8,
+            margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color,
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(deadline.label, style: AppTextStyles.caption()),
-              Text(deadline.date, style: AppTextStyles.micro(color: color)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(deadline.label, style: AppTextStyles.caption()),
+                Text(deadline.date, style: AppTextStyles.micro(color: color)),
+              ],
+            ),
           ),
         ],
       ),

@@ -1,261 +1,264 @@
-# ARTH — India's First Tax Gap Intelligence App
+# ARTH
 
-> **Not a rupee less. Not a rupee more.**
+ARTH is a Flutter Android app for Indian taxpayers that identifies likely missed deductions, compares old vs new tax regimes, and turns the result into action cards, a progress tracker, and a shareable summary.
 
-ARTH finds every deduction you're legally entitled to under Finance Act 2025 but haven't claimed — your **tax gap**. Answer 12 questions. Get an exact rupee amount you're leaving on the table. Take action before 31 March 2026.
+> Not a rupee less. Not a rupee more.
 
----
+## What The App Does
 
-## The Problem
+- Captures a lightweight tax profile through onboarding
+- Computes old-regime and new-regime tax estimates for FY 2025-26
+- Finds likely deduction gaps through a rule-based trigger engine
+- Shows deduction cards with deadlines and action steps
+- Tracks completion progress locally
+- Generates a shareable tax-gap card
 
-Most salaried Indians overpay income tax — not because of complexity, but because no tool shows them *exactly* how much they're missing and *why*. CA fees are high, generic apps give generic advice, and the ITR form doesn't tell you what you're missing.
+This is a tax-gap discovery product, not an ITR filing platform and not a substitute for professional tax advice.
 
-ARTH solves this with a decision-tree engine that runs 12 targeted triggers against your income profile and surfaces only the gaps that apply to you — with the exact rupee amount.
+## Current Product Status
 
----
+Verified in this repository as of 2026-03-27:
 
-## How It Works
+- `flutter test`: passing
+- `flutter build apk --debug`: passing
+- Logic audit sweep: passing across `12,960,000` generated profile permutations
+- Narrow-screen UI audit: passing across major app screens on `320x740`
 
-```
-12 Questions → Gap Engine → Your Tax Gap (₹)
-```
+Artifacts generated during the audit:
 
-1. **Income profile** — CTC, employment type, city, age
-2. **Deduction scan** — Rent/HRA, 80C investments, NPS, health insurance,
-   home loan, education loan, donations
-3. **Regime comparison** — Old vs New regime, exact tax under each
-4. **Gap cards** — Each missed deduction shown with amount, deadline, action steps
-5. **Progress tracker** — Mark gaps as done, track completion to 31 March
-
----
-
-## Tax Coverage (Finance Act 2025 / FY 2025-26)
-
-| Trigger | Section | Max Gap |
-|---------|---------|---------|
-| 80C investments | Sec 80C | ₹1,50,000 |
-| Extra NPS contribution | Sec 80CCD(1B) | ₹50,000 |
-| Health insurance — self | Sec 80D | ₹25,000 / ₹50,000 (60+) |
-| Health insurance — parents | Sec 80D | ₹25,000 / ₹50,000 (60+) |
-| Rent without HRA | Sec 80GG | ₹60,000 |
-| Home loan interest | Sec 24(b) | ₹2,00,000 |
-| Education loan interest | Sec 80E | Actual |
-| Savings interest | Sec 80TTA/TTB | ₹10,000 / ₹50,000 (60+) |
-| Employer NPS routing | Sec 80CCD(2) | Informational |
-| Regime switch | Both regimes | Actual savings |
-
----
+- [AUDIT_LOG.md](./AUDIT_LOG.md)
+- [LOGIC_AUDIT_RESULTS.md](./LOGIC_AUDIT_RESULTS.md)
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Flutter 3.x (Android) |
-| State | Riverpod (NotifierProvider) |
+| Layer | Stack |
+| --- | --- |
+| App | Flutter |
+| Language | Dart |
+| State | Riverpod |
 | Navigation | go_router |
-| Backend | Firebase (Firestore + Auth + Remote Config) |
-| Database | Firestore / SQL schema in `database/schema.sql` |
-| Local storage | shared_preferences (offline-first) |
-| CI/CD | GitHub Actions → Google Play Store |
-| Auth | Manual account + Google Sign-In (feature-flagged) |
+| Local persistence | shared_preferences |
+| Backend integration | Firebase Core, Auth, Firestore, Remote Config |
+| Sharing | screenshot, share_plus |
+| UI motion | flutter_animate, lottie |
 
-### Why Firebase over Supabase
+## Product Flow
 
-Firebase Firestore is used instead of Supabase because:
-- Firebase has servers in the **Mumbai region** — sub-50ms latency from India
-- Supabase free tier has no India region (300–500ms latency)
-- Firebase Spark plan is **permanently free** at the scale of a personal finance app (50K reads/day, 20K writes/day)
-- Firebase Auth handles anonymous → Google account upgrade without losing data
+1. Splash and account entry
+2. Welcome and guided onboarding
+3. Tax-profile questionnaire
+4. Gap reveal
+5. Old vs new regime comparison
+6. Deduction cards and detail views
+7. Action plan
+8. Progress tracker
+9. Share card
+10. Settings
 
----
+Primary entry points:
 
-## Architecture
+- [lib/main.dart](./lib/main.dart)
+- [lib/app.dart](./lib/app.dart)
+- [lib/engine/tax_engine.dart](./lib/engine/tax_engine.dart)
+- [lib/engine/gap_finder.dart](./lib/engine/gap_finder.dart)
 
-```
+## Project Structure
+
+```text
 lib/
-├── engine/
-│   ├── tax_engine.dart        # Old + New regime calculation (Finance Act 2025)
-│   └── gap_finder.dart        # 12 decision-tree triggers (T01–T12)
-├── models/
-│   ├── user_profile.dart      # 12 onboarding fields
-│   ├── user_account.dart      # Auth identity (manual / Google)
-│   ├── gap_card.dart          # Deduction gap data model
-│   └── tax_result.dart        # Computed tax result
-├── providers/
-│   ├── auth_provider.dart     # Auth state (Riverpod)
-│   ├── user_profile_provider.dart
-│   ├── tax_result_provider.dart
-│   └── feature_flags_provider.dart  # Remote Config flags
-├── services/
-│   ├── auth_service.dart      # Local auth + Firebase anonymous sign-in
-│   ├── cloud_sync_service.dart # Firestore sync (offline-first)
-│   └── google_auth_service.dart # Google Sign-In (feature-flagged)
-├── screens/                   # S00–S12 screens
-└── assets/
-    └── tax_data.json          # Finance Act 2025 slab + trigger data
+├── engine/       Tax and gap logic
+├── models/       Core data models
+├── providers/    Riverpod state and derived state
+├── screens/      Product screens (s00-s12)
+├── services/     Local persistence and cloud sync helpers
+├── theme/        Colors, typography, component theme
+└── widgets/      Reusable UI building blocks
+
+assets/
+├── images/
+├── lottie/
+└── tax_data.json
+
+firebase/
+├── firestore.rules
+└── firestore.indexes.json
+
+database/
+└── schema.sql
 ```
 
----
+## Design System
 
-## Getting Started
+The app uses a dark-first premium fintech visual language.
+
+- Background: charcoal and near-black surfaces
+- Primary accent: gold
+- Supporting accents: teal, amber, red, green
+- Typography: Inter + Space Grotesk
+
+Theme definitions live in [lib/theme/app_theme.dart](./lib/theme/app_theme.dart).
+
+## Tax Logic Coverage
+
+The app currently models FY 2025-26 logic around:
+
+- Standard deduction
+- Old vs new regime slab comparison
+- 87A rebate handling
+- 80C
+- 80CCD(1B) NPS
+- 80D insurance prompts
+- 80GG rent without HRA
+- 24(b) home-loan interest
+- 80E education-loan interest
+- 80TTA / 80TTB informational prompts
+- 80CCD(2) employer NPS routing prompt
+
+Source files:
+
+- [lib/engine/tax_engine.dart](./lib/engine/tax_engine.dart)
+- [lib/engine/gap_finder.dart](./lib/engine/gap_finder.dart)
+- [assets/tax_data.json](./assets/tax_data.json)
+
+## Important Accuracy Notes
+
+The engine is stable under the audited sweep, but some parts are still approximation-driven because the app does not collect all required rupee-level inputs.
+
+Known limitations:
+
+- HRA and salary-structure modeling are estimated from profile-level inputs
+- 80GG uses estimated adjusted total income logic
+- Donation treatment is simplified
+- Health insurance tax payable is conservative because premium amounts are not collected
+- 80TTA and 80TTB are surfaced as informational opportunity prompts, not exact modeled interest deductions
+- 80CCD(2) is surfaced as an employer-routing opportunity, not a self-claimable user input
+
+If exact tax filing accuracy is required, the onboarding model must be expanded to collect more detailed salary and deduction data.
+
+## Firebase And Cloud Status
+
+Implemented:
+
+- Firebase initialization
+- Anonymous-auth-backed sync support
+- Firestore account/profile sync helpers
+- Remote Config helper
+
+Current repo caveats:
+
+- The app now degrades safely when Firebase is unavailable
+- Done-gap sync exists at the service layer but is not fully wired into the active UI state flow
+- Budget alert has a screen and flag plumbing, but the active navigation path is limited
+- Google Sign-In is not implemented in the current `lib/services/` code even though earlier README copy claimed it
+
+## Local Setup
 
 ### Prerequisites
-- Flutter 3.x — [Install Flutter](https://docs.flutter.dev/get-started/install/macos)
-- Android SDK (API 21+)
-- A Firebase project — [console.firebase.google.com](https://console.firebase.google.com)
 
-### Local Setup
+- Flutter stable
+- Android SDK
+- Java 17
+
+### Install
 
 ```bash
-# 1. Clone
-git clone https://github.com/YOUR_ORG/arth.git && cd arth
-
-# 2. Install dependencies
+git clone https://github.com/rish106-hub/ARTH.git
+cd ARTH
 flutter pub get
+```
 
-# 3. Configure Firebase (one-time)
-dart pub global activate flutterfire_cli
-flutterfire configure --project=arth-taxgap
-# → generates lib/firebase_options.dart and android/app/google-services.json
+### Run
 
-# 4. Run on device / emulator
+```bash
 flutter run
 ```
 
-### Firebase Setup
+## Firebase Setup
 
-1. Create project `arth-taxgap` at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Firestore** (start in production mode)
-3. Enable **Firebase Auth** → Anonymous + Google providers
-4. Enable **Remote Config** → add key `google_sign_in_enabled` = `false`
-5. Enable **Firebase Messaging** (for deadline reminders)
-6. Upload `firebase/firestore.rules` via Firebase CLI:
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
-7. Add your Android SHA-1 to the Firebase project settings:
-   ```bash
-   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
-           -storepass android -keypass android
-   ```
+This repository already includes:
 
----
+- [lib/firebase_options.dart](./lib/firebase_options.dart)
+- `android/app/google-services.json`
 
-## Building for Production
-
-### 1. Generate a keystore (one-time)
-```bash
-keytool -genkey -v -keystore android/app/arth-release.jks -alias arth \
-        -keyalg RSA -keysize 2048 -validity 10000
-```
-
-### 2. Create `android/key.properties` (from template)
-```bash
-cp android/key.properties.template android/key.properties
-# Edit key.properties with your passwords
-```
-
-### 3. Build release APK / App Bundle
-```bash
-flutter build appbundle --release        # for Play Store
-flutter build apk --release --split-per-abi  # for direct distribution
-```
-
----
-
-## CI/CD Pipeline
-
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| `ci.yml` | Push to `main` / PR | Lint + test + debug APK |
-| `release.yml` | Push git tag `v*.*.*` | Release AAB → Play Store internal track |
-
-### First Release
+If you want to point the app to a different Firebase project:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+dart pub global activate flutterfire_cli
+flutterfire configure
 ```
 
-The `release.yml` workflow requires these **GitHub Secrets** (Settings → Secrets → Actions):
+Deploy Firestore rules with:
 
-| Secret | Description |
-|--------|-------------|
-| `GOOGLE_SERVICES_JSON` | base64-encoded `google-services.json` |
-| `KEYSTORE_BASE64` | base64-encoded `.jks` keystore file |
-| `KEYSTORE_STORE_PASSWORD` | keystore store password |
-| `KEYSTORE_KEY_PASSWORD` | key password |
-| `KEYSTORE_KEY_ALIAS` | key alias (e.g. `arth`) |
-| `PLAY_STORE_SERVICE_ACCOUNT_JSON` | base64-encoded Play Console service account |
-
-To base64-encode a file:
 ```bash
-base64 -i android/app/google-services.json | tr -d '\n'
+firebase deploy --only firestore:rules
 ```
 
----
+## Testing
 
-## Enabling Google Sign-In
+Run the full test suite:
 
-Google Sign-In is implemented and feature-flagged via Firebase Remote Config.
-The button renders as disabled ("Coming Soon") until you flip the flag.
-
-**To enable in production:**
-1. Firebase Console → Remote Config
-2. Set `google_sign_in_enabled` = `true`
-3. Publish changes
-
-**SHA-1 required for Google Sign-In:**
 ```bash
-# Debug (for development)
-keytool -list -v -keystore ~/.android/debug.keystore \
-        -alias androiddebugkey -storepass android
-
-# Release (for production)
-keytool -list -v -keystore android/app/arth-release.jks -alias arth
-```
-Add both SHA-1 fingerprints in Firebase Console → Project Settings → Android app.
-
----
-
-## Database
-
-Firestore document schema is mirrored as a PostgreSQL-compatible SQL schema in:
-```
-database/schema.sql
+flutter test
 ```
 
-If you migrate to a relational database (Neon, PlanetScale, Railway), the SQL schema is ready to use.
+Run the targeted audits:
 
----
+```bash
+flutter test test/logic_audit_test.dart
+flutter test test/ui_audit_test.dart
+```
 
-## Tax Logic
+## Build Outputs
 
-All calculations are based on **Finance Act 2025 / FY 2025-26 / AY 2026-27**:
+Debug APK:
 
-- New regime slabs: 0% up to ₹4L, then 5%/10%/15%/20%/25%/30%
-- 87A rebate: New ≤ ₹12L → up to ₹60,000 rebate; Old ≤ ₹5L → up to ₹12,500
-- Standard deduction: ₹75,000 (new) / ₹50,000 (old)
-- Surcharge: only above ₹50L income
-- Cess: 4% on (tax + surcharge)
-- HRA metro cities (per IT Act Rule 2A): Delhi, Mumbai, Chennai, Kolkata only
+```bash
+flutter build apk --debug
+```
 
----
+Output:
 
-## Deployment Checklist
+```text
+build/app/outputs/flutter-apk/app-debug.apk
+```
 
-- [ ] `flutterfire configure` — generates `firebase_options.dart`
-- [ ] `google-services.json` in `android/app/`
-- [ ] Firestore security rules deployed (`firebase deploy --only firestore:rules`)
-- [ ] SHA-1 fingerprints added to Firebase project (debug + release)
-- [ ] Google Play Console — app created, package `com.arth.taxgap`
-- [ ] Keystore generated and `key.properties` created
-- [ ] GitHub Secrets configured (6 secrets listed above)
-- [ ] First tag pushed: `git tag v1.0.0 && git push origin v1.0.0`
-- [ ] Internal testing on Play Store → promote to production
+Release bundle:
 
----
+```bash
+flutter build appbundle --release
+```
+
+## CI/CD
+
+GitHub workflows present in this repo:
+
+- [ci.yml](./.github/workflows/ci.yml): format, analyze, test, build debug APK
+- [release.yml](./.github/workflows/release.yml): build release AAB and upload to Play Store internal track on version tags
+
+Release workflow expects these GitHub secrets:
+
+- `GOOGLE_SERVICES_JSON`
+- `KEYSTORE_BASE64`
+- `KEYSTORE_STORE_PASSWORD`
+- `KEYSTORE_KEY_PASSWORD`
+- `KEYSTORE_KEY_ALIAS`
+- `PLAY_STORE_SERVICE_ACCOUNT_JSON`
+
+## Release Readiness Checklist
+
+- [ ] Confirm Finance Act assumptions for the target filing year
+- [ ] Expand onboarding if exact rupee-level tax computation is required
+- [ ] Complete wiring for cross-device done-gap sync
+- [ ] Decide whether Budget Alert should stay active and route users into it
+- [ ] Implement or remove dormant dependencies/features such as analytics, messaging, and Google Sign-In
+- [ ] Resolve remaining informational lints from `flutter analyze`
+- [ ] Verify release signing and Play Console configuration
+- [ ] Run emulator and physical-device QA on multiple screen sizes
+
+## Repository Notes
+
+This repo is Android-focused today. iOS/macOS release setup is not complete in the current workspace state.
 
 ## License
 
-Private — All rights reserved. © 2025 ARTH.
+No license file is currently present in this repository.

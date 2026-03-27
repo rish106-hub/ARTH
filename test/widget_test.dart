@@ -5,15 +5,20 @@ import 'package:arth/app.dart';
 
 void main() {
   testWidgets('ArthApp smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     await tester.pumpWidget(
       const ProviderScope(
         child: ArthApp(),
       ),
     );
 
-    // Verify that our app starts and shows something (like the splash screen).
-    // Since it's a router app, we check if the MaterialApp.router is present.
     expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.text('ARTH'), findsOneWidget);
+
+    // Let the splash animations finish, but dispose before the 2.5s route
+    // timer advances into Firebase-backed services.
+    await tester.pump(const Duration(seconds: 2));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }

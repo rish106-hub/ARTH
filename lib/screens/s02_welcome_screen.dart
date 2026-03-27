@@ -16,105 +16,111 @@ class WelcomeScreen extends StatelessWidget {
           const _AmbientParticles(),
 
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(flex: 2),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final topGap = constraints.maxHeight * 0.14;
+                final bottomGap = constraints.maxHeight * 0.2;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: topGap.clamp(24.0, 96.0)),
 
-                  // Main headline
-                  Text(
-                    'Most Indians\noverpay their\ntaxes.',
-                    style:
-                        AppTextStyles.h1().copyWith(fontSize: 36, height: 1.2),
-                  )
-                      .animate(delay: 200.ms)
-                      .fadeIn(duration: 700.ms)
-                      .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
+                        Text(
+                          'Most Indians\noverpay their\ntaxes.',
+                          style: AppTextStyles.h1()
+                              .copyWith(fontSize: 36, height: 1.2),
+                        )
+                            .animate(delay: 200.ms)
+                            .fadeIn(duration: 700.ms)
+                            .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
 
-                  const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                  Text(
-                    'ARTH finds what\nyou\'re leaving behind.',
-                    style: AppTextStyles.h2(color: AppColors.gold)
-                        .copyWith(height: 1.3),
-                  )
-                      .animate(delay: 500.ms)
-                      .fadeIn(duration: 700.ms)
-                      .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
+                        Text(
+                          'ARTH finds what\nyou\'re leaving behind.',
+                          style: AppTextStyles.h2(color: AppColors.gold)
+                              .copyWith(height: 1.3),
+                        )
+                            .animate(delay: 500.ms)
+                            .fadeIn(duration: 700.ms)
+                            .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
 
-                  const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                  Text(
-                    'The average salaried Indian leaves\n₹50,000 – ₹2,00,000 unclaimed\nevery year. Not this year.',
-                    style: AppTextStyles.body(color: AppColors.textSecondary),
-                  ).animate(delay: 750.ms).fadeIn(duration: 600.ms),
+                        Text(
+                          'The average salaried Indian leaves\n₹50,000 – ₹2,00,000 unclaimed\nevery year. Not this year.',
+                          style: AppTextStyles.body(color: AppColors.textSecondary),
+                        ).animate(delay: 750.ms).fadeIn(duration: 600.ms),
 
-                  const Spacer(flex: 3),
+                        SizedBox(height: bottomGap.clamp(24.0, 140.0)),
 
-                  // CTA
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: AppButtons.primaryGold,
-                      onPressed: () => context.go('/questions'),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Find My Gap'),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, size: 18),
-                        ],
-                      ),
-                    ),
-                  )
-                      .animate(delay: 1000.ms)
-                      .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.2, end: 0),
-
-                  const SizedBox(height: 16),
-
-                  Center(
-                    child: Text(
-                      'Takes 3 minutes. No PAN. No login. No nonsense.',
-                      style:
-                          AppTextStyles.micro(color: AppColors.textSecondary),
-                      textAlign: TextAlign.center,
-                    ),
-                  ).animate(delay: 1100.ms).fadeIn(duration: 500.ms),
-
-                  const SizedBox(height: 12),
-
-                  // Trust badge
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgCard,
-                        borderRadius: AppRadius.pill,
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.shield_outlined,
-                              size: 14, color: AppColors.gold),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Nothing you enter leaves your phone',
-                            style: AppTextStyles.micro(
-                                color: AppColors.textSecondary),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: AppButtons.primaryGold,
+                            onPressed: () => context.go('/questions'),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Find My Gap'),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward_rounded, size: 18),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ).animate(delay: 1200.ms).fadeIn(),
+                        )
+                            .animate(delay: 1000.ms)
+                            .fadeIn(duration: 500.ms)
+                            .slideY(begin: 0.2, end: 0),
 
-                  const SizedBox(height: 32),
-                ],
-              ),
+                        const SizedBox(height: 16),
+
+                        Center(
+                          child: Text(
+                            'Takes 3 minutes. No PAN. No login. No nonsense.',
+                            style:
+                                AppTextStyles.micro(color: AppColors.textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                        ).animate(delay: 1100.ms).fadeIn(duration: 500.ms),
+
+                        const SizedBox(height: 12),
+
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.bgCard,
+                              borderRadius: AppRadius.pill,
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.shield_outlined,
+                                    size: 14, color: AppColors.gold),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Nothing you enter leaves your phone',
+                                  style: AppTextStyles.micro(
+                                      color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ).animate(delay: 1200.ms).fadeIn(),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

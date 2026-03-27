@@ -106,6 +106,10 @@ class TaxEngine {
     deductions += npsExtra < 50000 ? npsExtra : 50000;
 
     // 80D
+    // The onboarding flow only captures whether cover exists, not the premium
+    // actually paid. To avoid overstating old-regime savings, the regime
+    // comparison excludes 80D from the tax payable calculation until the app
+    // collects rupee amounts for the premium.
     deductions += _calculate80D(p);
 
     // 80E — education loan interest (no cap, max 8 years)
@@ -119,11 +123,10 @@ class TaxEngine {
     }
 
     // 80TTA / 80TTB
-    if (p.ageAbove60) {
-      deductions += 50000; // 80TTB
-    } else {
-      deductions += 10000; // 80TTA
-    }
+    // Savings / FD interest amounts are not collected in onboarding, so
+    // auto-claiming the full deduction would make the old-regime comparison
+    // inaccurate. Keep these as opportunities in the gap flow, not as assumed
+    // reductions in tax payable.
 
     double taxable = gross - deductions;
     if (taxable < 0) taxable = 0;
@@ -198,19 +201,7 @@ class TaxEngine {
 
   // ─── 80D ─────────────────────────────────────────────────────────────────
   static double _calculate80D(UserProfile p) {
-    double total = 0;
-
-    // Self / spouse / children
-    if (p.hasHealthInsuranceSelf) {
-      total += p.ageAbove60 ? 50000 : 25000;
-    }
-
-    // Parents
-    if (p.hasHealthInsuranceParents) {
-      total += p.parentsAbove60 ? 50000 : 25000;
-    }
-
-    return total;
+    return 0;
   }
 
   // ─── SURCHARGE ───────────────────────────────────────────────────────────

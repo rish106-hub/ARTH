@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_account.dart';
@@ -25,7 +26,8 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     await prefs.setBool(_kOnboardingDoneKey, true);
 
     // Sync to Firebase
-    final user = FirebaseAuth.instance.currentUser;
+    final user =
+        Firebase.apps.isEmpty ? null : FirebaseAuth.instance.currentUser;
     if (user != null) {
       final cloudSync = CloudSyncService();
       // Create account object from profile name/email

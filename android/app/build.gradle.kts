@@ -45,7 +45,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        multiDexEnabled = true
+        // multiDexEnabled not needed — minSdk 24+ uses ART which handles multiple DEX natively
     }
 
     buildTypes {
@@ -67,4 +67,7 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
 }

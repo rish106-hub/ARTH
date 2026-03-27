@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _rupeePulse;
+  Timer? _pulseStartTimer;
+  Timer? _routeTimer;
 
   @override
   void initState() {
@@ -25,15 +28,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
-    _start();
+    _scheduleStartup();
   }
 
-  Future<void> _start() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _rupeePulse.forward();
-    await Future.delayed(const Duration(milliseconds: 2200));
-    if (!mounted) return;
+  void _scheduleStartup() {
+    _pulseStartTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      _rupeePulse.forward();
+    });
+    _routeTimer = Timer(const Duration(milliseconds: 2500), _routeFromSplash);
+  }
 
+  Future<void> _routeFromSplash() async {
+    if (!mounted) return;
     // 1. Check if account exists
     final account = await ref.read(authServiceProvider).loadAccount();
     if (!mounted) return;
@@ -57,6 +64,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   void dispose() {
+    _pulseStartTimer?.cancel();
+    _routeTimer?.cancel();
     _rupeePulse.dispose();
     super.dispose();
   }

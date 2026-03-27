@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_account.dart';
 import '../models/user_profile.dart';
@@ -18,16 +19,25 @@ import '../models/user_profile.dart';
 class CloudSyncService {
   static const String _currentFY = '2025-26';
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore? get _dbOrNull {
+    if (Firebase.apps.isEmpty) return null;
+    return FirebaseFirestore.instance;
+  }
+
+  FirebaseAuth? get _authOrNull {
+    if (Firebase.apps.isEmpty) return null;
+    return FirebaseAuth.instance;
+  }
 
   // ── Anonymous sign-in (for manual accounts) ──────────────────────────────
   /// Signs in anonymously to get a stable Firebase UID. Safe to call multiple
   /// times — returns the existing anonymous user if already signed in.
   Future<String?> ensureAnonymousUid() async {
+    final auth = _authOrNull;
+    if (auth == null) return null;
     try {
-      User? user = _auth.currentUser;
-      user ??= (await _auth.signInAnonymously()).user;
+      User? user = auth.currentUser;
+      user ??= (await auth.signInAnonymously()).user;
       return user?.uid;
     } catch (e) {
       if (kDebugMode) debugPrint('[CloudSync] Anonymous sign-in failed: $e');
@@ -39,8 +49,10 @@ class CloudSyncService {
   Future<void> syncAccount(UserAccount account) async {
     final uid = account.uid;
     if (uid == null) return;
+    final db = _dbOrNull;
+    if (db == null) return;
     try {
-      await _db.collection('users').doc(uid).set({
+      await db.collection('users').doc(uid).set({
         'name': account.name,
         'email': account.email,
         'created_at': FieldValue.serverTimestamp(),
@@ -54,8 +66,10 @@ class CloudSyncService {
 
   // ── Tax profile (12 onboarding answers) ──────────────────────────────────
   Future<void> syncProfile(String uid, UserProfile p) async {
+    final db = _dbOrNull;
+    if (db == null) return;
     try {
-      await _db
+      await db
           .collection('users')
           .doc(uid)
           .collection('tax_profiles')
@@ -90,8 +104,10 @@ class CloudSyncService {
 
   // ── Mark gap as done ─────────────────────────────────────────────────────
   Future<void> markGapDone(String uid, String gapId) async {
+    final db = _dbOrNull;
+    if (db == null) return;
     try {
-      await _db
+      await db
           .collection('users')
           .doc(uid)
           .collection('done_gaps')
@@ -108,8 +124,10 @@ class CloudSyncService {
 
   // ── Load done gaps (for cross-device sync) ────────────────────────────────
   Future<Set<String>> loadDoneGaps(String uid) async {
+    final db = _dbOrNull;
+    if (db == null) return {};
     try {
-      final snap = await _db
+      final snap = await db
           .collection('users')
           .doc(uid)
           .collection('done_gaps')
@@ -124,8 +142,10 @@ class CloudSyncService {
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   Future<void> signOut() async {
+    final auth = _authOrNull;
+    if (auth == null) return;
     try {
-      await _auth.signOut();
+      await auth.signOut();
     } catch (e) {
       if (kDebugMode) debugPrint('[CloudSync] signOut failed: $e');
     }

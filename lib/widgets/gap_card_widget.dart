@@ -62,10 +62,12 @@ class GapCardWidget extends StatelessWidget {
                     // Section badge + done indicator
                     Row(
                       children: [
-                        _SectionBadge(
-                            section: gap.section,
-                            accent: accent,
-                            isDone: isDone),
+                        Flexible(
+                          child: _SectionBadge(
+                              section: gap.section,
+                              accent: accent,
+                              isDone: isDone),
+                        ),
                         const Spacer(),
                         if (isDone)
                           Container(
@@ -80,18 +82,26 @@ class GapCardWidget extends StatelessWidget {
                                     color: AppColors.success)),
                           )
                         else
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(gap.difficultyIcon,
-                                  size: 11, color: AppColors.textSecondary),
-                              const SizedBox(width: 3),
-                              Text(
-                                gap.difficultyLabel,
-                                style: AppTextStyles.micro(
-                                    color: AppColors.textSecondary),
-                              ),
-                            ],
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Icon(gap.difficultyIcon,
+                                    size: 11, color: AppColors.textSecondary),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    gap.difficultyLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                    style: AppTextStyles.micro(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                     ),
@@ -107,22 +117,26 @@ class GapCardWidget extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('You\'re leaving behind',
-                                style: AppTextStyles.micro(
-                                    color: AppColors.textSecondary)),
-                            const SizedBox(height: 2),
-                            RupeeText(
-                              amount: gap.gapAmount,
-                              style: AppTextStyles.displaySmall(
-                                color: isDone ? AppColors.success : accent,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('You\'re leaving behind',
+                                  style: AppTextStyles.micro(
+                                      color: AppColors.textSecondary)),
+                              const SizedBox(height: 2),
+                              Text(
+                                formatRupeesCompact(gap.gapAmount),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.displaySmall(
+                                  color: isDone ? AppColors.success : accent,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 12),
                         // Arrow
                         if (!isDone)
                           Container(

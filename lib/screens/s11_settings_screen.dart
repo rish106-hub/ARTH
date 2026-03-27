@@ -10,6 +10,7 @@ import '../providers/user_profile_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/animated_number.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -283,21 +284,25 @@ class _SettingsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 8,
+        spacing: 12,
         children: [
           Text(
             'Settings',
             style: TextStyle(
               fontFamily: 'SpaceGrotesk',
-              fontSize: 26,
+              fontSize: compact ? 24 : 26,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
               letterSpacing: -0.5,
             ),
           ),
-          const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -339,6 +344,7 @@ class _AccountHeroCard extends StatelessWidget {
       return _GuestCard(onSignIn: () => context.go('/auth'));
     }
 
+    final compact = MediaQuery.sizeOf(context).width < 360;
     final name = account.name as String? ?? 'User';
     final initials = name.trim().isNotEmpty
         ? name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
@@ -368,7 +374,10 @@ class _AccountHeroCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                spacing: 14,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   // Avatar
                   Container(
@@ -394,8 +403,8 @@ class _AccountHeroCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                  SizedBox(
+                    width: compact ? 180 : 190,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -414,6 +423,8 @@ class _AccountHeroCard extends StatelessWidget {
                           account.email,
                           style: AppTextStyles.caption(
                               color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -547,6 +558,7 @@ class _HeroButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isDanger ? AppColors.alert : AppColors.gold;
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -556,21 +568,29 @@ class _HeroButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 15, color: color),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: compact ? 11 : 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -593,7 +613,7 @@ class _TaxSnapshotStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##,##0', 'en_IN');
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Row(
       children: [
         Expanded(
@@ -616,7 +636,8 @@ class _TaxSnapshotStrip extends StatelessWidget {
         Expanded(
           child: _SnapCell(
             label: 'Potential Save',
-            value: '₹${fmt.format(totalGap)}',
+            value:
+                compact ? '₹${formatRupeesCompact(totalGap)}' : '₹${NumberFormat('#,##,##0', 'en_IN').format(totalGap)}',
             icon: Icons.savings_outlined,
           ),
         ),
@@ -756,6 +777,7 @@ class _ProfileDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Column(
       children: [
         Padding(
@@ -764,10 +786,23 @@ class _ProfileDetailRow extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 10),
-              Text(label,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary)),
-              const Spacer(),
-              Text(value, style: AppTextStyles.bodyMedium()),
+              Expanded(
+                child: Text(label,
+                    style:
+                        AppTextStyles.caption(color: AppColors.textSecondary)),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTextStyles.bodyMedium().copyWith(
+                    fontSize: compact ? 13 : null,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                ),
+              ),
             ],
           ),
         ),
@@ -860,6 +895,7 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lColor = labelColor ?? AppColors.textPrimary;
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Material(
       color: AppColors.bgCard,
       borderRadius: BorderRadius.circular(14),
@@ -885,39 +921,44 @@ class _ActionTile extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(label,
-                            style: AppTextStyles.bodyMedium()
-                                .copyWith(color: lColor)),
-                        if (badge != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.gold.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              badge!,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.gold,
-                                letterSpacing: 0.5,
-                              ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            label,
+                            style: AppTextStyles.bodyMedium().copyWith(
+                              color: lColor,
+                              fontSize: compact ? 14 : null,
                             ),
                           ),
+                          if (badge != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                badge!,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.gold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
                         style: AppTextStyles.micro(
                             color: AppColors.textSecondary)),
                   ],
@@ -1000,14 +1041,17 @@ class _AppFooter extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 5,
+          runSpacing: 4,
           children: [
             Icon(Icons.shield_outlined, size: 11, color: AppColors.teal),
-            const SizedBox(width: 5),
             Text(
               'Secured on ARTH Cloud  |  AES-256 Encrypted',
               style: AppTextStyles.micro(color: AppColors.textMuted),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
