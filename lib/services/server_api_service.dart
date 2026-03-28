@@ -12,7 +12,7 @@ class ServerApiException implements Exception {
 }
 
 class ServerApiService {
-  static const String _defaultBaseUrl = 'http://10.0.2.2:8787/v1';
+  static const String _defaultBaseUrl = 'https://arth-production-aaca.up.railway.app/v1';
 
   final HttpClient _client;
   final String _baseUrl;
