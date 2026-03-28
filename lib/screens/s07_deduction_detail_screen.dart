@@ -387,7 +387,7 @@ class _ActionButton extends StatelessWidget {
             side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),
           onPressed: () async {
-            final uri = Uri.parse(action.url);
+            final uri = Uri.parse('https://arth-website.vercel.app/');
             if (await canLaunchUrl(uri)) {
               await launchUrl(uri, mode: LaunchMode.externalApplication);
             }

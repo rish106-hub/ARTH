@@ -11,6 +11,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/animated_number.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -1002,36 +1003,48 @@ class _SectionHeader extends StatelessWidget {
 
 // ─── APP FOOTER ──────────────────────────────────────────────────────────────
 class _AppFooter extends StatelessWidget {
+  static const _websiteUrl = 'https://arth-website.vercel.app/';
+
+  Future<void> _openWebsite() async {
+    final uri = Uri.parse(_websiteUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Divider(color: AppColors.divider.withValues(alpha: 0.5)),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '₹',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: AppColors.gold.withValues(alpha: 0.6),
+        GestureDetector(
+          onTap: _openWebsite,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '₹',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.gold.withValues(alpha: 0.6),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'ARTH',
-              style: TextStyle(
-                fontFamily: 'SpaceGrotesk',
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                letterSpacing: 4,
+              const SizedBox(width: 6),
+              Text(
+                'ARTH',
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 4,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -1058,6 +1071,41 @@ class _AppFooter extends StatelessWidget {
               'Secured on ARTH Cloud  |  AES-256 Encrypted',
               style: AppTextStyles.micro(color: AppColors.textMuted),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: _openWebsite,
+              child: Text(
+                'Privacy Policy',
+                style: AppTextStyles.micro(color: AppColors.gold),
+              ),
+            ),
+            Text(
+              '  ·  ',
+              style: AppTextStyles.micro(color: AppColors.textMuted),
+            ),
+            GestureDetector(
+              onTap: _openWebsite,
+              child: Text(
+                'Terms of Use',
+                style: AppTextStyles.micro(color: AppColors.gold),
+              ),
+            ),
+            Text(
+              '  ·  ',
+              style: AppTextStyles.micro(color: AppColors.textMuted),
+            ),
+            GestureDetector(
+              onTap: _openWebsite,
+              child: Text(
+                'Visit Website',
+                style: AppTextStyles.micro(color: AppColors.gold),
+              ),
             ),
           ],
         ),
