@@ -96,6 +96,7 @@ async function issueSession(user: {
 
 export async function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ ok: true }));
+  app.get('/ping', async () => ({ ok: true, ts: Date.now() }));
 
   app.post('/auth/sign-up', async (request, reply) => {
     const payload = signUpSchema.parse(request.body);
