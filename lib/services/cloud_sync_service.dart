@@ -17,7 +17,7 @@ import '../models/user_profile.dart';
 /// Firebase is India-available and the Spark plan is free with:
 ///   • 50,000 reads/day  • 20,000 writes/day  • 1GB storage
 class CloudSyncService {
-  static const String _currentFY = '2025-26';
+  static const String _currentFY = '2026-27';
 
   FirebaseFirestore? get _dbOrNull {
     if (Firebase.apps.isEmpty) return null;

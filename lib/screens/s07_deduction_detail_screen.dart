@@ -142,7 +142,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   // Legal footer
                   Center(
                     child: Text(
-                      'Powered by Income Tax Act 1961 + Finance Act 2025',
+                      'Powered by Income Tax Act 1961 + Finance Act 2026',
                       style: AppTextStyles.micro(color: AppColors.textMuted),
                       textAlign: TextAlign.center,
                     ),

@@ -9,7 +9,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
-  CURRENT_FY: z.string().default('2025-26'),
+  CURRENT_FY: z.string().default('2026-27'),
   CORS_ORIGIN: z.string().default('*'),
 });
 

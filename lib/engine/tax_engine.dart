@@ -3,7 +3,7 @@ import '../models/tax_result.dart';
 import '../models/gap_card.dart';
 
 /// Core tax calculation engine.
-/// Based on Finance Act 2025 / FY 2025-26 / AY 2026-27
+/// Based on Finance Act 2026 / FY 2026-27 / AY 2027-28
 class TaxEngine {
   static const double _cessRate = 0.04;
 

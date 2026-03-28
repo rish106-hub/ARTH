@@ -318,7 +318,7 @@ class _SettingsHeader extends StatelessWidget {
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
             child: Text(
-              'FY 2025-26',
+              'FY 2026-27',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 11,
@@ -1048,7 +1048,7 @@ class _AppFooter extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'v1.0  |  Finance Act 2025  |  FY 2025-26',
+          'v1.0  |  Finance Act 2026  |  FY 2026-27',
           style: AppTextStyles.micro(color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),

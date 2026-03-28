@@ -31,6 +31,17 @@ class BackendSyncService {
   // Each public sync method retries internally and, on final failure,
   // enqueues the operation so it is not lost.
 
+  /// Deletes all user data (profile, tax results, done-gaps) from the server.
+  Future<void> deleteAllData() async {
+    try {
+      final token = await _auth.getValidAccessToken();
+      if (token == null) return;
+      await _api.delete('/profile', bearerToken: token);
+    } catch (e) {
+      debugPrint('[BackendSyncService] deleteAllData failed: $e');
+    }
+  }
+
   Future<void> syncProfile(UserProfile profile) async {
     try {
       await _putProfile(profile);

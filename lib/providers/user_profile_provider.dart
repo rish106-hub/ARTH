@@ -95,8 +95,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     return prefs.getBool(_onboardingKey(uid)) ?? false;
   }
 
-  /// Clears all local state for the current user and resets in-memory profile.
-  /// Also clears the server-side done-gaps list so the slate is truly clean.
+  /// Clears all local state for the current user and wipes all server-side data.
   Future<void> clearAll() async {
     final uid = _currentUid();
     if (uid != null) {
@@ -104,8 +103,8 @@ class UserProfileNotifier extends Notifier<UserProfile> {
       await prefs.remove(_profileKey(uid));
       await prefs.remove(_onboardingKey(uid));
     }
-    // Best-effort: wipe done-gaps on the server so restoring later starts fresh.
-    await BackendSyncService().syncDoneGaps({});
+    // Delete all server data: profile, tax results, done-gaps.
+    await BackendSyncService().deleteAllData();
     state = const UserProfile();
   }
 

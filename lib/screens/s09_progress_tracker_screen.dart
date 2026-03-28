@@ -107,8 +107,8 @@ class _FYTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final fyEnd = DateTime(2026, 3, 31);
-    final fyStart = DateTime(2025, 4, 1);
+    final fyEnd = DateTime(2027, 3, 31);
+    final fyStart = DateTime(2026, 4, 1);
     final totalDays = fyEnd.difference(fyStart).inDays;
     final elapsedDays = now.difference(fyStart).inDays.clamp(0, totalDays);
     final progress = elapsedDays / totalDays;
@@ -127,7 +127,7 @@ class _FYTimeline extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text('FY 2025-26', style: AppTextStyles.h3())),
+              Expanded(child: Text('FY 2026-27', style: AppTextStyles.h3())),
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
@@ -166,9 +166,9 @@ class _FYTimeline extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: Text('Apr 2025', style: AppTextStyles.micro())),
+              Expanded(child: Text('Apr 2026', style: AppTextStyles.micro())),
               const SizedBox(width: 8),
-              Text('Mar 31, 2026', style: AppTextStyles.micro()),
+              Text('Mar 31, 2027', style: AppTextStyles.micro()),
             ],
           ),
         ],
@@ -275,15 +275,15 @@ class _DeadlineTimeline extends StatelessWidget {
 
   static const _deadlines = [
     _Deadline(
-        date: 'Mar 31, 2026',
+        date: 'Mar 31, 2027',
         label: '80C, 80CCD(1B), 80D investments',
         isUrgent: true),
     _Deadline(
-        date: 'Mar 15, 2026',
+        date: 'Mar 15, 2027',
         label: 'Advance Tax Q4 — pay 100%',
         isUrgent: true),
     _Deadline(
-        date: 'Jul 31, 2026',
+        date: 'Jul 31, 2027',
         label: 'ITR filing deadline (salaried)',
         isUrgent: false),
   ];

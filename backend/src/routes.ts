@@ -391,6 +391,25 @@ export async function registerRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  app.delete('/profile', async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const client = await db.connect();
+    try {
+      await client.query('begin');
+      await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
+      await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
+      await client.query('delete from tax_results where user_id = $1', [auth.userId]);
+      await client.query('commit');
+    } catch (error) {
+      await client.query('rollback');
+      throw error;
+    } finally {
+      client.release();
+    }
+    return reply.code(204).send();
+  });
+
   app.post('/events', async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;

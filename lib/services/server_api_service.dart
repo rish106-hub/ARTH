@@ -77,6 +77,13 @@ class ServerApiService {
     );
   }
 
+  Future<void> delete(
+    String path, {
+    String? bearerToken,
+  }) async {
+    await _send('DELETE', path, bearerToken: bearerToken);
+  }
+
   Future<String> _send(
     String method,
     String path, {
