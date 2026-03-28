@@ -31,7 +31,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
       await Share.shareXFiles(
         [XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png')],
         text:
-            'I just found ₹${_fmt(totalGap)} I was overpaying in taxes every year.\n\nFind your tax gap → arth.app',
+            'I just found ₹${_fmt(totalGap)} I was overpaying in taxes every year.\n\nFind your tax gap → https://arth-website.vercel.app/',
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -250,7 +250,7 @@ class _ShareCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   Text(
-                    'arth.app',
+                    'arth-website.vercel.app',
                     style:
                         AppTextStyles.caption(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,

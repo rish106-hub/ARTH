@@ -139,7 +139,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         _InputField(
                           controller: _nameCtrl,
                           label: 'Full name',
-                          hint: 'Rishav Dewan',
+                          hint: 'Saswataduity Bhuin',
                           keyboardType: TextInputType.name,
                           textCapitalization: TextCapitalization.words,
                           validator: (v) {
