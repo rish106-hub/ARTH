@@ -50,16 +50,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       return;
     }
 
-    // 2. Check onboarding
-    final done =
-        await ref.read(userProfileProvider.notifier).isOnboardingComplete();
+    ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
+
+    // 2. Server is source of truth — load fetches this user's unique profile.
+    //    Returns true if a saved profile exists (onboarding done).
+    //    Also works correctly on fresh device installs.
+    final hasProfile =
+        await ref.read(userProfileProvider.notifier).load();
     if (!mounted) return;
-    if (done) {
-      await ref.read(userProfileProvider.notifier).load();
-      if (mounted) context.go('/gap-reveal');
-    } else {
-      if (mounted) context.go('/welcome');
-    }
+    context.go(hasProfile ? '/gap-reveal' : '/welcome');
   }
 
   @override

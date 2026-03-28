@@ -5,7 +5,7 @@ class UserAccount {
   final String email;
   final bool biometricsEnabled;
   final DateTime createdAt;
-  final String? uid; // Firebase anonymous UID
+  final String? uid; // Server-side user id
 
   const UserAccount({
     required this.name,

@@ -249,6 +249,11 @@ class SettingsScreen extends ConsumerWidget {
         confirmColor: AppColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
+          // Clear profile and gap state before invalidating auth so uid is
+          // still readable inside clearAll().
+          await ref.read(userProfileProvider.notifier).clearAll();
+          ref.invalidate(gapStateProvider);
+          ref.invalidate(taxResultProvider);
           await ref.read(authProvider.notifier).signOut();
           if (context.mounted) context.go('/auth');
         },
@@ -270,6 +275,7 @@ class SettingsScreen extends ConsumerWidget {
           HapticFeedback.heavyImpact();
           await ref.read(userProfileProvider.notifier).clearAll();
           ref.invalidate(taxResultProvider);
+          ref.invalidate(gapStateProvider);
           if (context.mounted) context.go('/welcome');
         },
       ),
@@ -735,7 +741,7 @@ class _AccountSecurityTile extends StatelessWidget {
           icon: Icons.lock_outline_rounded,
           iconColor: AppColors.teal,
           label: 'Data Privacy',
-          description: 'Your data stays on this device. Nothing is shared.',
+          description: 'Your tax profile is encrypted and synced to ARTH servers. Only you can access it.',
           isLast: true,
         ),
       ],

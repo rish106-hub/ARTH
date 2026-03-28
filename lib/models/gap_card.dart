@@ -14,6 +14,11 @@ class GapAction {
         label: json['label'] as String,
         url: json['url'] as String,
       );
+
+  Map<String, dynamic> toJson() => {
+        'label': label,
+        'url': url,
+      };
 }
 
 @immutable
@@ -103,4 +108,46 @@ class GapCard {
       colorHex: json['color_hex'] as String? ?? 'FF9800',
     );
   }
+
+  factory GapCard.fromStoredJson(Map<String, dynamic> json) {
+    final actionsJson = json['actions'] as List<dynamic>? ?? [];
+    final difficultyName = json['difficulty'] as String? ?? 'easy';
+    final difficulty = difficultyName == 'medium'
+        ? GapDifficulty.medium
+        : difficultyName == 'complex'
+            ? GapDifficulty.complex
+            : GapDifficulty.easy;
+
+    return GapCard(
+      id: json['id'] as String,
+      section: json['section'] as String,
+      title: json['title'] as String,
+      shortDesc: json['shortDesc'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      gapAmount: json['gapAmount'] as int? ?? 0,
+      difficulty: difficulty,
+      difficultyLabel: json['difficultyLabel'] as String? ?? '',
+      deadline: json['deadline'] as String? ?? '',
+      actions: actionsJson
+          .map((a) => GapAction.fromJson(a as Map<String, dynamic>))
+          .toList(),
+      colorHex: json['colorHex'] as String? ?? 'FF9800',
+      isDone: json['isDone'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'section': section,
+        'title': title,
+        'shortDesc': shortDesc,
+        'message': message,
+        'gapAmount': gapAmount,
+        'difficulty': difficulty.name,
+        'difficultyLabel': difficultyLabel,
+        'deadline': deadline,
+        'actions': actions.map((a) => a.toJson()).toList(),
+        'colorHex': colorHex,
+        'isDone': isDone,
+      };
 }

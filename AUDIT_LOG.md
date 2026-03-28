@@ -1,11 +1,10 @@
 # Audit Log
 
-Last updated: 2026-03-27
+Last updated: 2026-03-28
 
 ## In Progress
 
-- Reviewing architecture, product completeness, runtime risks, and implementation gaps.
-- Logging findings here as they are confirmed.
+- Final bug fix pass complete. All known issues resolved.
 
 ## Findings
 
@@ -95,3 +94,14 @@ Last updated: 2026-03-27
   - `test/ui_audit_test.dart`
 - Logic audit sweep now passes across `12,960,000` generated tax profiles with no invariant or monotonicity failures.
 - UI audit now passes for the major product screens on a narrow `320x740` viewport with no build/layout exceptions.
+- Fixed server profile sync contract mismatch:
+  - `lib/models/user_profile.dart` now serializes enum fields as string names expected by the backend instead of integer indexes
+  - local profile parsing remains backward-compatible with the older integer format
+- Fixed authenticated restore flow so completed local profiles are pushed to Neon on load in `lib/providers/user_profile_provider.dart` instead of staying local-only until the next edit.
+- Fixed `UserProfile.copyWith` sentinel pattern — `propertyType` can now be explicitly set to `null` via copyWith. Previously the `?? this.propertyType` guard made it impossible to null-out the field.
+- Fixed Q07 "No home loan" path — now passes `propertyType: null` to `copyWith`, clearing any previously-set property type so the server receives consistent data (`hasHomeLoan: false, propertyType: null`).
+- Removed duplicate `BackendSyncService().syncTaxResult(result)` call in `_finish()` in `lib/screens/s03_questions_screen.dart` — `taxResultProvider` already syncs internally; the explicit call was a redundant second network hit.
+- Fixed `clearAll()` in `lib/providers/user_profile_provider.dart` — now calls `BackendSyncService().syncDoneGaps({})` to also wipe the server-side done-gaps list, not just local SharedPreferences.
+- Fixed `_confirmClear` in `lib/screens/s11_settings_screen.dart` — now invalidates `gapStateProvider` in addition to `taxResultProvider`, preventing stale gap-completion state lingering in memory after a data clear.
+- Fixed misleading "data stays on this device" privacy copy in `_AccountSecurityTile` — updated to accurately reflect that the profile is encrypted and synced to ARTH servers.
+- APK rebuilt and verified: `flutter build apk --debug` succeeds, `flutter test` passes (3/3).

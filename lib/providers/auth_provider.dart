@@ -18,6 +18,32 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
     state = account;
   }
 
+  Future<UserAccount> signUp({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final account = await _service.signUp(
+      name: name,
+      email: email,
+      password: password,
+    );
+    state = account;
+    return account;
+  }
+
+  Future<UserAccount> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final account = await _service.signIn(
+      email: email,
+      password: password,
+    );
+    state = account;
+    return account;
+  }
+
   Future<void> signOut() async {
     await _service.clearAccount();
     state = null;

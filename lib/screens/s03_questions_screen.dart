@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
+import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/question_progress_bar.dart';
 
@@ -19,7 +20,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
-  int _step = 0; // 0–13 main steps (0-1: name/email, 2-13: tax questions)
+  int _step = 0; // 0–11 tax questions only
 
   @override
   void initState() {
@@ -40,7 +41,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
   void _next() {
     HapticFeedback.lightImpact();
-    if (_step < 13) {
+    if (_step < 11) {
       setState(() => _step++);
       _slideCtrl.reset();
       _slideCtrl.forward();
@@ -62,6 +63,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
   Future<void> _finish() async {
     await ref.read(userProfileProvider.notifier).save();
+    await ref.read(taxResultProvider.future);
     if (mounted) {
       context.go('/gap-reveal');
     }
@@ -92,7 +94,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: QuestionProgressBar(current: _step, total: 14),
+                        child: QuestionProgressBar(current: _step, total: 12),
                       ),
                     ],
                   ),
@@ -122,32 +124,28 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   Widget _buildStep(BuildContext context, UserProfile p, int step) {
     switch (step) {
       case 0:
-        return _Q00Name(profile: p, onNext: _next);
-      case 1:
-        return _Q00Email(profile: p, onNext: _next);
-      case 2:
         return _Q01CTC(profile: p, onNext: _next);
-      case 3:
+      case 1:
         return _Q02Employment(profile: p, onNext: _next);
-      case 4:
+      case 2:
         return _Q03City(profile: p, onNext: _next);
-      case 5:
+      case 3:
         return _Q04Rent(profile: p, onNext: _next);
-      case 6:
+      case 4:
         return _Q05HRA(profile: p, onNext: _next);
-      case 7:
+      case 5:
         return _Q06_80C(profile: p, onNext: _next);
-      case 8:
+      case 6:
         return _Q07HomeLoan(profile: p, onNext: _next);
-      case 9:
+      case 7:
         return _Q08NPS(profile: p, onNext: _next);
-      case 10:
+      case 8:
         return _Q09HealthInsurance(profile: p, onNext: _next);
-      case 11:
+      case 9:
         return _Q10EducationLoan(profile: p, onNext: _next);
-      case 12:
+      case 10:
         return _Q11Donations(profile: p, onNext: _next);
-      case 13:
+      case 11:
         return _Q12Age(profile: p, onNext: _next);
       default:
         return const SizedBox.shrink();
@@ -1272,8 +1270,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   _type = null;
                 });
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) =>
-                          p.copyWith(hasHomeLoan: false, homeLoanInterest: 0),
+                      (p) => p.copyWith(hasHomeLoan: false, homeLoanInterest: 0, propertyType: null),
                     );
                 widget.onNext();
               },

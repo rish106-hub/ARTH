@@ -1,7 +1,7 @@
 # Logic Audit Results
 
-Generated: 2026-03-27T18:53:02.315212
-Runtime: 22s
+Generated: 2026-03-28T18:49:06.383064
+Runtime: 25s
 
 ## Sweep Scope
 

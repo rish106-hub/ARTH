@@ -1,71 +1,144 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_account.dart';
 import '../models/user_profile.dart';
-import '../services/cloud_sync_service.dart';
+import '../services/backend_sync_service.dart';
+import 'auth_provider.dart';
 
-const _kProfileKey = 'arth_user_profile';
-const _kOnboardingDoneKey = 'arth_onboarding_complete';
+// Keys are scoped per user: arth_profile_{uid}, arth_onboarding_{uid}
+String _profileKey(String uid) => 'arth_profile_$uid';
+String _onboardingKey(String uid) => 'arth_onboarding_$uid';
 
 class UserProfileNotifier extends Notifier<UserProfile> {
+  Timer? _syncDebounce;
+
   @override
-  UserProfile build() => const UserProfile();
+  UserProfile build() {
+    ref.onDispose(() => _syncDebounce?.cancel());
+    return const UserProfile();
+  }
+
+  /// Returns the currently authenticated user's server ID, or null if not signed in.
+  String? _currentUid() => ref.read(authProvider)?.uid;
 
   void update(UserProfile updated) => state = updated;
 
   void updateField(UserProfile Function(UserProfile) updater) {
     state = updater(state);
+    _scheduleDraftSync();
   }
 
+  void applyAccountIdentity(UserAccount account) {
+    state = state.copyWith(
+      name: account.name,
+      email: account.email,
+    );
+  }
+
+  /// Persists the completed profile to server (source of truth) and caches locally.
+  /// This is the only method that syncs to the server — draft changes are kept
+  /// local-only via _scheduleDraftSync to avoid false "onboarding complete" routing.
   Future<void> save() async {
-    // Save to local storage
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kProfileKey, state.toJsonString());
-    await prefs.setBool(_kOnboardingDoneKey, true);
-
-    // Sync to Firebase
-    final user =
-        Firebase.apps.isEmpty ? null : FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final cloudSync = CloudSyncService();
-      // Create account object from profile name/email
-      final account = UserAccount(
-        name: state.name,
-        email: state.email,
-        uid: user.uid,
-        createdAt: DateTime.now(),
-      );
-      // Sync name/email to users/{uid} doc
-      await cloudSync.syncAccount(account);
-      // Sync tax profile to users/{uid}/tax_profiles/{fy}
-      await cloudSync.syncProfile(user.uid, state);
+    final uid = _currentUid();
+    if (uid != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_profileKey(uid), state.toJsonString());
+      await prefs.setBool(_onboardingKey(uid), true);
     }
+    await BackendSyncService().syncProfile(state);
+    await _syncCompletedProfile();
   }
 
+  /// Loads this user's profile — server is source of truth.
+  /// Falls back to local cache only when the server is unreachable (offline).
   Future<bool> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_kProfileKey);
-    if (json != null) {
-      try {
-        state = UserProfile.fromJsonString(json);
-        return true;
-      } catch (_) {}
+    final uid = _currentUid();
+
+    // 0. Replay any ops that failed in a previous session before fetching,
+    //    so the server state is up-to-date when we read it back.
+    await BackendSyncService().flushPendingQueue();
+
+    // 1. Fetch from server — always the authoritative copy.
+    final remote = await BackendSyncService().fetchProfile();
+    if (remote != null) {
+      state = remote;
+      // Update local cache for this user.
+      if (uid != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_profileKey(uid), remote.toJsonString());
+        await prefs.setBool(_onboardingKey(uid), true);
+      }
+      return true;
     }
+
+    // 2. Offline fallback — use user-scoped local cache only.
+    if (uid != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_profileKey(uid));
+      if (json != null) {
+        try {
+          state = UserProfile.fromJsonString(json);
+          return true;
+        } catch (_) {}
+      }
+    }
+
     return false;
   }
 
+  /// Returns true only if this specific user has completed onboarding.
   Future<bool> isOnboardingComplete() async {
+    final uid = _currentUid();
+    if (uid == null) return false;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kOnboardingDoneKey) ?? false;
+    return prefs.getBool(_onboardingKey(uid)) ?? false;
   }
 
+  /// Clears all local state for the current user and resets in-memory profile.
+  /// Also clears the server-side done-gaps list so the slate is truly clean.
   Future<void> clearAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kProfileKey);
-    await prefs.remove(_kOnboardingDoneKey);
+    final uid = _currentUid();
+    if (uid != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_profileKey(uid));
+      await prefs.remove(_onboardingKey(uid));
+    }
+    // Best-effort: wipe done-gaps on the server so restoring later starts fresh.
+    await BackendSyncService().syncDoneGaps({});
     state = const UserProfile();
+  }
+
+  void _scheduleDraftSync() {
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 600), () async {
+      // Draft saves are LOCAL ONLY. Sending partial profiles to the server
+      // mid-onboarding would cause load() to return true on the next cold
+      // start, routing the user to /gap-reveal with incomplete default data.
+      // Server sync happens exclusively from save() once onboarding is done.
+      final uid = _currentUid();
+      if (uid != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_profileKey(uid), state.toJsonString());
+      }
+    });
+  }
+
+  /// Called after onboarding is fully complete to sync the completed profile
+  /// and fire an analytics event. Separated from draft sync intentionally.
+  Future<void> _syncCompletedProfile() async {
+    try {
+      await BackendSyncService().syncProfile(state);
+      await BackendSyncService().trackEvent(
+        name: 'profile_updated',
+        metadata: {
+          'annualCTC': state.annualCTC,
+          'employmentType': state.employmentType.name,
+          'city': state.city,
+          'ageGroup': state.ageGroup.name,
+        },
+      );
+    } catch (_) {}
   }
 }
 
@@ -88,5 +161,5 @@ final onboardingStepProvider = NotifierProvider<OnboardingNotifier, int>(
   OnboardingNotifier.new,
 );
 
-// Total visible steps: Q00 Name (0) + Q00 Email (1) + Q01-Q12 tax questions (2-13) = 14 steps
-const int kTotalSteps = 14;
+// Total visible steps: Q01-Q12 tax questions = 12 steps.
+const int kTotalSteps = 12;

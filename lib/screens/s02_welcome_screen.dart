@@ -81,7 +81,7 @@ class WelcomeScreen extends StatelessWidget {
 
                         Center(
                           child: Text(
-                            'Takes 3 minutes. No PAN. No login. No nonsense.',
+                            'Takes 3 minutes. No PAN. No busywork. No nonsense.',
                             style:
                                 AppTextStyles.micro(color: AppColors.textSecondary),
                             textAlign: TextAlign.center,
@@ -106,7 +106,7 @@ class WelcomeScreen extends StatelessWidget {
                                     size: 14, color: AppColors.gold),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Nothing you enter leaves your phone',
+                                  'Encrypted and stored securely on ARTH servers',
                                   style: AppTextStyles.micro(
                                       color: AppColors.textSecondary),
                                 ),
