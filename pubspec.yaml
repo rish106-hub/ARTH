@@ -17,7 +17,7 @@ dependencies:
   go_router: ^14.0.0
 
   # Local persistence
-  shared_preferences: ^2.3.1
+  shared_preferences: ^2.5.5
 
   # Firebase (using latest compatible set — Spark free tier, India-available)
   firebase_core: ^3.15.1
