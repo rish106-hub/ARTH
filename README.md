@@ -25,126 +25,204 @@ Audit artifacts: [AUDIT_LOG.md](./AUDIT_LOG.md) · [LOGIC_AUDIT_RESULTS.md](./LO
 
 ## System Design
 
+### UML Component Diagram
+
 ```mermaid
 graph TB
-    User(["👤 Indian Taxpayer\n(Android device)"])
+    Actor(["«actor»\nUser\nAndroid Device"])
 
-    subgraph APP ["Flutter Android App"]
+    subgraph APP ["«subsystem» ARTH Mobile App"]
         direction TB
 
-        subgraph UI ["UI Layer — Screens S00–S12"]
-            S_AUTH["S00 Auth"]
-            S_OB["S01–S03 Onboarding"]
-            S_RESULTS["S04–S08 Results & Actions"]
-            S_TRACK["S09–S12 Tracker, Share, Settings"]
+        subgraph PRES ["«layer» Presentation"]
+            UI["«component»\nScreen Layer\nS00 Auth · S01–S03 Onboarding\nS04–S08 Results & Actions\nS09–S12 Tracker · Share · Settings"]
         end
 
-        subgraph STATE ["State Layer — Riverpod"]
-            P_AUTH["authProvider\nJWT session"]
-            P_PROF["userProfileProvider\npersisted profile"]
-            P_TAX["taxResultProvider\ncomputed gaps"]
-            P_FLAGS["featureFlagsProvider\nRemote Config"]
+        subgraph APPLICATION ["«layer» Application"]
+            PROF_P["«component»\nuserProfileProvider\n«interface» IProfileState"]
+            TAX_P["«component»\ntaxResultProvider\n«interface» ITaxResultState"]
+            AUTH_P["«component»\nauthProvider\n«interface» IAuthState"]
+            FF_P["«component»\nfeatureFlagsProvider\n«interface» IFeatureFlags"]
         end
 
-        subgraph ENGINE ["Engine Layer"]
-            E_TAX["TaxEngine\nOld + New regime\nslab calculator"]
-            E_GAP["GapFinder\n12 decision-tree\ntriggers"]
-            E_JSON["assets/tax_data.json\nFinance Act 2026\nslab definitions"]
+        subgraph DOMAIN ["«layer» Domain"]
+            TAX_E["«component»\nTaxEngine\n+ calculate(profile, gaps): TaxResult\n+ marginalRateOld(income): double\n+ marginalRateNew(income): double"]
+            GAP_F["«component»\nGapFinder\n+ findGaps(profile, triggers): GapCard[]\n+ loadTriggers(): Future‹List›"]
+            MODELS["«component»\nDomain Models\nUserProfile · TaxResult\nGapCard · UserAccount"]
+            ASSET[("«artifact»\ntax_data.json\nFinance Act 2026\ndecision_tree_triggers")]
         end
 
-        subgraph SVC ["Service Layer"]
-            SVC_LOCAL["LocalStorageService\nshared_preferences"]
-            SVC_CLOUD["CloudSyncService\nHTTP client"]
+        subgraph INFRA ["«layer» Infrastructure"]
+            LOCAL["«component»\nLocalStorageService\n«interface» ILocalStorage\nshared_preferences"]
+            HTTP["«component»\nCloudSyncService\n«interface» ICloudSync\nHTTP REST client"]
+            FB_SVC["«component»\nFirebaseService\nAuth · Firestore · RemoteConfig"]
         end
     end
 
-    subgraph BACKEND ["ARTH Backend — Railway (Node.js / Fastify)"]
+    subgraph BACKEND_SYS ["«subsystem» ARTH Backend — Fastify / Node.js (Railway)"]
         direction TB
-        RT["Routes\n/auth /profile\n/tax-results /done-gaps\n/events"]
-        AUTH_MW["Auth Middleware\nJWT verify (JOSE)"]
-        SEC["Security\nArgon2id password hash\nSHA-256 token hash"]
-        DB_POOL["pg Pool\nconnection pool"]
+        API["«component»\nREST API (Fastify)\nPOST /auth/sign-up · /sign-in · /refresh · /sign-out\nGET|PUT /profile · DELETE /profile\nGET|PUT /tax-results/current\nGET|PUT /done-gaps/current\nPOST /events · GET /health"]
+        JWT_MW["«component»\nAuth Middleware\n«interface» IAuthMiddleware\nJWT verify — JOSE"]
+        SEC_C["«component»\nSecurityService\nArgon2id password hashing\nSHA-256 refresh token hashing"]
+        POOL["«component»\nDB Connection Pool\npg — node-postgres"]
     end
 
-    subgraph DB ["PostgreSQL — Railway / Neon"]
-        T_USERS["app_users"]
-        T_SESS["auth_refresh_sessions"]
-        T_PROF["tax_profiles"]
-        T_RES["tax_results"]
-        T_GAPS["done_gaps"]
-        T_EVT["user_events"]
+    subgraph PG ["«database» PostgreSQL"]
+        direction LR
+        T1[("app_users")]
+        T2[("auth_refresh_sessions")]
+        T3[("tax_profiles")]
+        T4[("tax_results")]
+        T5[("done_gaps")]
+        T6[("user_events")]
     end
 
-    subgraph FIREBASE ["Firebase (Google Cloud)"]
-        FB_AUTH["Anonymous Auth"]
-        FB_FS["Firestore\nalternate sync store"]
-        FB_RC["Remote Config\nfeature flags"]
-        FB_AN["Analytics"]
+    subgraph FB ["«subsystem» Firebase / Google Cloud"]
+        direction LR
+        FB_A["«service»\nAnonymous Auth"]
+        FB_FS["«service»\nFirestore\nalternate sync"]
+        FB_RC["«service»\nRemote Config\nfeature flags"]
+        FB_AN["«service»\nAnalytics"]
     end
 
-    subgraph CICD ["CI/CD — GitHub Actions"]
-        CI["ci.yml\nformat → analyze\n→ test → debug APK"]
-        REL["release.yml\nrelease AAB\n→ Play Store internal"]
+    subgraph CICD ["«subsystem» GitHub Actions CI/CD"]
+        CI["«component»\nci.yml\nformat · analyze · test\nbuild debug APK"]
+        REL["«component»\nrelease.yml\nbuild release AAB\nupload Play Store internal"]
     end
 
-    EXT_PLAY["Google Play Store"]
+    PLAY["«actor»\nGoogle Play Store"]
 
-    %% User ↔ App
-    User -- "opens app" --> APP
+    %% Actor
+    Actor -.->|"«interact»"| UI
 
-    %% UI ↔ State
-    UI -- "reads / triggers" --> STATE
-    STATE -- "renders" --> UI
+    %% Presentation → Application
+    UI -.->|"«use»"| PROF_P
+    UI -.->|"«use»"| TAX_P
+    UI -.->|"«use»"| AUTH_P
+    UI -.->|"«use»"| FF_P
 
-    %% State ↔ Engine
-    P_PROF -- "UserProfile" --> E_TAX
-    P_PROF -- "UserProfile" --> E_GAP
-    E_JSON -- "trigger defs" --> E_GAP
-    E_TAX -- "TaxResult" --> P_TAX
-    E_GAP -- "GapCard[]" --> P_TAX
+    %% Application → Domain
+    PROF_P -.->|"«use»"| TAX_E
+    PROF_P -.->|"«use»"| GAP_F
+    TAX_P -.->|"«realize»"| MODELS
+    ASSET -->|"«read»"| GAP_F
 
-    %% State ↔ Services
-    P_PROF -- "persist" --> SVC_LOCAL
-    SVC_LOCAL -- "restore on launch" --> P_PROF
-    P_AUTH -- "session" --> SVC_CLOUD
-    P_TAX -- "sync" --> SVC_CLOUD
+    %% Application → Infrastructure
+    PROF_P -.->|"«use»"| LOCAL
+    TAX_P -.->|"«use»"| HTTP
+    AUTH_P -.->|"«use»"| FB_SVC
+    FF_P -.->|"«use»"| FB_SVC
 
-    %% App ↔ Backend
-    SVC_CLOUD -- "HTTPS REST" --> RT
-    RT --> AUTH_MW
-    AUTH_MW --> SEC
-    RT --> DB_POOL
+    %% Infrastructure → Backend
+    HTTP -.->|"«call» HTTPS/TLS"| API
+    API -->|"«require»"| JWT_MW
+    JWT_MW -->|"«delegate»"| SEC_C
+    API -->|"«use»"| POOL
 
-    %% Backend ↔ DB
-    DB_POOL --> T_USERS
-    DB_POOL --> T_SESS
-    DB_POOL --> T_PROF
-    DB_POOL --> T_RES
-    DB_POOL --> T_GAPS
-    DB_POOL --> T_EVT
+    %% Backend → DB
+    POOL --> T1 & T2 & T3 & T4 & T5 & T6
 
-    %% App ↔ Firebase
-    P_AUTH -- "anon sign-in" --> FB_AUTH
-    SVC_CLOUD -- "optional sync" --> FB_FS
-    P_FLAGS -- "fetch flags" --> FB_RC
-    FB_AN -- "events" --> SVC_CLOUD
+    %% Infrastructure → Firebase
+    FB_SVC -.->|"«call»"| FB_A
+    FB_SVC -.->|"«call»"| FB_FS
+    FB_SVC -.->|"«call»"| FB_RC
+    FB_SVC -.->|"«call»"| FB_AN
 
     %% CI/CD
-    CI -- "build artifact" --> REL
-    REL -- "upload AAB" --> EXT_PLAY
-    EXT_PLAY -- "distribute" --> User
+    CI -->|"«trigger»"| REL
+    REL -.->|"«deploy»"| PLAY
+    PLAY -.->|"«distribute»"| Actor
+```
 
-    %% Styles
-    classDef layer fill:#1e1e1e,stroke:#F5C842,color:#fff
-    classDef firebase fill:#1a3a2a,stroke:#34a853,color:#fff
-    classDef backend fill:#1a1a3a,stroke:#4a9eff,color:#fff
-    classDef db fill:#2a1a1a,stroke:#ff6b6b,color:#fff
-    classDef cicd fill:#2a2a1a,stroke:#F5C842,color:#fff
-    class APP,UI,STATE,ENGINE,SVC layer
-    class FIREBASE,FB_AUTH,FB_FS,FB_RC,FB_AN firebase
-    class BACKEND,RT,AUTH_MW,SEC,DB_POOL backend
-    class DB,T_USERS,T_SESS,T_PROF,T_RES,T_GAPS,T_EVT db
-    class CICD,CI,REL cicd
+---
+
+### UML Sequence Diagram — Core Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as ARTH App
+    participant AuthP as authProvider
+    participant ProfP as userProfileProvider
+    participant TaxP as taxResultProvider
+    participant Engine as TaxEngine + GapFinder
+    participant Local as LocalStorageService
+    participant Cloud as CloudSyncService
+    participant Backend as Fastify Backend
+    participant DB as PostgreSQL
+
+    User->>App: launch app
+
+    App->>AuthP: checkSession()
+    AuthP->>Local: readStoredToken()
+    Local-->>AuthP: token | null
+
+    alt no session
+        AuthP->>Backend: POST /auth/sign-up or /sign-in
+        Backend->>DB: INSERT app_users / SELECT
+        Backend->>DB: INSERT auth_refresh_sessions
+        Backend-->>AuthP: { accessToken, refreshToken, user }
+        AuthP->>Local: persist tokens
+    end
+
+    App->>ProfP: loadProfile()
+    ProfP->>Local: readStoredProfile()
+    Local-->>ProfP: UserProfile | null
+
+    alt no local profile
+        ProfP->>Cloud: GET /profile
+        Cloud->>Backend: GET /profile [Bearer token]
+        Backend->>DB: SELECT tax_profiles WHERE user_id, fy
+        DB-->>Backend: profile row | null
+        Backend-->>Cloud: { profile }
+        Cloud-->>ProfP: UserProfile
+        ProfP->>Local: persist(profile)
+    end
+
+    User->>App: completes 12-question onboarding
+    App->>ProfP: updateProfile(answers)
+    ProfP->>Local: persist(updatedProfile)
+    ProfP->>Cloud: PUT /profile
+    Cloud->>Backend: PUT /profile [Bearer token]
+    Backend->>DB: UPSERT tax_profiles
+    DB-->>Backend: ok
+    Backend-->>Cloud: { ok: true }
+
+    App->>TaxP: compute()
+    TaxP->>Engine: TaxEngine.calculate(profile, [])
+    Engine-->>TaxP: { oldTax, newTax, betterRegime }
+    TaxP->>Engine: GapFinder.loadTriggers()
+    Engine-->>TaxP: triggers[ ] from tax_data.json
+    TaxP->>Engine: GapFinder.findGaps(profile, triggers)
+    Engine-->>TaxP: GapCard[ ] sorted by amount ↓
+    TaxP->>Engine: TaxEngine.calculate(profile, gaps)
+    Engine-->>TaxP: TaxResult (final)
+
+    TaxP->>Cloud: PUT /tax-results/current
+    Cloud->>Backend: PUT /tax-results/current [Bearer token]
+    Backend->>DB: UPSERT tax_results
+    DB-->>Backend: ok
+    Backend-->>Cloud: { ok: true }
+
+    TaxP-->>App: TaxResult ready
+    App-->>User: S04 Gap Reveal screen
+
+    User->>App: marks gap as done
+    App->>TaxP: markDone(gapId)
+    TaxP->>Cloud: PUT /done-gaps/current
+    Cloud->>Backend: PUT /done-gaps/current [Bearer token]
+    Backend->>DB: DELETE + INSERT done_gaps (transaction)
+    DB-->>Backend: ok
+    Backend-->>Cloud: { ok: true }
+    App-->>User: progress updated
+
+    alt token expired
+        Cloud->>Backend: POST /auth/refresh
+        Backend->>DB: SELECT auth_refresh_sessions (validate + revoke)
+        Backend->>DB: INSERT new auth_refresh_session
+        Backend-->>Cloud: { accessToken, refreshToken }
+        Cloud->>Local: persist new tokens
+    end
 ```
 
 ---
