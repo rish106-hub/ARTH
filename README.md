@@ -23,6 +23,132 @@ Audit artifacts: [AUDIT_LOG.md](./AUDIT_LOG.md) · [LOGIC_AUDIT_RESULTS.md](./LO
 
 ---
 
+## System Design
+
+```mermaid
+graph TB
+    User(["👤 Indian Taxpayer\n(Android device)"])
+
+    subgraph APP ["Flutter Android App"]
+        direction TB
+
+        subgraph UI ["UI Layer — Screens S00–S12"]
+            S_AUTH["S00 Auth"]
+            S_OB["S01–S03 Onboarding"]
+            S_RESULTS["S04–S08 Results & Actions"]
+            S_TRACK["S09–S12 Tracker, Share, Settings"]
+        end
+
+        subgraph STATE ["State Layer — Riverpod"]
+            P_AUTH["authProvider\nJWT session"]
+            P_PROF["userProfileProvider\npersisted profile"]
+            P_TAX["taxResultProvider\ncomputed gaps"]
+            P_FLAGS["featureFlagsProvider\nRemote Config"]
+        end
+
+        subgraph ENGINE ["Engine Layer"]
+            E_TAX["TaxEngine\nOld + New regime\nslab calculator"]
+            E_GAP["GapFinder\n12 decision-tree\ntriggers"]
+            E_JSON["assets/tax_data.json\nFinance Act 2026\nslab definitions"]
+        end
+
+        subgraph SVC ["Service Layer"]
+            SVC_LOCAL["LocalStorageService\nshared_preferences"]
+            SVC_CLOUD["CloudSyncService\nHTTP client"]
+        end
+    end
+
+    subgraph BACKEND ["ARTH Backend — Railway (Node.js / Fastify)"]
+        direction TB
+        RT["Routes\n/auth /profile\n/tax-results /done-gaps\n/events"]
+        AUTH_MW["Auth Middleware\nJWT verify (JOSE)"]
+        SEC["Security\nArgon2id password hash\nSHA-256 token hash"]
+        DB_POOL["pg Pool\nconnection pool"]
+    end
+
+    subgraph DB ["PostgreSQL — Railway / Neon"]
+        T_USERS["app_users"]
+        T_SESS["auth_refresh_sessions"]
+        T_PROF["tax_profiles"]
+        T_RES["tax_results"]
+        T_GAPS["done_gaps"]
+        T_EVT["user_events"]
+    end
+
+    subgraph FIREBASE ["Firebase (Google Cloud)"]
+        FB_AUTH["Anonymous Auth"]
+        FB_FS["Firestore\nalternate sync store"]
+        FB_RC["Remote Config\nfeature flags"]
+        FB_AN["Analytics"]
+    end
+
+    subgraph CICD ["CI/CD — GitHub Actions"]
+        CI["ci.yml\nformat → analyze\n→ test → debug APK"]
+        REL["release.yml\nrelease AAB\n→ Play Store internal"]
+    end
+
+    EXT_PLAY["Google Play Store"]
+
+    %% User ↔ App
+    User -- "opens app" --> APP
+
+    %% UI ↔ State
+    UI -- "reads / triggers" --> STATE
+    STATE -- "renders" --> UI
+
+    %% State ↔ Engine
+    P_PROF -- "UserProfile" --> E_TAX
+    P_PROF -- "UserProfile" --> E_GAP
+    E_JSON -- "trigger defs" --> E_GAP
+    E_TAX -- "TaxResult" --> P_TAX
+    E_GAP -- "GapCard[]" --> P_TAX
+
+    %% State ↔ Services
+    P_PROF -- "persist" --> SVC_LOCAL
+    SVC_LOCAL -- "restore on launch" --> P_PROF
+    P_AUTH -- "session" --> SVC_CLOUD
+    P_TAX -- "sync" --> SVC_CLOUD
+
+    %% App ↔ Backend
+    SVC_CLOUD -- "HTTPS REST" --> RT
+    RT --> AUTH_MW
+    AUTH_MW --> SEC
+    RT --> DB_POOL
+
+    %% Backend ↔ DB
+    DB_POOL --> T_USERS
+    DB_POOL --> T_SESS
+    DB_POOL --> T_PROF
+    DB_POOL --> T_RES
+    DB_POOL --> T_GAPS
+    DB_POOL --> T_EVT
+
+    %% App ↔ Firebase
+    P_AUTH -- "anon sign-in" --> FB_AUTH
+    SVC_CLOUD -- "optional sync" --> FB_FS
+    P_FLAGS -- "fetch flags" --> FB_RC
+    FB_AN -- "events" --> SVC_CLOUD
+
+    %% CI/CD
+    CI -- "build artifact" --> REL
+    REL -- "upload AAB" --> EXT_PLAY
+    EXT_PLAY -- "distribute" --> User
+
+    %% Styles
+    classDef layer fill:#1e1e1e,stroke:#F5C842,color:#fff
+    classDef firebase fill:#1a3a2a,stroke:#34a853,color:#fff
+    classDef backend fill:#1a1a3a,stroke:#4a9eff,color:#fff
+    classDef db fill:#2a1a1a,stroke:#ff6b6b,color:#fff
+    classDef cicd fill:#2a2a1a,stroke:#F5C842,color:#fff
+    class APP,UI,STATE,ENGINE,SVC layer
+    class FIREBASE,FB_AUTH,FB_FS,FB_RC,FB_AN firebase
+    class BACKEND,RT,AUTH_MW,SEC,DB_POOL backend
+    class DB,T_USERS,T_SESS,T_PROF,T_RES,T_GAPS,T_EVT db
+    class CICD,CI,REL cicd
+```
+
+---
+
 ## System Architecture
 
 ```
