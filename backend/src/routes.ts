@@ -419,12 +419,10 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post(
     '/events',
     {
-      config: {
-        rateLimit: {
-          max: 30,
-          timeWindow: '1 minute',
-        },
-      },
+      preHandler: app.rateLimit({
+        max: 30,
+        timeWindow: '1 minute',
+      }),
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
