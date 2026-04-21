@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
 import { db } from './db.js';
 import { env } from './config.js';
@@ -95,6 +96,11 @@ async function issueSession(user: {
 }
 
 export async function registerRoutes(app: FastifyInstance) {
+  await app.register(rateLimit, {
+    global: false,
+    max: 100,
+    timeWindow: '1 minute',
+  });
   app.get('/health', async () => ({ ok: true }));
   app.get('/ping', async () => ({ ok: true, ts: Date.now() }));
 
@@ -410,15 +416,26 @@ export async function registerRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
-  app.post('/events', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+  app.post(
+    '/events',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-    const payload = eventSchema.parse(request.body);
-    await db.query(
-      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, payload.name, JSON.stringify(payload.metadata ?? {})],
-    );
-    return reply.code(204).send();
-  });
+      const payload = eventSchema.parse(request.body);
+      await db.query(
+        'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+        [auth.userId, payload.name, JSON.stringify(payload.metadata ?? {})],
+      );
+      return reply.code(204).send();
+    },
+  );
 }
