@@ -35,7 +35,7 @@ dependencies:
   lottie: ^3.3.3
 
   # Sharing & Screenshot
-  share_plus: ^13.0.0
+  share_plus: ^13.1.0
   screenshot: ^3.0.0
 
   # URL launching (action deeplinks)
