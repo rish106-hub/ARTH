@@ -42,7 +42,7 @@ dependencies:
   url_launcher: ^6.3.0
 
   # Formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Icons
   cupertino_icons: ^1.0.9
