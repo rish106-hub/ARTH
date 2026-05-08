@@ -96,6 +96,10 @@ async function issueSession(user: {
 }
 
 export async function registerRoutes(app: FastifyInstance) {
+  const authenticatedLimiter = app.rateLimit({
+    max: 60,
+    timeWindow: '1 minute',
+  });
   await app.register(rateLimit, {
     global: false,
     max: 100,
@@ -340,89 +344,110 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put('/tax-results/current', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+  app.put(
+    '/tax-results/current',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-    const payload = taxResultSchema.parse(request.body);
-    await db.query(
-      `insert into tax_results (user_id, fy, payload, updated_at)
-       values ($1, $2, $3::jsonb, now())
-       on conflict (user_id, fy) do update set
-         payload = excluded.payload,
-         updated_at = now()`,
-      [auth.userId, env.CURRENT_FY, JSON.stringify(payload)],
-    );
-    return { ok: true };
-  });
+      const payload = taxResultSchema.parse(request.body);
+      await db.query(
+        `insert into tax_results (user_id, fy, payload, updated_at)
+         values ($1, $2, $3::jsonb, now())
+         on conflict (user_id, fy) do update set
+           payload = excluded.payload,
+           updated_at = now()`,
+        [auth.userId, env.CURRENT_FY, JSON.stringify(payload)],
+      );
+      return { ok: true };
+    },
+  );
 
-  app.get('/done-gaps/current', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+  app.get(
+    '/done-gaps/current',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-    const result = await db.query(
-      'select gap_id from done_gaps where user_id = $1 and fy = $2 order by gap_id asc',
-      [auth.userId, env.CURRENT_FY],
-    );
-    return {
-      gapIds: result.rows.map((row) => row.gap_id),
-    };
-  });
-
-  app.put('/done-gaps/current', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
-
-    const payload = doneGapsSchema.parse(request.body);
-    const client = await db.connect();
-    try {
-      await client.query('begin');
-      await client.query(
-        'delete from done_gaps where user_id = $1 and fy = $2',
+      const result = await db.query(
+        'select gap_id from done_gaps where user_id = $1 and fy = $2 order by gap_id asc',
         [auth.userId, env.CURRENT_FY],
       );
-      for (const gapId of payload.gapIds) {
-        await client.query(
-          'insert into done_gaps (user_id, fy, gap_id) values ($1, $2, $3)',
-          [auth.userId, env.CURRENT_FY, gapId],
-        );
-      }
-      await client.query('commit');
-    } catch (error) {
-      await client.query('rollback');
-      throw error;
-    } finally {
-      client.release();
-    }
-    return { ok: true };
-  });
+      return {
+        gapIds: result.rows.map((row) => row.gap_id),
+      };
+    },
+  );
 
-  app.delete('/profile', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
-    const client = await db.connect();
-    try {
-      await client.query('begin');
-      await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
-      await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
-      await client.query('delete from tax_results where user_id = $1', [auth.userId]);
-      await client.query('commit');
-    } catch (error) {
-      await client.query('rollback');
-      throw error;
-    } finally {
-      client.release();
-    }
-    return reply.code(204).send();
-  });
+  app.put(
+    '/done-gaps/current',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
+
+      const payload = doneGapsSchema.parse(request.body);
+      const client = await db.connect();
+      try {
+        await client.query('begin');
+        await client.query(
+          'delete from done_gaps where user_id = $1 and fy = $2',
+          [auth.userId, env.CURRENT_FY],
+        );
+        for (const gapId of payload.gapIds) {
+          await client.query(
+            'insert into done_gaps (user_id, fy, gap_id) values ($1, $2, $3)',
+            [auth.userId, env.CURRENT_FY, gapId],
+          );
+        }
+        await client.query('commit');
+      } catch (error) {
+        await client.query('rollback');
+        throw error;
+      } finally {
+        client.release();
+      }
+      return { ok: true };
+    },
+  );
+
+  app.delete(
+    '/profile',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
+      const client = await db.connect();
+      try {
+        await client.query('begin');
+        await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
+        await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
+        await client.query('delete from tax_results where user_id = $1', [auth.userId]);
+        await client.query('commit');
+      } catch (error) {
+        await client.query('rollback');
+        throw error;
+      } finally {
+        client.release();
+      }
+      return reply.code(204).send();
+    },
+  );
 
   app.post(
     '/events',
     {
-      preHandler: app.rateLimit({
-        max: 30,
-        timeWindow: '1 minute',
-      }),
+      preHandler: authenticatedLimiter,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
