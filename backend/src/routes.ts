@@ -256,80 +256,86 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put('/profile', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+  app.put(
+    '/profile',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-    const profile = profileSchema.parse(request.body);
-    await db.query(
-      `insert into tax_profiles (
-         user_id, fy, name, email, annual_ctc, employment_type, city, is_metro_city,
-         pays_rent, monthly_rent, has_hra, invested_80c, has_home_loan, property_type,
-         home_loan_interest, has_nps, nps_extra_contribution, has_health_insurance_self,
-         has_health_insurance_parents, parents_above_60, has_education_loan,
-         education_loan_repayment_year, education_loan_interest, has_donations,
-         donation_amount, age_group, updated_at
-       ) values (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-         $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, now()
-       )
-       on conflict (user_id, fy) do update set
-         name = excluded.name,
-         email = excluded.email,
-         annual_ctc = excluded.annual_ctc,
-         employment_type = excluded.employment_type,
-         city = excluded.city,
-         is_metro_city = excluded.is_metro_city,
-         pays_rent = excluded.pays_rent,
-         monthly_rent = excluded.monthly_rent,
-         has_hra = excluded.has_hra,
-         invested_80c = excluded.invested_80c,
-         has_home_loan = excluded.has_home_loan,
-         property_type = excluded.property_type,
-         home_loan_interest = excluded.home_loan_interest,
-         has_nps = excluded.has_nps,
-         nps_extra_contribution = excluded.nps_extra_contribution,
-         has_health_insurance_self = excluded.has_health_insurance_self,
-         has_health_insurance_parents = excluded.has_health_insurance_parents,
-         parents_above_60 = excluded.parents_above_60,
-         has_education_loan = excluded.has_education_loan,
-         education_loan_repayment_year = excluded.education_loan_repayment_year,
-         education_loan_interest = excluded.education_loan_interest,
-         has_donations = excluded.has_donations,
-         donation_amount = excluded.donation_amount,
-         age_group = excluded.age_group,
-         updated_at = now()`,
-      [
-        auth.userId,
-        env.CURRENT_FY,
-        profile.name,
-        profile.email,
-        profile.annualCTC,
-        profile.employmentType,
-        profile.city,
-        profile.isMetroCity,
-        profile.paysRent,
-        profile.monthlyRent,
-        profile.hasHRA,
-        profile.invested80C,
-        profile.hasHomeLoan,
-        profile.propertyType,
-        profile.homeLoanInterest,
-        profile.hasNPS,
-        profile.npsExtraContribution,
-        profile.hasHealthInsuranceSelf,
-        profile.hasHealthInsuranceParents,
-        profile.parentsAbove60,
-        profile.hasEducationLoan,
-        profile.educationLoanRepaymentYear,
-        profile.educationLoanInterest,
-        profile.hasDonations,
-        profile.donationAmount,
-        profile.ageGroup,
-      ],
-    );
-    return { ok: true };
-  });
+      const profile = profileSchema.parse(request.body);
+      await db.query(
+        `insert into tax_profiles (
+           user_id, fy, name, email, annual_ctc, employment_type, city, is_metro_city,
+           pays_rent, monthly_rent, has_hra, invested_80c, has_home_loan, property_type,
+           home_loan_interest, has_nps, nps_extra_contribution, has_health_insurance_self,
+           has_health_insurance_parents, parents_above_60, has_education_loan,
+           education_loan_repayment_year, education_loan_interest, has_donations,
+           donation_amount, age_group, updated_at
+         ) values (
+           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+           $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, now()
+         )
+         on conflict (user_id, fy) do update set
+           name = excluded.name,
+           email = excluded.email,
+           annual_ctc = excluded.annual_ctc,
+           employment_type = excluded.employment_type,
+           city = excluded.city,
+           is_metro_city = excluded.is_metro_city,
+           pays_rent = excluded.pays_rent,
+           monthly_rent = excluded.monthly_rent,
+           has_hra = excluded.has_hra,
+           invested_80c = excluded.invested_80c,
+           has_home_loan = excluded.has_home_loan,
+           property_type = excluded.property_type,
+           home_loan_interest = excluded.home_loan_interest,
+           has_nps = excluded.has_nps,
+           nps_extra_contribution = excluded.nps_extra_contribution,
+           has_health_insurance_self = excluded.has_health_insurance_self,
+           has_health_insurance_parents = excluded.has_health_insurance_parents,
+           parents_above_60 = excluded.parents_above_60,
+           has_education_loan = excluded.has_education_loan,
+           education_loan_repayment_year = excluded.education_loan_repayment_year,
+           education_loan_interest = excluded.education_loan_interest,
+           has_donations = excluded.has_donations,
+           donation_amount = excluded.donation_amount,
+           age_group = excluded.age_group,
+           updated_at = now()`,
+        [
+          auth.userId,
+          env.CURRENT_FY,
+          profile.name,
+          profile.email,
+          profile.annualCTC,
+          profile.employmentType,
+          profile.city,
+          profile.isMetroCity,
+          profile.paysRent,
+          profile.monthlyRent,
+          profile.hasHRA,
+          profile.invested80C,
+          profile.hasHomeLoan,
+          profile.propertyType,
+          profile.homeLoanInterest,
+          profile.hasNPS,
+          profile.npsExtraContribution,
+          profile.hasHealthInsuranceSelf,
+          profile.hasHealthInsuranceParents,
+          profile.parentsAbove60,
+          profile.hasEducationLoan,
+          profile.educationLoanRepaymentYear,
+          profile.educationLoanInterest,
+          profile.hasDonations,
+          profile.donationAmount,
+          profile.ageGroup,
+        ],
+      );
+      return { ok: true };
+    },
+  );
 
   app.get('/tax-results/current', async (request, reply) => {
     const auth = await requireAuth(request, reply);
