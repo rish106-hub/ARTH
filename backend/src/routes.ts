@@ -331,18 +331,24 @@ export async function registerRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.get('/tax-results/current', async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+  app.get(
+    '/tax-results/current',
+    {
+      preHandler: authenticatedLimiter,
+    },
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
 
-    const result = await db.query(
-      'select payload from tax_results where user_id = $1 and fy = $2',
-      [auth.userId, env.CURRENT_FY],
-    );
-    return {
-      taxResult: result.rowCount ? result.rows[0].payload : null,
-    };
-  });
+      const result = await db.query(
+        'select payload from tax_results where user_id = $1 and fy = $2',
+        [auth.userId, env.CURRENT_FY],
+      );
+      return {
+        taxResult: result.rowCount ? result.rows[0].payload : null,
+      };
+    },
+  );
 
   app.put(
     '/tax-results/current',
