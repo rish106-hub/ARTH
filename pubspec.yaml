@@ -20,7 +20,7 @@ dependencies:
   shared_preferences: ^2.3.1
 
   # Firebase (using latest compatible set — Spark free tier, India-available)
-  firebase_core: ^4.7.0
+  firebase_core: ^4.9.0
   firebase_auth: ^6.4.0
   firebase_remote_config: ^6.4.0
   firebase_messaging: ^16.2.0
