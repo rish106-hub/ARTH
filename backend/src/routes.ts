@@ -382,6 +382,12 @@ export async function registerRoutes(app: FastifyInstance) {
     '/done-gaps/current',
     {
       preHandler: authenticatedLimiter,
+      config: {
+        rateLimit: {
+          max: 120,
+          timeWindow: '1 minute',
+        },
+      },
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
