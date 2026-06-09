@@ -31,7 +31,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
       await Share.shareXFiles(
         [XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png')],
         text:
-            'I just found ₹${_fmt(totalGap)} I was overpaying in taxes every year.\n\nFind your tax gap → arth.app',
+            'I just found ₹${_fmt(totalGap)} I was overpaying in taxes every year.\n\nFind your tax gap → https://arth-website.vercel.app/',
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -175,10 +175,15 @@ class _ShareCard extends StatelessWidget {
                     letterSpacing: 4,
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'Tax Gap Finder',
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tax Gap Finder',
+                    style: AppTextStyles.micro(color: AppColors.textSecondary),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -245,7 +250,7 @@ class _ShareCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   Text(
-                    'arth.app',
+                    'arth-website.vercel.app',
                     style:
                         AppTextStyles.caption(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
@@ -277,26 +282,57 @@ class _ShareItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.1),
-              borderRadius: AppRadius.pill,
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withValues(alpha: 0.1),
+                      borderRadius: AppRadius.pill,
+                      border:
+                          Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      item.section,
+                      style: AppTextStyles.sectionLabel(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  compact
+                      ? '₹ ${formatRupeesCompact(item.amount)}'
+                      : '₹ ${_fmtFull(item.amount)}',
+                  style: AppTextStyles.bodyMedium(color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            child: Text(item.section, style: AppTextStyles.sectionLabel()),
-          ),
-          const Spacer(),
-          RupeeText(
-            amount: item.amount,
-            style: AppTextStyles.bodyMedium(color: AppColors.textPrimary),
           ),
         ],
       ),
     );
+  }
+
+  String _fmtFull(int v) {
+    if (v >= 100000) {
+      final l = v / 100000;
+      return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
+    }
+    return v.toString().replaceAllMapped(
+          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }

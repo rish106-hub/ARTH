@@ -45,7 +45,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        multiDexEnabled = true
+        // multiDexEnabled not needed — minSdk 24+ uses ART which handles multiple DEX natively
     }
 
     buildTypes {
@@ -55,8 +55,8 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -67,4 +67,7 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
 }

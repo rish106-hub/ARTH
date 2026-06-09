@@ -142,7 +142,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   // Legal footer
                   Center(
                     child: Text(
-                      'Powered by Income Tax Act 1961 + Finance Act 2025',
+                      'Powered by Income Tax Act 1961 + Finance Act 2026',
                       style: AppTextStyles.micro(color: AppColors.textMuted),
                       textAlign: TextAlign.center,
                     ),
@@ -180,29 +180,42 @@ class _HeroBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: gap.accentColor.withValues(alpha: 0.12),
-                  borderRadius: AppRadius.pill,
-                  border:
-                      Border.all(color: gap.accentColor.withValues(alpha: 0.4)),
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: gap.accentColor.withValues(alpha: 0.12),
+                    borderRadius: AppRadius.pill,
+                    border: Border.all(
+                        color: gap.accentColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(gap.section,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.sectionLabel(color: gap.accentColor)),
                 ),
-                child: Text(gap.section,
-                    style: AppTextStyles.sectionLabel(color: gap.accentColor)),
               ),
-              const Spacer(),
-              Row(
-                children: [
-                  Icon(gap.difficultyIcon,
-                      size: 14, color: AppColors.textSecondary),
-                  const SizedBox(width: 4),
-                  Text(gap.difficultyLabel,
-                      style:
-                          AppTextStyles.micro(color: AppColors.textSecondary)),
-                ],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(gap.difficultyIcon,
+                        size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(gap.difficultyLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.micro(
+                              color: AppColors.textSecondary)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -230,7 +243,14 @@ class _HeroBanner extends StatelessWidget {
               const Icon(Icons.calendar_today_outlined,
                   size: 12, color: AppColors.textSecondary),
               const SizedBox(width: 4),
-              Text('Deadline: ${gap.deadline}', style: AppTextStyles.micro()),
+              Expanded(
+                child: Text(
+                  'Deadline: ${gap.deadline}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.micro(),
+                ),
+              ),
             ],
           ),
         ],
@@ -367,7 +387,7 @@ class _ActionButton extends StatelessWidget {
             side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),
           onPressed: () async {
-            final uri = Uri.parse(action.url);
+            final uri = Uri.parse('https://arth-website.vercel.app/');
             if (await canLaunchUrl(uri)) {
               await launchUrl(uri, mode: LaunchMode.externalApplication);
             }

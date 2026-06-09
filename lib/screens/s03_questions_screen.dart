@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
+import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/question_progress_bar.dart';
 
@@ -19,7 +20,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
-  int _step = 0; // 0–11 main steps
+  int _step = 0; // 0–11 tax questions only
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
   Future<void> _finish() async {
     await ref.read(userProfileProvider.notifier).save();
+    await ref.read(taxResultProvider.future);
     if (mounted) {
       context.go('/gap-reveal');
     }
@@ -151,6 +153,147 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   }
 }
 
+// ─── Q00: Name ────────────────────────────────────────────────────────────────
+class _Q00Name extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _Q00Name({required this.profile, required this.onNext});
+
+  @override
+  ConsumerState<_Q00Name> createState() => _Q00NameState();
+}
+
+class _Q00NameState extends ConsumerState<_Q00Name> {
+  late TextEditingController _textCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl = TextEditingController(text: widget.profile.name);
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    ref.read(userProfileProvider.notifier).updateField(
+      (p) => p.copyWith(name: value.trim()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: "What's your name?",
+      microCopy: "This helps us personalize your report.",
+      content: TextField(
+        controller: _textCtrl,
+        onChanged: _onTextChanged,
+        decoration: InputDecoration(
+          hintText: 'Enter your name',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        style: const TextStyle(
+          color: Color(0xFFFFFFFF),
+          fontSize: 16,
+          fontFamily: 'Inter',
+        ),
+        cursorColor: const Color(0xFFF5C842),
+      ),
+      onNext: widget.onNext,
+      canProceed: _textCtrl.text.trim().isNotEmpty,
+    );
+  }
+}
+
+// ─── Q00: Email ───────────────────────────────────────────────────────────────
+class _Q00Email extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _Q00Email({required this.profile, required this.onNext});
+
+  @override
+  ConsumerState<_Q00Email> createState() => _Q00EmailState();
+}
+
+class _Q00EmailState extends ConsumerState<_Q00Email> {
+  late TextEditingController _textCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _textCtrl = TextEditingController(text: widget.profile.email);
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    ref.read(userProfileProvider.notifier).updateField(
+      (p) => p.copyWith(email: value.trim()),
+    );
+  }
+
+  bool _isValidEmail(String email) {
+    return email.contains('@') && email.contains('.') && email.length > 5;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: "What's your email?",
+      microCopy: "We'll send your report here. No spam.",
+      content: TextField(
+        controller: _textCtrl,
+        onChanged: _onTextChanged,
+        keyboardType: TextInputType.emailAddress,
+        decoration: InputDecoration(
+          hintText: 'your.email@domain.com',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        style: const TextStyle(
+          color: Color(0xFFFFFFFF),
+          fontSize: 16,
+          fontFamily: 'Inter',
+        ),
+        cursorColor: const Color(0xFFF5C842),
+      ),
+      onNext: widget.onNext,
+      canProceed: _isValidEmail(_textCtrl.text.trim()),
+    );
+  }
+}
+
 // ─── SHARED QUESTION SCAFFOLD ─────────────────────────────────────────────────
 class _QLayout extends StatelessWidget {
   final String question;
@@ -171,6 +314,7 @@ class _QLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -182,7 +326,21 @@ class _QLayout extends StatelessWidget {
             Text(microCopy!, style: AppTextStyles.micro()),
           ],
           const SizedBox(height: 28),
-          Expanded(child: content),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.only(bottom: bottomInset + 12),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: content,
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 16),
           if (onNext != null)
             SizedBox(
@@ -534,61 +692,61 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filtered.length,
-              itemBuilder: (_, i) {
-                final city = _filtered[i];
-                final isMetro = _metros.contains(city);
-                final selected = widget.profile.city == city;
-                return GestureDetector(
-                  onTap: () {
-                    ref.read(userProfileProvider.notifier).updateField(
-                          (p) => p.copyWith(city: city, isMetroCity: isMetro),
-                        );
-                    widget.onNext();
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.gold.withValues(alpha: 0.1)
-                          : AppColors.bgCard,
-                      borderRadius: AppRadius.card,
-                      border: Border.all(
-                        color: selected ? AppColors.gold : AppColors.border,
-                        width: selected ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(city,
-                              style: AppTextStyles.body(
-                                  color: selected
-                                      ? AppColors.gold
-                                      : AppColors.textPrimary)),
-                        ),
-                        if (isMetro)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.teal.withValues(alpha: 0.15),
-                              borderRadius: AppRadius.pill,
-                            ),
-                            child: Text('Metro',
-                                style:
-                                    AppTextStyles.micro(color: AppColors.teal)),
-                          ),
-                      ],
+          ListView.builder(
+            itemCount: _filtered.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (_, i) {
+              final city = _filtered[i];
+              final isMetro = _metros.contains(city);
+              final selected = widget.profile.city == city;
+              return GestureDetector(
+                onTap: () {
+                  ref.read(userProfileProvider.notifier).updateField(
+                        (p) => p.copyWith(city: city, isMetroCity: isMetro),
+                      );
+                  widget.onNext();
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.gold.withValues(alpha: 0.1)
+                        : AppColors.bgCard,
+                    borderRadius: AppRadius.card,
+                    border: Border.all(
+                      color: selected ? AppColors.gold : AppColors.border,
+                      width: selected ? 1.5 : 1,
                     ),
                   ),
-                );
-              },
-            ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(city,
+                            style: AppTextStyles.body(
+                                color: selected
+                                    ? AppColors.gold
+                                    : AppColors.textPrimary)),
+                      ),
+                      if (isMetro)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.teal.withValues(alpha: 0.15),
+                            borderRadius: AppRadius.pill,
+                          ),
+                          child: Text('Metro',
+                              style:
+                                  AppTextStyles.micro(color: AppColors.teal)),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1112,8 +1270,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   _type = null;
                 });
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) =>
-                          p.copyWith(hasHomeLoan: false, homeLoanInterest: 0),
+                      (p) => p.copyWith(hasHomeLoan: false, homeLoanInterest: 0, propertyType: null),
                     );
                 widget.onNext();
               },

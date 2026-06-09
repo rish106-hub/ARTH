@@ -7,6 +7,50 @@ enum AgeGroup { below30, age30to45, age45to60, above60 }
 
 enum PropertyType { selfOccupied, letOut }
 
+EmploymentType _employmentTypeFromJson(dynamic value) {
+  if (value is String) {
+    return EmploymentType.values.firstWhere(
+      (type) => type.name == value,
+      orElse: () => EmploymentType.salaried,
+    );
+  }
+  if (value is int &&
+      value >= 0 &&
+      value < EmploymentType.values.length) {
+    return EmploymentType.values[value];
+  }
+  return EmploymentType.salaried;
+}
+
+AgeGroup _ageGroupFromJson(dynamic value) {
+  if (value is String) {
+    return AgeGroup.values.firstWhere(
+      (group) => group.name == value,
+      orElse: () => AgeGroup.below30,
+    );
+  }
+  if (value is int && value >= 0 && value < AgeGroup.values.length) {
+    return AgeGroup.values[value];
+  }
+  return AgeGroup.below30;
+}
+
+PropertyType? _propertyTypeFromJson(dynamic value) {
+  if (value == null) return null;
+  if (value is String) {
+    return PropertyType.values.firstWhere(
+      (type) => type.name == value,
+      orElse: () => PropertyType.selfOccupied,
+    );
+  }
+  if (value is int &&
+      value >= 0 &&
+      value < PropertyType.values.length) {
+    return PropertyType.values[value];
+  }
+  return null;
+}
+
 extension AgeGroupExtension on AgeGroup {
   String get label {
     switch (this) {
@@ -41,6 +85,10 @@ extension AgeGroupExtension on AgeGroup {
 
 @immutable
 class UserProfile {
+  // Personal info
+  final String name;
+  final String email;
+
   // Q01
   final int annualCTC; // in rupees
 
@@ -98,6 +146,8 @@ class UserProfile {
   int get approximateBasicSalary => (annualCTC * 0.40).round();
 
   const UserProfile({
+    this.name = '',
+    this.email = '',
     this.annualCTC = 1000000,
     this.employmentType = EmploymentType.salaried,
     this.city = 'Bengaluru',
@@ -122,7 +172,12 @@ class UserProfile {
     this.ageGroup = AgeGroup.below30,
   });
 
+  // Sentinel so callers can explicitly pass null for nullable fields.
+  static const _unset = Object();
+
   UserProfile copyWith({
+    String? name,
+    String? email,
     int? annualCTC,
     EmploymentType? employmentType,
     String? city,
@@ -132,7 +187,7 @@ class UserProfile {
     bool? hasHRA,
     int? invested80C,
     bool? hasHomeLoan,
-    PropertyType? propertyType,
+    Object? propertyType = _unset,   // <-- Object? so null can be passed
     int? homeLoanInterest,
     bool? hasNPS,
     int? npsExtraContribution,
@@ -147,6 +202,8 @@ class UserProfile {
     AgeGroup? ageGroup,
   }) {
     return UserProfile(
+      name: name ?? this.name,
+      email: email ?? this.email,
       annualCTC: annualCTC ?? this.annualCTC,
       employmentType: employmentType ?? this.employmentType,
       city: city ?? this.city,
@@ -156,7 +213,9 @@ class UserProfile {
       hasHRA: hasHRA ?? this.hasHRA,
       invested80C: invested80C ?? this.invested80C,
       hasHomeLoan: hasHomeLoan ?? this.hasHomeLoan,
-      propertyType: propertyType ?? this.propertyType,
+      propertyType: identical(propertyType, _unset)
+          ? this.propertyType
+          : propertyType as PropertyType?,
       homeLoanInterest: homeLoanInterest ?? this.homeLoanInterest,
       hasNPS: hasNPS ?? this.hasNPS,
       npsExtraContribution: npsExtraContribution ?? this.npsExtraContribution,
@@ -177,8 +236,10 @@ class UserProfile {
   }
 
   Map<String, dynamic> toJson() => {
+        'name': name,
+        'email': email,
         'annualCTC': annualCTC,
-        'employmentType': employmentType.index,
+        'employmentType': employmentType.name,
         'city': city,
         'isMetroCity': isMetroCity,
         'paysRent': paysRent,
@@ -186,7 +247,7 @@ class UserProfile {
         'hasHRA': hasHRA,
         'invested80C': invested80C,
         'hasHomeLoan': hasHomeLoan,
-        'propertyType': propertyType?.index,
+        'propertyType': propertyType?.name,
         'homeLoanInterest': homeLoanInterest,
         'hasNPS': hasNPS,
         'npsExtraContribution': npsExtraContribution,
@@ -198,12 +259,14 @@ class UserProfile {
         'educationLoanInterest': educationLoanInterest,
         'hasDonations': hasDonations,
         'donationAmount': donationAmount,
-        'ageGroup': ageGroup.index,
+        'ageGroup': ageGroup.name,
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+        name: json['name'] ?? '',
+        email: json['email'] ?? '',
         annualCTC: json['annualCTC'] ?? 1000000,
-        employmentType: EmploymentType.values[json['employmentType'] ?? 0],
+        employmentType: _employmentTypeFromJson(json['employmentType']),
         city: json['city'] ?? 'Bengaluru',
         isMetroCity: json['isMetroCity'] ?? false,
         paysRent: json['paysRent'] ?? false,
@@ -211,9 +274,7 @@ class UserProfile {
         hasHRA: json['hasHRA'] ?? false,
         invested80C: json['invested80C'] ?? 0,
         hasHomeLoan: json['hasHomeLoan'] ?? false,
-        propertyType: json['propertyType'] != null
-            ? PropertyType.values[json['propertyType']]
-            : null,
+        propertyType: _propertyTypeFromJson(json['propertyType']),
         homeLoanInterest: json['homeLoanInterest'] ?? 0,
         hasNPS: json['hasNPS'] ?? false,
         npsExtraContribution: json['npsExtraContribution'] ?? 0,
@@ -225,7 +286,7 @@ class UserProfile {
         educationLoanInterest: json['educationLoanInterest'] ?? 0,
         hasDonations: json['hasDonations'] ?? false,
         donationAmount: json['donationAmount'] ?? 0,
-        ageGroup: AgeGroup.values[json['ageGroup'] ?? 0],
+        ageGroup: _ageGroupFromJson(json['ageGroup']),
       );
 
   String toJsonString() => jsonEncode(toJson());
