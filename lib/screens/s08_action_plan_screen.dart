@@ -8,6 +8,7 @@ import '../widgets/animated_number.dart';
 import '../widgets/gap_card_widget.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
 class ActionPlanScreen extends ConsumerWidget {
@@ -34,8 +35,13 @@ class ActionPlanScreen extends ConsumerWidget {
         ],
       ),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
+        loading: () => const ArthLoadingPanel(
+          title: 'Preparing your action plan',
+          insights: [
+            'Grouping tasks by effort.',
+            'Keeping the plan deadline-aware.',
+            'Turning gaps into simple steps.',
+          ],
         ),
         error: (_, __) => RetryErrorState(
           message: 'Could not load your action plan.',
