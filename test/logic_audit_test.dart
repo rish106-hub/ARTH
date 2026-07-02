@@ -114,9 +114,24 @@ _AuditStats _runAudit() {
   ];
   const homeLoanScenarios = [
     _HomeLoanScenario('no_home_loan', false, null, 0),
-    _HomeLoanScenario('self_occupied_100k', true, PropertyType.selfOccupied, 100000),
-    _HomeLoanScenario('self_occupied_200k', true, PropertyType.selfOccupied, 200000),
-    _HomeLoanScenario('self_occupied_300k', true, PropertyType.selfOccupied, 300000),
+    _HomeLoanScenario(
+      'self_occupied_100k',
+      true,
+      PropertyType.selfOccupied,
+      100000,
+    ),
+    _HomeLoanScenario(
+      'self_occupied_200k',
+      true,
+      PropertyType.selfOccupied,
+      200000,
+    ),
+    _HomeLoanScenario(
+      'self_occupied_300k',
+      true,
+      PropertyType.selfOccupied,
+      300000,
+    ),
     _HomeLoanScenario('let_out_100k', true, PropertyType.letOut, 100000),
   ];
   const insuranceScenarios = [
@@ -284,8 +299,10 @@ void _checkMonotonicity(
     }
   }
 
-  previousByScenario[scenarioKey] =
-      _TaxPair(result.oldRegimeTax, result.newRegimeTax);
+  previousByScenario[scenarioKey] = _TaxPair(
+    result.oldRegimeTax,
+    result.newRegimeTax,
+  );
 }
 
 void _updateAggregateCounts(_AuditStats stats, TaxResult result) {
@@ -381,7 +398,8 @@ String _buildReport(_AuditStats stats, Duration elapsed) {
     ..writeln('- Monotonicity failures: ${stats.monotonicityFailures}')
     ..writeln('- Profiles with zero tax in both regimes: ${stats.bothZeroTax}')
     ..writeln(
-        '- Profiles with non-zero and different tax in both regimes: ${stats.bothNonZeroDifferent}')
+      '- Profiles with non-zero and different tax in both regimes: ${stats.bothNonZeroDifferent}',
+    )
     ..writeln('- Old regime better: ${stats.oldBetterCount}')
     ..writeln('- New regime better: ${stats.newBetterCount}')
     ..writeln('- Equal tax in both regimes: ${stats.equalTaxCount}')
@@ -389,13 +407,17 @@ String _buildReport(_AuditStats stats, Duration elapsed) {
     ..writeln('## Notable Findings')
     ..writeln()
     ..writeln(
-        '- No fatal engine invariant failures were detected if `invariant failures` is `0`.')
+      '- No fatal engine invariant failures were detected if `invariant failures` is `0`.',
+    )
     ..writeln(
-        '- No tax monotonicity regressions across rising income were detected if `monotonicity failures` is `0`.')
+      '- No tax monotonicity regressions across rising income were detected if `monotonicity failures` is `0`.',
+    )
     ..writeln(
-        '- The regime engine remains approximation-driven for HRA/basic salary, 80GG ATI, donations, and professional tax.')
+      '- The regime engine remains approximation-driven for HRA/basic salary, 80GG ATI, donations, and professional tax.',
+    )
     ..writeln(
-        '- The app does not currently collect rupee inputs for health insurance premium or bank interest, so these cannot be modeled as exact deductions in tax payable.')
+      '- The app does not currently collect rupee inputs for health insurance premium or bank interest, so these cannot be modeled as exact deductions in tax payable.',
+    )
     ..writeln()
     ..writeln('## Samples')
     ..writeln();

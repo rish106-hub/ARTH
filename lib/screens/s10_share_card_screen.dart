@@ -59,10 +59,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
         data: (result) {
           final gaps = result.gaps.take(5).toList();
           final items = gaps
-              .map((g) => _ShareItem(
-                    section: g.section,
-                    amount: g.gapAmount,
-                  ))
+              .map((g) => _ShareItem(section: g.section, amount: g.gapAmount))
               .toList();
           final total = result.totalGapAmount;
 
@@ -76,25 +73,24 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                       Text(
                         'Your shareable card',
                         style: AppTextStyles.caption(
-                            color: AppColors.textSecondary),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 12),
 
                       // The card itself (screenshot target)
                       Screenshot(
                         controller: _screenshotCtrl,
-                        child: _ShareCard(
-                          totalGap: total,
-                          items: items,
-                        ),
+                        child: _ShareCard(totalGap: total, items: items),
                       ),
 
                       const SizedBox(height: 20),
 
                       Text(
                         'Tap Share to post on WhatsApp, Instagram, or LinkedIn.\nNo PAN, no salary — only section names and amounts.',
-                        style:
-                            AppTextStyles.micro(color: AppColors.textSecondary),
+                        style: AppTextStyles.micro(
+                          color: AppColors.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -152,7 +148,9 @@ class _ShareCard extends StatelessWidget {
         color: AppColors.bgPrimary,
         borderRadius: AppRadius.card,
         border: Border.all(
-            color: AppColors.gold.withValues(alpha: 0.4), width: 1.5),
+          color: AppColors.gold.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,8 +237,9 @@ class _ShareCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.bgCard,
                 borderRadius: AppRadius.card,
-                border:
-                    Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+                border: Border.all(
+                  color: AppColors.gold.withValues(alpha: 0.25),
+                ),
               ),
               child: Column(
                 children: [
@@ -251,8 +250,9 @@ class _ShareCard extends StatelessWidget {
                   ),
                   Text(
                     'arth-website.vercel.app',
-                    style:
-                        AppTextStyles.caption(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -270,9 +270,9 @@ class _ShareCard extends StatelessWidget {
       return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
     }
     return v.toString().replaceAllMapped(
-          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
+      RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
   }
 }
 
@@ -292,13 +292,16 @@ class _ShareItemRow extends StatelessWidget {
               children: [
                 Flexible(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.gold.withValues(alpha: 0.1),
                       borderRadius: AppRadius.pill,
-                      border:
-                          Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppColors.gold.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       item.section,
@@ -331,8 +334,8 @@ class _ShareItemRow extends StatelessWidget {
       return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
     }
     return v.toString().replaceAllMapped(
-          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
+      RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
   }
 }

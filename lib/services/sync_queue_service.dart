@@ -15,16 +15,16 @@ class PendingOp {
   });
 
   factory PendingOp.fromJson(Map<String, dynamic> json) => PendingOp(
-        type: json['type'] as String,
-        payload: Map<String, dynamic>.from(json['payload'] as Map),
-        enqueuedAt: json['enqueuedAt'] as int,
-      );
+    type: json['type'] as String,
+    payload: Map<String, dynamic>.from(json['payload'] as Map),
+    enqueuedAt: json['enqueuedAt'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'type': type,
-        'payload': payload,
-        'enqueuedAt': enqueuedAt,
-      };
+    'type': type,
+    'payload': payload,
+    'enqueuedAt': enqueuedAt,
+  };
 }
 
 /// Persists failed sync operations in SharedPreferences so they survive app
@@ -71,13 +71,16 @@ class SyncQueueService {
   Future<void> enqueue(String type, Map<String, dynamic> payload) async {
     final ops = await _read();
     ops.removeWhere((o) => o.type == type); // deduplicate
-    ops.add(PendingOp(
-      type: type,
-      payload: payload,
-      enqueuedAt: DateTime.now().millisecondsSinceEpoch,
-    ));
+    ops.add(
+      PendingOp(
+        type: type,
+        payload: payload,
+        enqueuedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
     await _write(ops);
-    if (kDebugMode) debugPrint('[SyncQueue] enqueued: $type (queue size: ${ops.length})');
+    if (kDebugMode)
+      debugPrint('[SyncQueue] enqueued: $type (queue size: ${ops.length})');
   }
 
   /// Remove and return all pending ops. The caller is responsible for

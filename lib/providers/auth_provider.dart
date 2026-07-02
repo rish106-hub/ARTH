@@ -36,10 +36,7 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
     required String email,
     required String password,
   }) async {
-    final account = await _service.signIn(
-      email: email,
-      password: password,
-    );
+    final account = await _service.signIn(email: email, password: password);
     state = account;
     return account;
   }

@@ -20,11 +20,7 @@ class AuthService {
   }) async {
     final response = await _api.postJson(
       '/auth/sign-up',
-      body: {
-        'name': name,
-        'email': email,
-        'password': password,
-      },
+      body: {'name': name, 'email': email, 'password': password},
     );
     return _persistAuthResponse(response);
   }
@@ -35,10 +31,7 @@ class AuthService {
   }) async {
     final response = await _api.postJson(
       '/auth/sign-in',
-      body: {
-        'email': email,
-        'password': password,
-      },
+      body: {'email': email, 'password': password},
     );
     return _persistAuthResponse(response);
   }
@@ -110,7 +103,9 @@ class AuthService {
     await prefs.remove(_refreshTokenKey);
   }
 
-  Future<UserAccount> _persistAuthResponse(Map<String, dynamic> response) async {
+  Future<UserAccount> _persistAuthResponse(
+    Map<String, dynamic> response,
+  ) async {
     final user = response['user'] as Map<String, dynamic>;
     final account = UserAccount(
       uid: user['id'] as String?,
@@ -136,8 +131,9 @@ class AuthService {
       final parts = jwt.split('.');
       if (parts.length != 3) return true;
       final normalized = base64.normalize(parts[1]);
-      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final payload =
+          jsonDecode(utf8.decode(base64Url.decode(normalized)))
+              as Map<String, dynamic>;
       final exp = payload['exp'] as num?;
       if (exp == null) return true;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
@@ -145,8 +141,8 @@ class AuthService {
         isUtc: true,
       );
       return DateTime.now().toUtc().isAfter(
-            expiresAt.subtract(const Duration(minutes: 1)),
-          );
+        expiresAt.subtract(const Duration(minutes: 1)),
+      );
     } catch (_) {
       return true;
     }

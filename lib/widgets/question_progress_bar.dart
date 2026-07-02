@@ -86,9 +86,11 @@ class SelectChip extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon!,
-                  size: 20,
-                  color: selected ? AppColors.gold : AppColors.textSecondary),
+              Icon(
+                icon!,
+                size: 20,
+                color: selected ? AppColors.gold : AppColors.textSecondary,
+              ),
               const SizedBox(width: 10),
             ],
             Text(
@@ -99,8 +101,11 @@ class SelectChip extends StatelessWidget {
             ),
             if (selected) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.check_circle_rounded,
-                  size: 16, color: AppColors.gold),
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: AppColors.gold,
+              ),
             ],
           ],
         ),
@@ -175,8 +180,11 @@ class ArthAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       leading: showBack
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_rounded,
-                  size: 20, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios_rounded,
+                size: 20,
+                color: AppColors.textPrimary,
+              ),
               onPressed: onBack ?? () => Navigator.of(context).pop(),
             )
           : null,

@@ -23,17 +23,21 @@ class WelcomeScreen extends StatelessWidget {
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 28),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: topGap.clamp(24.0, 96.0)),
 
                         Text(
-                          'Most Indians\noverpay their\ntaxes.',
-                          style: AppTextStyles.h1()
-                              .copyWith(fontSize: 36, height: 1.2),
-                        )
+                              'Most Indians\noverpay their\ntaxes.',
+                              style: AppTextStyles.h1().copyWith(
+                                fontSize: 36,
+                                height: 1.2,
+                              ),
+                            )
                             .animate(delay: 200.ms)
                             .fadeIn(duration: 700.ms)
                             .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
@@ -41,10 +45,11 @@ class WelcomeScreen extends StatelessWidget {
                         const SizedBox(height: 20),
 
                         Text(
-                          'ARTH finds what\nyou\'re leaving behind.',
-                          style: AppTextStyles.h2(color: AppColors.gold)
-                              .copyWith(height: 1.3),
-                        )
+                              'ARTH finds what\nyou\'re leaving behind.',
+                              style: AppTextStyles.h2(
+                                color: AppColors.gold,
+                              ).copyWith(height: 1.3),
+                            )
                             .animate(delay: 500.ms)
                             .fadeIn(duration: 700.ms)
                             .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
@@ -53,26 +58,28 @@ class WelcomeScreen extends StatelessWidget {
 
                         Text(
                           'The average salaried Indian leaves\n₹50,000 – ₹2,00,000 unclaimed\nevery year. Not this year.',
-                          style: AppTextStyles.body(color: AppColors.textSecondary),
+                          style: AppTextStyles.body(
+                            color: AppColors.textSecondary,
+                          ),
                         ).animate(delay: 750.ms).fadeIn(duration: 600.ms),
 
                         SizedBox(height: bottomGap.clamp(24.0, 140.0)),
 
                         SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: AppButtons.primaryGold,
-                            onPressed: () => context.go('/questions'),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Find My Gap'),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded, size: 18),
-                              ],
-                            ),
-                          ),
-                        )
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: AppButtons.primaryGold,
+                                onPressed: () => context.go('/questions'),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('Find My Gap'),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward_rounded, size: 18),
+                                  ],
+                                ),
+                              ),
+                            )
                             .animate(delay: 1000.ms)
                             .fadeIn(duration: 500.ms)
                             .slideY(begin: 0.2, end: 0),
@@ -82,8 +89,9 @@ class WelcomeScreen extends StatelessWidget {
                         Center(
                           child: Text(
                             'Takes 3 minutes. No PAN. No busywork. No nonsense.',
-                            style:
-                                AppTextStyles.micro(color: AppColors.textSecondary),
+                            style: AppTextStyles.micro(
+                              color: AppColors.textSecondary,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ).animate(delay: 1100.ms).fadeIn(duration: 500.ms),
@@ -93,7 +101,9 @@ class WelcomeScreen extends StatelessWidget {
                         Center(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
+                              horizontal: 14,
+                              vertical: 7,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.bgCard,
                               borderRadius: AppRadius.pill,
@@ -102,13 +112,17 @@ class WelcomeScreen extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.shield_outlined,
-                                    size: 14, color: AppColors.gold),
+                                const Icon(
+                                  Icons.shield_outlined,
+                                  size: 14,
+                                  color: AppColors.gold,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Encrypted and stored securely on ARTH servers',
                                   style: AppTextStyles.micro(
-                                      color: AppColors.textSecondary),
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -154,18 +168,19 @@ class _AmbientParticlesState extends State<_AmbientParticles>
     super.initState();
     _controllers = List.generate(
       _positions.length,
-      (i) => AnimationController(
-        vsync: this,
-        duration: Duration(milliseconds: 2000 + i * 400),
-      )
-        ..forward()
-        ..addStatusListener((s) {
-          if (s == AnimationStatus.completed) {
-            _controllers[i].reverse();
-          } else if (s == AnimationStatus.dismissed) {
-            _controllers[i].forward();
-          }
-        }),
+      (i) =>
+          AnimationController(
+              vsync: this,
+              duration: Duration(milliseconds: 2000 + i * 400),
+            )
+            ..forward()
+            ..addStatusListener((s) {
+              if (s == AnimationStatus.completed) {
+                _controllers[i].reverse();
+              } else if (s == AnimationStatus.dismissed) {
+                _controllers[i].forward();
+              }
+            }),
     );
   }
 

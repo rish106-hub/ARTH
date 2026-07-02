@@ -86,8 +86,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_rounded,
-                            size: 18, color: AppColors.textSecondary),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_rounded,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                         onPressed: _prev,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -179,9 +182,9 @@ class _Q00NameState extends ConsumerState<_Q00Name> {
   }
 
   void _onTextChanged(String value) {
-    ref.read(userProfileProvider.notifier).updateField(
-      (p) => p.copyWith(name: value.trim()),
-    );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(name: value.trim()));
   }
 
   @override
@@ -247,9 +250,9 @@ class _Q00EmailState extends ConsumerState<_Q00Email> {
   }
 
   void _onTextChanged(String value) {
-    ref.read(userProfileProvider.notifier).updateField(
-      (p) => p.copyWith(email: value.trim()),
-    );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(email: value.trim()));
   }
 
   bool _isValidEmail(String email) {
@@ -334,7 +337,9 @@ class _QLayout extends StatelessWidget {
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: EdgeInsets.only(bottom: bottomInset + 12),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: content,
                   ),
                 );
@@ -403,7 +408,9 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
     // Persist to profile only when value is in valid range.
     if (val != null && val >= 1.0) {
       final clamped = val.clamp(1.0, 60.0);
-      ref.read(userProfileProvider.notifier).updateField(
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField(
             (p) => p.copyWith(annualCTC: (clamped * 100000).round()),
           );
     }
@@ -415,9 +422,9 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
     final clamped = val.clamp(1.0, 60.0);
     setState(() => _value = clamped);
     _textCtrl.text = clamped.toStringAsFixed(1);
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(annualCTC: (clamped * 100000).round()),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(annualCTC: (clamped * 100000).round()));
   }
 
   void _onSliderChanged(double v) {
@@ -426,18 +433,20 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
     });
     // Update text field to show lakhs — won't trigger onChanged
     _textCtrl.text = v.toStringAsFixed(1);
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(annualCTC: (v * 100000).round()),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(annualCTC: (v * 100000).round()));
   }
 
   @override
   Widget build(BuildContext context) {
     // Display mirrors the raw text field — strip trailing dot so "2." shows as 2.0.
-    final rawParsed =
-        double.tryParse(_textCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''));
-    final displayLakhs =
-        (rawParsed != null && rawParsed > 0) ? rawParsed : _value;
+    final rawParsed = double.tryParse(
+      _textCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''),
+    );
+    final displayLakhs = (rawParsed != null && rawParsed > 0)
+        ? rawParsed
+        : _value;
     final displayText = '₹ ${displayLakhs.toStringAsFixed(1)} Lakhs / year';
     return _QLayout(
       question: 'What is your annual CTC?',
@@ -481,8 +490,10 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
               helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
               filled: true,
               fillColor: AppColors.bgCard,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.border),
@@ -566,7 +577,8 @@ class _SlabIndicator extends StatelessWidget {
           Icon(Icons.lightbulb_outline_rounded, size: 14, color: color),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(bracket, style: AppTextStyles.micro(color: color))),
+            child: Text(bracket, style: AppTextStyles.micro(color: color)),
+          ),
         ],
       ),
     );
@@ -591,7 +603,9 @@ class _Q02Employment extends ConsumerWidget {
             selected: profile.employmentType == EmploymentType.salaried,
             fullWidth: true,
             onTap: () {
-              ref.read(userProfileProvider.notifier).updateField(
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField(
                     (p) => p.copyWith(employmentType: EmploymentType.salaried),
                   );
               onNext();
@@ -604,7 +618,9 @@ class _Q02Employment extends ConsumerWidget {
             selected: profile.employmentType == EmploymentType.selfEmployed,
             fullWidth: true,
             onTap: () {
-              ref.read(userProfileProvider.notifier).updateField(
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField(
                     (p) =>
                         p.copyWith(employmentType: EmploymentType.selfEmployed),
                   );
@@ -672,8 +688,11 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             decoration: InputDecoration(
               hintText: 'Search city...',
               hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
-              prefixIcon: const Icon(Icons.search_rounded,
-                  color: AppColors.textSecondary, size: 20),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
               filled: true,
               fillColor: AppColors.bgCard,
               border: OutlineInputBorder(
@@ -702,15 +721,19 @@ class _Q03CityState extends ConsumerState<_Q03City> {
               final selected = widget.profile.city == city;
               return GestureDetector(
                 onTap: () {
-                  ref.read(userProfileProvider.notifier).updateField(
+                  ref
+                      .read(userProfileProvider.notifier)
+                      .updateField(
                         (p) => p.copyWith(city: city, isMetroCity: isMetro),
                       );
                   widget.onNext();
                 },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: selected
                         ? AppColors.gold.withValues(alpha: 0.1)
@@ -724,23 +747,29 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(city,
-                            style: AppTextStyles.body(
-                                color: selected
-                                    ? AppColors.gold
-                                    : AppColors.textPrimary)),
+                        child: Text(
+                          city,
+                          style: AppTextStyles.body(
+                            color: selected
+                                ? AppColors.gold
+                                : AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                       if (isMetro)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.teal.withValues(alpha: 0.15),
                             borderRadius: AppRadius.pill,
                           ),
-                          child: Text('Metro',
-                              style:
-                                  AppTextStyles.micro(color: AppColors.teal)),
+                          child: Text(
+                            'Metro',
+                            style: AppTextStyles.micro(color: AppColors.teal),
+                          ),
                         ),
                     ],
                   ),
@@ -798,7 +827,9 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
 
     if (val != null && val >= 1.0) {
       final clamped = val.clamp(1.0, 200.0);
-      ref.read(userProfileProvider.notifier).updateField(
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField(
             (p) => p.copyWith(monthlyRent: (clamped * 1000).round()),
           );
     }
@@ -809,18 +840,18 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
     final clamped = val.clamp(1.0, 200.0);
     setState(() => _rentK = clamped);
     _rentTextCtrl.text = clamped.toStringAsFixed(0);
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(monthlyRent: (clamped * 1000).round()),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(monthlyRent: (clamped * 1000).round()));
   }
 
   void _onRentSliderChanged(double v) {
     setState(() => _rentK = v);
     // Update text to show thousands — won't trigger onChanged
     _rentTextCtrl.text = v.toStringAsFixed(0);
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(monthlyRent: (v * 1000).round()),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(monthlyRent: (v * 1000).round()));
   }
 
   @override
@@ -837,9 +868,9 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             fullWidth: true,
             onTap: () {
               setState(() => _paysRent = true);
-              ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(paysRent: true),
-                  );
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField((p) => p.copyWith(paysRent: true));
             },
           ),
           const SizedBox(height: 12),
@@ -849,7 +880,9 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             fullWidth: true,
             onTap: () {
               setState(() => _paysRent = false);
-              ref.read(userProfileProvider.notifier).updateField(
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField(
                     (p) => p.copyWith(paysRent: false, monthlyRent: 0),
                   );
               widget.onNext();
@@ -859,28 +892,33 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             const SizedBox(height: 28),
             Text('How much rent per month?', style: AppTextStyles.h3()),
             const SizedBox(height: 8),
-            Builder(builder: (context) {
-              final rawR = double.tryParse(
-                  _rentTextCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''));
-              final displayK = (rawR != null && rawR > 0) ? rawR : _rentK;
-              return Center(
-                child: Text(
-                  '₹ ${NumberFormat('#,##,##0', 'en_IN').format((displayK * 1000).round())} / month',
-                  style: AppTextStyles.displaySmall(color: AppColors.gold),
-                ),
-              );
-            }),
+            Builder(
+              builder: (context) {
+                final rawR = double.tryParse(
+                  _rentTextCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''),
+                );
+                final displayK = (rawR != null && rawR > 0) ? rawR : _rentK;
+                return Center(
+                  child: Text(
+                    '₹ ${NumberFormat('#,##,##0', 'en_IN').format((displayK * 1000).round())} / month',
+                    style: AppTextStyles.displaySmall(color: AppColors.gold),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 12),
             // Text input — value in thousands so "15" = ₹15,000/month
             TextField(
               controller: _rentTextCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               style: AppTextStyles.body(),
               decoration: InputDecoration(
                 labelText: 'Enter in Thousands',
-                labelStyle:
-                    AppTextStyles.caption(color: AppColors.textSecondary),
+                labelStyle: AppTextStyles.caption(
+                  color: AppColors.textSecondary,
+                ),
                 suffixText: 'K / mo',
                 suffixStyle: AppTextStyles.body(color: AppColors.gold),
                 hintText: '15',
@@ -889,8 +927,10 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                 helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
                 filled: true,
                 fillColor: AppColors.bgCard,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
@@ -901,8 +941,10 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.gold, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.gold,
+                    width: 1.5,
+                  ),
                 ),
               ),
               onChanged: _onRentTextChanged,
@@ -953,9 +995,9 @@ class _Q05HRA extends ConsumerWidget {
             selected: profile.hasHRA,
             fullWidth: true,
             onTap: () {
-              ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(hasHRA: true),
-                  );
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField((p) => p.copyWith(hasHRA: true));
               onNext();
             },
           ),
@@ -965,9 +1007,9 @@ class _Q05HRA extends ConsumerWidget {
             selected: !profile.hasHRA,
             fullWidth: true,
             onTap: () {
-              ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(hasHRA: false),
-                  );
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField((p) => p.copyWith(hasHRA: false));
               onNext();
             },
           ),
@@ -1002,7 +1044,7 @@ class _Q06_80C extends ConsumerStatefulWidget {
 
 class _Q06_80CState extends ConsumerState<_Q06_80C> {
   late double
-      _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
+  _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
   late TextEditingController _textCtrl;
   final _fmt = NumberFormat('#,##,##0', 'en_IN');
 
@@ -1031,9 +1073,9 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
     // Update slider/display only when ≥ ₹10K so partial typing doesn't snap to 0
     final v = (val / 10000.0).clamp(0.0, 15.0);
     setState(() => _value = v);
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(invested80C: val.clamp(0, 150000)),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(invested80C: val.clamp(0, 150000)));
   }
 
   void _onTextSubmitted(String raw) {
@@ -1042,18 +1084,18 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
     final v = clamped / 10000.0;
     setState(() => _value = v);
     _textCtrl.text = clamped.toString();
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(invested80C: clamped),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(invested80C: clamped));
   }
 
   void _onSliderChanged(double v) {
     setState(() => _value = v);
     // Update text with full rupee amount — won't trigger onChanged
     _textCtrl.text = _invested.toString();
-    ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(invested80C: _invested),
-        );
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField((p) => p.copyWith(invested80C: _invested));
   }
 
   @override
@@ -1104,8 +1146,10 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
               helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
               filled: true,
               fillColor: AppColors.bgCard,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.border),
@@ -1209,8 +1253,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
     _hasLoan = widget.profile.hasHomeLoan ? true : null;
     _type = widget.profile.propertyType;
     _interestL = (widget.profile.homeLoanInterest / 100000).clamp(0.25, 5.0);
-    _interestTextCtrl =
-        TextEditingController(text: (_interestL * 100000).round().toString());
+    _interestTextCtrl = TextEditingController(
+      text: (_interestL * 100000).round().toString(),
+    );
   }
 
   @override
@@ -1225,7 +1270,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
     if (val != null) {
       final l = (val / 100000).clamp(0.25, 5.0);
       setState(() => _interestL = l);
-      ref.read(userProfileProvider.notifier).updateField(
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField(
             (p) => p.copyWith(homeLoanInterest: (l * 100000).round()),
           );
     }
@@ -1234,7 +1281,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
   void _onInterestSliderChanged(double v) {
     setState(() => _interestL = v);
     _interestTextCtrl.text = (v * 100000).round().toString();
-    ref.read(userProfileProvider.notifier).updateField(
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField(
           (p) => p.copyWith(homeLoanInterest: (_interestL * 100000).round()),
         );
   }
@@ -1254,9 +1303,9 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               fullWidth: true,
               onTap: () {
                 setState(() => _hasLoan = true);
-                ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(hasHomeLoan: true),
-                    );
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((p) => p.copyWith(hasHomeLoan: true));
               },
             ),
             const SizedBox(height: 12),
@@ -1269,16 +1318,24 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   _hasLoan = false;
                   _type = null;
                 });
-                ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(hasHomeLoan: false, homeLoanInterest: 0, propertyType: null),
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField(
+                      (p) => p.copyWith(
+                        hasHomeLoan: false,
+                        homeLoanInterest: 0,
+                        propertyType: null,
+                      ),
                     );
                 widget.onNext();
               },
             ),
             if (_hasLoan == true) ...[
               const SizedBox(height: 24),
-              Text('Is the property self-occupied or let out?',
-                  style: AppTextStyles.h3()),
+              Text(
+                'Is the property self-occupied or let out?',
+                style: AppTextStyles.h3(),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -1289,9 +1346,13 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.selfOccupied);
-                        ref.read(userProfileProvider.notifier).updateField(
-                            (p) => p.copyWith(
-                                propertyType: PropertyType.selfOccupied));
+                        ref
+                            .read(userProfileProvider.notifier)
+                            .updateField(
+                              (p) => p.copyWith(
+                                propertyType: PropertyType.selfOccupied,
+                              ),
+                            );
                       },
                     ),
                   ),
@@ -1303,24 +1364,26 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.letOut);
-                        ref.read(userProfileProvider.notifier).updateField(
-                            (p) =>
-                                p.copyWith(propertyType: PropertyType.letOut));
+                        ref
+                            .read(userProfileProvider.notifier)
+                            .updateField(
+                              (p) =>
+                                  p.copyWith(propertyType: PropertyType.letOut),
+                            );
                       },
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Annual home loan interest paid?',
-                  style: AppTextStyles.h3()),
+              Text(
+                'Annual home loan interest paid?',
+                style: AppTextStyles.h3(),
+              ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  '₹ ${(_interestL * 100000).round().toString().replaceAllMapped(
-                        RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-                        (m) => '${m[1]},',
-                      )}',
+                  '₹ ${(_interestL * 100000).round().toString().replaceAllMapped(RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'), (m) => '${m[1]},')}',
                   style: AppTextStyles.displaySmall(color: AppColors.gold),
                 ),
               ),
@@ -1336,8 +1399,10 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1348,8 +1413,10 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.gold, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.gold,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 onChanged: _onInterestTextChanged,
@@ -1407,7 +1474,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
     if (val != null) {
       final k = (val / 1000).clamp(0.0, 50.0);
       setState(() => _extraK = k);
-      ref.read(userProfileProvider.notifier).updateField(
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField(
             (p) => p.copyWith(npsExtraContribution: (k * 1000).round()),
           );
     }
@@ -1416,7 +1485,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
   void _onNpsSliderChanged(double v) {
     setState(() => _extraK = v);
     _npsTextCtrl.text = (v * 1000).round().toString();
-    ref.read(userProfileProvider.notifier).updateField(
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField(
           (p) => p.copyWith(npsExtraContribution: (_extraK * 1000).round()),
         );
   }
@@ -1435,9 +1506,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               fullWidth: true,
               onTap: () {
                 setState(() => _choice = 0);
-                ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(hasNPS: true),
-                    );
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((p) => p.copyWith(hasNPS: true));
               },
             ),
             const SizedBox(height: 10),
@@ -1450,7 +1521,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _choice = 1;
                   _extraK = 0;
                 });
-                ref.read(userProfileProvider.notifier).updateField(
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField(
                       (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
                 widget.onNext();
@@ -1466,7 +1539,9 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _choice = 2;
                   _extraK = 0;
                 });
-                ref.read(userProfileProvider.notifier).updateField(
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField(
                       (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
               },
@@ -1478,19 +1553,23 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 decoration: BoxDecoration(
                   color: AppColors.gold.withValues(alpha: 0.07),
                   borderRadius: AppRadius.card,
-                  border:
-                      Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('What is NPS?',
-                        style: AppTextStyles.bodyMedium(color: AppColors.gold)),
+                    Text(
+                      'What is NPS?',
+                      style: AppTextStyles.bodyMedium(color: AppColors.gold),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       'National Pension System (NPS) is a government-backed retirement savings scheme. Opening an NPS Tier-1 account and contributing ₹50,000/year gives you an EXTRA ₹50,000 deduction under Section 80CCD(1B) — over and above your 80C limit.',
-                      style:
-                          AppTextStyles.micro(color: AppColors.textSecondary),
+                      style: AppTextStyles.micro(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1498,11 +1577,15 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
             ],
             if (_choice == 0) ...[
               const SizedBox(height: 20),
-              Text('How much extra did you contribute beyond 80C?',
-                  style: AppTextStyles.h3()),
+              Text(
+                'How much extra did you contribute beyond 80C?',
+                style: AppTextStyles.h3(),
+              ),
               const SizedBox(height: 4),
-              Text('(Voluntary contribution over and above 80CCE limit)',
-                  style: AppTextStyles.micro()),
+              Text(
+                '(Voluntary contribution over and above 80CCE limit)',
+                style: AppTextStyles.micro(),
+              ),
               const SizedBox(height: 12),
               Center(
                 child: Text(
@@ -1522,8 +1605,10 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1534,8 +1619,10 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.gold, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.gold,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 onChanged: _onNpsTextChanged,
@@ -1581,11 +1668,15 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
   }
 
   void _update() {
-    ref.read(userProfileProvider.notifier).updateField((p) => p.copyWith(
-          hasHealthInsuranceSelf: _self,
-          hasHealthInsuranceParents: _parents,
-          parentsAbove60: _parentsAbove60,
-        ));
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField(
+          (p) => p.copyWith(
+            hasHealthInsuranceSelf: _self,
+            hasHealthInsuranceParents: _parents,
+            parentsAbove60: _parentsAbove60,
+          ),
+        );
   }
 
   @override
@@ -1706,8 +1797,9 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
   bool? _hasLoan;
   double _year = 1;
   double _interestK = 20;
-  final TextEditingController _edLoanTextCtrl =
-      TextEditingController(text: '20000');
+  final TextEditingController _edLoanTextCtrl = TextEditingController(
+    text: '20000',
+  );
 
   @override
   void initState() {
@@ -1731,7 +1823,9 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
     if (val != null) {
       final k = (val / 1000).clamp(5.0, 200.0);
       setState(() => _interestK = k);
-      ref.read(userProfileProvider.notifier).updateField(
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField(
             (p) => p.copyWith(educationLoanInterest: (k * 1000).round()),
           );
     }
@@ -1740,7 +1834,9 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
   void _onEdLoanSliderChanged(double v) {
     setState(() => _interestK = v);
     _edLoanTextCtrl.text = (v * 1000).round().toString();
-    ref.read(userProfileProvider.notifier).updateField(
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField(
           (p) => p.copyWith(educationLoanInterest: (_interestK * 1000).round()),
         );
   }
@@ -1759,9 +1855,9 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               fullWidth: true,
               onTap: () {
                 setState(() => _hasLoan = true);
-                ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(hasEducationLoan: true),
-                    );
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((p) => p.copyWith(hasEducationLoan: true));
               },
             ),
             const SizedBox(height: 12),
@@ -1771,7 +1867,9 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               fullWidth: true,
               onTap: () {
                 setState(() => _hasLoan = false);
-                ref.read(userProfileProvider.notifier).updateField(
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField(
                       (p) => p.copyWith(
                         hasEducationLoan: false,
                         educationLoanRepaymentYear: 1,
@@ -1783,8 +1881,10 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
             ),
             if (_hasLoan == true) ...[
               const SizedBox(height: 24),
-              Text('Which year of repayment are you in?',
-                  style: AppTextStyles.h3()),
+              Text(
+                'Which year of repayment are you in?',
+                style: AppTextStyles.h3(),
+              ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
@@ -1800,18 +1900,25 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 label: 'Year ${_year.round()}',
                 onChanged: (v) {
                   setState(() => _year = v);
-                  ref.read(userProfileProvider.notifier).updateField(
+                  ref
+                      .read(userProfileProvider.notifier)
+                      .updateField(
                         (p) => p.copyWith(
-                            educationLoanRepaymentYear: _year.round()),
+                          educationLoanRepaymentYear: _year.round(),
+                        ),
                       );
                 },
               ),
               const SizedBox(height: 16),
-              Text('Approximate annual interest paid?',
-                  style: AppTextStyles.h3()),
+              Text(
+                'Approximate annual interest paid?',
+                style: AppTextStyles.h3(),
+              ),
               const SizedBox(height: 4),
-              Text('80E allows full interest deduction — no upper limit!',
-                  style: AppTextStyles.micro(color: AppColors.success)),
+              Text(
+                '80E allows full interest deduction — no upper limit!',
+                style: AppTextStyles.micro(color: AppColors.success),
+              ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
@@ -1831,8 +1938,10 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                   prefixStyle: AppTextStyles.body(color: AppColors.gold),
                   filled: true,
                   fillColor: AppColors.bgCard,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -1843,8 +1952,10 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.gold, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.gold,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 onChanged: _onEdLoanTextChanged,
@@ -1878,8 +1989,9 @@ class _Q11Donations extends ConsumerStatefulWidget {
 class _Q11DonationsState extends ConsumerState<_Q11Donations> {
   bool? _hasDonations;
   double _amountK = 5;
-  final TextEditingController _donationTextCtrl =
-      TextEditingController(text: '5000');
+  final TextEditingController _donationTextCtrl = TextEditingController(
+    text: '5000',
+  );
 
   @override
   void initState() {
@@ -1902,16 +2014,18 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
     if (val != null) {
       final k = (val / 1000).clamp(0.5, 100.0);
       setState(() => _amountK = k);
-      ref.read(userProfileProvider.notifier).updateField(
-            (p) => p.copyWith(donationAmount: (k * 1000).round()),
-          );
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField((p) => p.copyWith(donationAmount: (k * 1000).round()));
     }
   }
 
   void _onDonationSliderChanged(double v) {
     setState(() => _amountK = v);
     _donationTextCtrl.text = (v * 1000).round().toString();
-    ref.read(userProfileProvider.notifier).updateField(
+    ref
+        .read(userProfileProvider.notifier)
+        .updateField(
           (p) => p.copyWith(donationAmount: (_amountK * 1000).round()),
         );
   }
@@ -1930,9 +2044,9 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             fullWidth: true,
             onTap: () {
               setState(() => _hasDonations = true);
-              ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(hasDonations: true),
-                  );
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField((p) => p.copyWith(hasDonations: true));
             },
           ),
           const SizedBox(height: 12),
@@ -1942,7 +2056,9 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             fullWidth: true,
             onTap: () {
               setState(() => _hasDonations = false);
-              ref.read(userProfileProvider.notifier).updateField(
+              ref
+                  .read(userProfileProvider.notifier)
+                  .updateField(
                     (p) => p.copyWith(hasDonations: false, donationAmount: 0),
                   );
               widget.onNext();
@@ -1970,8 +2086,10 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 prefixStyle: AppTextStyles.body(color: AppColors.gold),
                 filled: true,
                 fillColor: AppColors.bgCard,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
@@ -1982,8 +2100,10 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.gold, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.gold,
+                    width: 1.5,
+                  ),
                 ),
               ),
               onChanged: _onDonationTextChanged,
@@ -2022,9 +2142,9 @@ class _Q12Age extends ConsumerWidget {
               selected: profile.ageGroup == age,
               fullWidth: true,
               onTap: () {
-                ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(ageGroup: age),
-                    );
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((p) => p.copyWith(ageGroup: age));
                 onNext();
               },
             ),

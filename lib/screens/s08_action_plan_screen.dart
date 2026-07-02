@@ -23,8 +23,11 @@ class ActionPlanScreen extends ConsumerWidget {
         title: 'Your Action Plan',
         actions: [
           IconButton(
-            icon: const Icon(Icons.ios_share_rounded,
-                size: 20, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.ios_share_rounded,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () => context.push('/share'),
           ),
         ],
@@ -71,16 +74,19 @@ class ActionPlanScreen extends ConsumerWidget {
                         ...pending.asMap().entries.map((e) {
                           final gap = e.value;
                           return ActionListItem(
-                            gap: gap,
-                            isDone: false,
-                            onTap: () =>
-                                context.push('/deduction-detail', extra: gap),
-                            onToggle: () => ref
-                                .read(gapStateProvider.notifier)
-                                .toggle(gap.id),
-                          )
+                                gap: gap,
+                                isDone: false,
+                                onTap: () => context.push(
+                                  '/deduction-detail',
+                                  extra: gap,
+                                ),
+                                onToggle: () => ref
+                                    .read(gapStateProvider.notifier)
+                                    .toggle(gap.id),
+                              )
                               .animate(
-                                  delay: Duration(milliseconds: e.key * 60))
+                                delay: Duration(milliseconds: e.key * 60),
+                              )
                               .fadeIn(duration: 300.ms)
                               .slideX(begin: 0.05, duration: 300.ms);
                         }),
@@ -92,22 +98,27 @@ class ActionPlanScreen extends ConsumerWidget {
                           count: done.length,
                           color: AppColors.success,
                         ),
-                        ...done.map((gap) => ActionListItem(
-                              gap: gap,
-                              isDone: true,
-                              onTap: () =>
-                                  context.push('/deduction-detail', extra: gap),
-                              onToggle: () => ref
-                                  .read(gapStateProvider.notifier)
-                                  .toggle(gap.id),
-                            )),
+                        ...done.map(
+                          (gap) => ActionListItem(
+                            gap: gap,
+                            isDone: true,
+                            onTap: () =>
+                                context.push('/deduction-detail', extra: gap),
+                            onToggle: () => ref
+                                .read(gapStateProvider.notifier)
+                                .toggle(gap.id),
+                          ),
+                        ),
                       ],
                       if (pending.isEmpty && done.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(40),
                           child: Center(
-                            child: Icon(Icons.verified_outlined,
-                                size: 64, color: AppColors.gold),
+                            child: Icon(
+                              Icons.verified_outlined,
+                              size: 64,
+                              color: AppColors.gold,
+                            ),
                           ),
                         ),
                     ],
@@ -168,9 +179,12 @@ class _ActionPlanHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('YOUR ARTH ACTION PLAN',
-              style: AppTextStyles.sectionLabel(color: AppColors.textSecondary)
-                  .copyWith(letterSpacing: 1.2)),
+          Text(
+            'YOUR ARTH ACTION PLAN',
+            style: AppTextStyles.sectionLabel(
+              color: AppColors.textSecondary,
+            ).copyWith(letterSpacing: 1.2),
+          ),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,8 +235,9 @@ class _ActionPlanHeader extends StatelessWidget {
                     value: progress,
                     minHeight: 8,
                     backgroundColor: AppColors.bgSurface,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.success),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.success,
+                    ),
                   ),
                 ),
               ),

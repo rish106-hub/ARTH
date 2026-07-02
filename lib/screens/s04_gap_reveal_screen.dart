@@ -28,9 +28,10 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _revealed = true);
@@ -76,17 +77,17 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
           SafeArea(
             bottom: false,
             child: resultAsync.when(
-              loading: () => const Center(
-                child: _CalculatingAnimation(),
-              ),
+              loading: () => const Center(child: _CalculatingAnimation()),
               error: (e, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Could not calculate your gap.',
-                          style: AppTextStyles.body()),
+                      Text(
+                        'Could not calculate your gap.',
+                        style: AppTextStyles.body(),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         style: AppButtons.primaryGold,
@@ -112,13 +113,19 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // ARTH wordmark
-                          Text('ARTH',
-                              style: AppTextStyles.body()
-                                  .copyWith(letterSpacing: 4)),
+                          Text(
+                            'ARTH',
+                            style: AppTextStyles.body().copyWith(
+                              letterSpacing: 4,
+                            ),
+                          ),
                           // Share icon
                           IconButton(
-                            icon: const Icon(Icons.ios_share_rounded,
-                                color: AppColors.textSecondary, size: 20),
+                            icon: const Icon(
+                              Icons.ios_share_rounded,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
                             onPressed: () => context.push('/share'),
                           ),
                         ],
@@ -154,20 +161,24 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                       child: Column(
                         children: [
                           SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: AppButtons.primaryGold,
-                              onPressed: () => context.push('/deduction-cards'),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('See My Gaps'),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward_rounded, size: 18),
-                                ],
-                              ),
-                            ),
-                          )
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: AppButtons.primaryGold,
+                                  onPressed: () =>
+                                      context.push('/deduction-cards'),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('See My Gaps'),
+                                      SizedBox(width: 8),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
                               .animate(delay: 2000.ms)
                               .fadeIn(duration: 600.ms)
                               .slideY(begin: 0.3),
@@ -188,7 +199,9 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                               side: const BorderSide(color: AppColors.border),
                               shape: const StadiumBorder(),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
                             ),
                             onPressed: () => context.push('/action-plan'),
                             icon: const Icon(Icons.checklist_rounded, size: 16),
@@ -258,10 +271,8 @@ class _GapDisplay extends StatelessWidget {
         if (revealed)
           AnimatedBuilder(
             animation: pulseAnim,
-            builder: (_, child) => Transform.scale(
-              scale: pulseAnim.value,
-              child: child,
-            ),
+            builder: (_, child) =>
+                Transform.scale(scale: pulseAnim.value, child: child),
             child: AnimatedRupeeNumber(
               value: gapAmount,
               duration: const Duration(milliseconds: 1800),
@@ -288,8 +299,9 @@ class _GapDisplay extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           'every year in unclaimed\ntax deductions.',
-          style: AppTextStyles.h2(color: AppColors.textPrimary)
-              .copyWith(height: 1.3),
+          style: AppTextStyles.h2(
+            color: AppColors.textPrimary,
+          ).copyWith(height: 1.3),
           textAlign: TextAlign.center,
         ).animate(delay: 800.ms).fadeIn(duration: 600.ms),
         const SizedBox(height: 16),
