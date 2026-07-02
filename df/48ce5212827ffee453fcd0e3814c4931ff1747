@@ -1,0 +1,30 @@
+.github/workflows/release.yml
+  s_56dd8210da6e59::t_b75f06533f0e6a 45,54-55,116,120-121
+.github/workflows/ci.yml
+  s_56dd8210da6e59::t_b43321a90fcbe6 73-80
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_6f9db6f743084c 8,65-67,76-92,96-99
+  s_56dd8210da6e59::t_6106fb3bd9493d 93,95
+  s_56dd8210da6e59::t_2124d301ed8206 94
+  s_56dd8210da6e59::t_e716c75975596e 100-101
+backend/README.md
+  s_56dd8210da6e59::t_7009d3b9959ab5 90,93,101-104
+README.md
+  s_56dd8210da6e59::t_ba7ab8a1499e82 510-511
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "df48ce5212827ffee453fcd0e3814c4931ff1747",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
