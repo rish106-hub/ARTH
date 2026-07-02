@@ -1,0 +1,37 @@
+lib/screens/s10_share_card_screen.dart
+  s_56dd8210da6e59::t_05a5b8c9ef3704 10,59-62
+lib/screens/s06_deduction_cards_screen.dart
+  s_56dd8210da6e59::t_236510173d6a7e 11,39-42
+lib/widgets/retry_error_state.dart
+  s_56dd8210da6e59::t_261a4079810c98 1-58
+lib/screens/s09_progress_tracker_screen.dart
+  s_56dd8210da6e59::t_831b5290d8a40b 9,26-29
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_6046c27d39f8e6 77,79,81-83,87-95,216-217
+  s_56dd8210da6e59::t_667b6c061d0994 371-399
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_9d5776ae3f8ced 181-196,199-202
+  s_56dd8210da6e59::t_3e1482ba2ba440 197-198
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_f0ff24f26434f7 9,25-28
+lib/screens/s08_action_plan_screen.dart
+  s_56dd8210da6e59::t_955661af2df9ec 11,40-43
+lib/screens/s04_gap_reveal_screen.dart
+  s_56dd8210da6e59::t_efd2a0b99734f2 10,82-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "c35b43a986b3e41c0e1c84b06f75bee9807ae443",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
