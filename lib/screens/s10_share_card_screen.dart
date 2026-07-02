@@ -7,6 +7,7 @@ import '../providers/tax_result_provider.dart';
 // user_profile_provider not needed here;
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
 class ShareCardScreen extends ConsumerStatefulWidget {
@@ -53,8 +54,13 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
       backgroundColor: AppColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Share Your Gap'),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
+        loading: () => const ArthLoadingPanel(
+          title: 'Preparing your share card',
+          insights: [
+            'Removing private profile details.',
+            'Keeping only sections and amounts.',
+            'Building a clean summary card.',
+          ],
         ),
         error: (_, __) => RetryErrorState(
           message: 'Could not prepare your share card.',

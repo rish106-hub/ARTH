@@ -6,6 +6,7 @@ import '../models/tax_result.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
 class RegimeComparisonScreen extends ConsumerWidget {
@@ -19,8 +20,13 @@ class RegimeComparisonScreen extends ConsumerWidget {
       backgroundColor: AppColors.bgPrimary,
       appBar: ArthAppBar(title: 'Old vs New Regime'),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
+        loading: () => const ArthLoadingPanel(
+          title: 'Comparing regimes',
+          insights: [
+            'Checking old and new regime outcomes.',
+            'Keeping assumptions conservative.',
+            'Finding the cleaner tax route.',
+          ],
         ),
         error: (_, __) => RetryErrorState(
           message: 'Could not load your regime comparison.',

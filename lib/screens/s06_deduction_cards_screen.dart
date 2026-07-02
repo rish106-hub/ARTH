@@ -8,6 +8,7 @@ import '../widgets/gap_card_widget.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
 class DeductionCardsScreen extends ConsumerWidget {
@@ -33,8 +34,13 @@ class DeductionCardsScreen extends ConsumerWidget {
         ],
       ),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
+        loading: () => const ArthLoadingPanel(
+          title: 'Ranking your deduction gaps',
+          insights: [
+            'Sorting opportunities by impact.',
+            'Keeping document needs practical.',
+            'Preparing your next best actions.',
+          ],
         ),
         error: (_, __) => RetryErrorState(
           message: 'Could not load your tax gaps.',

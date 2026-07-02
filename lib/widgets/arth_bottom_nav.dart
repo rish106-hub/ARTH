@@ -14,14 +14,14 @@ class ArthBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-      icon: Icons.savings_outlined,
-      activeIcon: Icons.savings_rounded,
-      label: 'Home',
+      icon: Icons.explore_outlined,
+      activeIcon: Icons.explore_rounded,
+      label: 'Discover',
     ),
     _NavItem(
       icon: Icons.checklist_outlined,
       activeIcon: Icons.checklist_rounded,
-      label: 'Action',
+      label: 'Actions',
     ),
     _NavItem(
       icon: Icons.timeline_outlined,
@@ -29,21 +29,25 @@ class ArthBottomNav extends StatelessWidget {
       label: 'Progress',
     ),
     _NavItem(
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings_rounded,
-      label: 'Settings',
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Padding(
       padding: EdgeInsets.only(left: 24, right: 24, bottom: bottomPad + 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          filter: ImageFilter.blur(
+            sigmaX: reduceMotion ? 0 : 16,
+            sigmaY: reduceMotion ? 0 : 16,
+          ),
           child: Container(
             height: 64,
             decoration: BoxDecoration(
@@ -76,7 +80,9 @@ class ArthBottomNav extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
+                          duration: reduceMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 200),
                           width: isSelected ? 36 : 0,
                           height: isSelected ? 36 : 0,
                           decoration: isSelected

@@ -155,6 +155,44 @@ void main() {
     expect(errors, isEmpty, reason: 'Screen failed: ${child.runtimeType}');
   }
 
+  Future<void> pumpReducedMotionScreen(
+    WidgetTester tester,
+    Widget child,
+  ) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: overrides,
+        child: MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData.fromView(
+              tester.view,
+            ).copyWith(disableAnimations: true),
+            child: child,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+
+    final errors = <Object>[];
+    Object? exception;
+    while ((exception = tester.takeException()) != null) {
+      errors.add(exception!);
+    }
+    expect(
+      errors,
+      isEmpty,
+      reason: 'Reduced-motion screen failed: ${child.runtimeType}',
+    );
+  }
+
   testWidgets(
     'major screens render without build/layout exceptions on narrow phone',
     (tester) async {
@@ -250,6 +288,16 @@ void main() {
     );
     expect(find.text('EVERYTHING TAX'), findsOneWidget);
     expect(find.text('Tax reminders'), findsOneWidget);
+  });
+
+  testWidgets('reduced-motion mode keeps navigation calm on narrow phone', (
+    tester,
+  ) async {
+    await pumpReducedMotionScreen(tester, const ProgressTrackerScreen());
+
+    expect(find.text('Discover'), findsOneWidget);
+    expect(find.text('Actions'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
   });
 }
 

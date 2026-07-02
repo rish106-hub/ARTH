@@ -6,6 +6,7 @@ import '../providers/tax_result_provider.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
 class ProgressTrackerScreen extends ConsumerWidget {
@@ -20,8 +21,13 @@ class ProgressTrackerScreen extends ConsumerWidget {
       backgroundColor: AppColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Progress Tracker'),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
+        loading: () => const ArthLoadingPanel(
+          title: 'Loading progress',
+          insights: [
+            'Checking completed actions.',
+            'Updating deadline context.',
+            'Keeping your tax sprint current.',
+          ],
         ),
         error: (_, __) => RetryErrorState(
           message: 'Could not load your progress.',
