@@ -13,6 +13,7 @@ class ServerApiException implements Exception {
 
 class ServerApiService {
   static const String _defaultBaseUrl = 'https://arth-production-aaca.up.railway.app/v1';
+  static const Duration _requestTimeout = Duration(seconds: 15);
 
   final HttpClient _client;
   final String _baseUrl;
@@ -22,7 +23,9 @@ class ServerApiService {
     String? baseUrl,
   })  : _client = client ?? HttpClient(),
         _baseUrl =
-            baseUrl ?? const String.fromEnvironment('ARTH_API_BASE_URL', defaultValue: _defaultBaseUrl);
+            baseUrl ?? const String.fromEnvironment('ARTH_API_BASE_URL', defaultValue: _defaultBaseUrl) {
+    _client.connectionTimeout = _requestTimeout;
+  }
 
   Future<Map<String, dynamic>> getJson(
     String path, {
@@ -91,7 +94,7 @@ class ServerApiService {
     String? bearerToken,
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final request = await _client.openUrl(method, uri);
+    final request = await _client.openUrl(method, uri).timeout(_requestTimeout);
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
     request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
     if (bearerToken != null && bearerToken.isNotEmpty) {
@@ -101,8 +104,9 @@ class ServerApiService {
       request.write(jsonEncode(body));
     }
 
-    final response = await request.close();
-    final responseBody = await response.transform(utf8.decoder).join();
+    final response = await request.close().timeout(_requestTimeout);
+    final responseBody =
+        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ServerApiException(
         response.statusCode,

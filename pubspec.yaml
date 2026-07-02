@@ -21,10 +21,10 @@ dependencies:
 
   # Firebase (using latest compatible set — Spark free tier, India-available)
   firebase_core: ^4.11.0
-  firebase_auth: ^6.5.2
+  firebase_auth: ^6.5.4
   firebase_remote_config: ^6.5.3
-  firebase_messaging: ^16.3.0
-  firebase_analytics: ^12.3.0
+  firebase_messaging: ^16.4.1
+  firebase_analytics: ^12.4.3
   cloud_firestore: ^6.6.0
 
   # Fonts

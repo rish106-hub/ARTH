@@ -64,6 +64,33 @@ const eventSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+const authRateLimit = {
+  config: {
+    rateLimit: {
+      max: 20,
+      timeWindow: '1 minute',
+    },
+  },
+};
+
+const dataRateLimit = {
+  config: {
+    rateLimit: {
+      max: 60,
+      timeWindow: '1 minute',
+    },
+  },
+};
+
+const readRateLimit = {
+  config: {
+    rateLimit: {
+      max: 120,
+      timeWindow: '1 minute',
+    },
+  },
+};
+
 function refreshExpiryDate(): Date {
   return new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
 }
@@ -96,10 +123,6 @@ async function issueSession(user: {
 }
 
 export async function registerRoutes(app: FastifyInstance) {
-  const authenticatedLimiter = app.rateLimit({
-    max: 60,
-    timeWindow: '1 minute',
-  });
   await app.register(rateLimit, {
     global: false,
     max: 100,
@@ -108,7 +131,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ ok: true }));
   app.get('/ping', async () => ({ ok: true, ts: Date.now() }));
 
-  app.post('/auth/sign-up', async (request, reply) => {
+  app.post('/auth/sign-up', authRateLimit, async (request, reply) => {
     const payload = signUpSchema.parse(request.body);
     const email = payload.email.toLowerCase();
     const existing = await db.query(
@@ -130,7 +153,7 @@ export async function registerRoutes(app: FastifyInstance) {
     return issueSession(user);
   });
 
-  app.post('/auth/sign-in', async (request, reply) => {
+  app.post('/auth/sign-in', authRateLimit, async (request, reply) => {
     const payload = signInSchema.parse(request.body);
     const email = payload.email.toLowerCase();
     const result = await db.query(
@@ -155,7 +178,7 @@ export async function registerRoutes(app: FastifyInstance) {
     return issueSession(user);
   });
 
-  app.post('/auth/refresh', async (request, reply) => {
+  app.post('/auth/refresh', authRateLimit, async (request, reply) => {
     const payload = refreshSchema.parse(request.body);
     const tokenHash = hashRefreshToken(payload.refreshToken);
     const session = await db.query(
@@ -185,7 +208,7 @@ export async function registerRoutes(app: FastifyInstance) {
     });
   });
 
-  app.post('/auth/sign-out', async (request, reply) => {
+  app.post('/auth/sign-out', authRateLimit, async (request, reply) => {
     const payload = refreshSchema.parse(request.body);
     const tokenHash = hashRefreshToken(payload.refreshToken);
     await db.query(
@@ -195,7 +218,7 @@ export async function registerRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
-  app.get('/me', async (request, reply) => {
+  app.get('/me', readRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
 
@@ -214,7 +237,7 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get('/profile', async (request, reply) => {
+  app.get('/profile', readRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
 
@@ -258,9 +281,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.put(
     '/profile',
-    {
-      preHandler: authenticatedLimiter,
-    },
+    dataRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -340,7 +361,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get(
     '/tax-results/current',
     {
-      preHandler: authenticatedLimiter,
+      ...readRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
@@ -359,7 +380,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.put(
     '/tax-results/current',
     {
-      preHandler: authenticatedLimiter,
+      ...dataRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
@@ -381,13 +402,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get(
     '/done-gaps/current',
     {
-      preHandler: authenticatedLimiter,
-      config: {
-        rateLimit: {
-          max: 120,
-          timeWindow: '1 minute',
-        },
-      },
+      ...readRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
@@ -406,7 +421,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.put(
     '/done-gaps/current',
     {
-      preHandler: authenticatedLimiter,
+      ...dataRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
@@ -440,7 +455,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.delete(
     '/profile',
     {
-      preHandler: authenticatedLimiter,
+      ...dataRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
@@ -465,7 +480,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post(
     '/events',
     {
-      preHandler: authenticatedLimiter,
+      ...dataRateLimit,
     },
     async (request, reply) => {
       const auth = await requireAuth(request, reply);

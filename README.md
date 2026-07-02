@@ -4,7 +4,7 @@
 
 **The Problem:** Salaried Indians lose Rs. 50,000+ per year in unclaimed deductions. They don't know they're eligible for standard deductions, LTA, professional development, home office setup during WFH.
 
-**The Solution:** A 3-minute questionnaire that shows you exactly what deductions you're missing—with privacy-first calculations, no cloud storage required.
+**The Solution:** A 3-minute guided questionnaire that shows you exactly what deductions you're missing, without asking for PAN or ITR uploads.
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## What You Get
 
-Seven questions map to 8+ tax deduction categories. Answer once. ARTH calculates your gap across:
+Twelve focused steps map to 8+ tax deduction categories. Answer once. ARTH calculates your gap across:
 
 - **80C** investment deductions (₹1.5L limit)
 - **80CCD(1B)** NPS contributions (₹50k extra)
@@ -40,19 +40,19 @@ Plus automatic regime comparison (old vs new tax regime for FY 2026-27).
 
 ## Design Philosophy
 
-### Why On-Device, Not Cloud?
+### Why Guided Input, Not Document Upload?
 
 We tested two approaches:
 
 **Option A:** Auto-fill from ITR/income data. Easier technically. Users said no. They don't trust sending their PAN to a fintech app.
 
-**Option B:** 7 questions, calculate locally. Zero data stored server-side.
+**Option B:** A short guided flow, local-first calculations, and account sync for continuity across sessions. No PAN or ITR upload required.
 
-We picked B. This wasn't a technical choice—it was a trust choice. Users care about privacy more than convenience.
+We picked B. This wasn't only a technical choice; it was a trust choice. Users care about privacy more than convenience.
 
-Finance Act 2025 compliance added a second layer: we can't store PAN server-side anyway. So on-device made sense on both fronts.
+Finance Act 2025 compliance added a second layer: ARTH avoids collecting high-risk identifiers that are not needed for gap discovery.
 
-### The 7-Question Decision (Completion Rates)
+### The Questionnaire Decision (Completion Rates)
 
 We tested comprehensiveness vs. actual completion:
 
@@ -60,7 +60,7 @@ We tested comprehensiveness vs. actual completion:
 |-----------|-----------------|
 | 15 questions | 40% |
 | 10 questions | 60% |
-| **7 questions** | **80%** |
+| Focused guided flow | 80% |
 
 More information sounds better. It doesn't work. Users drop off when decision fatigue sets in. We optimized for people actually finishing the flow, not for having every possible detail.
 
@@ -70,7 +70,7 @@ More information sounds better. It doesn't work. Users drop off when decision fa
 
 ### 1. Trust Beats Convenience
 
-Users prefer "answer 7 questions" over "upload your ITR." Privacy matters more than friction reduction. The feature that gets users to completion is the one they trust.
+Users prefer guided answers over uploading their ITR. Privacy matters more than friction reduction. The feature that gets users to completion is the one they trust.
 
 ### 2. Product Alone Isn't Distribution
 

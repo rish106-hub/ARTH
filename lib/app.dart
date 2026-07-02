@@ -51,8 +51,11 @@ final _router = GoRouter(
     GoRoute(
       path: '/deduction-detail',
       builder: (context, state) {
-        final gap = state.extra as GapCard;
-        return DeductionDetailScreen(gap: gap);
+        final extra = state.extra;
+        if (extra is GapCard) {
+          return DeductionDetailScreen(gap: extra);
+        }
+        return const DeductionCardsScreen();
       },
     ),
     GoRoute(
