@@ -374,11 +374,10 @@ class _SavingsCallout extends StatelessWidget {
                   formatRupeesCompact(savings.round()),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      (isCompact
-                              ? AppTextStyles.h3(color: AppColors.gold)
-                              : AppTextStyles.h2(color: AppColors.gold))
-                          .copyWith(height: 1.1),
+                  style: (isCompact
+                          ? AppTextStyles.h3(color: AppColors.gold)
+                          : AppTextStyles.h2(color: AppColors.gold))
+                      .copyWith(height: 1.1),
                 ),
                 Text(
                   'more every year.',

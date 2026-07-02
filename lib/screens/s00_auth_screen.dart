@@ -46,16 +46,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final password = _passwordCtrl.text;
 
       final account = _isSignUp
-          ? await ref
-                .read(authProvider.notifier)
-                .signUp(
-                  name: _nameCtrl.text.trim(),
-                  email: email,
-                  password: password,
-                )
+          ? await ref.read(authProvider.notifier).signUp(
+                name: _nameCtrl.text.trim(),
+                email: email,
+                password: password,
+              )
           : await ref
-                .read(authProvider.notifier)
-                .signIn(email: email, password: password);
+              .read(authProvider.notifier)
+              .signIn(email: email, password: password);
 
       ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
       // Server is source of truth — load fetches the user's profile from the
@@ -104,25 +102,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               children: [
                 const SizedBox(height: 56),
                 Center(
-                  child:
-                      Text(
-                            '₹',
-                            style: TextStyle(
-                              fontSize: 72,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.gold,
-                              height: 1,
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .scale(begin: const Offset(0.7, 0.7)),
+                  child: Text(
+                    '₹',
+                    style: TextStyle(
+                      fontSize: 72,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.gold,
+                      height: 1,
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(duration: 600.ms)
+                      .scale(begin: const Offset(0.7, 0.7)),
                 ),
                 const SizedBox(height: 28),
                 Text(
-                      headline,
-                      style: AppTextStyles.h1(color: AppColors.textPrimary),
-                    )
+                  headline,
+                  style: AppTextStyles.h1(color: AppColors.textPrimary),
+                )
                     .animate(delay: 200.ms)
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.2, end: 0),

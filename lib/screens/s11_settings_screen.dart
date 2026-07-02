@@ -1115,8 +1115,11 @@ class _AppFooter extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
+          runSpacing: 4,
           children: [
             GestureDetector(
               onTap: _openWebsite,
@@ -1126,7 +1129,7 @@ class _AppFooter extends StatelessWidget {
               ),
             ),
             Text(
-              '  ·  ',
+              '·',
               style: AppTextStyles.micro(color: AppColors.textMuted),
             ),
             GestureDetector(
@@ -1137,7 +1140,7 @@ class _AppFooter extends StatelessWidget {
               ),
             ),
             Text(
-              '  ·  ',
+              '·',
               style: AppTextStyles.micro(color: AppColors.textMuted),
             ),
             GestureDetector(

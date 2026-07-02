@@ -161,24 +161,23 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
                       child: Column(
                         children: [
                           SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: AppButtons.primaryGold,
-                                  onPressed: () =>
-                                      context.push('/deduction-cards'),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text('See My Gaps'),
-                                      SizedBox(width: 8),
-                                      Icon(
-                                        Icons.arrow_forward_rounded,
-                                        size: 18,
-                                      ),
-                                    ],
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: AppButtons.primaryGold,
+                              onPressed: () => context.push('/deduction-cards'),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('See My Gaps'),
+                                  SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 18,
                                   ),
-                                ),
-                              )
+                                ],
+                              ),
+                            ),
+                          )
                               .animate(delay: 2000.ms)
                               .fadeIn(duration: 600.ms)
                               .slideY(begin: 0.3),

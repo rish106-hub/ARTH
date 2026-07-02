@@ -2,11 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_account.dart';
 import '../services/auth_service.dart';
 
-class AuthNotifier extends StateNotifier<UserAccount?> {
-  final AuthService _service;
+class AuthNotifier extends Notifier<UserAccount?> {
+  final AuthService? _overrideService;
+  late final AuthService _service;
 
-  AuthNotifier(this._service) : super(null) {
+  AuthNotifier([this._overrideService]);
+
+  @override
+  UserAccount? build() {
+    _service = _overrideService ?? ref.read(authServiceProvider);
     _load();
+    return null;
   }
 
   Future<void> _load() async {
@@ -51,6 +57,6 @@ class AuthNotifier extends StateNotifier<UserAccount?> {
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
-final authProvider = StateNotifierProvider<AuthNotifier, UserAccount?>((ref) {
-  return AuthNotifier(ref.read(authServiceProvider));
-});
+final authProvider = NotifierProvider<AuthNotifier, UserAccount?>(
+  AuthNotifier.new,
+);

@@ -17,9 +17,8 @@ class TaxEngine {
     final newTaxable = newResult['taxable'] as double;
     final totalDeductionsOld = oldResult['deductions'] as double;
 
-    final betterRegime = oldTax <= newTax
-        ? TaxRegime.oldRegime
-        : TaxRegime.newRegime;
+    final betterRegime =
+        oldTax <= newTax ? TaxRegime.oldRegime : TaxRegime.newRegime;
     final regimeSavings = (oldTax - newTax).abs();
 
     final totalGapAmount = gaps.fold<int>(0, (sum, g) => sum + g.gapAmount);

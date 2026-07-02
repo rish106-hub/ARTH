@@ -35,12 +35,12 @@ class AppColors {
 class AppTextStyles {
   // Display — gap numbers
   static TextStyle display({Color color = AppColors.gold}) => GoogleFonts.inter(
-    fontSize: 56,
-    fontWeight: FontWeight.w900,
-    color: color,
-    letterSpacing: -1.5,
-    height: 1.0,
-  );
+        fontSize: 56,
+        fontWeight: FontWeight.w900,
+        color: color,
+        letterSpacing: -1.5,
+        height: 1.0,
+      );
 
   static TextStyle displaySmall({Color color = AppColors.gold}) =>
       GoogleFonts.inter(
