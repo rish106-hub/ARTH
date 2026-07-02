@@ -1,0 +1,39 @@
+backend/src/routes.ts
+  s_56dd8210da6e59::t_9ce3fcc5741542 2,145
+  s_56dd8210da6e59::t_52386946b8c07a 1,5,111,114-124,140-144,146-169,198,223,229-232,238-245,247-251,253-265
+  s_56dd8210da6e59::t_b9313f6d8572d2 266
+test/auth_sync_reliability_test.dart
+  s_56dd8210da6e59::t_e091baa68085a5 11,18
+  s_56dd8210da6e59::t_0a8631e36e8f84 178
+  s_56dd8210da6e59::t_eb8d4399d04337 22-25,38-39,46-47,61-63,70-71,79-80
+  s_56dd8210da6e59::t_a1307ba7054332 1-10,12-17,19-21,26-37,40-45,48-60,64-69,72-78,81-177,179-204
+lib/services/backend_sync_service.dart
+  s_56dd8210da6e59::t_f791aa1ee23343 48-49,70-71,95-96,165-166,247-249
+  s_56dd8210da6e59::t_bf2328c05a5144 40-41
+  s_56dd8210da6e59::t_ce75350f6c0722 28
+  s_56dd8210da6e59::t_8eb54fbd70663e 250
+backend/src/db.ts
+  s_56dd8210da6e59::t_942bacd9e70b83 12
+lib/services/sync_queue_service.dart
+  s_56dd8210da6e59::t_fdcfde7310baea 98,100
+  s_56dd8210da6e59::t_1ae927abad8a36 54-55,70-71
+  s_56dd8210da6e59::t_33cb419ccfc8d6 37-44,78-84,94-96
+lib/services/auth_service.dart
+  s_56dd8210da6e59::t_279e46f8b3675e 52,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "fe13d49d87a4af41ce8f603c726472b6849c7279",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
