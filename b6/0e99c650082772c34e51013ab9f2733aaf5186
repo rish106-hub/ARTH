@@ -1,0 +1,31 @@
+backend/src/db.ts
+  s_56dd8210da6e59::t_0258d6d2e0944e 9
+  s_56dd8210da6e59::t_0c5d5326859c26 29
+  s_56dd8210da6e59::t_a3339d06eade21 7-8,10-21,23-25,28,33-40,44-59
+  s_56dd8210da6e59::t_d6579923b35226 22,30-32,41-43
+backend/test/security.test.ts
+  s_56dd8210da6e59::t_9f8cfdea12b08f 6-7,262
+  s_56dd8210da6e59::t_8dcf5181011ea1 1-5,8-261,263-533
+.github/workflows/ci.yml
+  s_56dd8210da6e59::t_ed05db3267cc1d 107-109
+.github/dependabot.yml
+  s_56dd8210da6e59::t_328073c0698a41 21-30
+backend/package.json
+  s_56dd8210da6e59::t_50555324c0729b 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "b60e99c650082772c34e51013ab9f2733aaf5186",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
