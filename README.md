@@ -507,7 +507,8 @@ Full DDL: [database/schema.sql](./database/schema.sql)
 
 ## Backend API Reference
 
-Base URL: `https://arth-backend.railway.app`
+Base URL: configured per build with `ARTH_API_BASE_URL`, for example
+`https://YOUR_BACKEND_DOMAIN/v1`.
 
 ### Auth Endpoints
 

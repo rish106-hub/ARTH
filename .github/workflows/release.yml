@@ -42,6 +42,7 @@ jobs:
           KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
           KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
           PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
         run: |
           missing=0
           for name in \
@@ -50,7 +51,8 @@ jobs:
             KEYSTORE_STORE_PASSWORD \
             KEYSTORE_KEY_PASSWORD \
             KEYSTORE_KEY_ALIAS \
-            PLAY_STORE_SERVICE_ACCOUNT_JSON
+            PLAY_STORE_SERVICE_ACCOUNT_JSON \
+            ARTH_API_BASE_URL
           do
             if [ -z "${!name}" ]; then
               echo "::error::$name is required for release"
@@ -111,10 +113,12 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.version.outputs.name }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
         run: |
           flutter build appbundle --release \
             --build-name="$VERSION_NAME" \
-            --build-number="$VERSION_CODE"
+            --build-number="$VERSION_CODE" \
+            --dart-define=ARTH_API_BASE_URL="$ARTH_API_BASE_URL"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v7

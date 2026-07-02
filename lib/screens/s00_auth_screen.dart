@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/user_profile_provider.dart';
+import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_ui.dart';
 
@@ -61,12 +62,41 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final hasProfile = await ref.read(userProfileProvider.notifier).load();
       if (!mounted) return;
       context.go(hasProfile ? '/gap-reveal' : '/welcome');
+    } on ServerApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = _friendlyServerError(e));
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = _friendlyError(e.toString()));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _friendlyServerError(ServerApiException error) {
+    final message = error.message.toLowerCase();
+    if (error.statusCode == 404 &&
+        (message.contains('application not found') ||
+            message.contains('not found'))) {
+      return 'ARTH server is not available right now. Please try again after the backend is restored.';
+    }
+    if (error.statusCode == 409) {
+      return 'An account with this email already exists.';
+    }
+    if (error.statusCode == 401) return 'Incorrect email or password.';
+    if (error.statusCode == 429) {
+      return 'Too many attempts. Wait a minute and try again.';
+    }
+    if (error.statusCode == 400 && _isSignUp) {
+      return 'Use 12+ characters with uppercase, lowercase, and a number.';
+    }
+    if (error.statusCode == 413) {
+      return 'That request was too large. Try again.';
+    }
+    if (error.statusCode >= 500) {
+      return 'ARTH server had a problem. Please try again in a moment.';
+    }
+    return 'Authentication failed. Please try again.';
   }
 
   String _friendlyError(String raw) {
