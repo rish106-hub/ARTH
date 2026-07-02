@@ -405,8 +405,27 @@ flowchart TD
 git clone https://github.com/rish106-hub/ARTH.git
 cd ARTH
 flutter pub get
-flutter run
+./scripts/dev_android.sh
 ```
+
+`scripts/dev_android.sh` runs the app on a connected Android phone or emulator
+with the live Railway backend. Keep the command running, save Dart changes, and
+press `r` in the terminal for hot reload. This is the fastest loop for frontend
+work because it does not require uninstalling, downloading, or reinstalling an
+APK.
+
+If you specifically need the latest GitHub-built APK, connect the phone and run:
+
+```bash
+./scripts/install_latest_apk.sh
+```
+
+That downloads the newest successful `main` debug APK and installs it over the
+existing app with `adb install -r`, so you do not need to uninstall first.
+
+Backend changes are different: once Railway is deployed, the installed app talks
+to the updated backend immediately because `ARTH_API_BASE_URL` points at the
+Railway service.
 
 ### Backend Setup
 
