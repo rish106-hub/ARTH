@@ -1,0 +1,37 @@
+lib/screens/s06_deduction_cards_screen.dart
+  s_56dd8210da6e59::t_33d4bbdb3e9d7a 39
+  s_56dd8210da6e59::t_a4eec3f8f1462d 11,37-38,40-43
+lib/screens/s08_action_plan_screen.dart
+  s_56dd8210da6e59::t_33d4bbdb3e9d7a 40
+  s_56dd8210da6e59::t_d191ea23122780 11,38-39,41-44
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_33d4bbdb3e9d7a 25
+  s_56dd8210da6e59::t_34bf7677e935bc 9,23-24,26-29
+lib/screens/s09_progress_tracker_screen.dart
+  s_56dd8210da6e59::t_33d4bbdb3e9d7a 26
+  s_56dd8210da6e59::t_5e6dfe6b9e2f0b 9,24-25,27-30
+lib/widgets/arth_bottom_nav.dart
+  s_56dd8210da6e59::t_cd86e8212eed68 17-19,24,32-34,41,47-50,83-85
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_08641774c21378 158-195,292-300
+  s_56dd8210da6e59::t_40766e5ec2185e 301
+lib/screens/s10_share_card_screen.dart
+  s_56dd8210da6e59::t_90c62f5e71ca9b 10,57-58,60-63
+  s_56dd8210da6e59::t_33d4bbdb3e9d7a 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "535bac96a3671454677775ca2298d1479a926909",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
