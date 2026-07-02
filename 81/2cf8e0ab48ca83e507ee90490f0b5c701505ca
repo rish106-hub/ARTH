@@ -1,0 +1,19 @@
+docs/frontend-product-audit.md
+  s_56dd8210da6e59::t_e736a2eb614f4a 1-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "812cf8e0ab48ca83e507ee90490f0b5c701505ca",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
