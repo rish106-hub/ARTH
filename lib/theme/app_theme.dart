@@ -30,6 +30,11 @@ class AppColors {
   static const Color gapSmall = Color(0xFF26A69A); // teal < 10k
   static const Color gapMedium = Color(0xFFFF9800); // amber 10k-50k
   static const Color gapLarge = Color(0xFFF5C842); // gold 50k+
+
+  static const Color ink = Color(0xFF080808);
+  static const Color graphite = Color(0xFF111214);
+  static const Color glassStroke = Color(0x33FFFFFF);
+  static const Color info = Color(0xFF78A6FF);
 }
 
 class AppTextStyles {
@@ -227,4 +232,11 @@ class AppRadius {
   static const double xl = 24;
   static const BorderRadius card = BorderRadius.all(Radius.circular(16));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(50));
+}
+
+class AppMotion {
+  static const Duration fast = Duration(milliseconds: 160);
+  static const Duration medium = Duration(milliseconds: 260);
+  static const Duration slow = Duration(milliseconds: 420);
+  static const Curve standard = Curves.easeOutCubic;
 }
