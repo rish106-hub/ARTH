@@ -360,9 +360,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.get(
     '/tax-results/current',
-    {
-      ...readRateLimit,
-    },
+    readRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -379,9 +377,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.put(
     '/tax-results/current',
-    {
-      ...dataRateLimit,
-    },
+    dataRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -401,9 +397,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.get(
     '/done-gaps/current',
-    {
-      ...readRateLimit,
-    },
+    readRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -420,9 +414,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.put(
     '/done-gaps/current',
-    {
-      ...dataRateLimit,
-    },
+    dataRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -454,9 +446,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.delete(
     '/profile',
-    {
-      ...dataRateLimit,
-    },
+    dataRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
@@ -479,9 +469,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.post(
     '/events',
-    {
-      ...dataRateLimit,
-    },
+    dataRateLimit,
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
