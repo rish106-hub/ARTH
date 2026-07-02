@@ -18,15 +18,11 @@ dependencies:
 
   # Local persistence
   shared_preferences: ^2.3.1
+  flutter_secure_storage: ^10.3.1
 
-  # Firebase (using latest compatible set — Spark free tier, India-available)
+  # Firebase Remote Config
   firebase_core: ^4.11.0
-  firebase_auth: ^6.5.4
   firebase_remote_config: ^6.5.3
-  firebase_messaging: ^16.4.1
-  firebase_analytics: ^12.4.3
-  cloud_firestore: ^6.6.0
-
   # Fonts
   google_fonts: ^8.1.0
 

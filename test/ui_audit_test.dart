@@ -20,10 +20,12 @@ import 'package:arth/screens/s12_budget_alert_screen.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  FlutterSecureStorage.setMockInitialValues({});
 
   final sampleProfile = UserProfile(
     name: 'Audit User',

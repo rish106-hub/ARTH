@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
 
 /// A single operation that failed to reach the server and needs to be retried.
 class PendingOp {
@@ -27,18 +27,18 @@ class PendingOp {
       };
 }
 
-/// Persists failed sync operations in SharedPreferences so they survive app
-/// restarts and are replayed the next time the user has a live session.
+/// Persists failed sync operations in encrypted device storage so they survive
+/// app restarts and are replayed the next time the user has a live session.
 ///
 /// Deduplication: only the latest operation of each type is kept.
 /// There is no point retrying an old profile write when a newer one exists.
 class SyncQueueService {
   static const _key = 'arth_sync_queue';
+  final _storage = const SecureStorageService();
 
   Future<List<PendingOp>> _read() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
+      final raw = await _storage.read(_key, migrateFromPrefs: true);
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List<dynamic>;
       return list
@@ -52,11 +52,10 @@ class SyncQueueService {
 
   Future<void> _write(List<PendingOp> ops) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       if (ops.isEmpty) {
-        await prefs.remove(_key);
+        await _storage.delete(_key);
       } else {
-        await prefs.setString(
+        await _storage.write(
           _key,
           jsonEncode(ops.map((o) => o.toJson()).toList()),
         );

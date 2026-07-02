@@ -8,6 +8,9 @@ This backend is the secure API layer between the Flutter app and Neon.
 - password hashing with `scrypt`
 - short-lived JWT access tokens
 - refresh-token rotation with hashed storage
+- security headers via Fastify Helmet
+- explicit production CORS allow-list
+- rate limits on auth and data routes
 - user profile storage
 - tax-result storage
 - done-gap storage
@@ -19,6 +22,10 @@ cd backend
 cp .env.example .env
 npm install
 ```
+
+For production, set `NODE_ENV=production`, use 64+ character random JWT
+secrets from a secret manager, and set `CORS_ORIGIN` to explicit trusted
+origins. Wildcard CORS is rejected in production.
 
 Apply the Neon schema in:
 
@@ -47,10 +54,10 @@ npm run dev
 The Flutter app defaults to:
 
 ```text
-http://10.0.2.2:8787/v1
+https://arth-production-aaca.up.railway.app/v1
 ```
 
-for Android emulator access. Override with:
+For Android emulator access or local backend testing, override with:
 
 ```bash
 flutter run --dart-define=ARTH_API_BASE_URL=http://YOUR_HOST:8787/v1

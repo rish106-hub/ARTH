@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_account.dart';
 import '../models/user_profile.dart';
 import '../services/backend_sync_service.dart';
+import '../services/secure_storage_service.dart';
 import 'auth_provider.dart';
 
 // Keys are scoped per user: arth_profile_{uid}, arth_onboarding_{uid}
@@ -11,6 +11,7 @@ String _profileKey(String uid) => 'arth_profile_$uid';
 String _onboardingKey(String uid) => 'arth_onboarding_$uid';
 
 class UserProfileNotifier extends Notifier<UserProfile> {
+  final _storage = const SecureStorageService();
   Timer? _syncDebounce;
 
   @override
@@ -39,9 +40,8 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   Future<void> save() async {
     final uid = _currentUid();
     if (uid != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_profileKey(uid), state.toJsonString());
-      await prefs.setBool(_onboardingKey(uid), true);
+      await _storage.write(_profileKey(uid), state.toJsonString());
+      await _storage.write(_onboardingKey(uid), true.toString());
     }
     await _syncCompletedProfile();
   }
@@ -61,17 +61,16 @@ class UserProfileNotifier extends Notifier<UserProfile> {
       state = remote;
       // Update local cache for this user.
       if (uid != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_profileKey(uid), remote.toJsonString());
-        await prefs.setBool(_onboardingKey(uid), true);
+        await _storage.write(_profileKey(uid), remote.toJsonString());
+        await _storage.write(_onboardingKey(uid), true.toString());
       }
       return true;
     }
 
     // 2. Offline fallback — use user-scoped local cache only.
     if (uid != null) {
-      final prefs = await SharedPreferences.getInstance();
-      final json = prefs.getString(_profileKey(uid));
+      final json =
+          await _storage.read(_profileKey(uid), migrateFromPrefs: true);
       if (json != null) {
         try {
           state = UserProfile.fromJsonString(json);
@@ -87,8 +86,9 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   Future<bool> isOnboardingComplete() async {
     final uid = _currentUid();
     if (uid == null) return false;
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_onboardingKey(uid)) ?? false;
+    final raw =
+        await _storage.read(_onboardingKey(uid), migrateFromPrefs: true);
+    return raw == true.toString();
   }
 
   /// Clears all local state for the current user and wipes all server-side data.
@@ -102,9 +102,8 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   Future<void> clearLocalOnly() async {
     final uid = _currentUid();
     if (uid != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_profileKey(uid));
-      await prefs.remove(_onboardingKey(uid));
+      await _storage.delete(_profileKey(uid));
+      await _storage.delete(_onboardingKey(uid));
     }
     state = const UserProfile();
   }
@@ -118,8 +117,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
       // Server sync happens exclusively from save() once onboarding is done.
       final uid = _currentUid();
       if (uid != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_profileKey(uid), state.toJsonString());
+        await _storage.write(_profileKey(uid), state.toJsonString());
       }
     });
   }

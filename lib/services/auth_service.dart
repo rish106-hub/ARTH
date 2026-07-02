@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_account.dart';
+import 'secure_storage_service.dart';
 import 'server_api_service.dart';
 
 class AuthService {
@@ -10,8 +10,11 @@ class AuthService {
   static const _refreshTokenKey = 'arth_refresh_token';
 
   final ServerApiService _api;
+  final SecureStorageService _storage;
 
-  AuthService({ServerApiService? api}) : _api = api ?? ServerApiService();
+  AuthService({ServerApiService? api, SecureStorageService? storage})
+      : _api = api ?? ServerApiService(),
+        _storage = storage ?? const SecureStorageService();
 
   Future<UserAccount> signUp({
     required String name,
@@ -37,14 +40,12 @@ class AuthService {
   }
 
   Future<void> saveAccount(UserAccount account) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accountKey, account.toJsonString());
+    await _storage.write(_accountKey, account.toJsonString());
   }
 
   Future<UserAccount?> loadAccount() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_accountKey);
+      final raw = await _storage.read(_accountKey, migrateFromPrefs: true);
       if (raw == null || raw.isEmpty) return null;
       return UserAccount.fromJsonString(raw);
     } catch (e) {
@@ -54,8 +55,7 @@ class AuthService {
   }
 
   Future<String?> getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_accessTokenKey);
+    return _storage.read(_accessTokenKey, migrateFromPrefs: true);
   }
 
   Future<String?> getValidAccessToken() async {
@@ -70,8 +70,10 @@ class AuthService {
   }
 
   Future<UserAccount?> refreshSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final refreshToken = prefs.getString(_refreshTokenKey);
+    final refreshToken = await _storage.read(
+      _refreshTokenKey,
+      migrateFromPrefs: true,
+    );
     if (refreshToken == null || refreshToken.isEmpty) return null;
 
     try {
@@ -88,8 +90,10 @@ class AuthService {
   }
 
   Future<void> clearAccount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final refreshToken = prefs.getString(_refreshTokenKey);
+    final refreshToken = await _storage.read(
+      _refreshTokenKey,
+      migrateFromPrefs: true,
+    );
     if (refreshToken != null && refreshToken.isNotEmpty) {
       try {
         await _api.postNoContent(
@@ -98,9 +102,14 @@ class AuthService {
         );
       } catch (_) {}
     }
-    await prefs.remove(_accountKey);
-    await prefs.remove(_accessTokenKey);
-    await prefs.remove(_refreshTokenKey);
+    await Future.wait(
+      [
+        _storage.delete(_accountKey),
+        _storage.delete(_accessTokenKey),
+        _storage.delete(_refreshTokenKey),
+      ],
+      eagerError: false,
+    );
   }
 
   Future<UserAccount> _persistAuthResponse(
@@ -119,10 +128,9 @@ class AuthService {
     final accessToken = response['accessToken'] as String? ?? '';
     final refreshToken = response['refreshToken'] as String? ?? '';
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accountKey, account.toJsonString());
-    await prefs.setString(_accessTokenKey, accessToken);
-    await prefs.setString(_refreshTokenKey, refreshToken);
+    await _storage.write(_accountKey, account.toJsonString());
+    await _storage.write(_accessTokenKey, accessToken);
+    await _storage.write(_refreshTokenKey, refreshToken);
     return account;
   }
 

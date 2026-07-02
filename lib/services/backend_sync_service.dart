@@ -11,7 +11,7 @@ import 'sync_queue_service.dart';
 ///     (500 ms → 1 s → 2 s).  4xx errors are not retried because they
 ///     indicate a bad request that won't improve with repetition.
 ///  2. Persistent queue — if all retry attempts fail the operation is
-///     persisted to SharedPreferences via [SyncQueueService] and replayed
+///     persisted via encrypted [SyncQueueService] storage and replayed
 ///     the next time [flushPendingQueue] is called (i.e. on the next
 ///     successful startup with a live session).
 class BackendSyncService {
