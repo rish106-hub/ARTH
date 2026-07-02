@@ -7,7 +7,23 @@ import { registerRoutes } from './routes.js';
 
 export async function buildApp() {
   const app = Fastify({
-    logger: true,
+    logger: {
+      redact: {
+        censor: '[redacted]',
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'request.headers.authorization',
+          'request.headers.cookie',
+          'headers.authorization',
+          'headers.cookie',
+          '*.password',
+          '*.refreshToken',
+          '*.accessToken',
+          '*.token',
+        ],
+      },
+    },
     bodyLimit: 100 * 1024,
   });
 
