@@ -30,10 +30,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   }
 
   void applyAccountIdentity(UserAccount account) {
-    state = state.copyWith(
-      name: account.name,
-      email: account.email,
-    );
+    state = state.copyWith(name: account.name, email: account.email);
   }
 
   /// Persists the completed profile to server (source of truth) and caches locally.

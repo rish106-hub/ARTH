@@ -17,10 +17,11 @@ class DeductionDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDone = ref.watch(gapStateProvider)[gap.id] ?? false;
     final profile = ref.watch(userProfileProvider);
-    final taxSaved = (gap.gapAmount *
-            TaxEngine.marginalRateOldRegime(profile.annualCTC.toDouble()) *
-            1.04)
-        .round();
+    final taxSaved =
+        (gap.gapAmount *
+                TaxEngine.marginalRateOldRegime(profile.annualCTC.toDouble()) *
+                1.04)
+            .round();
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -40,9 +41,12 @@ class DeductionDetailScreen extends ConsumerWidget {
                   // Section code + title
                   Text(gap.title, style: AppTextStyles.h2()),
                   const SizedBox(height: 4),
-                  Text(gap.shortDesc,
-                      style: AppTextStyles.caption(
-                          color: AppColors.textSecondary)),
+                  Text(
+                    gap.shortDesc,
+                    style: AppTextStyles.caption(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
 
                   const SizedBox(height: 20),
 
@@ -84,10 +88,12 @@ class DeductionDetailScreen extends ConsumerWidget {
                   // Actions
                   Text('Take Action', style: AppTextStyles.h3()),
                   const SizedBox(height: 12),
-                  ...gap.actions.map((action) => _ActionButton(
-                        action: action,
-                        accentColor: gap.accentColor,
-                      )),
+                  ...gap.actions.map(
+                    (action) => _ActionButton(
+                      action: action,
+                      accentColor: gap.accentColor,
+                    ),
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -119,7 +125,8 @@ class DeductionDetailScreen extends ConsumerWidget {
                               content: Text(
                                 'Marked done. Gap recalculated.',
                                 style: AppTextStyles.caption(
-                                    color: AppColors.textPrimary),
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                               backgroundColor: AppColors.bgCard,
                               duration: const Duration(seconds: 2),
@@ -184,18 +191,23 @@ class _HeroBanner extends StatelessWidget {
             children: [
               Flexible(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: gap.accentColor.withValues(alpha: 0.12),
                     borderRadius: AppRadius.pill,
                     border: Border.all(
-                        color: gap.accentColor.withValues(alpha: 0.4)),
+                      color: gap.accentColor.withValues(alpha: 0.4),
+                    ),
                   ),
-                  child: Text(gap.section,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.sectionLabel(color: gap.accentColor)),
+                  child: Text(
+                    gap.section,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.sectionLabel(color: gap.accentColor),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -203,16 +215,22 @@ class _HeroBanner extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(gap.difficultyIcon,
-                        size: 14, color: AppColors.textSecondary),
+                    Icon(
+                      gap.difficultyIcon,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Flexible(
-                      child: Text(gap.difficultyLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: AppTextStyles.micro(
-                              color: AppColors.textSecondary)),
+                      child: Text(
+                        gap.difficultyLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: AppTextStyles.micro(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -223,7 +241,8 @@ class _HeroBanner extends StatelessWidget {
           Text(
             isDone ? 'You claimed this gap!' : 'You\'re leaving behind',
             style: AppTextStyles.caption(
-                color: isDone ? AppColors.success : AppColors.textSecondary),
+              color: isDone ? AppColors.success : AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 4),
           AnimatedRupeeNumber(
@@ -240,8 +259,11 @@ class _HeroBanner extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined,
-                  size: 12, color: AppColors.textSecondary),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 12,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -308,16 +330,18 @@ class _DetailSection extends StatelessWidget {
       children: [
         Text('Key Points', style: AppTextStyles.h3()),
         const SizedBox(height: 10),
-        ...details.map((d) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('•  ', style: AppTextStyles.body(color: AppColors.gold)),
-                  Expanded(child: Text(d, style: AppTextStyles.body())),
-                ],
-              ),
-            )),
+        ...details.map(
+          (d) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('•  ', style: AppTextStyles.body(color: AppColors.gold)),
+                Expanded(child: Text(d, style: AppTextStyles.body())),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

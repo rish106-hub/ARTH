@@ -20,26 +20,11 @@ import 'models/gap_card.dart';
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (_, __) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/auth',
-      builder: (_, __) => const AuthScreen(),
-    ),
-    GoRoute(
-      path: '/welcome',
-      builder: (_, __) => const WelcomeScreen(),
-    ),
-    GoRoute(
-      path: '/questions',
-      builder: (_, __) => const QuestionsScreen(),
-    ),
-    GoRoute(
-      path: '/gap-reveal',
-      builder: (_, __) => const GapRevealScreen(),
-    ),
+    GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+    GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+    GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
+    GoRoute(path: '/questions', builder: (_, __) => const QuestionsScreen()),
+    GoRoute(path: '/gap-reveal', builder: (_, __) => const GapRevealScreen()),
     GoRoute(
       path: '/regime-comparison',
       builder: (_, __) => const RegimeComparisonScreen(),
@@ -58,22 +43,13 @@ final _router = GoRouter(
         return const DeductionCardsScreen();
       },
     ),
-    GoRoute(
-      path: '/action-plan',
-      builder: (_, __) => const ActionPlanScreen(),
-    ),
+    GoRoute(path: '/action-plan', builder: (_, __) => const ActionPlanScreen()),
     GoRoute(
       path: '/progress',
       builder: (_, __) => const ProgressTrackerScreen(),
     ),
-    GoRoute(
-      path: '/share',
-      builder: (_, __) => const ShareCardScreen(),
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (_, __) => const SettingsScreen(),
-    ),
+    GoRoute(path: '/share', builder: (_, __) => const ShareCardScreen()),
+    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     GoRoute(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),

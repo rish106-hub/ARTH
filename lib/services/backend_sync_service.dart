@@ -23,9 +23,9 @@ class BackendSyncService {
     ServerApiService? api,
     AuthService? auth,
     SyncQueueService? queue,
-  })  : _api = api ?? ServerApiService(),
-        _auth = auth ?? AuthService(),
-        _queue = queue ?? SyncQueueService();
+  }) : _api = api ?? ServerApiService(),
+       _auth = auth ?? AuthService(),
+       _queue = queue ?? SyncQueueService();
 
   // ─── PUBLIC API ─────────────────────────────────────────────────────────────
   // Each public sync method retries internally and, on final failure,
@@ -118,14 +118,13 @@ class BackendSyncService {
     try {
       final token = await _auth.getValidAccessToken();
       if (token == null) return;
-      await _withRetry(() => _api.postNoContent(
-            '/events',
-            bearerToken: token,
-            body: {
-              'name': name,
-              'metadata': metadata ?? <String, dynamic>{},
-            },
-          ));
+      await _withRetry(
+        () => _api.postNoContent(
+          '/events',
+          bearerToken: token,
+          body: {'name': name, 'metadata': metadata ?? <String, dynamic>{}},
+        ),
+      );
     } catch (_) {}
   }
 
@@ -180,31 +179,34 @@ class BackendSyncService {
   Future<void> _putProfile(UserProfile profile) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) throw StateError('no auth token');
-    await _withRetry(() => _api.putJson(
-          '/profile',
-          bearerToken: token,
-          body: profile.toJson(),
-        ));
+    await _withRetry(
+      () =>
+          _api.putJson('/profile', bearerToken: token, body: profile.toJson()),
+    );
   }
 
   Future<void> _putTaxResult(TaxResult result) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) throw StateError('no auth token');
-    await _withRetry(() => _api.putJson(
-          '/tax-results/current',
-          bearerToken: token,
-          body: result.toJson(),
-        ));
+    await _withRetry(
+      () => _api.putJson(
+        '/tax-results/current',
+        bearerToken: token,
+        body: result.toJson(),
+      ),
+    );
   }
 
   Future<void> _putDoneGaps(Set<String> gapIds) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) throw StateError('no auth token');
-    await _withRetry(() => _api.putJson(
-          '/done-gaps/current',
-          bearerToken: token,
-          body: {'gapIds': gapIds.toList()},
-        ));
+    await _withRetry(
+      () => _api.putJson(
+        '/done-gaps/current',
+        bearerToken: token,
+        body: {'gapIds': gapIds.toList()},
+      ),
+    );
   }
 
   // ─── RETRY HELPER ───────────────────────────────────────────────────────────

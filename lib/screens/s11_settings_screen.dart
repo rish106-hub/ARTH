@@ -428,7 +428,8 @@ class _AccountHeroCard extends StatelessWidget {
                         Text(
                           account.email,
                           style: AppTextStyles.caption(
-                              color: AppColors.textSecondary),
+                            color: AppColors.textSecondary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -438,19 +439,25 @@ class _AccountHeroCard extends StatelessWidget {
 
                   // Sync badge
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.teal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: AppColors.teal.withValues(alpha: 0.4)),
+                        color: AppColors.teal.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.cloud_done_rounded,
-                            size: 11, color: AppColors.teal),
+                        Icon(
+                          Icons.cloud_done_rounded,
+                          size: 11,
+                          color: AppColors.teal,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Synced',
@@ -520,8 +527,11 @@ class _GuestCard extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: const Icon(Icons.person_outline_rounded,
-                color: AppColors.textSecondary, size: 22),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: AppColors.textSecondary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -529,15 +539,18 @@ class _GuestCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Not signed in', style: AppTextStyles.bodyMedium()),
-                Text('Sign in to sync your data',
-                    style: AppTextStyles.micro(color: AppColors.textSecondary)),
+                Text(
+                  'Sign in to sync your data',
+                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),
           ElevatedButton(
             style: AppButtons.primaryGold.copyWith(
               padding: WidgetStateProperty.all(
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
             ),
             onPressed: onSignIn,
             child: const Text('Sign In'),
@@ -642,8 +655,9 @@ class _TaxSnapshotStrip extends StatelessWidget {
         Expanded(
           child: _SnapCell(
             label: 'Potential Save',
-            value:
-                compact ? '₹${formatRupeesCompact(totalGap)}' : '₹${NumberFormat('#,##,##0', 'en_IN').format(totalGap)}',
+            value: compact
+                ? '₹${formatRupeesCompact(totalGap)}'
+                : '₹${NumberFormat('#,##,##0', 'en_IN').format(totalGap)}',
             icon: Icons.savings_outlined,
           ),
         ),
@@ -683,9 +697,11 @@ class _SnapCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              size: 14,
-              color: highlight ? AppColors.gold : AppColors.textSecondary),
+          Icon(
+            icon,
+            size: 14,
+            color: highlight ? AppColors.gold : AppColors.textSecondary,
+          ),
           const SizedBox(height: 6),
           Text(
             value,
@@ -698,8 +714,10 @@ class _SnapCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
-          Text(label,
-              style: AppTextStyles.micro(color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: AppTextStyles.micro(color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -713,17 +731,18 @@ class _SnapshotSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: List.generate(
-          3,
-          (_) => Expanded(
-                child: Container(
-                  height: 72,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgCard,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              )),
+        3,
+        (_) => Expanded(
+          child: Container(
+            height: 72,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -741,7 +760,8 @@ class _AccountSecurityTile extends StatelessWidget {
           icon: Icons.lock_outline_rounded,
           iconColor: AppColors.teal,
           label: 'Data Privacy',
-          description: 'Your tax profile is encrypted and synced to ARTH servers. Only you can access it.',
+          description:
+              'Your tax profile is encrypted and synced to ARTH servers. Only you can access it.',
           isLast: true,
         ),
       ],
@@ -793,9 +813,10 @@ class _ProfileDetailRow extends StatelessWidget {
               Icon(icon, size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(label,
-                    style:
-                        AppTextStyles.caption(color: AppColors.textSecondary)),
+                child: Text(
+                  label,
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
               ),
               const SizedBox(width: 12),
               Flexible(
@@ -814,7 +835,11 @@ class _ProfileDetailRow extends StatelessWidget {
         ),
         if (!isLast)
           Divider(
-              indent: 42, endIndent: 0, color: AppColors.divider, height: 1),
+            indent: 42,
+            endIndent: 0,
+            color: AppColors.divider,
+            height: 1,
+          ),
       ],
     );
   }
@@ -861,9 +886,12 @@ class _PrivacyRow extends StatelessWidget {
                   children: [
                     Text(label, style: AppTextStyles.bodyMedium()),
                     const SizedBox(height: 2),
-                    Text(description,
-                        style: AppTextStyles.micro(
-                            color: AppColors.textSecondary)),
+                    Text(
+                      description,
+                      style: AppTextStyles.micro(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -872,7 +900,11 @@ class _PrivacyRow extends StatelessWidget {
         ),
         if (!isLast)
           Divider(
-              indent: 64, endIndent: 0, color: AppColors.divider, height: 1),
+            indent: 64,
+            endIndent: 0,
+            color: AppColors.divider,
+            height: 1,
+          ),
       ],
     );
   }
@@ -927,51 +959,59 @@ class _ActionTile extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            label,
-                            style: AppTextStyles.bodyMedium().copyWith(
-                              color: lColor,
-                              fontSize: compact ? 14 : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          label,
+                          style: AppTextStyles.bodyMedium().copyWith(
+                            color: lColor,
+                            fontSize: compact ? 14 : null,
+                          ),
+                        ),
+                        if (badge != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.gold.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              badge!,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.gold,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                          if (badge != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.gold.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                badge!,
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.gold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.micro(
+                        color: AppColors.textSecondary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                        style: AppTextStyles.micro(
-                            color: AppColors.textSecondary)),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textMuted, size: 18),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textMuted,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -1054,8 +1094,9 @@ class _AppFooter extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           'Not a rupee less. Not a rupee more.',
-          style: AppTextStyles.micro(color: AppColors.textMuted)
-              .copyWith(fontStyle: FontStyle.italic),
+          style: AppTextStyles.micro(
+            color: AppColors.textMuted,
+          ).copyWith(fontStyle: FontStyle.italic),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 10),
@@ -1138,18 +1179,24 @@ class _ArthDialog extends StatelessWidget {
         side: BorderSide(color: AppColors.border),
       ),
       title: Text(title, style: AppTextStyles.h3()),
-      content:
-          Text(body, style: AppTextStyles.body(color: AppColors.textSecondary)),
+      content: Text(
+        body,
+        style: AppTextStyles.body(color: AppColors.textSecondary),
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel',
-              style: AppTextStyles.body(color: AppColors.textSecondary)),
+          child: Text(
+            'Cancel',
+            style: AppTextStyles.body(color: AppColors.textSecondary),
+          ),
         ),
         TextButton(
           onPressed: onConfirm,
-          child: Text(confirmLabel,
-              style: AppTextStyles.body(color: confirmColor)),
+          child: Text(
+            confirmLabel,
+            style: AppTextStyles.body(color: confirmColor),
+          ),
         ),
       ],
     );

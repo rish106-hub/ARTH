@@ -62,8 +62,9 @@ class _RegimeContent extends StatelessWidget {
                               taxableIncome: result.oldRegimeTaxableIncome,
                               deductions: result.totalDeductionsOld,
                               isBetter: result.isOldBetter,
-                              savings:
-                                  result.isOldBetter ? result.regimeSavings : null,
+                              savings: result.isOldBetter
+                                  ? result.regimeSavings
+                                  : null,
                               isNew: false,
                             ),
                             const SizedBox(height: 12),
@@ -132,16 +133,20 @@ class _RegimeContent extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         result.isOldBetter
                             ? 'This comparison uses amounts you entered plus modeled rent/HRA. Health-insurance and bank-interest deductions are not auto-applied without rupee inputs.'
                             : 'This comparison is conservative: it uses entered amounts plus modeled rent/HRA, and does not auto-claim insurance or bank-interest deductions.',
-                        style:
-                            AppTextStyles.micro(color: AppColors.textSecondary),
+                        style: AppTextStyles.micro(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ],
@@ -199,7 +204,7 @@ class _RegimeCard extends StatelessWidget {
                   color: AppColors.gold.withValues(alpha: 0.08),
                   blurRadius: 20,
                   spreadRadius: 2,
-                )
+                ),
               ]
             : null,
       ),
@@ -213,20 +218,24 @@ class _RegimeCard extends StatelessWidget {
               color: isBetter
                   ? AppColors.gold.withValues(alpha: 0.1)
                   : AppColors.bgSurface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
             ),
             child: Column(
               children: [
-                Text(title,
-                    style: AppTextStyles.caption(
-                        color: isBetter
-                            ? AppColors.gold
-                            : AppColors.textSecondary)),
+                Text(
+                  title,
+                  style: AppTextStyles.caption(
+                    color: isBetter ? AppColors.gold : AppColors.textSecondary,
+                  ),
+                ),
                 if (isBetter) ...[
                   const SizedBox(height: 2),
-                  Text('Better for you',
-                      style: AppTextStyles.micro(color: AppColors.gold)),
+                  Text(
+                    'Better for you',
+                    style: AppTextStyles.micro(color: AppColors.gold),
+                  ),
                 ],
               ],
             ),
@@ -236,22 +245,25 @@ class _RegimeCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Column(
               children: [
-                Text('Tax payable',
-                    style: AppTextStyles.micro(color: AppColors.textSecondary)),
+                Text(
+                  'Tax payable',
+                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: 4),
                 AnimatedRupeeNumber(
                   value: tax.round(),
                   style: AppTextStyles.h2(
-                      color:
-                          isBetter ? AppColors.success : AppColors.textPrimary),
+                    color: isBetter ? AppColors.success : AppColors.textPrimary,
+                  ),
                   duration: const Duration(milliseconds: 1200),
                 ),
                 const SizedBox(height: 12),
                 _InfoRow(label: 'Taxable income', value: taxableIncome.round()),
                 const SizedBox(height: 6),
                 _InfoRow(
-                    label: isNew ? 'Std deduction' : 'Deductions',
-                    value: deductions.round()),
+                  label: isNew ? 'Std deduction' : 'Deductions',
+                  value: deductions.round(),
+                ),
                 if (savings != null && savings! > 0) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -263,9 +275,12 @@ class _RegimeCard extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        Text('Save more by',
-                            style: AppTextStyles.micro(
-                                color: AppColors.textSecondary)),
+                        Text(
+                          'Save more by',
+                          style: AppTextStyles.micro(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                         RupeeText(
                           amount: savings!.round(),
                           style: AppTextStyles.h3(color: AppColors.success),
@@ -294,11 +309,7 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Text(
-            label,
-            style: AppTextStyles.micro(),
-            softWrap: true,
-          ),
+          child: Text(label, style: AppTextStyles.micro(), softWrap: true),
         ),
         const SizedBox(width: 8),
         Flexible(
@@ -345,8 +356,11 @@ class _SavingsCallout extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb_outline_rounded,
-              color: AppColors.gold, size: 24),
+          const Icon(
+            Icons.lightbulb_outline_rounded,
+            color: AppColors.gold,
+            size: 24,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -360,10 +374,11 @@ class _SavingsCallout extends StatelessWidget {
                   formatRupeesCompact(savings.round()),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: (isCompact
-                          ? AppTextStyles.h3(color: AppColors.gold)
-                          : AppTextStyles.h2(color: AppColors.gold))
-                      .copyWith(height: 1.1),
+                  style:
+                      (isCompact
+                              ? AppTextStyles.h3(color: AppColors.gold)
+                              : AppTextStyles.h2(color: AppColors.gold))
+                          .copyWith(height: 1.1),
                 ),
                 Text(
                   'more every year.',
@@ -386,11 +401,13 @@ class _DeductionBreakdown extends StatelessWidget {
   Widget build(BuildContext context) {
     // Build list of triggered deductions
     final items = result.gaps
-        .map((g) => _DeductionRow(
-              section: g.section,
-              label: g.title,
-              amount: g.gapAmount,
-            ))
+        .map(
+          (g) => _DeductionRow(
+            section: g.section,
+            label: g.title,
+            amount: g.gapAmount,
+          ),
+        )
         .toList();
 
     if (items.isEmpty) {
@@ -400,8 +417,10 @@ class _DeductionBreakdown extends StatelessWidget {
           color: AppColors.bgCard,
           borderRadius: AppRadius.card,
         ),
-        child: Text('No gaps found in old regime deductions.',
-            style: AppTextStyles.caption(color: AppColors.textSecondary)),
+        child: Text(
+          'No gaps found in old regime deductions.',
+          style: AppTextStyles.caption(color: AppColors.textSecondary),
+        ),
       );
     }
 
@@ -413,12 +432,14 @@ class _DeductionBreakdown extends StatelessWidget {
       ),
       child: Column(
         children: items
-            .map((item) => Column(
-                  children: [
-                    item,
-                    Divider(height: 1, color: AppColors.divider)
-                  ],
-                ))
+            .map(
+              (item) => Column(
+                children: [
+                  item,
+                  Divider(height: 1, color: AppColors.divider),
+                ],
+              ),
+            )
             .toList(),
       ),
     );
@@ -453,11 +474,7 @@ class _DeductionRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.caption(),
-              softWrap: true,
-            ),
+            child: Text(label, style: AppTextStyles.caption(), softWrap: true),
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -479,25 +496,29 @@ class _IncomeGuidance extends StatelessWidget {
 
   static const _items = [
     _GuidanceItem(
-        range: 'Up to ₹12 lakh',
-        rec: 'New Regime',
-        reason: '₹60,000 rebate makes effective tax zero',
-        color: AppColors.success),
+      range: 'Up to ₹12 lakh',
+      rec: 'New Regime',
+      reason: '₹60,000 rebate makes effective tax zero',
+      color: AppColors.success,
+    ),
     _GuidanceItem(
-        range: '₹12L – ₹15L',
-        rec: 'Compare both',
-        reason: 'Depends on HRA and investments',
-        color: AppColors.amber),
+      range: '₹12L – ₹15L',
+      rec: 'Compare both',
+      reason: 'Depends on HRA and investments',
+      color: AppColors.amber,
+    ),
     _GuidanceItem(
-        range: '₹15L – ₹50L',
-        rec: 'Old Regime',
-        reason: 'Wins with full deductions stack',
-        color: AppColors.gold),
+      range: '₹15L – ₹50L',
+      rec: 'Old Regime',
+      reason: 'Wins with full deductions stack',
+      color: AppColors.gold,
+    ),
     _GuidanceItem(
-        range: 'Above ₹50L',
-        rec: 'Consult CA',
-        reason: 'Surcharge impact matters',
-        color: AppColors.textSecondary),
+      range: 'Above ₹50L',
+      rec: 'Consult CA',
+      reason: 'Surcharge impact matters',
+      color: AppColors.textSecondary,
+    ),
   ];
 
   @override
@@ -520,11 +541,12 @@ class _GuidanceItem {
   final String rec;
   final String reason;
   final Color color;
-  const _GuidanceItem(
-      {required this.range,
-      required this.rec,
-      required this.reason,
-      required this.color});
+  const _GuidanceItem({
+    required this.range,
+    required this.rec,
+    required this.reason,
+    required this.color,
+  });
 }
 
 class _GuidanceRow extends StatelessWidget {
@@ -551,13 +573,17 @@ class _GuidanceRow extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: item.color.withValues(alpha: 0.1),
                         borderRadius: AppRadius.pill,
                       ),
-                      child: Text(item.rec,
-                          style: AppTextStyles.micro(color: item.color)),
+                      child: Text(
+                        item.rec,
+                        style: AppTextStyles.micro(color: item.color),
+                      ),
                     ),
                     Text(item.reason, style: AppTextStyles.micro()),
                   ],
@@ -571,21 +597,27 @@ class _GuidanceRow extends StatelessWidget {
                   child: Text(item.range, style: AppTextStyles.caption()),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: item.color.withValues(alpha: 0.1),
                     borderRadius: AppRadius.pill,
                   ),
-                  child: Text(item.rec,
-                      style: AppTextStyles.micro(color: item.color)),
+                  child: Text(
+                    item.rec,
+                    style: AppTextStyles.micro(color: item.color),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
-                  child: Text(item.reason,
-                      style: AppTextStyles.micro(),
-                      textAlign: TextAlign.right),
+                  child: Text(
+                    item.reason,
+                    style: AppTextStyles.micro(),
+                    textAlign: TextAlign.right,
+                  ),
                 ),
               ],
             ),

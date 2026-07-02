@@ -5,11 +5,7 @@ import 'package:arth/app.dart';
 
 void main() {
   testWidgets('ArthApp smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: ArthApp(),
-      ),
-    );
+    await tester.pumpWidget(const ProviderScope(child: ArthApp()));
 
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.text('ARTH'), findsOneWidget);
