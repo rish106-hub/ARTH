@@ -1,0 +1,23 @@
+backend/src/db.ts
+  s_56dd8210da6e59::t_1057757652cab5 1
+backend/package.json
+  s_56dd8210da6e59::t_b847010e6b6e31 24,33
+backend/package-lock.json
+  s_56dd8210da6e59::t_b0dd7ce780af89 18,24,697-708,1112-1200,1238-1276,1507-1515
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "ffe24b0a987298f030ad6e6598e2c19dae372e83",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
