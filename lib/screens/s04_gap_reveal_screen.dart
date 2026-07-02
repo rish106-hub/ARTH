@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/retry_error_state.dart';
 
 class GapRevealScreen extends ConsumerStatefulWidget {
   const GapRevealScreen({super.key});
@@ -78,27 +79,9 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen>
             bottom: false,
             child: resultAsync.when(
               loading: () => const Center(child: _CalculatingAnimation()),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Could not calculate your gap.',
-                        style: AppTextStyles.body(),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: AppButtons.primaryGold,
-                        onPressed: () {
-                          ref.invalidate(taxResultProvider);
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+              error: (_, __) => RetryErrorState(
+                message: 'Could not calculate your gap.',
+                onRetry: () => ref.invalidate(taxResultProvider),
               ),
               data: (result) {
                 final gapAmount = result.totalGapAmount;

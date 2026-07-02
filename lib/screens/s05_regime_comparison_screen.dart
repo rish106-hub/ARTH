@@ -6,6 +6,7 @@ import '../models/tax_result.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/retry_error_state.dart';
 
 class RegimeComparisonScreen extends ConsumerWidget {
   const RegimeComparisonScreen({super.key});
@@ -21,7 +22,10 @@ class RegimeComparisonScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => RetryErrorState(
+          message: 'Could not load your regime comparison.',
+          onRetry: () => ref.invalidate(taxResultProvider),
+        ),
         data: (result) => _RegimeContent(result: result),
       ),
     );
