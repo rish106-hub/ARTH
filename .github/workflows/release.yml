@@ -5,6 +5,9 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'   # triggers on v1.0.0, v1.2.3, etc.
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Build Release AAB & Upload to Play Store

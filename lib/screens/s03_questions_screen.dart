@@ -1386,6 +1386,16 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
   final TextEditingController _npsTextCtrl = TextEditingController(text: '0');
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.profile.hasNPS || widget.profile.npsExtraContribution > 0) {
+      _choice = 0;
+    }
+    _extraK = (widget.profile.npsExtraContribution / 1000).clamp(0.0, 50.0);
+    _npsTextCtrl.text = (_extraK * 1000).round().toString();
+  }
+
+  @override
   void dispose() {
     _npsTextCtrl.dispose();
     super.dispose();
@@ -1700,6 +1710,16 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
       TextEditingController(text: '20000');
 
   @override
+  void initState() {
+    super.initState();
+    final interest = widget.profile.educationLoanInterest;
+    _hasLoan = widget.profile.hasEducationLoan || interest > 0 ? true : null;
+    _year = widget.profile.educationLoanRepaymentYear.clamp(1, 8).toDouble();
+    _interestK = interest > 0 ? (interest / 1000).clamp(5.0, 200.0) : 20.0;
+    _edLoanTextCtrl.text = (_interestK * 1000).round().toString();
+  }
+
+  @override
   void dispose() {
     _edLoanTextCtrl.dispose();
     super.dispose();
@@ -1752,7 +1772,11 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               onTap: () {
                 setState(() => _hasLoan = false);
                 ref.read(userProfileProvider.notifier).updateField(
-                      (p) => p.copyWith(hasEducationLoan: false),
+                      (p) => p.copyWith(
+                        hasEducationLoan: false,
+                        educationLoanRepaymentYear: 1,
+                        educationLoanInterest: 0,
+                      ),
                     );
                 widget.onNext();
               },
@@ -1856,6 +1880,15 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
   double _amountK = 5;
   final TextEditingController _donationTextCtrl =
       TextEditingController(text: '5000');
+
+  @override
+  void initState() {
+    super.initState();
+    final amount = widget.profile.donationAmount;
+    _hasDonations = widget.profile.hasDonations || amount > 0 ? true : null;
+    _amountK = amount > 0 ? (amount / 1000).clamp(0.5, 100.0) : 5.0;
+    _donationTextCtrl.text = (_amountK * 1000).round().toString();
+  }
 
   @override
   void dispose() {

@@ -250,9 +250,8 @@ class SettingsScreen extends ConsumerWidget {
         confirmColor: AppColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
-          // Clear profile and gap state before invalidating auth so uid is
-          // still readable inside clearAll().
-          await ref.read(userProfileProvider.notifier).clearAll();
+          // Sign-out removes only this device's cached state.
+          await ref.read(userProfileProvider.notifier).clearLocalOnly();
           ref.invalidate(gapStateProvider);
           ref.invalidate(taxResultProvider);
           await ref.read(authProvider.notifier).signOut();

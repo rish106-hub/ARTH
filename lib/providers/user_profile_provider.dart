@@ -46,7 +46,6 @@ class UserProfileNotifier extends Notifier<UserProfile> {
       await prefs.setString(_profileKey(uid), state.toJsonString());
       await prefs.setBool(_onboardingKey(uid), true);
     }
-    await BackendSyncService().syncProfile(state);
     await _syncCompletedProfile();
   }
 
@@ -97,14 +96,19 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 
   /// Clears all local state for the current user and wipes all server-side data.
   Future<void> clearAll() async {
+    await clearLocalOnly();
+    // Delete all server data: profile, tax results, done-gaps.
+    await BackendSyncService().deleteAllData();
+  }
+
+  /// Clears this device's cached profile for the current user only.
+  Future<void> clearLocalOnly() async {
     final uid = _currentUid();
     if (uid != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_profileKey(uid));
       await prefs.remove(_onboardingKey(uid));
     }
-    // Delete all server data: profile, tax results, done-gaps.
-    await BackendSyncService().deleteAllData();
     state = const UserProfile();
   }
 
