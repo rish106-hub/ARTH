@@ -87,10 +87,10 @@ Run locally:
 npm run dev
 ```
 
-The Flutter app defaults to:
+The Flutter app can be pointed at any deployed backend with:
 
 ```text
-https://arth-production-aaca.up.railway.app/v1
+--dart-define=ARTH_API_BASE_URL=https://YOUR_BACKEND_DOMAIN/v1
 ```
 
 For Android emulator access or local backend testing, override with:
@@ -98,3 +98,7 @@ For Android emulator access or local backend testing, override with:
 ```bash
 flutter run --dart-define=ARTH_API_BASE_URL=http://YOUR_HOST:8787/v1
 ```
+
+GitHub debug APK builds read the optional repository variable
+`ARTH_API_BASE_URL`. Release builds require that variable so signed artifacts
+cannot ship without an explicit backend endpoint.

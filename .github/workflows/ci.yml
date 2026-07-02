@@ -70,7 +70,14 @@ jobs:
           GSEOF
 
       - name: Build debug APK
-        run: flutter build apk --debug
+        env:
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
+        run: |
+          args=()
+          if [ -n "$ARTH_API_BASE_URL" ]; then
+            args+=(--dart-define=ARTH_API_BASE_URL="$ARTH_API_BASE_URL")
+          fi
+          flutter build apk --debug "${args[@]}"
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v7
