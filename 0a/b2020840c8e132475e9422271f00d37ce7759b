@@ -1,0 +1,24 @@
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_28713c3b59bccf 1118-1122,1132,1143
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_733238285d8dc5 128
+  s_56dd8210da6e59::t_0cf6ce6cf22952 121
+lib/providers/auth_provider.dart
+  s_56dd8210da6e59::t_37a7f338a4f7a7 5-7,9-13,15,60-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "0ab2020840c8e132475e9422271f00d37ce7759b",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
