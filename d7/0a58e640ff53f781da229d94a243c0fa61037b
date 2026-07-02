@@ -1,0 +1,24 @@
+scripts/dev_android.sh
+  s_56dd8210da6e59::t_9f4b1eee79bbee 1-44
+scripts/install_latest_apk.sh
+  s_56dd8210da6e59::t_73efe767b275cc 1-53
+README.md
+  s_56dd8210da6e59::t_f176d47f3c17a2 408,411-428
+  s_56dd8210da6e59::t_59287f73d1b25b 429
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "d70a58e640ff53f781da229d94a243c0fa61037b",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
