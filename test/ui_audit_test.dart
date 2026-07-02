@@ -118,14 +118,14 @@ void main() {
     uid: 'audit-uid',
   );
 
-  final overrides = <Override>[
+  final overrides = [
     userProfileProvider.overrideWith(
       () => _FixedUserProfileNotifier(sampleProfile),
     ),
     gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
     taxResultProvider.overrideWith((ref) async => sampleResult),
     authProvider.overrideWith(
-      (ref) => _FixedAuthNotifier(_FixedAuthService(account)),
+      () => _FixedAuthNotifier(_FixedAuthService(account)),
     ),
   ];
 
