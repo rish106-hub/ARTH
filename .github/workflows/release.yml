@@ -34,6 +34,36 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Validate release secrets
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          missing=0
+          for name in \
+            GOOGLE_SERVICES_JSON \
+            KEYSTORE_BASE64 \
+            KEYSTORE_STORE_PASSWORD \
+            KEYSTORE_KEY_PASSWORD \
+            KEYSTORE_KEY_ALIAS \
+            PLAY_STORE_SERVICE_ACCOUNT_JSON
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required for release"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode >/dev/null
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode >/dev/null
+          printf '%s' "$PLAY_STORE_SERVICE_ACCOUNT_JSON" | base64 --decode >/dev/null
+
       # ── Secrets injection ─────────────────────────────────────────────────
       # All secrets injected via env: to avoid shell injection.
       # Required GitHub repo secrets (Settings → Secrets → Actions):

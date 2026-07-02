@@ -13,6 +13,7 @@
 - [What You Get](#what-you-get)
 - [Core Insights](#core-insights-what-i-learned)
 - [Impact & Metrics](#impact--metrics)
+- [Security Posture](#security-posture)
 - [Technical Architecture](#-technical-architecture)
 - [Setup & Usage](#setup--usage)
 - [FAQ](#faq)
@@ -51,6 +52,28 @@ We tested two approaches:
 We picked B. This wasn't only a technical choice; it was a trust choice. Users care about privacy more than convenience.
 
 Finance Act 2025 compliance added a second layer: ARTH avoids collecting high-risk identifiers that are not needed for gap discovery.
+
+## Security Posture
+
+ARTH is a guided tax-gap analyzer for salaried users. It is not an ITR filing
+tool, legal advice service, CA replacement, bank account aggregator, or formal
+GDPR compliance certificate.
+
+The product follows privacy-by-design defaults: no PAN, no ITR uploads, no bank
+statements, and no raw income documents are required. If you create an account,
+ARTH stores your email, hashed password, profile answers, calculated result,
+done-gap progress, and basic app events needed to run and improve the service.
+Local app data is stored through OS keychain/keystore-backed secure storage.
+
+The backend uses explicit production CORS, short-lived access tokens,
+hashed refresh tokens, password hashing, rate limits, security headers,
+redacted logs, ownership checks on user data, and fail-fast production config
+validation. Release readiness requires green CI, backend tests, dependency
+audit, zero unresolved security alerts, verified production environment values,
+and a working database restore path.
+
+Users can delete synced profile, result, and progress data from Settings. Secret
+or vulnerability reports should follow [SECURITY.md](./SECURITY.md).
 
 ### The Questionnaire Decision (Completion Rates)
 
@@ -563,7 +586,9 @@ Full interactive docs: `http://localhost:3000/docs`
 | Workflow | Trigger | Steps |
 |----------|---------|-------|
 | `ci.yml` | push / PR | format, analyze, test, build debug APK |
-| `release.yml` | version tag | build release AAB, upload to Play Store |
+| `release.yml` | version tag | validate release secrets, build release AAB, upload to Play Store |
+
+Release checklist: [docs/release-preflight.md](./docs/release-preflight.md)
 
 ---
 
@@ -582,10 +607,12 @@ Full interactive docs: `http://localhost:3000/docs`
 
 ## Release Readiness
 
-- [ ] Confirm Finance Act assumptions for target filing year
-- [ ] Expand onboarding if exact rupee-level computation required
-- [ ] Complete done-gap cross-device sync wiring
-- [ ] Verify release signing + Play Console configuration
+- [ ] GitHub CI green on `main`
+- [ ] Backend tests, build, secret scan, and dependency audit green
+- [ ] Dependabot, code scanning, and secret scanning alerts zero
+- [ ] Railway env checklist complete
+- [ ] Neon backup and restore path verified
+- [ ] Release signing + Play Console configuration verified
 - [ ] QA on multiple screen sizes
 
 ---
