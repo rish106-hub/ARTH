@@ -1,0 +1,26 @@
+lib/screens/s04_gap_reveal_screen.dart
+  s_56dd8210da6e59::t_132c7963035193 222
+  s_56dd8210da6e59::t_7bf8449c2fbf10 91-92,152-153
+  s_56dd8210da6e59::t_b7d0eecd2f1c5c 191-202,204,214-220,368-375
+  s_56dd8210da6e59::t_3820c47df05353 93,322
+  s_56dd8210da6e59::t_edda571814298a 5-7,9,12,21-22,24-27,31-33,35-75,77-83,87-90,95-105,107-121,123-129,132-139,143-151,154-164,167-168,173-175,177,181-190,205-211,213,223-239,241-243,248-252,255-297,302-303,305,308-321,323-338,340,342-351,355-367,376-385,387-388
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_ff0087b5e058bb 237-244,252-253
+  s_56dd8210da6e59::t_24da6485b7d4c9 245-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "a0f61381e6cff62569dae16c8ae6552694520700",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
