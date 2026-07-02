@@ -7,6 +7,7 @@ import '../providers/tax_result_provider.dart';
 // user_profile_provider not needed here;
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/retry_error_state.dart';
 
 class ShareCardScreen extends ConsumerStatefulWidget {
   const ShareCardScreen({super.key});
@@ -55,7 +56,10 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => RetryErrorState(
+          message: 'Could not prepare your share card.',
+          onRetry: () => ref.invalidate(taxResultProvider),
+        ),
         data: (result) {
           final gaps = result.gaps.take(5).toList();
           final items = gaps

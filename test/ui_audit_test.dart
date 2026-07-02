@@ -178,6 +178,28 @@ void main() {
       }
     },
   );
+
+  testWidgets('settings clear-data action opens confirmation dialog', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const SettingsScreen());
+
+    await tester.scrollUntilVisible(
+      find.text('Clear All Data'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Clear All Data'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Clear Everything?'), findsOneWidget);
+    expect(
+      find.text(
+          'Your tax profile and all calculated gaps will be permanently deleted.'),
+      findsOneWidget,
+    );
+    expect(find.text('Clear Data'), findsOneWidget);
+  });
 }
 
 class _FixedUserProfileNotifier extends UserProfileNotifier {

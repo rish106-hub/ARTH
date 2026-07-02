@@ -8,6 +8,7 @@ import '../widgets/gap_card_widget.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/retry_error_state.dart';
 
 class DeductionCardsScreen extends ConsumerWidget {
   const DeductionCardsScreen({super.key});
@@ -35,7 +36,10 @@ class DeductionCardsScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => RetryErrorState(
+          message: 'Could not load your tax gaps.',
+          onRetry: () => ref.invalidate(taxResultProvider),
+        ),
         data: (result) {
           final gaps = result.gaps;
           final doneCount = ref.read(gapStateProvider.notifier).doneCount(gaps);

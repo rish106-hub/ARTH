@@ -74,14 +74,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   String _friendlyError(String raw) {
-    if (raw.contains('409'))
+    if (raw.contains('409')) {
       return 'An account with this email already exists.';
+    }
     if (raw.contains('401')) return 'Incorrect email or password.';
+    if (raw.contains('429')) {
+      return 'Too many attempts. Wait a minute and try again.';
+    }
     if (raw.contains('400') && _isSignUp) {
       return 'Use 12+ characters with uppercase, lowercase, and a number.';
     }
-    if (raw.contains('Failed host lookup') || raw.contains('SocketException')) {
-      return 'Cannot reach the server. Check that the backend is running.';
+    if (raw.contains('413')) {
+      return 'That request was too large. Please try again.';
+    }
+    if (raw.contains('TimeoutException') ||
+        raw.contains('Failed host lookup') ||
+        raw.contains('Connection refused') ||
+        raw.contains('Network is unreachable') ||
+        raw.contains('SocketException')) {
+      return 'Cannot reach the server. Check your connection and try again.';
     }
     return 'Authentication failed. Please try again.';
   }
@@ -202,17 +213,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         },
                       ).animate(delay: 480.ms).fadeIn(duration: 350.ms),
                       const SizedBox(height: 28),
-                      if (_errorMessage != null) ...[
-                        Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: Color(0xFFFF6B6B),
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                      _AuthErrorText(message: _errorMessage),
+                      const SizedBox(height: 16),
                       _SubmitButton(
                         loading: _loading,
                         label: _isSignUp ? 'Sign up' : 'Sign in',
@@ -362,6 +364,35 @@ class _InputField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AuthErrorText extends StatelessWidget {
+  final String? message;
+
+  const _AuthErrorText({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 160),
+      child: message == null
+          ? const SizedBox(key: ValueKey('empty-error'), height: 0)
+          : ConstrainedBox(
+              key: const ValueKey('visible-error'),
+              constraints: const BoxConstraints(minHeight: 36),
+              child: Center(
+                child: Text(
+                  message!,
+                  style: const TextStyle(
+                    color: Color(0xFFFF6B6B),
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
     );
   }
 }

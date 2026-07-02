@@ -8,6 +8,7 @@ import '../widgets/animated_number.dart';
 import '../widgets/gap_card_widget.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/retry_error_state.dart';
 
 class ActionPlanScreen extends ConsumerWidget {
   const ActionPlanScreen({super.key});
@@ -36,7 +37,10 @@ class ActionPlanScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => RetryErrorState(
+          message: 'Could not load your action plan.',
+          onRetry: () => ref.invalidate(taxResultProvider),
+        ),
         data: (result) {
           final gaps = result.gaps;
           final notifier = ref.read(gapStateProvider.notifier);

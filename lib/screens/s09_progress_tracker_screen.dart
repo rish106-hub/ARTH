@@ -6,6 +6,7 @@ import '../providers/tax_result_provider.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/retry_error_state.dart';
 
 class ProgressTrackerScreen extends ConsumerWidget {
   const ProgressTrackerScreen({super.key});
@@ -22,7 +23,10 @@ class ProgressTrackerScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (_, __) => RetryErrorState(
+          message: 'Could not load your progress.',
+          onRetry: () => ref.invalidate(taxResultProvider),
+        ),
         data: (result) {
           final gaps = result.gaps;
           final notifier = ref.read(gapStateProvider.notifier);
