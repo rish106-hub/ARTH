@@ -132,9 +132,9 @@ graph TB
         end
 
         subgraph INFRA ["«layer» Infrastructure"]
-            LOCAL["«component»\nLocalStorageService\n«interface» ILocalStorage\nshared_preferences"]
-            HTTP["«component»\nCloudSyncService\n«interface» ICloudSync\nHTTP REST client"]
-            FB_SVC["«component»\nFirebaseService\nAuth · Firestore · RemoteConfig"]
+            LOCAL["«component»\nSecureStorageService\n«interface» ILocalStorage\nOS keychain/keystore"]
+            HTTP["«component»\nBackendSyncService\n«interface» ICloudSync\nHTTP REST client"]
+            FB_SVC["«component»\nFirebaseService\nRemoteConfig"]
         end
     end
 
@@ -142,7 +142,7 @@ graph TB
         direction TB
         API["«component»\nREST API (Fastify)\nPOST /auth/sign-up · /sign-in · /refresh · /sign-out\nGET|PUT /profile · DELETE /profile\nGET|PUT /tax-results/current\nGET|PUT /done-gaps/current\nPOST /events · GET /health"]
         JWT_MW["«component»\nAuth Middleware\n«interface» IAuthMiddleware\nJWT verify — JOSE"]
-        SEC_C["«component»\nSecurityService\nArgon2id password hashing\nSHA-256 refresh token hashing"]
+        SEC_C["«component»\nSecurityService\nscrypt password hashing\nSHA-256 refresh token hashing"]
         POOL["«component»\nDB Connection Pool\npg — node-postgres"]
     end
 
@@ -158,10 +158,7 @@ graph TB
 
     subgraph FB ["«subsystem» Firebase / Google Cloud"]
         direction LR
-        FB_A["«service»\nAnonymous Auth"]
-        FB_FS["«service»\nFirestore\nalternate sync"]
         FB_RC["«service»\nRemote Config\nfeature flags"]
-        FB_AN["«service»\nAnalytics"]
     end
 
     subgraph CICD ["«subsystem» GitHub Actions CI/CD"]
@@ -189,10 +186,7 @@ graph TB
     JWT_MW -->|"«delegate»"| SEC_C
     API -->|"«use»"| POOL
     POOL --> T1 & T2 & T3 & T4 & T5 & T6
-    FB_SVC -.->|"«call»"| FB_A
-    FB_SVC -.->|"«call»"| FB_FS
     FB_SVC -.->|"«call»"| FB_RC
-    FB_SVC -.->|"«call»"| FB_AN
     CI -->|"«trigger»"| REL
     REL -.->|"«deploy»"| PLAY
     PLAY -.->|"«distribute»"| Actor
@@ -208,8 +202,8 @@ sequenceDiagram
     participant ProfP as userProfileProvider
     participant TaxP as taxResultProvider
     participant Engine as TaxEngine + GapFinder
-    participant Local as LocalStorageService
-    participant Cloud as CloudSyncService
+    participant Local as SecureStorageService
+    participant Cloud as BackendSyncService
     participant Backend as Fastify Backend
     participant DB as PostgreSQL
 
@@ -305,8 +299,8 @@ sequenceDiagram
 │                           │                                     │
 │  ┌────────────────────────▼────────────────────────────────┐    │
 │  │                     Services Layer                      │    │
-│  │  LocalStorageService    CloudSyncService                │    │
-│  │  (shared_preferences)   (Firestore + Backend REST)      │    │
+│  │  SecureStorageService   BackendSyncService              │    │
+│  │  (OS keychain/keystore) (Backend REST)                  │    │
 │  └──────────┬─────────────────────────┬────────────────────┘    │
 └─────────────┼─────────────────────────┼────────────────────────-┘
               │                         │
@@ -326,10 +320,10 @@ sequenceDiagram
               │                                 │
     ┌─────────▼──────────┐          ┌───────────▼──────────┐
     │  Firebase           │          │  PostgreSQL (Neon /  │
-    │  - Auth (anon)      │          │   Railway)           │
-    │  - Firestore        │          │  app_users           │
-    │  - Remote Config    │          │  tax_profiles        │
-    │  - Analytics        │          │  tax_results         │
+    │  - Remote Config    │          │   Railway)           │
+    │                     │          │  app_users           │
+    │                     │          │  tax_profiles        │
+    │                     │          │  tax_results         │
     └────────────────────┘          │  done_gaps           │
                                     │  auth_refresh_sess.  │
                                     │  user_events         │
@@ -395,14 +389,14 @@ flutter run
 
 ```bash
 cd backend
-cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, etc.
+cp .env.example .env   # fill DATABASE_URL and 64+ char JWT secrets
 npm install
 npm run dev
 ```
 
 ### Firebase Configuration
 
-The repo ships with `lib/firebase_options.dart` and `android/app/google-services.json`. To point to a different Firebase project:
+Firebase is used only for Remote Config. The repo ships with `lib/firebase_options.dart` and `android/app/google-services.json`. To point to a different Firebase project:
 
 ```bash
 dart pub global activate flutterfire_cli
@@ -456,6 +450,9 @@ lib/
 │   ├── s04_gap_reveal_screen.dart
 │   └── ... (8 more screens)
 ├── services/
+│   ├── backend_sync_service.dart
+│   ├── secure_storage_service.dart
+│   └── server_api_service.dart
 ├── theme/
 │   └── app_theme.dart      Charcoal + gold design system
 └── widgets/
@@ -599,7 +596,7 @@ Full interactive docs: `http://localhost:3000/docs`
 No. ARTH identifies gaps. You still file via ITR-1/ITR-2 manually or via a CA.
 
 **Q: Is my data stored?**
-No. All calculations happen on your phone. Optional cloud sync available via backend.
+Yes, if you create an account. ARTH syncs profile and calculation state to the backend so you can recover it later. Local app cache uses OS keychain/keystore-backed secure storage.
 
 **Q: Does this work for FY 2026-27?**
 Yes. Tax slabs + deduction limits are current as of March 2026.

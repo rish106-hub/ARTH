@@ -77,6 +77,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (raw.contains('409'))
       return 'An account with this email already exists.';
     if (raw.contains('401')) return 'Incorrect email or password.';
+    if (raw.contains('400') && _isSignUp) {
+      return 'Use 12+ characters with uppercase, lowercase, and a number.';
+    }
     if (raw.contains('Failed host lookup') || raw.contains('SocketException')) {
       return 'Cannot reach the server. Check that the backend is running.';
     }
@@ -168,7 +171,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         controller: _passwordCtrl,
                         label: 'Password',
                         hint: _isSignUp
-                            ? 'At least 8 characters'
+                            ? '12+ chars, Aa, 0-9'
                             : 'Enter your password',
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
@@ -186,8 +189,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                         validator: (v) {
                           final value = v ?? '';
-                          if (value.length < 8) {
+                          if (!_isSignUp && value.length < 8) {
                             return 'Password must be at least 8 characters';
+                          }
+                          if (_isSignUp &&
+                              !RegExp(
+                                r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$',
+                              ).hasMatch(value)) {
+                            return 'Use 12+ chars with Aa and 0-9';
                           }
                           return null;
                         },

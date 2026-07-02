@@ -12,10 +12,17 @@ import {
 } from './security.js';
 import { requireAuth } from './auth.js';
 
+const signUpPasswordSchema = z.string()
+  .min(12)
+  .max(128)
+  .regex(/[a-z]/)
+  .regex(/[A-Z]/)
+  .regex(/[0-9]/);
+
 const signUpSchema = z.object({
-  name: z.string().min(2).max(100),
+  name: z.string().trim().min(2).max(80),
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: signUpPasswordSchema,
 });
 
 const signInSchema = z.object({
@@ -24,43 +31,43 @@ const signInSchema = z.object({
 });
 
 const refreshSchema = z.object({
-  refreshToken: z.string().min(20),
+  refreshToken: z.string().min(20).max(256),
 });
 
 const profileSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().trim().min(2).max(80),
   email: z.string().email(),
-  annualCTC: z.number().int().nonnegative(),
+  annualCTC: z.number().int().min(0).max(100_000_000),
   employmentType: z.enum(['salaried', 'selfEmployed']),
-  city: z.string().min(1),
+  city: z.string().trim().min(1).max(80),
   isMetroCity: z.boolean(),
   paysRent: z.boolean(),
-  monthlyRent: z.number().int().nonnegative(),
+  monthlyRent: z.number().int().min(0).max(10_000_000),
   hasHRA: z.boolean(),
-  invested80C: z.number().int().nonnegative(),
+  invested80C: z.number().int().min(0).max(1_500_000),
   hasHomeLoan: z.boolean(),
   propertyType: z.enum(['selfOccupied', 'letOut']).nullable(),
-  homeLoanInterest: z.number().int().nonnegative(),
+  homeLoanInterest: z.number().int().min(0).max(10_000_000),
   hasNPS: z.boolean(),
-  npsExtraContribution: z.number().int().nonnegative(),
+  npsExtraContribution: z.number().int().min(0).max(1_000_000),
   hasHealthInsuranceSelf: z.boolean(),
   hasHealthInsuranceParents: z.boolean(),
   parentsAbove60: z.boolean(),
   hasEducationLoan: z.boolean(),
   educationLoanRepaymentYear: z.number().int().min(1).max(8),
-  educationLoanInterest: z.number().int().nonnegative(),
+  educationLoanInterest: z.number().int().min(0).max(10_000_000),
   hasDonations: z.boolean(),
-  donationAmount: z.number().int().nonnegative(),
+  donationAmount: z.number().int().min(0).max(10_000_000),
   ageGroup: z.enum(['below30', 'age30to45', 'age45to60', 'above60']),
 });
 
 const taxResultSchema = z.record(z.any());
 const doneGapsSchema = z.object({
-  gapIds: z.array(z.string()).default([]),
+  gapIds: z.array(z.string().min(1).max(120)).max(100),
 });
 
 const eventSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(64),
   metadata: z.record(z.any()).optional(),
 });
 
