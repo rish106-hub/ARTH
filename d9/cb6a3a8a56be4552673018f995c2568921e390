@@ -1,0 +1,63 @@
+lib/screens/s02_welcome_screen.dart
+  s_56dd8210da6e59::t_948113aab7b77a 34-39,45-49,62-75,159-170
+lib/screens/s08_action_plan_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 77-86
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_948113aab7b77a 49-53,55-56,105-116,120-122
+lib/screens/s06_deduction_cards_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 42-43,68-74
+lib/screens/s07_deduction_detail_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 20-23
+lib/services/cloud_sync_service.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 78-99,116-119
+lib/screens/s10_share_card_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 273-275,337-339
+lib/models/gap_card.dart
+  s_56dd8210da6e59::t_948113aab7b77a 50-62,87-88,113-114,135-147
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 377-380
+lib/models/user_account.dart
+  s_56dd8210da6e59::t_948113aab7b77a 46-51,54-60
+lib/services/server_api_service.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 23-28,101-102
+lib/services/auth_service.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 134-135,143-144
+lib/services/sync_queue_service.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 18-21,24-27
+lib/models/tax_result.dart
+  s_56dd8210da6e59::t_948113aab7b77a 45-55,62-65
+lib/models/user_profile.dart
+  s_56dd8210da6e59::t_948113aab7b77a 235-259,262-286
+lib/screens/s04_gap_reveal_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 164-175,177-180
+lib/screens/s03_questions_screen.dart
+  s_56dd8210da6e59::t_948113aab7b77a 411,445-446,603,616,717,821,872,1034,1260,1269,1304,1330,1346,1454,1463,1497,1513,1640,1793,1802,1833,1864,1985,2016
+lib/screens/s01_splash_screen.dart
+  s_56dd8210da6e59::t_948113aab7b77a 105-109
+lib/services/backend_sync_service.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 26-28
+lib/screens/s12_budget_alert_screen.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 34-49,57-63
+lib/theme/app_theme.dart
+  s_56dd8210da6e59::t_d826e6297c8f0c 38-43
+lib/engine/tax_engine.dart
+  s_56dd8210da6e59::t_948113aab7b77a 20-21
+pubspec.lock
+  s_56dd8210da6e59::t_c84a4e58961d3b 1129-1130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "d9cb6a3a8a56be4552673018f995c2568921e390",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
