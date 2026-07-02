@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
+    "scan:secrets": "tsx src/scripts/scan-secrets.ts",
     "test": "tsx --test test/**/*.test.ts",
     "test:security": "tsx --test test/security.test.ts",
     "provision:neon": "tsx src/scripts/provision-neon.ts"

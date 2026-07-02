@@ -136,7 +136,7 @@ export async function registerRoutes(app: FastifyInstance) {
     timeWindow: '1 minute',
   });
   app.get('/health', async () => ({ ok: true }));
-  app.get('/ping', async () => ({ ok: true, ts: Date.now() }));
+  app.get('/ping', async () => ({ ok: true }));
 
   app.post('/auth/sign-up', authRateLimit, async (request, reply) => {
     const payload = signUpSchema.parse(request.body);
