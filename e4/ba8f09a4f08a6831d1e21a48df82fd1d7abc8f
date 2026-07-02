@@ -1,0 +1,67 @@
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_dd9512606a894e 23,28
+lib/services/backend_sync_service.dart
+  s_56dd8210da6e59::t_64ef9327b5f6b0 14
+lib/services/auth_service.dart
+  s_56dd8210da6e59::t_6eaeb62915aaa5 105-112
+  s_56dd8210da6e59::t_d28b712ac514ef 4,13,15-17,43,48,58,73-76,93-96,131-133
+backend/README.md
+  s_56dd8210da6e59::t_15682d49419bcf 11-13,26-29,57,60
+lib/services/secure_storage_service.dart
+  s_56dd8210da6e59::t_14cf0301d9e9f2 26
+  s_56dd8210da6e59::t_9cb7698aebb4ee 20,36-37,42-43,48,51-55
+  s_56dd8210da6e59::t_35c02d94f7d3cb 50
+  s_56dd8210da6e59::t_ccff2e9dcd7d12 1-19,21-22,25,27,29-31,34,40,44-45
+backend/src/app.ts
+  s_56dd8210da6e59::t_22b9832a4b1a4e 40,47-59
+  s_56dd8210da6e59::t_3583506f64eb90 3-4,11,14-19,21-39,60-65
+  s_56dd8210da6e59::t_2f76d18e511cce 41-46
+backend/package.json
+  s_56dd8210da6e59::t_17e03d8500f684 15
+pubspec.yaml
+  s_56dd8210da6e59::t_1ba44faf7b4a9e 21,23
+test/widget_test.dart
+  s_56dd8210da6e59::t_fb07c350aad85a 2,8-9
+lib/providers/user_profile_provider.dart
+  s_56dd8210da6e59::t_ce8af8a2806ac5 6,14,43-44,64-65,91,105-106,120
+  s_56dd8210da6e59::t_5d8be62fc149e7 72-73,89-90
+backend/.env.example
+  s_56dd8210da6e59::t_019dbcc209b54b 1,5-6
+README.md
+  s_56dd8210da6e59::t_d7b800295bc0c4 135-137,145
+  s_56dd8210da6e59::t_7ba664f9402e78 302-303,323-324
+  s_56dd8210da6e59::t_d4a71ffc88b8f3 399,453-455,599
+  s_56dd8210da6e59::t_80457d2176394c 205-206,325-326
+  s_56dd8210da6e59::t_0dac6a7fce900f 392
+lib/services/sync_queue_service.dart
+  s_56dd8210da6e59::t_f3da190e401ddf 30-31
+  s_56dd8210da6e59::t_15858bf602c6ce 3,37,41,56,58
+backend/src/config.ts
+  s_56dd8210da6e59::t_446391af5b30f4 5,9-12,15-22
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_afacc1a2442ad1 80-82,174,192,195-199
+  s_56dd8210da6e59::t_6765a0e422c6d8 200
+backend/src/routes.ts
+  s_56dd8210da6e59::t_40e0b114c8a594 15-21,23,25,34,38,40,42,45,47,50,52,58,60,70
+  s_56dd8210da6e59::t_556f6e3366897d 66
+backend/package-lock.json
+  s_56dd8210da6e59::t_cafc614c235b2f 12,565-584,1026-1037
+pubspec.lock
+  s_56dd8210da6e59::t_11e2dfd8901ffa 305-352
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "e4ba8f09a4f08a6831d1e21a48df82fd1d7abc8f",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
