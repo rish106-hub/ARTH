@@ -1,0 +1,48 @@
+lib/services/server_api_service.dart
+  s_56dd8210da6e59::t_b3d956bd95c8c1 16,26-28,97,107-109
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_f30351c3f2e960 253-254
+.github/workflows/release.yml
+  s_56dd8210da6e59::t_003bb3e00ef798 8-10
+README.md
+  s_56dd8210da6e59::t_4577ce11b43843 7,24,43,49,53,55,63,73
+  s_56dd8210da6e59::t_be1bc0e6fb1105 51
+backend/src/routes.ts
+  s_56dd8210da6e59::t_cc079a0d8f3a3a 67-93,134,156,181,211,221,240,284,364,383,405,424,458,483
+pubspec.yaml
+  s_56dd8210da6e59::t_4acd35a28c88f8 24,26-27
+lib/providers/user_profile_provider.dart
+  s_56dd8210da6e59::t_9ae8fb69fba58f 99-105
+backend/package.json
+  s_56dd8210da6e59::t_1911253e8a8dc6 15
+lib/app.dart
+  s_56dd8210da6e59::t_04330b55e7ab7b 54-58
+lib/screens/s03_questions_screen.dart
+  s_56dd8210da6e59::t_7e8943142617e0 1388-1397,1712-1721,1775-1779,1884-1891
+  s_56dd8210da6e59::t_540db1db11fa90 1892
+.github/workflows/ci.yml
+  s_56dd8210da6e59::t_7987b9eada4bbf 17,81-111
+  s_56dd8210da6e59::t_03f4808fc5baa8 9-11
+lib/providers/feature_flags_provider.dart
+  s_56dd8210da6e59::t_fc4220c930bd0f 1,7-16,23,25-27,29,35-36
+backend/package-lock.json
+  s_56dd8210da6e59::t_31767e009a3228 12,603-648
+pubspec.lock
+  s_56dd8210da6e59::t_2a89c5f1680351 232,235,240,243,248,251,256,259,264,267,272,275,304,307,312,315,320,323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "268acbe22ad0fcdf04cecd4d8f8f6b212f4e3b3e",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
