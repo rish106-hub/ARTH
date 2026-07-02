@@ -39,9 +39,8 @@ class DeductionCardsScreen extends ConsumerWidget {
         data: (result) {
           final gaps = result.gaps;
           final doneCount = ref.read(gapStateProvider.notifier).doneCount(gaps);
-          final remaining = ref
-              .read(gapStateProvider.notifier)
-              .remainingAmount(gaps);
+          final remaining =
+              ref.read(gapStateProvider.notifier).remainingAmount(gaps);
 
           if (gaps.isEmpty) {
             return const _EmptyGapsView();
@@ -66,14 +65,13 @@ class DeductionCardsScreen extends ConsumerWidget {
                     final gap = gaps[i];
                     final isDone = doneMap[gap.id] ?? false;
                     return GapCardWidget(
-                          gap: gap,
-                          isDone: isDone,
-                          onTap: () =>
-                              context.push('/deduction-detail', extra: gap),
-                          onMarkDone: () => ref
-                              .read(gapStateProvider.notifier)
-                              .toggle(gap.id),
-                        )
+                      gap: gap,
+                      isDone: isDone,
+                      onTap: () =>
+                          context.push('/deduction-detail', extra: gap),
+                      onMarkDone: () =>
+                          ref.read(gapStateProvider.notifier).toggle(gap.id),
+                    )
                         .animate(delay: Duration(milliseconds: i * 80))
                         .slideX(
                           begin: 0.05,

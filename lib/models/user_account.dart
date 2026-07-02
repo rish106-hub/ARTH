@@ -43,21 +43,21 @@ class UserAccount {
   }
 
   Map<String, dynamic> toJson() => {
-    'name': name,
-    'email': email,
-    'biometricsEnabled': biometricsEnabled,
-    'createdAt': createdAt.toIso8601String(),
-    'uid': uid,
-  };
+        'name': name,
+        'email': email,
+        'biometricsEnabled': biometricsEnabled,
+        'createdAt': createdAt.toIso8601String(),
+        'uid': uid,
+      };
 
   factory UserAccount.fromJson(Map<String, dynamic> json) => UserAccount(
-    name: json['name'] as String? ?? '',
-    // backward compat: old accounts stored phone instead of email
-    email: json['email'] as String? ?? json['phone'] as String? ?? '',
-    biometricsEnabled: json['biometricsEnabled'] as bool? ?? false,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    uid: json['uid'] as String?,
-  );
+        name: json['name'] as String? ?? '',
+        // backward compat: old accounts stored phone instead of email
+        email: json['email'] as String? ?? json['phone'] as String? ?? '',
+        biometricsEnabled: json['biometricsEnabled'] as bool? ?? false,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        uid: json['uid'] as String?,
+      );
 
   String toJsonString() => jsonEncode(toJson());
 

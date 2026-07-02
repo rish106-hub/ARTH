@@ -270,9 +270,9 @@ class _ShareCard extends StatelessWidget {
       return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
     }
     return v.toString().replaceAllMapped(
-      RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }
 
@@ -334,8 +334,8 @@ class _ShareItemRow extends StatelessWidget {
       return '${l.toStringAsFixed(l == l.roundToDouble() ? 0 : 1)} Lakh';
     }
     return v.toString().replaceAllMapped(
-      RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }

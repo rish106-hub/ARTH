@@ -408,9 +408,7 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
     // Persist to profile only when value is in valid range.
     if (val != null && val >= 1.0) {
       final clamped = val.clamp(1.0, 60.0);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField(
+      ref.read(userProfileProvider.notifier).updateField(
             (p) => p.copyWith(annualCTC: (clamped * 100000).round()),
           );
     }
@@ -444,9 +442,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
     final rawParsed = double.tryParse(
       _textCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''),
     );
-    final displayLakhs = (rawParsed != null && rawParsed > 0)
-        ? rawParsed
-        : _value;
+    final displayLakhs =
+        (rawParsed != null && rawParsed > 0) ? rawParsed : _value;
     final displayText = '₹ ${displayLakhs.toStringAsFixed(1)} Lakhs / year';
     return _QLayout(
       question: 'What is your annual CTC?',
@@ -603,9 +600,7 @@ class _Q02Employment extends ConsumerWidget {
             selected: profile.employmentType == EmploymentType.salaried,
             fullWidth: true,
             onTap: () {
-              ref
-                  .read(userProfileProvider.notifier)
-                  .updateField(
+              ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(employmentType: EmploymentType.salaried),
                   );
               onNext();
@@ -618,9 +613,7 @@ class _Q02Employment extends ConsumerWidget {
             selected: profile.employmentType == EmploymentType.selfEmployed,
             fullWidth: true,
             onTap: () {
-              ref
-                  .read(userProfileProvider.notifier)
-                  .updateField(
+              ref.read(userProfileProvider.notifier).updateField(
                     (p) =>
                         p.copyWith(employmentType: EmploymentType.selfEmployed),
                   );
@@ -721,9 +714,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
               final selected = widget.profile.city == city;
               return GestureDetector(
                 onTap: () {
-                  ref
-                      .read(userProfileProvider.notifier)
-                      .updateField(
+                  ref.read(userProfileProvider.notifier).updateField(
                         (p) => p.copyWith(city: city, isMetroCity: isMetro),
                       );
                   widget.onNext();
@@ -827,9 +818,7 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
 
     if (val != null && val >= 1.0) {
       final clamped = val.clamp(1.0, 200.0);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField(
+      ref.read(userProfileProvider.notifier).updateField(
             (p) => p.copyWith(monthlyRent: (clamped * 1000).round()),
           );
     }
@@ -880,9 +869,7 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             fullWidth: true,
             onTap: () {
               setState(() => _paysRent = false);
-              ref
-                  .read(userProfileProvider.notifier)
-                  .updateField(
+              ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(paysRent: false, monthlyRent: 0),
                   );
               widget.onNext();
@@ -1044,7 +1031,7 @@ class _Q06_80C extends ConsumerStatefulWidget {
 
 class _Q06_80CState extends ConsumerState<_Q06_80C> {
   late double
-  _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
+      _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
   late TextEditingController _textCtrl;
   final _fmt = NumberFormat('#,##,##0', 'en_IN');
 
@@ -1270,9 +1257,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
     if (val != null) {
       final l = (val / 100000).clamp(0.25, 5.0);
       setState(() => _interestL = l);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField(
+      ref.read(userProfileProvider.notifier).updateField(
             (p) => p.copyWith(homeLoanInterest: (l * 100000).round()),
           );
     }
@@ -1281,9 +1266,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
   void _onInterestSliderChanged(double v) {
     setState(() => _interestL = v);
     _interestTextCtrl.text = (v * 100000).round().toString();
-    ref
-        .read(userProfileProvider.notifier)
-        .updateField(
+    ref.read(userProfileProvider.notifier).updateField(
           (p) => p.copyWith(homeLoanInterest: (_interestL * 100000).round()),
         );
   }
@@ -1318,9 +1301,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   _hasLoan = false;
                   _type = null;
                 });
-                ref
-                    .read(userProfileProvider.notifier)
-                    .updateField(
+                ref.read(userProfileProvider.notifier).updateField(
                       (p) => p.copyWith(
                         hasHomeLoan: false,
                         homeLoanInterest: 0,
@@ -1346,9 +1327,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.selfOccupied);
-                        ref
-                            .read(userProfileProvider.notifier)
-                            .updateField(
+                        ref.read(userProfileProvider.notifier).updateField(
                               (p) => p.copyWith(
                                 propertyType: PropertyType.selfOccupied,
                               ),
@@ -1364,9 +1343,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       fullWidth: true,
                       onTap: () {
                         setState(() => _type = PropertyType.letOut);
-                        ref
-                            .read(userProfileProvider.notifier)
-                            .updateField(
+                        ref.read(userProfileProvider.notifier).updateField(
                               (p) =>
                                   p.copyWith(propertyType: PropertyType.letOut),
                             );
@@ -1474,9 +1451,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
     if (val != null) {
       final k = (val / 1000).clamp(0.0, 50.0);
       setState(() => _extraK = k);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField(
+      ref.read(userProfileProvider.notifier).updateField(
             (p) => p.copyWith(npsExtraContribution: (k * 1000).round()),
           );
     }
@@ -1485,9 +1460,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
   void _onNpsSliderChanged(double v) {
     setState(() => _extraK = v);
     _npsTextCtrl.text = (v * 1000).round().toString();
-    ref
-        .read(userProfileProvider.notifier)
-        .updateField(
+    ref.read(userProfileProvider.notifier).updateField(
           (p) => p.copyWith(npsExtraContribution: (_extraK * 1000).round()),
         );
   }
@@ -1521,9 +1494,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _choice = 1;
                   _extraK = 0;
                 });
-                ref
-                    .read(userProfileProvider.notifier)
-                    .updateField(
+                ref.read(userProfileProvider.notifier).updateField(
                       (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
                 widget.onNext();
@@ -1539,9 +1510,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   _choice = 2;
                   _extraK = 0;
                 });
-                ref
-                    .read(userProfileProvider.notifier)
-                    .updateField(
+                ref.read(userProfileProvider.notifier).updateField(
                       (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
               },
@@ -1668,9 +1637,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
   }
 
   void _update() {
-    ref
-        .read(userProfileProvider.notifier)
-        .updateField(
+    ref.read(userProfileProvider.notifier).updateField(
           (p) => p.copyWith(
             hasHealthInsuranceSelf: _self,
             hasHealthInsuranceParents: _parents,
@@ -1823,9 +1790,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
     if (val != null) {
       final k = (val / 1000).clamp(5.0, 200.0);
       setState(() => _interestK = k);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField(
+      ref.read(userProfileProvider.notifier).updateField(
             (p) => p.copyWith(educationLoanInterest: (k * 1000).round()),
           );
     }
@@ -1834,9 +1799,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
   void _onEdLoanSliderChanged(double v) {
     setState(() => _interestK = v);
     _edLoanTextCtrl.text = (v * 1000).round().toString();
-    ref
-        .read(userProfileProvider.notifier)
-        .updateField(
+    ref.read(userProfileProvider.notifier).updateField(
           (p) => p.copyWith(educationLoanInterest: (_interestK * 1000).round()),
         );
   }
@@ -1867,9 +1830,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               fullWidth: true,
               onTap: () {
                 setState(() => _hasLoan = false);
-                ref
-                    .read(userProfileProvider.notifier)
-                    .updateField(
+                ref.read(userProfileProvider.notifier).updateField(
                       (p) => p.copyWith(
                         hasEducationLoan: false,
                         educationLoanRepaymentYear: 1,
@@ -1900,9 +1861,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 label: 'Year ${_year.round()}',
                 onChanged: (v) {
                   setState(() => _year = v);
-                  ref
-                      .read(userProfileProvider.notifier)
-                      .updateField(
+                  ref.read(userProfileProvider.notifier).updateField(
                         (p) => p.copyWith(
                           educationLoanRepaymentYear: _year.round(),
                         ),
@@ -2023,9 +1982,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
   void _onDonationSliderChanged(double v) {
     setState(() => _amountK = v);
     _donationTextCtrl.text = (v * 1000).round().toString();
-    ref
-        .read(userProfileProvider.notifier)
-        .updateField(
+    ref.read(userProfileProvider.notifier).updateField(
           (p) => p.copyWith(donationAmount: (_amountK * 1000).round()),
         );
   }
@@ -2056,9 +2013,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             fullWidth: true,
             onTap: () {
               setState(() => _hasDonations = false);
-              ref
-                  .read(userProfileProvider.notifier)
-                  .updateField(
+              ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(hasDonations: false, donationAmount: 0),
                   );
               widget.onNext();

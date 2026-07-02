@@ -75,28 +75,28 @@ class CloudSyncService {
           .collection('tax_profiles')
           .doc(_currentFY)
           .set({
-            'annual_ctc': p.annualCTC,
-            'age_group': p.ageGroup.name,
-            'employment_type': p.employmentType.name,
-            'city': p.city,
-            'is_metro_city': p.isMetroCity,
-            'pays_rent': p.paysRent,
-            'monthly_rent': p.monthlyRent,
-            'has_hra': p.hasHRA,
-            'invested_80c': p.invested80C,
-            'nps_extra': p.npsExtraContribution,
-            'has_health_ins_self': p.hasHealthInsuranceSelf,
-            'has_health_ins_parents': p.hasHealthInsuranceParents,
-            'parents_above_60': p.parentsAbove60,
-            'has_home_loan': p.hasHomeLoanSelfOccupied,
-            'home_loan_interest': p.homeLoanInterest,
-            'has_education_loan': p.hasEducationLoan,
-            'education_loan_interest': p.educationLoanInterest,
-            'education_loan_year': p.educationLoanRepaymentYear,
-            'has_donations': p.hasDonations,
-            'donation_amount': p.donationAmount,
-            'updated_at': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+        'annual_ctc': p.annualCTC,
+        'age_group': p.ageGroup.name,
+        'employment_type': p.employmentType.name,
+        'city': p.city,
+        'is_metro_city': p.isMetroCity,
+        'pays_rent': p.paysRent,
+        'monthly_rent': p.monthlyRent,
+        'has_hra': p.hasHRA,
+        'invested_80c': p.invested80C,
+        'nps_extra': p.npsExtraContribution,
+        'has_health_ins_self': p.hasHealthInsuranceSelf,
+        'has_health_ins_parents': p.hasHealthInsuranceParents,
+        'parents_above_60': p.parentsAbove60,
+        'has_home_loan': p.hasHomeLoanSelfOccupied,
+        'home_loan_interest': p.homeLoanInterest,
+        'has_education_loan': p.hasEducationLoan,
+        'education_loan_interest': p.educationLoanInterest,
+        'education_loan_year': p.educationLoanRepaymentYear,
+        'has_donations': p.hasDonations,
+        'donation_amount': p.donationAmount,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       if (kDebugMode) debugPrint('[CloudSync] syncProfile failed: $e');
     }
@@ -113,10 +113,10 @@ class CloudSyncService {
           .collection('done_gaps')
           .doc('${_currentFY}_$gapId')
           .set({
-            'gap_id': gapId,
-            'fy': _currentFY,
-            'done_at': FieldValue.serverTimestamp(),
-          });
+        'gap_id': gapId,
+        'fy': _currentFY,
+        'done_at': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       if (kDebugMode) debugPrint('[CloudSync] markGapDone failed: $e');
     }

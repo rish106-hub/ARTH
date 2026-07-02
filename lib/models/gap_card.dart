@@ -47,19 +47,19 @@ class GapCard {
   });
 
   GapCard copyWith({bool? isDone, int? gapAmount}) => GapCard(
-    id: id,
-    section: section,
-    title: title,
-    shortDesc: shortDesc,
-    message: message,
-    gapAmount: gapAmount ?? this.gapAmount,
-    difficulty: difficulty,
-    difficultyLabel: difficultyLabel,
-    deadline: deadline,
-    actions: actions,
-    colorHex: colorHex,
-    isDone: isDone ?? this.isDone,
-  );
+        id: id,
+        section: section,
+        title: title,
+        shortDesc: shortDesc,
+        message: message,
+        gapAmount: gapAmount ?? this.gapAmount,
+        difficulty: difficulty,
+        difficultyLabel: difficultyLabel,
+        deadline: deadline,
+        actions: actions,
+        colorHex: colorHex,
+        isDone: isDone ?? this.isDone,
+      );
 
   Color get accentColor {
     if (gapAmount >= 50000) return AppColors.gold;
@@ -84,8 +84,8 @@ class GapCard {
     final diff = diffStr == 'medium'
         ? GapDifficulty.medium
         : diffStr == 'complex'
-        ? GapDifficulty.complex
-        : GapDifficulty.easy;
+            ? GapDifficulty.complex
+            : GapDifficulty.easy;
 
     return GapCard(
       id: json['id'] as String,
@@ -110,8 +110,8 @@ class GapCard {
     final difficulty = difficultyName == 'medium'
         ? GapDifficulty.medium
         : difficultyName == 'complex'
-        ? GapDifficulty.complex
-        : GapDifficulty.easy;
+            ? GapDifficulty.complex
+            : GapDifficulty.easy;
 
     return GapCard(
       id: json['id'] as String,
@@ -132,17 +132,17 @@ class GapCard {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'section': section,
-    'title': title,
-    'shortDesc': shortDesc,
-    'message': message,
-    'gapAmount': gapAmount,
-    'difficulty': difficulty.name,
-    'difficultyLabel': difficultyLabel,
-    'deadline': deadline,
-    'actions': actions.map((a) => a.toJson()).toList(),
-    'colorHex': colorHex,
-    'isDone': isDone,
-  };
+        'id': id,
+        'section': section,
+        'title': title,
+        'shortDesc': shortDesc,
+        'message': message,
+        'gapAmount': gapAmount,
+        'difficulty': difficulty.name,
+        'difficultyLabel': difficultyLabel,
+        'deadline': deadline,
+        'actions': actions.map((a) => a.toJson()).toList(),
+        'colorHex': colorHex,
+        'isDone': isDone,
+      };
 }
