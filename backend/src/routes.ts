@@ -1,7 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import { createHash } from 'node:crypto';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
-import { db } from './db.js';
+import { db, Queryable } from './db.js';
 import { env } from './config.js';
 import {
   createRefreshToken,
@@ -107,13 +108,20 @@ async function issueSession(user: {
   email: string;
   name: string;
   created_at: string | Date;
-}) {
+}, store: Queryable = db, metadata: SessionMetadata = {}) {
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
-  await db.query(
-    `insert into auth_refresh_sessions (user_id, token_hash, expires_at)
-     values ($1, $2, $3)`,
-    [user.id, refreshTokenHash, refreshExpiryDate()],
+  await store.query(
+    `insert into auth_refresh_sessions (
+       user_id, token_hash, expires_at, user_agent, ip_address
+     ) values ($1, $2, $3, $4, $5)`,
+    [
+      user.id,
+      refreshTokenHash,
+      refreshExpiryDate(),
+      metadata.userAgentHash ?? null,
+      metadata.ipPrefixHash ?? null,
+    ],
   );
 
   const accessToken = await signAccessToken(user.id, user.email);
@@ -127,6 +135,36 @@ async function issueSession(user: {
     accessToken,
     refreshToken,
   };
+}
+
+type SessionMetadata = {
+  userAgentHash?: string;
+  ipPrefixHash?: string;
+};
+
+function sessionMetadata(request: FastifyRequest): SessionMetadata {
+  const userAgent = request.headers['user-agent'];
+  const userAgentValue = Array.isArray(userAgent) ? userAgent.join(',') : userAgent;
+  return {
+    userAgentHash: hashMetadata(userAgentValue),
+    ipPrefixHash: hashMetadata(ipPrefix(request.ip)),
+  };
+}
+
+function hashMetadata(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
+function ipPrefix(ip: string | undefined): string | undefined {
+  if (!ip) return undefined;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) {
+    return ip.split('.').slice(0, 3).join('.');
+  }
+  if (ip.includes(':')) {
+    return ip.split(':').slice(0, 4).join(':');
+  }
+  return undefined;
 }
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -157,7 +195,7 @@ export async function registerRoutes(app: FastifyInstance) {
       [email, payload.name.trim(), passwordHash],
     );
     const user = inserted.rows[0];
-    return issueSession(user);
+    return issueSession(user, db, sessionMetadata(request));
   });
 
   app.post('/auth/sign-in', authRateLimit, async (request, reply) => {
@@ -182,37 +220,50 @@ export async function registerRoutes(app: FastifyInstance) {
       'update app_users set last_seen_at = now(), updated_at = now() where id = $1',
       [user.id],
     );
-    return issueSession(user);
+    return issueSession(user, db, sessionMetadata(request));
   });
 
   app.post('/auth/refresh', authRateLimit, async (request, reply) => {
     const payload = refreshSchema.parse(request.body);
     const tokenHash = hashRefreshToken(payload.refreshToken);
-    const session = await db.query(
+    const client = await db.connect();
+    try {
+      await client.query('begin');
+      const session = await client.query(
       `select s.id, s.user_id, s.expires_at, u.email, u.name, u.created_at
        from auth_refresh_sessions s
        join app_users u on u.id = s.user_id
        where s.token_hash = $1
          and s.revoked_at is null
-         and s.expires_at > now()`,
-      [tokenHash],
-    );
-    if (!session.rowCount) {
-      return reply.code(401).send({ message: 'Invalid refresh token' });
+         and s.expires_at > now()
+       for update`,
+        [tokenHash],
+      );
+      if (!session.rowCount) {
+        await client.query('rollback');
+        return reply.code(401).send({ message: 'Invalid refresh token' });
+      }
+
+      const row = session.rows[0];
+      await client.query(
+        'update auth_refresh_sessions set revoked_at = now() where id = $1',
+        [row.id],
+      );
+
+      const response = await issueSession({
+        id: row.user_id as string,
+        email: row.email as string,
+        name: row.name as string,
+        created_at: row.created_at as string | Date,
+      }, client, sessionMetadata(request));
+      await client.query('commit');
+      return response;
+    } catch (error) {
+      await client.query('rollback');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    const row = session.rows[0];
-    await db.query(
-      'update auth_refresh_sessions set revoked_at = now() where id = $1',
-      [row.id],
-    );
-
-    return issueSession({
-      id: row.user_id as string,
-      email: row.email as string,
-      name: row.name as string,
-      created_at: row.created_at as string | Date,
-    });
   });
 
   app.post('/auth/sign-out', authRateLimit, async (request, reply) => {

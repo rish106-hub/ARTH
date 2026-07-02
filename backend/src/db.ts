@@ -9,7 +9,7 @@ type QueryResultLike = {
   rows: any[];
 };
 
-type Queryable = {
+export type Queryable = {
   query: (sql: string, params?: unknown[]) => Promise<QueryResultLike>;
 };
 

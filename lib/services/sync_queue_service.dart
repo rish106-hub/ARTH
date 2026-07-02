@@ -34,7 +34,14 @@ class PendingOp {
 /// There is no point retrying an old profile write when a newer one exists.
 class SyncQueueService {
   static const _key = 'arth_sync_queue';
-  final _storage = const SecureStorageService();
+  static const maxQueueItems = 10;
+  static const maxPayloadBytes = 64 * 1024;
+  static const _allowedTypes = {'profile', 'taxResult', 'doneGaps'};
+
+  final SecureStorageService _storage;
+
+  const SyncQueueService({SecureStorageService? storage})
+      : _storage = storage ?? const SecureStorageService();
 
   Future<List<PendingOp>> _read() async {
     try {
@@ -44,8 +51,8 @@ class SyncQueueService {
       return list
           .map((e) => PendingOp.fromJson(e as Map<String, dynamic>))
           .toList();
-    } catch (e) {
-      if (kDebugMode) debugPrint('[SyncQueue] read error: $e');
+    } catch (_) {
+      if (kDebugMode) debugPrint('[SyncQueue] read error');
       return [];
     }
   }
@@ -60,14 +67,21 @@ class SyncQueueService {
           jsonEncode(ops.map((o) => o.toJson()).toList()),
         );
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('[SyncQueue] write error: $e');
+    } catch (_) {
+      if (kDebugMode) debugPrint('[SyncQueue] write error');
     }
   }
 
   /// Enqueue or replace an operation.
   /// Only the latest payload for each type is retained.
   Future<void> enqueue(String type, Map<String, dynamic> payload) async {
+    if (!_allowedTypes.contains(type)) return;
+    final encodedPayload = jsonEncode(payload);
+    if (utf8.encode(encodedPayload).length > maxPayloadBytes) {
+      if (kDebugMode) debugPrint('[SyncQueue] dropped oversized op: $type');
+      return;
+    }
+
     final ops = await _read();
     ops.removeWhere((o) => o.type == type); // deduplicate
     ops.add(
@@ -77,9 +91,13 @@ class SyncQueueService {
         enqueuedAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
+    if (ops.length > maxQueueItems) {
+      ops.removeRange(0, ops.length - maxQueueItems);
+    }
     await _write(ops);
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint('[SyncQueue] enqueued: $type (queue size: ${ops.length})');
+    }
   }
 
   /// Remove and return all pending ops. The caller is responsible for

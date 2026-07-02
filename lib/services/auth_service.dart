@@ -49,7 +49,7 @@ class AuthService {
       if (raw == null || raw.isEmpty) return null;
       return UserAccount.fromJsonString(raw);
     } catch (e) {
-      if (kDebugMode) debugPrint('[AuthService] loadAccount failed: $e');
+      if (kDebugMode) debugPrint('[AuthService] loadAccount failed');
       return null;
     }
   }
@@ -83,7 +83,7 @@ class AuthService {
       );
       return _persistAuthResponse(response);
     } catch (e) {
-      if (kDebugMode) debugPrint('[AuthService] refresh failed: $e');
+      if (kDebugMode) debugPrint('[AuthService] refresh failed');
       await clearAccount();
       return null;
     }
