@@ -1,0 +1,36 @@
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_5709511efd030a 97-98,233-235,246-247,423-424,469-470,503-504
+  s_56dd8210da6e59::t_066e8b05dd891e 129,132
+  s_56dd8210da6e59::t_055a9d372ee595 5,9,66,68,83,89,96,100-101,103-105,107-126,128,130-131,133-135,137-160,162-174,176-190,192-232,236-238,241-245,248-301,306-377,407-422,425-427,429-435,437-446,459,462,464-468,471-475,501-502,512-513,516
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_9a94eaa859aa8f 204-205,229-230
+  s_56dd8210da6e59::t_9d3c44d0aa593f 203,206-228,231-236
+lib/screens/s03_questions_screen.dart
+  s_56dd8210da6e59::t_5709511efd030a 250-251
+  s_56dd8210da6e59::t_9acc8abdbeb572 10,25,67-77,85-101,106,127-161,166,217-249,252-261
+  s_56dd8210da6e59::t_4625f955a4c514 262-264
+lib/screens/s02_welcome_screen.dart
+  s_56dd8210da6e59::t_604885f3ae8169 170-227,230,232
+  s_56dd8210da6e59::t_a40612ee6c21e9 4,6,8,11-59,62-66,68-69,77,90-104,108-118,120-133,142-156,163-164,166,229,236-251
+  s_56dd8210da6e59::t_1227c5c305fa1a 70-76,78-86,89
+  s_56dd8210da6e59::t_29afca51a62be9 134-141
+  s_56dd8210da6e59::t_5709511efd030a 119
+lib/screens/s01_splash_screen.dart
+  s_56dd8210da6e59::t_4238d462d7e4e3 9,40,74-75,117,121-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "dce60c3024c7de95890b6b266b9d7d752b91b442",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
