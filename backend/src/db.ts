@@ -1,8 +1,5 @@
-import { neonConfig, Pool } from '@neondatabase/serverless';
-import ws from 'ws';
+import { Pool } from 'pg';
 import { env } from './config.js';
-
-neonConfig.webSocketConstructor = ws;
 
 type QueryResultLike = {
   rowCount: number | null;
