@@ -234,6 +234,23 @@ void main() {
     expect(find.text('Get a cockpit, not a spreadsheet.'), findsOneWidget);
     expect(find.text('Start diagnostic'), findsOneWidget);
   });
+
+  testWidgets('tax cockpit shows next action and future modules', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const GapRevealScreen());
+
+    expect(find.text('Tax Cockpit'), findsOneWidget);
+    expect(find.text('NEXT BEST ACTION'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('EVERYTHING TAX'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('EVERYTHING TAX'), findsOneWidget);
+    expect(find.text('Tax reminders'), findsOneWidget);
+  });
 }
 
 class _FixedUserProfileNotifier extends UserProfileNotifier {
