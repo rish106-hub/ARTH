@@ -46,21 +46,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final password = _passwordCtrl.text;
 
       final account = _isSignUp
-          ? await ref.read(authProvider.notifier).signUp(
-                name: _nameCtrl.text.trim(),
-                email: email,
-                password: password,
-              )
-          : await ref.read(authProvider.notifier).signIn(
-                email: email,
-                password: password,
-              );
+          ? await ref
+                .read(authProvider.notifier)
+                .signUp(
+                  name: _nameCtrl.text.trim(),
+                  email: email,
+                  password: password,
+                )
+          : await ref
+                .read(authProvider.notifier)
+                .signIn(email: email, password: password);
 
       ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
       // Server is source of truth — load fetches the user's profile from the
       // server first. Returns true if a saved profile exists (onboarding done).
-      final hasProfile =
-          await ref.read(userProfileProvider.notifier).load();
+      final hasProfile = await ref.read(userProfileProvider.notifier).load();
       if (!mounted) return;
       context.go(hasProfile ? '/gap-reveal' : '/welcome');
     } catch (e) {
@@ -76,7 +76,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   String _friendlyError(String raw) {
-    if (raw.contains('409')) return 'An account with this email already exists.';
+    if (raw.contains('409'))
+      return 'An account with this email already exists.';
     if (raw.contains('401')) return 'Incorrect email or password.';
     if (raw.contains('Failed host lookup') || raw.contains('SocketException')) {
       return 'Cannot reach the server. Check that the backend is running.';
@@ -103,24 +104,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               children: [
                 const SizedBox(height: 56),
                 Center(
-                  child: Text(
-                    '₹',
-                    style: TextStyle(
-                      fontSize: 72,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.gold,
-                      height: 1,
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .scale(begin: const Offset(0.7, 0.7)),
+                  child:
+                      Text(
+                            '₹',
+                            style: TextStyle(
+                              fontSize: 72,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.gold,
+                              height: 1,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .scale(begin: const Offset(0.7, 0.7)),
                 ),
                 const SizedBox(height: 28),
                 Text(
-                  headline,
-                  style: AppTextStyles.h1(color: AppColors.textPrimary),
-                )
+                      headline,
+                      style: AppTextStyles.h1(color: AppColors.textPrimary),
+                    )
                     .animate(delay: 200.ms)
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.2, end: 0),
@@ -174,7 +176,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
                           onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                           icon: Icon(
                             _obscurePassword
@@ -221,8 +225,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 },
                           child: Text(
                             'Returning user? Click here to sign in',
-                            style:
-                                AppTextStyles.bodyMedium(color: AppColors.gold),
+                            style: AppTextStyles.bodyMedium(
+                              color: AppColors.gold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         )
@@ -238,8 +243,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 },
                           child: Text(
                             'New here? Create an account',
-                            style:
-                                AppTextStyles.bodyMedium(color: AppColors.gold),
+                            style: AppTextStyles.bodyMedium(
+                              color: AppColors.gold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -317,8 +323,10 @@ class _InputField extends StatelessWidget {
             ),
             filled: true,
             fillColor: const Color(0xFF1E1E1E),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -339,11 +347,12 @@ class _InputField extends StatelessWidget {
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFFFF5252), width: 1.5),
+              borderSide: const BorderSide(
+                color: Color(0xFFFF5252),
+                width: 1.5,
+              ),
             ),
-            errorStyle:
-                const TextStyle(color: Color(0xFFFF5252), fontSize: 12),
+            errorStyle: const TextStyle(color: Color(0xFFFF5252), fontSize: 12),
           ),
         ),
       ],
@@ -372,8 +381,9 @@ class _SubmitButton extends StatelessWidget {
           backgroundColor: AppColors.gold,
           foregroundColor: Colors.black,
           disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         child: loading

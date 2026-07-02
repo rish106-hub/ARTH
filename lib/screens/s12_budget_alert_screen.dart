@@ -21,7 +21,9 @@ class BudgetAlertScreen extends ConsumerWidget {
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(28),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 56),
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 56,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -29,18 +31,22 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       // Alert icon
                       Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.alert.withValues(alpha: 0.12),
-                          border: Border.all(
-                              color: AppColors.alert.withValues(alpha: 0.5),
-                              width: 1.5),
-                        ),
-                        child: const Icon(Icons.campaign_rounded,
-                            color: AppColors.alert, size: 36),
-                      )
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.alert.withValues(alpha: 0.12),
+                              border: Border.all(
+                                color: AppColors.alert.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.campaign_rounded,
+                              color: AppColors.alert,
+                              size: 36,
+                            ),
+                          )
                           .animate()
                           .scale(duration: 400.ms, curve: Curves.elasticOut)
                           .fadeIn(duration: 300.ms),
@@ -48,11 +54,13 @@ class BudgetAlertScreen extends ConsumerWidget {
                       SizedBox(height: compact ? 20 : 28),
 
                       Text(
-                        'Budget 2026\nChanged India\'s\nTax Slabs.',
-                        style: AppTextStyles.h1()
-                            .copyWith(fontSize: compact ? 28 : 32, height: 1.2),
-                        textAlign: TextAlign.center,
-                      )
+                            'Budget 2026\nChanged India\'s\nTax Slabs.',
+                            style: AppTextStyles.h1().copyWith(
+                              fontSize: compact ? 28 : 32,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          )
                           .animate(delay: 300.ms)
                           .fadeIn(duration: 500.ms)
                           .slideY(begin: 0.1),
@@ -61,7 +69,9 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       Text(
                         'Your tax gap may have changed.\nRecalculate now to see your updated numbers.',
-                        style: AppTextStyles.body(color: AppColors.textSecondary),
+                        style: AppTextStyles.body(
+                          color: AppColors.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ).animate(delay: 500.ms).fadeIn(duration: 500.ms),
 
@@ -70,12 +80,15 @@ class BudgetAlertScreen extends ConsumerWidget {
                       // Date badge
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.alert.withValues(alpha: 0.1),
                           borderRadius: AppRadius.pill,
                           border: Border.all(
-                              color: AppColors.alert.withValues(alpha: 0.3)),
+                            color: AppColors.alert.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Text(
                           'Union Budget — February 1, 2026',

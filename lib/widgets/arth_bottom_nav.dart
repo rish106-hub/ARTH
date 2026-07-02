@@ -14,32 +14,32 @@ class ArthBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-        icon: Icons.savings_outlined,
-        activeIcon: Icons.savings_rounded,
-        label: 'Home'),
+      icon: Icons.savings_outlined,
+      activeIcon: Icons.savings_rounded,
+      label: 'Home',
+    ),
     _NavItem(
-        icon: Icons.checklist_outlined,
-        activeIcon: Icons.checklist_rounded,
-        label: 'Action'),
+      icon: Icons.checklist_outlined,
+      activeIcon: Icons.checklist_rounded,
+      label: 'Action',
+    ),
     _NavItem(
-        icon: Icons.timeline_outlined,
-        activeIcon: Icons.timeline_rounded,
-        label: 'Progress'),
+      icon: Icons.timeline_outlined,
+      activeIcon: Icons.timeline_rounded,
+      label: 'Progress',
+    ),
     _NavItem(
-        icon: Icons.settings_outlined,
-        activeIcon: Icons.settings_rounded,
-        label: 'Settings'),
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings_rounded,
+      label: 'Settings',
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        bottom: bottomPad + 16,
-      ),
+      padding: EdgeInsets.only(left: 24, right: 24, bottom: bottomPad + 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
@@ -85,8 +85,9 @@ class ArthBottomNav extends StatelessWidget {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.gold
-                                          .withValues(alpha: 0.25),
+                                      color: AppColors.gold.withValues(
+                                        alpha: 0.25,
+                                      ),
                                       blurRadius: 12,
                                       spreadRadius: 2,
                                     ),

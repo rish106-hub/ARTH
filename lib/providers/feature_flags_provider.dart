@@ -6,9 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Fetches Remote Config flags once per app session.
 /// Fails silently and keeps local defaults when Firebase is unavailable.
 final _remoteConfigProvider = FutureProvider<Map<String, bool>>((ref) async {
-  const defaults = {
-    'budget_alert_enabled': true,
-  };
+  const defaults = {'budget_alert_enabled': true};
 
   if (Firebase.apps.isEmpty) {
     return defaults;
@@ -16,15 +14,15 @@ final _remoteConfigProvider = FutureProvider<Map<String, bool>>((ref) async {
 
   try {
     final rc = FirebaseRemoteConfig.instance;
-    await rc.setConfigSettings(RemoteConfigSettings(
-      fetchTimeout: const Duration(seconds: 10),
-      minimumFetchInterval: const Duration(hours: 1),
-    ));
+    await rc.setConfigSettings(
+      RemoteConfigSettings(
+        fetchTimeout: const Duration(seconds: 10),
+        minimumFetchInterval: const Duration(hours: 1),
+      ),
+    );
     await rc.setDefaults(defaults);
     await rc.fetchAndActivate();
-    return {
-      'budget_alert_enabled': rc.getBool('budget_alert_enabled'),
-    };
+    return {'budget_alert_enabled': rc.getBool('budget_alert_enabled')};
   } catch (_) {
     return defaults;
   }

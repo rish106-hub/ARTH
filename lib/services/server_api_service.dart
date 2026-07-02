@@ -12,18 +12,21 @@ class ServerApiException implements Exception {
 }
 
 class ServerApiService {
-  static const String _defaultBaseUrl = 'https://arth-production-aaca.up.railway.app/v1';
+  static const String _defaultBaseUrl =
+      'https://arth-production-aaca.up.railway.app/v1';
   static const Duration _requestTimeout = Duration(seconds: 15);
 
   final HttpClient _client;
   final String _baseUrl;
 
-  ServerApiService({
-    HttpClient? client,
-    String? baseUrl,
-  })  : _client = client ?? HttpClient(),
-        _baseUrl =
-            baseUrl ?? const String.fromEnvironment('ARTH_API_BASE_URL', defaultValue: _defaultBaseUrl) {
+  ServerApiService({HttpClient? client, String? baseUrl})
+    : _client = client ?? HttpClient(),
+      _baseUrl =
+          baseUrl ??
+          const String.fromEnvironment(
+            'ARTH_API_BASE_URL',
+            defaultValue: _defaultBaseUrl,
+          ) {
     _client.connectionTimeout = _requestTimeout;
   }
 
@@ -31,11 +34,7 @@ class ServerApiService {
     String path, {
     String? bearerToken,
   }) async {
-    final response = await _send(
-      'GET',
-      path,
-      bearerToken: bearerToken,
-    );
+    final response = await _send('GET', path, bearerToken: bearerToken);
     return _decodeMap(response);
   }
 
@@ -72,18 +71,10 @@ class ServerApiService {
     Map<String, dynamic>? body,
     String? bearerToken,
   }) async {
-    await _send(
-      'POST',
-      path,
-      body: body,
-      bearerToken: bearerToken,
-    );
+    await _send('POST', path, body: body, bearerToken: bearerToken);
   }
 
-  Future<void> delete(
-    String path, {
-    String? bearerToken,
-  }) async {
+  Future<void> delete(String path, {String? bearerToken}) async {
     await _send('DELETE', path, bearerToken: bearerToken);
   }
 
@@ -98,15 +89,20 @@ class ServerApiService {
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
     request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
     if (bearerToken != null && bearerToken.isNotEmpty) {
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $bearerToken');
+      request.headers.set(
+        HttpHeaders.authorizationHeader,
+        'Bearer $bearerToken',
+      );
     }
     if (body != null) {
       request.write(jsonEncode(body));
     }
 
     final response = await request.close().timeout(_requestTimeout);
-    final responseBody =
-        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
+    final responseBody = await response
+        .transform(utf8.decoder)
+        .join()
+        .timeout(_requestTimeout);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ServerApiException(
         response.statusCode,

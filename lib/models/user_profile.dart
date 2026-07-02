@@ -14,9 +14,7 @@ EmploymentType _employmentTypeFromJson(dynamic value) {
       orElse: () => EmploymentType.salaried,
     );
   }
-  if (value is int &&
-      value >= 0 &&
-      value < EmploymentType.values.length) {
+  if (value is int && value >= 0 && value < EmploymentType.values.length) {
     return EmploymentType.values[value];
   }
   return EmploymentType.salaried;
@@ -43,9 +41,7 @@ PropertyType? _propertyTypeFromJson(dynamic value) {
       orElse: () => PropertyType.selfOccupied,
     );
   }
-  if (value is int &&
-      value >= 0 &&
-      value < PropertyType.values.length) {
+  if (value is int && value >= 0 && value < PropertyType.values.length) {
     return PropertyType.values[value];
   }
   return null;
@@ -187,7 +183,7 @@ class UserProfile {
     bool? hasHRA,
     int? invested80C,
     bool? hasHomeLoan,
-    Object? propertyType = _unset,   // <-- Object? so null can be passed
+    Object? propertyType = _unset, // <-- Object? so null can be passed
     int? homeLoanInterest,
     bool? hasNPS,
     int? npsExtraContribution,
@@ -236,58 +232,58 @@ class UserProfile {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'email': email,
-        'annualCTC': annualCTC,
-        'employmentType': employmentType.name,
-        'city': city,
-        'isMetroCity': isMetroCity,
-        'paysRent': paysRent,
-        'monthlyRent': monthlyRent,
-        'hasHRA': hasHRA,
-        'invested80C': invested80C,
-        'hasHomeLoan': hasHomeLoan,
-        'propertyType': propertyType?.name,
-        'homeLoanInterest': homeLoanInterest,
-        'hasNPS': hasNPS,
-        'npsExtraContribution': npsExtraContribution,
-        'hasHealthInsuranceSelf': hasHealthInsuranceSelf,
-        'hasHealthInsuranceParents': hasHealthInsuranceParents,
-        'parentsAbove60': parentsAbove60,
-        'hasEducationLoan': hasEducationLoan,
-        'educationLoanRepaymentYear': educationLoanRepaymentYear,
-        'educationLoanInterest': educationLoanInterest,
-        'hasDonations': hasDonations,
-        'donationAmount': donationAmount,
-        'ageGroup': ageGroup.name,
-      };
+    'name': name,
+    'email': email,
+    'annualCTC': annualCTC,
+    'employmentType': employmentType.name,
+    'city': city,
+    'isMetroCity': isMetroCity,
+    'paysRent': paysRent,
+    'monthlyRent': monthlyRent,
+    'hasHRA': hasHRA,
+    'invested80C': invested80C,
+    'hasHomeLoan': hasHomeLoan,
+    'propertyType': propertyType?.name,
+    'homeLoanInterest': homeLoanInterest,
+    'hasNPS': hasNPS,
+    'npsExtraContribution': npsExtraContribution,
+    'hasHealthInsuranceSelf': hasHealthInsuranceSelf,
+    'hasHealthInsuranceParents': hasHealthInsuranceParents,
+    'parentsAbove60': parentsAbove60,
+    'hasEducationLoan': hasEducationLoan,
+    'educationLoanRepaymentYear': educationLoanRepaymentYear,
+    'educationLoanInterest': educationLoanInterest,
+    'hasDonations': hasDonations,
+    'donationAmount': donationAmount,
+    'ageGroup': ageGroup.name,
+  };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        name: json['name'] ?? '',
-        email: json['email'] ?? '',
-        annualCTC: json['annualCTC'] ?? 1000000,
-        employmentType: _employmentTypeFromJson(json['employmentType']),
-        city: json['city'] ?? 'Bengaluru',
-        isMetroCity: json['isMetroCity'] ?? false,
-        paysRent: json['paysRent'] ?? false,
-        monthlyRent: json['monthlyRent'] ?? 0,
-        hasHRA: json['hasHRA'] ?? false,
-        invested80C: json['invested80C'] ?? 0,
-        hasHomeLoan: json['hasHomeLoan'] ?? false,
-        propertyType: _propertyTypeFromJson(json['propertyType']),
-        homeLoanInterest: json['homeLoanInterest'] ?? 0,
-        hasNPS: json['hasNPS'] ?? false,
-        npsExtraContribution: json['npsExtraContribution'] ?? 0,
-        hasHealthInsuranceSelf: json['hasHealthInsuranceSelf'] ?? false,
-        hasHealthInsuranceParents: json['hasHealthInsuranceParents'] ?? false,
-        parentsAbove60: json['parentsAbove60'] ?? false,
-        hasEducationLoan: json['hasEducationLoan'] ?? false,
-        educationLoanRepaymentYear: json['educationLoanRepaymentYear'] ?? 1,
-        educationLoanInterest: json['educationLoanInterest'] ?? 0,
-        hasDonations: json['hasDonations'] ?? false,
-        donationAmount: json['donationAmount'] ?? 0,
-        ageGroup: _ageGroupFromJson(json['ageGroup']),
-      );
+    name: json['name'] ?? '',
+    email: json['email'] ?? '',
+    annualCTC: json['annualCTC'] ?? 1000000,
+    employmentType: _employmentTypeFromJson(json['employmentType']),
+    city: json['city'] ?? 'Bengaluru',
+    isMetroCity: json['isMetroCity'] ?? false,
+    paysRent: json['paysRent'] ?? false,
+    monthlyRent: json['monthlyRent'] ?? 0,
+    hasHRA: json['hasHRA'] ?? false,
+    invested80C: json['invested80C'] ?? 0,
+    hasHomeLoan: json['hasHomeLoan'] ?? false,
+    propertyType: _propertyTypeFromJson(json['propertyType']),
+    homeLoanInterest: json['homeLoanInterest'] ?? 0,
+    hasNPS: json['hasNPS'] ?? false,
+    npsExtraContribution: json['npsExtraContribution'] ?? 0,
+    hasHealthInsuranceSelf: json['hasHealthInsuranceSelf'] ?? false,
+    hasHealthInsuranceParents: json['hasHealthInsuranceParents'] ?? false,
+    parentsAbove60: json['parentsAbove60'] ?? false,
+    hasEducationLoan: json['hasEducationLoan'] ?? false,
+    educationLoanRepaymentYear: json['educationLoanRepaymentYear'] ?? 1,
+    educationLoanInterest: json['educationLoanInterest'] ?? 0,
+    hasDonations: json['hasDonations'] ?? false,
+    donationAmount: json['donationAmount'] ?? 0,
+    ageGroup: _ageGroupFromJson(json['ageGroup']),
+  );
 
   String toJsonString() => jsonEncode(toJson());
   static UserProfile fromJsonString(String s) =>

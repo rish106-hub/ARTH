@@ -35,12 +35,12 @@ class AppColors {
 class AppTextStyles {
   // Display — gap numbers
   static TextStyle display({Color color = AppColors.gold}) => GoogleFonts.inter(
-        fontSize: 56,
-        fontWeight: FontWeight.w900,
-        color: color,
-        letterSpacing: -1.5,
-        height: 1.0,
-      );
+    fontSize: 56,
+    fontWeight: FontWeight.w900,
+    color: color,
+    letterSpacing: -1.5,
+    height: 1.0,
+  );
 
   static TextStyle displaySmall({Color color = AppColors.gold}) =>
       GoogleFonts.inter(
@@ -205,10 +205,7 @@ class AppButtons {
     side: const BorderSide(color: AppColors.gold, width: 1.5),
     shape: const StadiumBorder(),
     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-    textStyle: GoogleFonts.inter(
-      fontSize: 15,
-      fontWeight: FontWeight.w600,
-    ),
+    textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
   );
 }
 

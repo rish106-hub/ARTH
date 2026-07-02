@@ -55,8 +55,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // 2. Server is source of truth — load fetches this user's unique profile.
     //    Returns true if a saved profile exists (onboarding done).
     //    Also works correctly on fresh device installs.
-    final hasProfile =
-        await ref.read(userProfileProvider.notifier).load();
+    final hasProfile = await ref.read(userProfileProvider.notifier).load();
     if (!mounted) return;
     context.go(hasProfile ? '/gap-reveal' : '/welcome');
   }
@@ -103,12 +102,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
             // App name
             Text(
-              'ARTH',
-              style: AppTextStyles.h1(color: AppColors.textPrimary).copyWith(
-                letterSpacing: 8,
-                fontSize: 32,
-              ),
-            )
+                  'ARTH',
+                  style: AppTextStyles.h1(
+                    color: AppColors.textPrimary,
+                  ).copyWith(letterSpacing: 8, fontSize: 32),
+                )
                 .animate(delay: 600.ms)
                 .fadeIn(duration: 600.ms, curve: Curves.easeOut),
 

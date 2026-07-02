@@ -16,11 +16,12 @@ void main() async {
   ]);
 
   // Immersive status bar
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
-
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
 
   try {
     await Firebase.initializeApp(
@@ -30,9 +31,5 @@ void main() async {
     if (kDebugMode) debugPrint('[main] Firebase init skipped: $e');
   }
 
-  runApp(
-    const ProviderScope(
-      child: ArthApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: ArthApp()));
 }

@@ -24,8 +24,10 @@ class DeductionCardsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => context.push('/action-plan'),
-            child: Text('Action Plan',
-                style: AppTextStyles.caption(color: AppColors.gold)),
+            child: Text(
+              'Action Plan',
+              style: AppTextStyles.caption(color: AppColors.gold),
+            ),
           ),
         ],
       ),
@@ -37,8 +39,9 @@ class DeductionCardsScreen extends ConsumerWidget {
         data: (result) {
           final gaps = result.gaps;
           final doneCount = ref.read(gapStateProvider.notifier).doneCount(gaps);
-          final remaining =
-              ref.read(gapStateProvider.notifier).remainingAmount(gaps);
+          final remaining = ref
+              .read(gapStateProvider.notifier)
+              .remainingAmount(gaps);
 
           if (gaps.isEmpty) {
             return const _EmptyGapsView();
@@ -63,18 +66,20 @@ class DeductionCardsScreen extends ConsumerWidget {
                     final gap = gaps[i];
                     final isDone = doneMap[gap.id] ?? false;
                     return GapCardWidget(
-                      gap: gap,
-                      isDone: isDone,
-                      onTap: () =>
-                          context.push('/deduction-detail', extra: gap),
-                      onMarkDone: () =>
-                          ref.read(gapStateProvider.notifier).toggle(gap.id),
-                    )
+                          gap: gap,
+                          isDone: isDone,
+                          onTap: () =>
+                              context.push('/deduction-detail', extra: gap),
+                          onMarkDone: () => ref
+                              .read(gapStateProvider.notifier)
+                              .toggle(gap.id),
+                        )
                         .animate(delay: Duration(milliseconds: i * 80))
                         .slideX(
-                            begin: 0.05,
-                            duration: 350.ms,
-                            curve: Curves.easeOut)
+                          begin: 0.05,
+                          duration: 350.ms,
+                          curve: Curves.easeOut,
+                        )
                         .fadeIn(duration: 350.ms);
                   },
                 ),
@@ -182,8 +187,9 @@ class _GapSummaryHeader extends StatelessWidget {
                     value: progress,
                     minHeight: 6,
                     backgroundColor: AppColors.bgSurface,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.success),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.success,
+                    ),
                   ),
                 ),
               ),
@@ -210,12 +216,17 @@ class _EmptyGapsView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.verified_outlined,
-                size: 64, color: AppColors.gold),
+            const Icon(
+              Icons.verified_outlined,
+              size: 64,
+              color: AppColors.gold,
+            ),
             const SizedBox(height: 20),
-            Text('No gaps found!',
-                style: AppTextStyles.h2(color: AppColors.gold),
-                textAlign: TextAlign.center),
+            Text(
+              'No gaps found!',
+              style: AppTextStyles.h2(color: AppColors.gold),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
             Text(
               'Your deductions appear fully optimised. Consider reviewing in old regime.',

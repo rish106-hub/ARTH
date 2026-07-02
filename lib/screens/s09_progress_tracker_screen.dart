@@ -20,7 +20,8 @@ class ProgressTrackerScreen extends ConsumerWidget {
       appBar: const ArthAppBar(title: 'Progress Tracker'),
       body: resultAsync.when(
         loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.gold)),
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (result) {
           final gaps = result.gaps;
@@ -131,8 +132,10 @@ class _FYTimeline extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: daysLeft <= 30
                         ? AppColors.alert.withValues(alpha: 0.15)
@@ -144,8 +147,8 @@ class _FYTimeline extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.micro(
-                        color:
-                            daysLeft <= 30 ? AppColors.alert : AppColors.amber),
+                      color: daysLeft <= 30 ? AppColors.alert : AppColors.amber,
+                    ),
                   ),
                 ),
               ),
@@ -199,10 +202,7 @@ class _OverallProgress extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.gold.withValues(alpha: 0.08),
-            AppColors.bgCard,
-          ],
+          colors: [AppColors.gold.withValues(alpha: 0.08), AppColors.bgCard],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -217,9 +217,12 @@ class _OverallProgress extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Claimed so far',
-                        style: AppTextStyles.micro(
-                            color: AppColors.textSecondary)),
+                    Text(
+                      'Claimed so far',
+                      style: AppTextStyles.micro(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     Text(
                       formatRupeesCompact(claimed),
                       maxLines: 1,
@@ -233,9 +236,12 @@ class _OverallProgress extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Still to claim',
-                        style: AppTextStyles.micro(
-                            color: AppColors.textSecondary)),
+                    Text(
+                      'Still to claim',
+                      style: AppTextStyles.micro(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
@@ -255,8 +261,9 @@ class _OverallProgress extends StatelessWidget {
               value: progress,
               minHeight: 10,
               backgroundColor: AppColors.bgSurface,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.success),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.success,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -275,17 +282,20 @@ class _DeadlineTimeline extends StatelessWidget {
 
   static const _deadlines = [
     _Deadline(
-        date: 'Mar 31, 2027',
-        label: '80C, 80CCD(1B), 80D investments',
-        isUrgent: true),
+      date: 'Mar 31, 2027',
+      label: '80C, 80CCD(1B), 80D investments',
+      isUrgent: true,
+    ),
     _Deadline(
-        date: 'Mar 15, 2027',
-        label: 'Advance Tax Q4 — pay 100%',
-        isUrgent: true),
+      date: 'Mar 15, 2027',
+      label: 'Advance Tax Q4 — pay 100%',
+      isUrgent: true,
+    ),
     _Deadline(
-        date: 'Jul 31, 2027',
-        label: 'ITR filing deadline (salaried)',
-        isUrgent: false),
+      date: 'Jul 31, 2027',
+      label: 'ITR filing deadline (salaried)',
+      isUrgent: false,
+    ),
   ];
 
   @override
@@ -307,8 +317,11 @@ class _Deadline {
   final String date;
   final String label;
   final bool isUrgent;
-  const _Deadline(
-      {required this.date, required this.label, required this.isUrgent});
+  const _Deadline({
+    required this.date,
+    required this.label,
+    required this.isUrgent,
+  });
 }
 
 class _DeadlineRow extends StatelessWidget {
@@ -330,10 +343,7 @@ class _DeadlineRow extends StatelessWidget {
             width: 8,
             height: 8,
             margin: const EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -402,20 +412,26 @@ class _GapStatusRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: AppTextStyles.caption()),
-                Text(section,
-                    style: AppTextStyles.micro(color: AppColors.gold)),
+                Text(
+                  section,
+                  style: AppTextStyles.micro(color: AppColors.gold),
+                ),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(formatRupees(amount),
-                  style: AppTextStyles.caption(
-                      color:
-                          isDone ? AppColors.success : AppColors.textPrimary)),
-              Text(deadline,
-                  style: AppTextStyles.micro(color: AppColors.textSecondary)),
+              Text(
+                formatRupees(amount),
+                style: AppTextStyles.caption(
+                  color: isDone ? AppColors.success : AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                deadline,
+                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              ),
             ],
           ),
         ],

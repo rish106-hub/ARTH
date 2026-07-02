@@ -78,9 +78,7 @@ void main() {
     difficulty: GapDifficulty.easy,
     difficultyLabel: 'Easy (20 min online)',
     deadline: '31 March 2026',
-    actions: [
-      GapAction(label: 'Open ELSS SIP', url: 'https://example.com'),
-    ],
+    actions: [GapAction(label: 'Open ELSS SIP', url: 'https://example.com')],
     colorHex: 'FF9800',
   );
 
@@ -121,7 +119,9 @@ void main() {
   );
 
   final overrides = <Override>[
-    userProfileProvider.overrideWith(() => _FixedUserProfileNotifier(sampleProfile)),
+    userProfileProvider.overrideWith(
+      () => _FixedUserProfileNotifier(sampleProfile),
+    ),
     gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
     taxResultProvider.overrideWith((ref) async => sampleResult),
     authProvider.overrideWith(
@@ -129,10 +129,7 @@ void main() {
     ),
   ];
 
-  Future<void> pumpAuditedScreen(
-    WidgetTester tester,
-    Widget child,
-  ) async {
+  Future<void> pumpAuditedScreen(WidgetTester tester, Widget child) async {
     tester.view.physicalSize = const Size(320, 740);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -156,27 +153,29 @@ void main() {
     expect(errors, isEmpty, reason: 'Screen failed: ${child.runtimeType}');
   }
 
-  testWidgets('major screens render without build/layout exceptions on narrow phone',
-      (tester) async {
-    final screens = <Widget>[
-      const AuthScreen(),
-      const WelcomeScreen(),
-      const QuestionsScreen(),
-      const GapRevealScreen(),
-      const RegimeComparisonScreen(),
-      const DeductionCardsScreen(),
-      const DeductionDetailScreen(gap: sampleGap1),
-      const ActionPlanScreen(),
-      const ProgressTrackerScreen(),
-      const ShareCardScreen(),
-      const SettingsScreen(),
-      const BudgetAlertScreen(),
-    ];
+  testWidgets(
+    'major screens render without build/layout exceptions on narrow phone',
+    (tester) async {
+      final screens = <Widget>[
+        const AuthScreen(),
+        const WelcomeScreen(),
+        const QuestionsScreen(),
+        const GapRevealScreen(),
+        const RegimeComparisonScreen(),
+        const DeductionCardsScreen(),
+        const DeductionDetailScreen(gap: sampleGap1),
+        const ActionPlanScreen(),
+        const ProgressTrackerScreen(),
+        const ShareCardScreen(),
+        const SettingsScreen(),
+        const BudgetAlertScreen(),
+      ];
 
-    for (final screen in screens) {
-      await pumpAuditedScreen(tester, screen);
-    }
-  });
+      for (final screen in screens) {
+        await pumpAuditedScreen(tester, screen);
+      }
+    },
+  );
 }
 
 class _FixedUserProfileNotifier extends UserProfileNotifier {
