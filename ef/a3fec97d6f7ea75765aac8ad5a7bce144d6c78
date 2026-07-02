@@ -1,0 +1,38 @@
+backend/src/routes.ts
+  s_56dd8210da6e59::t_681cf0b0742a23 139
+backend/README.md
+  s_56dd8210da6e59::t_28a9e6b4ead299 30-65
+backend/src/config.ts
+  s_56dd8210da6e59::t_bbd6773ceddb15 13-15,19-33,40-75,78-84
+backend/src/db.ts
+  s_56dd8210da6e59::t_981c9c0dcfcda4 27-29
+backend/test/config.test.ts
+  s_56dd8210da6e59::t_5c36e1d5c1b107 18
+  s_56dd8210da6e59::t_ac38317d52bcb5 1-17,19-66
+backend/src/app.ts
+  s_56dd8210da6e59::t_578ee2a838f528 10-26
+backend/src/scripts/scan-secrets.ts
+  s_56dd8210da6e59::t_e7c93d743939a0 1-49
+backend/package.json
+  s_56dd8210da6e59::t_cfdd9ecf84c19d 11
+.github/workflows/ci.yml
+  s_56dd8210da6e59::t_30a3e5e7a00ee1 104-106
+backend/.env.example
+  s_56dd8210da6e59::t_acdded77073018 9-11,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "efa3fec97d6f7ea75765aac8ad5a7bce144d6c78",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
