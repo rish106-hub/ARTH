@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/user_profile_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/premium_ui.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -36,7 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (!mounted) return;
       _rupeePulse.forward();
     });
-    _routeTimer = Timer(const Duration(milliseconds: 2500), _routeFromSplash);
+    _routeTimer = Timer(const Duration(milliseconds: 1400), _routeFromSplash);
   }
 
   Future<void> _routeFromSplash() async {
@@ -70,9 +71,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      body: Center(
+    return ArthScaffold(
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -114,10 +114,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
             // Tagline
             Text(
-              'Not a rupee less. Not a rupee more.',
+              'Tax intelligence. Private by default.',
               style: AppTextStyles.caption(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
+            const SizedBox(height: 18),
+            const TrustBadge(
+              icon: Icons.shield_outlined,
+              label: 'No PAN required to begin',
+            ).animate(delay: 1050.ms).fadeIn(duration: 260.ms),
           ],
         ),
       ),

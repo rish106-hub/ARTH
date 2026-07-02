@@ -200,6 +200,40 @@ void main() {
     );
     expect(find.text('Clear Data'), findsOneWidget);
   });
+
+  testWidgets('auth supports premium create and sign-in modes on narrow phone',
+      (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const AuthScreen());
+
+    expect(find.text('Enter your tax intelligence vault.'), findsOneWidget);
+    expect(find.text('No PAN required'), findsOneWidget);
+
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome back.'), findsOneWidget);
+    expect(find.text('Sign in'), findsWidgets);
+  });
+
+  testWidgets('welcome narrative exposes trust-first onboarding story', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const WelcomeScreen());
+
+    expect(find.text('Find money your salary already earned.'), findsOneWidget);
+
+    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('No PAN. No ITR upload. No document dragnet.'),
+        findsOneWidget);
+
+    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Get a cockpit, not a spreadsheet.'), findsOneWidget);
+    expect(find.text('Start diagnostic'), findsOneWidget);
+  });
 }
 
 class _FixedUserProfileNotifier extends UserProfileNotifier {

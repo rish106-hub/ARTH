@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
+import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
   int _step = 0; // 0–11 tax questions only
+  bool _finishing = false;
 
   @override
   void initState() {
@@ -62,10 +64,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   }
 
   Future<void> _finish() async {
-    await ref.read(userProfileProvider.notifier).save();
-    await ref.read(taxResultProvider.future);
-    if (mounted) {
-      context.go('/gap-reveal');
+    setState(() => _finishing = true);
+    try {
+      await ref.read(userProfileProvider.notifier).save();
+      await ref.read(taxResultProvider.future);
+      if (mounted) {
+        context.go('/gap-reveal');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _finishing = false);
+      }
     }
   }
 
@@ -73,14 +82,28 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   Widget build(BuildContext context) {
     final profile = ref.watch(userProfileProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      body: SafeArea(
+    if (_finishing) {
+      return const ArthScaffold(
+        child: ArthLoadingPanel(
+          title: 'Building your tax cockpit',
+          insights: [
+            'Checking deduction gaps.',
+            'Comparing regimes.',
+            'Preparing next best action.',
+          ],
+        ),
+      );
+    }
+
+    final meta = _DiagnosticMeta.forStep(_step);
+
+    return ArthScaffold(
+      child: SafeArea(
         child: Column(
           children: [
             // Progress bar + back
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Column(
                 children: [
                   Row(
@@ -101,11 +124,46 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+                  PremiumGlassPanel(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(meta.icon, size: 18, color: meta.color),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                meta.title,
+                                style: AppTextStyles.caption(
+                                  color: AppColors.textPrimary,
+                                ).copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                meta.helper,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.micro(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
 
             // Question content — slides in
             Expanded(
@@ -153,6 +211,54 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+class _DiagnosticMeta {
+  final String title;
+  final String helper;
+  final IconData icon;
+  final Color color;
+
+  const _DiagnosticMeta({
+    required this.title,
+    required this.helper,
+    required this.icon,
+    required this.color,
+  });
+
+  static _DiagnosticMeta forStep(int step) {
+    if (step <= 2) {
+      return const _DiagnosticMeta(
+        title: 'Income profile',
+        helper: 'We use this to estimate your regime and deduction base.',
+        icon: Icons.account_balance_wallet_outlined,
+        color: AppColors.gold,
+      );
+    }
+    if (step <= 4) {
+      return const _DiagnosticMeta(
+        title: 'Housing and rent',
+        helper: 'Rent, city, and HRA change the deductions you can claim.',
+        icon: Icons.home_work_outlined,
+        color: AppColors.teal,
+      );
+    }
+    if (step <= 8) {
+      return const _DiagnosticMeta(
+        title: 'Deductions scan',
+        helper:
+            'ARTH checks high-impact savings across 80C, NPS, loans, and insurance.',
+        icon: Icons.fact_check_outlined,
+        color: AppColors.info,
+      );
+    }
+    return const _DiagnosticMeta(
+      title: 'Final checks',
+      helper: 'Education, donations, and age complete your tax cockpit.',
+      icon: Icons.flag_outlined,
+      color: AppColors.amber,
+    );
   }
 }
 

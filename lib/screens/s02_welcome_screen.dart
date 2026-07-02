@@ -1,128 +1,157 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import '../theme/app_theme.dart';
 
-class WelcomeScreen extends StatelessWidget {
+import '../theme/app_theme.dart';
+import '../widgets/premium_ui.dart';
+
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      body: Stack(
-        children: [
-          // Ambient particles (simple circles)
-          const _AmbientParticles(),
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
 
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final topGap = constraints.maxHeight * 0.14;
-                final bottomGap = constraints.maxHeight * 0.2;
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: topGap.clamp(24.0, 96.0)),
-                        Text(
-                          'Most Indians\noverpay their\ntaxes.',
-                          style: AppTextStyles.h1().copyWith(
-                            fontSize: 36,
-                            height: 1.2,
-                          ),
-                        )
-                            .animate(delay: 200.ms)
-                            .fadeIn(duration: 700.ms)
-                            .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
-                        const SizedBox(height: 20),
-                        Text(
-                          'ARTH finds what\nyou\'re leaving behind.',
-                          style: AppTextStyles.h2(
-                            color: AppColors.gold,
-                          ).copyWith(height: 1.3),
-                        )
-                            .animate(delay: 500.ms)
-                            .fadeIn(duration: 700.ms)
-                            .slideY(begin: 0.15, end: 0, curve: Curves.easeOut),
-                        const SizedBox(height: 32),
-                        Text(
-                          'The average salaried Indian leaves\n₹50,000 – ₹2,00,000 unclaimed\nevery year. Not this year.',
-                          style: AppTextStyles.body(
-                            color: AppColors.textSecondary,
-                          ),
-                        ).animate(delay: 750.ms).fadeIn(duration: 600.ms),
-                        SizedBox(height: bottomGap.clamp(24.0, 140.0)),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: AppButtons.primaryGold,
-                            onPressed: () => context.go('/questions'),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Find My Gap'),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded, size: 18),
-                              ],
-                            ),
-                          ),
-                        )
-                            .animate(delay: 1000.ms)
-                            .fadeIn(duration: 500.ms)
-                            .slideY(begin: 0.2, end: 0),
-                        const SizedBox(height: 16),
-                        Center(
-                          child: Text(
-                            'Takes 3 minutes. No PAN. No busywork. No nonsense.',
-                            style: AppTextStyles.micro(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ).animate(delay: 1100.ms).fadeIn(duration: 500.ms),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.bgCard,
-                              borderRadius: AppRadius.pill,
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.shield_outlined,
-                                  size: 14,
-                                  color: AppColors.gold,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Encrypted and stored securely on ARTH servers',
-                                  style: AppTextStyles.micro(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ).animate(delay: 1200.ms).fadeIn(),
-                        const SizedBox(height: 32),
-                      ],
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final _controller = PageController();
+  int _page = 0;
+
+  static const _slides = [
+    _WelcomeSlide(
+      icon: Icons.savings_rounded,
+      eyebrow: 'Discover',
+      title: 'Find money your salary already earned.',
+      body:
+          'ARTH scans your answers for deduction gaps across old and new tax regimes.',
+      badge: 'Built for Indian salaried taxpayers',
+    ),
+    _WelcomeSlide(
+      icon: Icons.privacy_tip_rounded,
+      eyebrow: 'Private by default',
+      title: 'No PAN. No ITR upload. No document dragnet.',
+      body:
+          'Start with a guided diagnostic. Share only what is needed to calculate useful next actions.',
+      badge: 'Trust-first tax intelligence',
+    ),
+    _WelcomeSlide(
+      icon: Icons.route_rounded,
+      eyebrow: 'Act',
+      title: 'Get a cockpit, not a spreadsheet.',
+      body:
+          'See your gap, best regime, deadlines, and a prioritized action plan in one flow.',
+      badge: 'About 3 minutes',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _next() {
+    if (_page == _slides.length - 1) {
+      context.go('/questions');
+      return;
+    }
+    _controller.nextPage(duration: AppMotion.medium, curve: AppMotion.standard);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return ArthScaffold(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'ARTH',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMedium().copyWith(letterSpacing: 4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: TrustBadge(
+                      icon: Icons.lock_outline_rounded,
+                      label: 'No PAN required',
                     ),
                   ),
-                );
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          Expanded(
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: _slides.length,
+              onPageChanged: (value) => setState(() => _page = value),
+              itemBuilder: (context, index) {
+                final slide = _slides[index];
+                return _SlideCard(slide: slide)
+                    .animate(target: reduceMotion ? 0 : 1)
+                    .fadeIn(duration: 320.ms)
+                    .slideY(begin: 0.05, end: 0);
               },
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _slides.length,
+              (index) => AnimatedContainer(
+                duration: AppMotion.fast,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: index == _page ? 28 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: index == _page ? AppColors.gold : AppColors.bgSurface,
+                  borderRadius: AppRadius.pill,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              style: AppButtons.primaryGold,
+              onPressed: _next,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _page == _slides.length - 1
+                          ? 'Start diagnostic'
+                          : 'Continue',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => context.go('/questions'),
+            child: Text(
+              'Skip story and answer questions',
+              style: AppTextStyles.caption(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -131,78 +160,92 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-// Simple ambient particle effect
-class _AmbientParticles extends StatefulWidget {
-  const _AmbientParticles();
+class _SlideCard extends StatelessWidget {
+  final _WelcomeSlide slide;
 
-  @override
-  State<_AmbientParticles> createState() => _AmbientParticlesState();
-}
-
-class _AmbientParticlesState extends State<_AmbientParticles>
-    with TickerProviderStateMixin {
-  late List<AnimationController> _controllers;
-  final List<Offset> _positions = [
-    const Offset(0.1, 0.2),
-    const Offset(0.85, 0.1),
-    const Offset(0.5, 0.3),
-    const Offset(0.7, 0.7),
-    const Offset(0.2, 0.8),
-    const Offset(0.9, 0.5),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _controllers = List.generate(
-      _positions.length,
-      (i) => AnimationController(
-        vsync: this,
-        duration: Duration(milliseconds: 2000 + i * 400),
-      )
-        ..forward()
-        ..addStatusListener((s) {
-          if (s == AnimationStatus.completed) {
-            _controllers[i].reverse();
-          } else if (s == AnimationStatus.dismissed) {
-            _controllers[i].forward();
-          }
-        }),
-    );
-  }
-
-  @override
-  void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    super.dispose();
-  }
+  const _SlideCard({required this.slide});
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Stack(
-      children: List.generate(_positions.length, (i) {
-        return AnimatedBuilder(
-          animation: _controllers[i],
-          builder: (_, __) {
-            final opacity = 0.04 + _controllers[i].value * 0.06;
-            return Positioned(
-              left: _positions[i].dx * size.width,
-              top: _positions[i].dy * size.height,
-              child: Container(
-                width: 6 + i * 3.0,
-                height: 6 + i * 3.0,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.gold.withValues(alpha: opacity),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 520;
+        return Center(
+          child: SingleChildScrollView(
+            child: PremiumGlassPanel(
+              elevated: true,
+              borderRadius: BorderRadius.circular(26),
+              padding: EdgeInsets.all(compact ? 18 : 22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: compact ? 54 : 66,
+                    height: compact ? 54 : 66,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: AppColors.gold.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Icon(
+                      slide.icon,
+                      color: AppColors.gold,
+                      size: compact ? 27 : 32,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 18 : 24),
+                  Text(
+                    slide.eyebrow.toUpperCase(),
+                    style: AppTextStyles.sectionLabel()
+                        .copyWith(letterSpacing: 1.2),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    slide.title,
+                    style: AppTextStyles.h1().copyWith(
+                      fontSize: compact ? 25 : 30,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    slide.body,
+                    style: AppTextStyles.body(color: AppColors.textSecondary),
+                  ),
+                  SizedBox(height: compact ? 16 : 20),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: TrustBadge(
+                      icon: Icons.verified_user_outlined,
+                      label: slide.badge,
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
-      }),
+      },
     );
   }
+}
+
+class _WelcomeSlide {
+  final IconData icon;
+  final String eyebrow;
+  final String title;
+  final String body;
+  final String badge;
+
+  const _WelcomeSlide({
+    required this.icon,
+    required this.eyebrow,
+    required this.title,
+    required this.body,
+    required this.badge,
+  });
 }
