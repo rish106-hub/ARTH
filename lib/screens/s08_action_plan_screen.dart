@@ -74,16 +74,16 @@ class ActionPlanScreen extends ConsumerWidget {
                         ...pending.asMap().entries.map((e) {
                           final gap = e.value;
                           return ActionListItem(
-                                gap: gap,
-                                isDone: false,
-                                onTap: () => context.push(
-                                  '/deduction-detail',
-                                  extra: gap,
-                                ),
-                                onToggle: () => ref
-                                    .read(gapStateProvider.notifier)
-                                    .toggle(gap.id),
-                              )
+                            gap: gap,
+                            isDone: false,
+                            onTap: () => context.push(
+                              '/deduction-detail',
+                              extra: gap,
+                            ),
+                            onToggle: () => ref
+                                .read(gapStateProvider.notifier)
+                                .toggle(gap.id),
+                          )
                               .animate(
                                 delay: Duration(milliseconds: e.key * 60),
                               )

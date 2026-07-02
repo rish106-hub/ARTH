@@ -15,16 +15,16 @@ class PendingOp {
   });
 
   factory PendingOp.fromJson(Map<String, dynamic> json) => PendingOp(
-    type: json['type'] as String,
-    payload: Map<String, dynamic>.from(json['payload'] as Map),
-    enqueuedAt: json['enqueuedAt'] as int,
-  );
+        type: json['type'] as String,
+        payload: Map<String, dynamic>.from(json['payload'] as Map),
+        enqueuedAt: json['enqueuedAt'] as int,
+      );
 
   Map<String, dynamic> toJson() => {
-    'type': type,
-    'payload': payload,
-    'enqueuedAt': enqueuedAt,
-  };
+        'type': type,
+        'payload': payload,
+        'enqueuedAt': enqueuedAt,
+      };
 }
 
 /// Persists failed sync operations in SharedPreferences so they survive app

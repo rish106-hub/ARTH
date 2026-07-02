@@ -23,9 +23,9 @@ class BackendSyncService {
     ServerApiService? api,
     AuthService? auth,
     SyncQueueService? queue,
-  }) : _api = api ?? ServerApiService(),
-       _auth = auth ?? AuthService(),
-       _queue = queue ?? SyncQueueService();
+  })  : _api = api ?? ServerApiService(),
+        _auth = auth ?? AuthService(),
+        _queue = queue ?? SyncQueueService();
 
   // ─── PUBLIC API ─────────────────────────────────────────────────────────────
   // Each public sync method retries internally and, on final failure,

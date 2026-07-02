@@ -17,11 +17,10 @@ class DeductionDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDone = ref.watch(gapStateProvider)[gap.id] ?? false;
     final profile = ref.watch(userProfileProvider);
-    final taxSaved =
-        (gap.gapAmount *
-                TaxEngine.marginalRateOldRegime(profile.annualCTC.toDouble()) *
-                1.04)
-            .round();
+    final taxSaved = (gap.gapAmount *
+            TaxEngine.marginalRateOldRegime(profile.annualCTC.toDouble()) *
+            1.04)
+        .round();
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,

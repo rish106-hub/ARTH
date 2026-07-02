@@ -20,13 +20,12 @@ class ServerApiService {
   final String _baseUrl;
 
   ServerApiService({HttpClient? client, String? baseUrl})
-    : _client = client ?? HttpClient(),
-      _baseUrl =
-          baseUrl ??
-          const String.fromEnvironment(
-            'ARTH_API_BASE_URL',
-            defaultValue: _defaultBaseUrl,
-          ) {
+      : _client = client ?? HttpClient(),
+        _baseUrl = baseUrl ??
+            const String.fromEnvironment(
+              'ARTH_API_BASE_URL',
+              defaultValue: _defaultBaseUrl,
+            ) {
     _client.connectionTimeout = _requestTimeout;
   }
 
@@ -99,10 +98,8 @@ class ServerApiService {
     }
 
     final response = await request.close().timeout(_requestTimeout);
-    final responseBody = await response
-        .transform(utf8.decoder)
-        .join()
-        .timeout(_requestTimeout);
+    final responseBody =
+        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ServerApiException(
         response.statusCode,

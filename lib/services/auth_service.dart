@@ -131,9 +131,8 @@ class AuthService {
       final parts = jwt.split('.');
       if (parts.length != 3) return true;
       final normalized = base64.normalize(parts[1]);
-      final payload =
-          jsonDecode(utf8.decode(base64Url.decode(normalized)))
-              as Map<String, dynamic>;
+      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
+          as Map<String, dynamic>;
       final exp = payload['exp'] as num?;
       if (exp == null) return true;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
@@ -141,8 +140,8 @@ class AuthService {
         isUtc: true,
       );
       return DateTime.now().toUtc().isAfter(
-        expiresAt.subtract(const Duration(minutes: 1)),
-      );
+            expiresAt.subtract(const Duration(minutes: 1)),
+          );
     } catch (_) {
       return true;
     }

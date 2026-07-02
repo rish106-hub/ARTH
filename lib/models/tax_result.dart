@@ -42,27 +42,27 @@ class TaxResult {
       betterRegime == TaxRegime.oldRegime ? 'New Regime' : 'Old Regime';
 
   Map<String, dynamic> toJson() => {
-    'oldRegimeTax': oldRegimeTax,
-    'newRegimeTax': newRegimeTax,
-    'oldRegimeTaxableIncome': oldRegimeTaxableIncome,
-    'newRegimeTaxableIncome': newRegimeTaxableIncome,
-    'totalDeductionsOld': totalDeductionsOld,
-    'betterRegime': betterRegime.name,
-    'regimeSavings': regimeSavings,
-    'gaps': gaps.map((g) => g.toJson()).toList(),
-    'totalGapAmount': totalGapAmount,
-    'gapCount': gapCount,
-  };
+        'oldRegimeTax': oldRegimeTax,
+        'newRegimeTax': newRegimeTax,
+        'oldRegimeTaxableIncome': oldRegimeTaxableIncome,
+        'newRegimeTaxableIncome': newRegimeTaxableIncome,
+        'totalDeductionsOld': totalDeductionsOld,
+        'betterRegime': betterRegime.name,
+        'regimeSavings': regimeSavings,
+        'gaps': gaps.map((g) => g.toJson()).toList(),
+        'totalGapAmount': totalGapAmount,
+        'gapCount': gapCount,
+      };
 
   factory TaxResult.fromJson(Map<String, dynamic> json) {
     final betterRegimeName = json['betterRegime'] as String? ?? 'newRegime';
     return TaxResult(
       oldRegimeTax: (json['oldRegimeTax'] as num).toDouble(),
       newRegimeTax: (json['newRegimeTax'] as num).toDouble(),
-      oldRegimeTaxableIncome: (json['oldRegimeTaxableIncome'] as num)
-          .toDouble(),
-      newRegimeTaxableIncome: (json['newRegimeTaxableIncome'] as num)
-          .toDouble(),
+      oldRegimeTaxableIncome:
+          (json['oldRegimeTaxableIncome'] as num).toDouble(),
+      newRegimeTaxableIncome:
+          (json['newRegimeTaxableIncome'] as num).toDouble(),
       totalDeductionsOld: (json['totalDeductionsOld'] as num).toDouble(),
       betterRegime: betterRegimeName == 'oldRegime'
           ? TaxRegime.oldRegime

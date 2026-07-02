@@ -102,11 +102,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
             // App name
             Text(
-                  'ARTH',
-                  style: AppTextStyles.h1(
-                    color: AppColors.textPrimary,
-                  ).copyWith(letterSpacing: 8, fontSize: 32),
-                )
+              'ARTH',
+              style: AppTextStyles.h1(
+                color: AppColors.textPrimary,
+              ).copyWith(letterSpacing: 8, fontSize: 32),
+            )
                 .animate(delay: 600.ms)
                 .fadeIn(duration: 600.ms, curve: Curves.easeOut),
 
