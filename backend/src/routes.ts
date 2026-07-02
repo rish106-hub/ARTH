@@ -62,14 +62,14 @@ const profileSchema = z.object({
   ageGroup: z.enum(['below30', 'age30to45', 'age45to60', 'above60']),
 });
 
-const taxResultSchema = z.record(z.any());
+const taxResultSchema = z.record(z.string(), z.any());
 const doneGapsSchema = z.object({
   gapIds: z.array(z.string().min(1).max(120)).max(100),
 });
 
 const eventSchema = z.object({
   name: z.string().min(1).max(64),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 const authRateLimit = {
