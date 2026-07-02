@@ -1,0 +1,25 @@
+SECURITY.md
+  s_56dd8210da6e59::t_2a03598ae791ee 1-28
+.github/workflows/release.yml
+  s_56dd8210da6e59::t_30bf060217dfe6 37-66
+docs/release-preflight.md
+  s_56dd8210da6e59::t_2a03598ae791ee 1-45
+README.md
+  s_56dd8210da6e59::t_3075add8e2c02a 16,56-77,589-591,610-615
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "444d44361a57fa7c759cea65e881ca78dfccbdd9",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
