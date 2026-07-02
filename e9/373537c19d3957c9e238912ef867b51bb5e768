@@ -1,0 +1,23 @@
+backend/package.json
+  s_56dd8210da6e59::t_1eb1fb80fe1256 17,20-23,25,31,34
+backend/src/routes.ts
+  s_56dd8210da6e59::t_ae539fa93b44f9 65,72
+backend/package-lock.json
+  s_56dd8210da6e59::t_58fbfd103b42ab 11,14-17,19,22,25,495-497,511,671-673,686-689,692,796-798,911-913,933,969-971,1019-1021,1201-1203,1324-1326,1338-1341,1366-1368
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "e9373537c19d3957c9e238912ef867b51bb5e768",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
