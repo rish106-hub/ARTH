@@ -25,7 +25,7 @@ class BackendSyncService {
     SyncQueueService? queue,
   })  : _api = api ?? ServerApiService(),
         _auth = auth ?? AuthService(),
-        _queue = queue ?? SyncQueueService();
+        _queue = queue ?? const SyncQueueService();
 
   // ─── PUBLIC API ─────────────────────────────────────────────────────────────
   // Each public sync method retries internally and, on final failure,
@@ -37,15 +37,16 @@ class BackendSyncService {
       final token = await _auth.getValidAccessToken();
       if (token == null) return;
       await _api.delete('/profile', bearerToken: token);
-    } catch (e) {
-      debugPrint('[BackendSyncService] deleteAllData failed: $e');
+    } catch (_) {
+      debugPrint('[BackendSyncService] deleteAllData failed');
     }
   }
 
   Future<void> syncProfile(UserProfile profile) async {
     try {
       await _putProfile(profile);
-    } catch (_) {
+    } catch (error) {
+      if (!_shouldQueue(error)) return;
       await _queue.enqueue('profile', profile.toJson());
     }
   }
@@ -66,7 +67,8 @@ class BackendSyncService {
   Future<void> syncTaxResult(TaxResult result) async {
     try {
       await _putTaxResult(result);
-    } catch (_) {
+    } catch (error) {
+      if (!_shouldQueue(error)) return;
       await _queue.enqueue('taxResult', result.toJson());
     }
   }
@@ -90,7 +92,8 @@ class BackendSyncService {
   Future<void> syncDoneGaps(Set<String> gapIds) async {
     try {
       await _putDoneGaps(gapIds);
-    } catch (_) {
+    } catch (error) {
+      if (!_shouldQueue(error)) return;
       await _queue.enqueue('doneGaps', {'gapIds': gapIds.toList()});
     }
   }
@@ -159,7 +162,8 @@ class BackendSyncService {
             await _putDoneGaps(ids);
         }
         if (kDebugMode) debugPrint('[SyncQueue] flushed: ${op.type}');
-      } catch (_) {
+      } catch (error) {
+        if (!_shouldQueue(error)) continue;
         // Still failing — put it back.
         failed.add(op);
         if (kDebugMode) debugPrint('[SyncQueue] still pending: ${op.type}');
@@ -239,5 +243,9 @@ class BackendSyncService {
     }
     // Unreachable — the loop always rethrows on the final attempt.
     throw StateError('unreachable');
+  }
+
+  bool _shouldQueue(Object error) {
+    return error is! ServerApiException || error.statusCode >= 500;
   }
 }
