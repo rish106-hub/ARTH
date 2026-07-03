@@ -27,6 +27,7 @@ import 'package:arth/screens/s16_ais_guide_screen.dart';
 import 'package:arth/screens/s17_help_center_screen.dart';
 import 'package:arth/screens/s18_tax_dossier_screen.dart';
 import 'package:arth/services/auth_service.dart';
+import 'package:arth/widgets/question_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -524,6 +525,56 @@ void main() {
 
     expect(find.text('Account and privacy'), findsOneWidget);
     expect(find.text('Skip story and answer questions'), findsNothing);
+  });
+
+  testWidgets('home-loan property chips do not overflow on 320px phones', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SelectChip(
+                    label: 'Self-occupied',
+                    selected: true,
+                    fullWidth: true,
+                    onTap: () {},
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SelectChip(
+                    label: 'Let out / Rented',
+                    selected: false,
+                    fullWidth: true,
+                    onTap: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final errors = <Object>[];
+    Object? exception;
+    while ((exception = tester.takeException()) != null) {
+      errors.add(exception!);
+    }
+    expect(errors, isEmpty);
   });
 
   testWidgets('reduced-motion mode keeps navigation calm on narrow phone', (

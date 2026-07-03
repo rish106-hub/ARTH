@@ -93,10 +93,15 @@ class SelectChip extends StatelessWidget {
               ),
               const SizedBox(width: 10),
             ],
-            Text(
-              label,
-              style: AppTextStyles.bodyMedium(
-                color: selected ? AppColors.gold : AppColors.textPrimary,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMedium(
+                  color: selected ? AppColors.gold : AppColors.textPrimary,
+                ),
               ),
             ),
             if (selected) ...[
