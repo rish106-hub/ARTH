@@ -6,6 +6,9 @@ process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test';
 process.env.JWT_ACCESS_SECRET = 'test-access-secret-64-characters-minimum-000000000000000000000000';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-64-characters-minimum-00000000000000000000000';
 process.env.CORS_ORIGIN = 'https://app.example.com';
+process.env.PAN_ENCRYPTION_KEY = Buffer.from('0123456789abcdef0123456789abcdef').toString('base64');
+process.env.PAN_HASH_KEY = 'test-pan-hash-key-32-characters-min';
+process.env.DOCUMENT_ENCRYPTION_KEY = Buffer.from('abcdef0123456789abcdef0123456789').toString('base64');
 
 const { parseEnv } = await import('../src/config.js');
 
@@ -23,6 +26,9 @@ const baseEnv = {
   DB_CONNECTION_TIMEOUT_MS: '10000',
   CURRENT_FY: '2026-27',
   CORS_ORIGIN: 'https://arth.example.com',
+  PAN_ENCRYPTION_KEY: Buffer.from('0123456789abcdef0123456789abcdef').toString('base64'),
+  PAN_HASH_KEY: 'prod-pan-hash-key-32-characters-min',
+  DOCUMENT_ENCRYPTION_KEY: Buffer.from('abcdef0123456789abcdef0123456789').toString('base64'),
 };
 
 describe('env validation', () => {
@@ -61,6 +67,43 @@ describe('env validation', () => {
         JWT_ACCESS_SECRET: 'replace-with-at-least-64-random-characters-generated-by-a-secret-manager',
       }),
       /real random production secret/,
+    );
+  });
+
+  it('rejects missing or weak production PAN keys', () => {
+    const { PAN_ENCRYPTION_KEY, ...withoutEncryptionKey } = baseEnv;
+    assert.throws(
+      () => parseEnv(withoutEncryptionKey),
+      /PAN_ENCRYPTION_KEY is required/,
+    );
+    assert.throws(
+      () => parseEnv({
+        ...baseEnv,
+        PAN_ENCRYPTION_KEY: Buffer.from('short').toString('base64'),
+      }),
+      /PAN_ENCRYPTION_KEY must be 32 base64-encoded bytes/,
+    );
+    assert.throws(
+      () => parseEnv({
+        ...baseEnv,
+        PAN_HASH_KEY: 'short',
+      }),
+      /PAN_HASH_KEY is required/,
+    );
+  });
+
+  it('rejects missing or weak production document key', () => {
+    const { DOCUMENT_ENCRYPTION_KEY, ...withoutDocumentKey } = baseEnv;
+    assert.throws(
+      () => parseEnv(withoutDocumentKey),
+      /DOCUMENT_ENCRYPTION_KEY is required/,
+    );
+    assert.throws(
+      () => parseEnv({
+        ...baseEnv,
+        DOCUMENT_ENCRYPTION_KEY: Buffer.from('short').toString('base64'),
+      }),
+      /DOCUMENT_ENCRYPTION_KEY must be 32 base64-encoded bytes/,
     );
   });
 });

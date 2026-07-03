@@ -6,6 +6,10 @@ import { db, Queryable } from './db.js';
 import { env } from './config.js';
 import {
   createRefreshToken,
+  decryptDocument,
+  encryptDocument,
+  encryptPan,
+  hashPan,
   hashPassword,
   hashRefreshToken,
   signAccessToken,
@@ -33,6 +37,19 @@ const signInSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(20).max(256),
+});
+
+const accountProfileSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  phoneNumber: z.string().trim().regex(/^\+[1-9][0-9]{7,14}$/).nullable().optional(),
+  avatarInitials: z.string().trim().min(1).max(2).regex(/^[A-Za-z]+$/).nullable().optional(),
+  avatarColor: z.enum(['gold', 'teal', 'amber', 'green', 'blue']).nullable().optional(),
+}).refine((value) => Object.keys(value).length > 0);
+
+const panSchema = z.object({
+  pan: z.string().trim().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/),
+  consentAccepted: z.literal(true),
+  consentVersion: z.string().trim().min(1).max(40),
 });
 
 const profileSchema = z.object({
@@ -72,6 +89,25 @@ const eventSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+const documentTypeSchema = z.enum([
+  'form16',
+  'rentReceipts',
+  'investment80c',
+  'healthInsurance80d',
+  'homeLoanCertificate',
+  'educationLoanInterest',
+  'donationReceipts',
+  'ais26asReview',
+  'otherTaxDocument',
+]);
+
+const allowedDocumentTypes = new Set<string>(documentTypeSchema.options);
+const allowedMimeTypes = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+
 const authRateLimit = {
   config: {
     rateLimit: {
@@ -107,6 +143,9 @@ async function issueSession(user: {
   id: string;
   email: string;
   name: string;
+  phone_e164?: string | null;
+  avatar_initials?: string | null;
+  avatar_color?: string | null;
   created_at: string | Date;
 }, store: Queryable = db, metadata: SessionMetadata = {}) {
   const refreshToken = createRefreshToken();
@@ -130,6 +169,9 @@ async function issueSession(user: {
       id: user.id,
       email: user.email,
       name: user.name,
+      phoneNumber: user.phone_e164 ?? null,
+      avatarInitials: user.avatar_initials ?? null,
+      avatarColor: user.avatar_color ?? null,
       createdAt: new Date(user.created_at).toISOString(),
     },
     accessToken,
@@ -167,6 +209,116 @@ function ipPrefix(ip: string | undefined): string | undefined {
   return undefined;
 }
 
+function maskPan(last4: unknown, lastChar: unknown): string | null {
+  if (typeof last4 !== 'string' || typeof lastChar !== 'string') return null;
+  if (last4.length !== 4 || lastChar.length !== 1) return null;
+  return `•••••${last4}${lastChar}`;
+}
+
+function accountResponse(user: {
+  id: string;
+  email: string;
+  name: string;
+  phone_e164?: string | null;
+  avatar_initials?: string | null;
+  avatar_color?: string | null;
+  created_at: string | Date;
+}, identity?: Record<string, unknown>) {
+  const maskedPan = identity ? maskPan(identity.pan_last4, identity.pan_last_char) : null;
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phoneNumber: user.phone_e164 ?? null,
+      avatarInitials: user.avatar_initials ?? null,
+      avatarColor: user.avatar_color ?? null,
+      createdAt: new Date(user.created_at).toISOString(),
+    },
+    pan: {
+      status: maskedPan ? 'present' : 'missing',
+      maskedPan,
+      consentVersion: maskedPan ? identity?.pan_consent_version ?? null : null,
+      updatedAt: maskedPan && identity?.updated_at
+        ? new Date(identity.updated_at as string | Date).toISOString()
+        : null,
+    },
+  };
+}
+
+function documentResponse(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    fy: row.fy,
+    documentType: row.document_type,
+    originalFilename: row.original_filename,
+    mimeType: row.mime_type,
+    byteSize: row.byte_size,
+    sha256Fingerprint: row.sha256_fingerprint,
+    parseStatus: row.parse_status,
+    parseSummary: row.parse_summary ?? {},
+    createdAt: row.created_at
+      ? new Date(row.created_at as string | Date).toISOString()
+      : null,
+    updatedAt: row.updated_at
+      ? new Date(row.updated_at as string | Date).toISOString()
+      : null,
+  };
+}
+
+function safeFilename(filename: string): string {
+  return filename.replace(/[^\w.\- ()]/g, '').slice(0, 160) || 'document';
+}
+
+function documentParseSummary(documentType: string, mimeType: string) {
+  const common = {
+    parser: 'deterministic-metadata-v1',
+    llmUsed: false,
+    confidence: 'metadata_only',
+    mimeType,
+  };
+  const byType: Record<string, Record<string, unknown>> = {
+    form16: {
+      expectedSignals: ['employer TAN', 'gross salary', 'taxable income', 'TDS'],
+      insight:
+        'Form 16 stored. Deterministic value extraction will ask for user confirmation before changing the tax profile.',
+    },
+    rentReceipts: {
+      expectedSignals: ['rent amount', 'landlord details', 'rental period'],
+      insight: 'Rent proof stored for HRA or rent deduction readiness.',
+    },
+    investment80c: {
+      expectedSignals: ['ELSS', 'PPF', 'EPF', 'LIC', 'tuition fee', 'home loan principal'],
+      insight: '80C proof stored for deduction readiness.',
+    },
+    healthInsurance80d: {
+      expectedSignals: ['premium amount', 'insured person', 'policy year'],
+      insight: '80D proof stored for health insurance deduction readiness.',
+    },
+    homeLoanCertificate: {
+      expectedSignals: ['interest paid', 'principal paid', 'lender name'],
+      insight: 'Home loan certificate stored for Section 24(b) and 80C review.',
+    },
+    educationLoanInterest: {
+      expectedSignals: ['interest amount', 'repayment year', 'lender name'],
+      insight: 'Education loan proof stored for Section 80E review.',
+    },
+    donationReceipts: {
+      expectedSignals: ['80G eligibility', 'donee details', 'eligible amount'],
+      insight: 'Donation receipt stored for 80G readiness.',
+    },
+    ais26asReview: {
+      expectedSignals: ['TDS', 'TCS', 'interest', 'dividend', 'tax payments'],
+      insight: 'AIS/26AS record stored for mismatch review.',
+    },
+    otherTaxDocument: {
+      expectedSignals: ['manual review required'],
+      insight: 'Tax document stored for manual readiness review.',
+    },
+  };
+  return { ...common, ...(byType[documentType] ?? byType.otherTaxDocument) };
+}
+
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(rateLimit, {
     global: false,
@@ -202,7 +354,7 @@ export async function registerRoutes(app: FastifyInstance) {
     const payload = signInSchema.parse(request.body);
     const email = payload.email.toLowerCase();
     const result = await db.query(
-      `select id, email, name, password_hash, created_at
+      `select id, email, name, phone_e164, avatar_initials, avatar_color, password_hash, created_at
        from app_users
        where email = $1`,
       [email],
@@ -254,6 +406,9 @@ export async function registerRoutes(app: FastifyInstance) {
         id: row.user_id as string,
         email: row.email as string,
         name: row.name as string,
+        phone_e164: row.phone_e164 as string | null,
+        avatar_initials: row.avatar_initials as string | null,
+        avatar_color: row.avatar_color as string | null,
         created_at: row.created_at as string | Date,
       }, client, sessionMetadata(request));
       await client.query('commit');
@@ -281,7 +436,7 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!auth) return;
 
     const result = await db.query(
-      'select id, email, name, created_at from app_users where id = $1',
+      'select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1',
       [auth.userId],
     );
     const user = result.rows[0];
@@ -290,9 +445,356 @@ export async function registerRoutes(app: FastifyInstance) {
         id: user.id,
         email: user.email,
         name: user.name,
+        phoneNumber: user.phone_e164 ?? null,
+        avatarInitials: user.avatar_initials ?? null,
+        avatarColor: user.avatar_color ?? null,
         createdAt: new Date(user.created_at as string | Date).toISOString(),
       },
     };
+  });
+
+  app.get('/account/profile', readRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const userResult = await db.query(
+      'select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1',
+      [auth.userId],
+    );
+    const identityResult = await db.query(
+      `select pan_last4, pan_last_char, pan_consent_version, pan_consented_at, updated_at
+       from user_private_identity
+       where user_id = $1 and pan_ciphertext is not null`,
+      [auth.userId],
+    );
+    return accountResponse(
+      userResult.rows[0] as {
+        id: string;
+        email: string;
+        name: string;
+        phone_e164?: string | null;
+        avatar_initials?: string | null;
+        avatar_color?: string | null;
+        created_at: string | Date;
+      },
+      identityResult.rows[0],
+    );
+  });
+
+  app.patch('/account/profile', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const payload = accountProfileSchema.parse(request.body);
+    const currentResult = await db.query(
+      `select id, email, name, phone_e164, avatar_initials, avatar_color, created_at
+       from app_users
+       where id = $1`,
+      [auth.userId],
+    );
+    if (!currentResult.rowCount) {
+      return reply.code(404).send({ message: 'Account not found' });
+    }
+    const current = currentResult.rows[0] as {
+      id: string;
+      email: string;
+      name: string;
+      phone_e164?: string | null;
+      avatar_initials?: string | null;
+      avatar_color?: string | null;
+      created_at: string | Date;
+    };
+    const nextName = payload.name?.trim() ?? current.name;
+    const nextPhone = Object.hasOwn(payload, 'phoneNumber')
+      ? payload.phoneNumber
+      : current.phone_e164 ?? null;
+    const nextAvatarInitials = Object.hasOwn(payload, 'avatarInitials')
+      ? payload.avatarInitials?.toUpperCase() ?? null
+      : current.avatar_initials ?? null;
+    const nextAvatarColor = Object.hasOwn(payload, 'avatarColor')
+      ? payload.avatarColor ?? null
+      : current.avatar_color ?? null;
+
+    const result = await db.query(
+      `update app_users
+       set name = $1,
+           phone_e164 = $2,
+           avatar_initials = $3,
+           avatar_color = $4,
+           updated_at = now()
+       where id = $5
+       returning id, email, name, phone_e164, avatar_initials, avatar_color, created_at`,
+      [nextName, nextPhone, nextAvatarInitials, nextAvatarColor, auth.userId],
+    );
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [auth.userId, 'account_profile_updated', '{}'],
+    );
+    return accountResponse(
+      result.rows[0] as {
+        id: string;
+        email: string;
+        name: string;
+        phone_e164?: string | null;
+        avatar_initials?: string | null;
+        avatar_color?: string | null;
+        created_at: string | Date;
+      },
+    );
+  });
+
+  app.put('/account/pan', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const payload = panSchema.parse(request.body);
+    const pan = payload.pan.toUpperCase();
+    const encrypted = encryptPan(pan);
+    const fingerprint = hashPan(pan);
+    const last4 = pan.slice(5, 9);
+    const lastChar = pan.slice(9);
+    const currentPan = await db.query(
+      `select pan_fingerprint
+       from user_private_identity
+       where user_id = $1
+         and pan_ciphertext is not null`,
+      [auth.userId],
+    );
+    if (
+      currentPan.rowCount
+      && currentPan.rows[0]?.pan_fingerprint
+      && currentPan.rows[0].pan_fingerprint !== fingerprint
+    ) {
+      return reply.code(409).send({
+        message: 'This account already has a different PAN linked',
+      });
+    }
+
+    const existingPanOwner = await db.query(
+      `select user_id
+       from user_private_identity
+       where pan_fingerprint = $1
+         and user_id <> $2
+         and pan_ciphertext is not null`,
+      [fingerprint, auth.userId],
+    );
+    if (existingPanOwner.rowCount) {
+      return reply.code(409).send({
+        message: 'This PAN is already linked to another ARTH account',
+      });
+    }
+
+    try {
+      await db.query(
+        `insert into user_private_identity (
+           user_id, pan_ciphertext, pan_iv, pan_auth_tag, pan_last4, pan_last_char,
+           pan_fingerprint, pan_consent_version, pan_consented_at, pan_deleted_at,
+           created_at, updated_at
+         ) values (
+           $1, $2, $3, $4, $5, $6, $7, $8, now(), null, now(), now()
+         )
+         on conflict (user_id) do update set
+           pan_ciphertext = excluded.pan_ciphertext,
+           pan_iv = excluded.pan_iv,
+           pan_auth_tag = excluded.pan_auth_tag,
+           pan_last4 = excluded.pan_last4,
+           pan_last_char = excluded.pan_last_char,
+           pan_fingerprint = excluded.pan_fingerprint,
+           pan_consent_version = excluded.pan_consent_version,
+           pan_consented_at = now(),
+           pan_deleted_at = null,
+           updated_at = now()`,
+        [
+          auth.userId,
+          encrypted.ciphertext,
+          encrypted.iv,
+          encrypted.authTag,
+          last4,
+          lastChar,
+          fingerprint,
+          payload.consentVersion,
+        ],
+      );
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        return reply.code(409).send({
+          message: 'This PAN is already linked to another ARTH account',
+        });
+      }
+      throw error;
+    }
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [auth.userId, 'pan_added', '{}'],
+    );
+    return {
+      pan: {
+        status: 'present',
+        maskedPan: maskPan(last4, lastChar),
+        consentVersion: payload.consentVersion,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+  });
+
+  app.delete('/account/pan', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    await db.query(
+      `update user_private_identity
+       set pan_ciphertext = null,
+           pan_iv = null,
+           pan_auth_tag = null,
+           pan_last4 = null,
+           pan_last_char = null,
+           pan_fingerprint = null,
+           pan_deleted_at = now(),
+           updated_at = now()
+       where user_id = $1`,
+      [auth.userId],
+    );
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [auth.userId, 'pan_deleted', '{}'],
+    );
+    return reply.code(204).send();
+  });
+
+  app.get('/documents', readRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const result = await db.query(
+      `select id, fy, document_type, original_filename, mime_type, byte_size,
+              sha256_fingerprint, parse_status, parse_summary, created_at, updated_at
+       from tax_documents
+       where user_id = $1 and fy = $2
+       order by created_at desc`,
+      [auth.userId, env.CURRENT_FY],
+    );
+    return { documents: result.rows.map(documentResponse) };
+  });
+
+  app.post('/documents', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const part = await request.file();
+    if (!part) {
+      return reply.code(400).send({ message: 'Document file is required' });
+    }
+
+    const fields = part.fields as Record<string, { value?: unknown }>;
+    const documentTypeRaw = fields.documentType?.value;
+    const documentType = typeof documentTypeRaw === 'string'
+      ? documentTypeRaw
+      : 'otherTaxDocument';
+    if (!allowedDocumentTypes.has(documentType)) {
+      return reply.code(400).send({ message: 'Unsupported document type' });
+    }
+    if (!allowedMimeTypes.has(part.mimetype)) {
+      return reply.code(415).send({ message: 'Unsupported document file type' });
+    }
+
+    const buffer = await part.toBuffer();
+    if (!buffer.length) {
+      return reply.code(400).send({ message: 'Document file is empty' });
+    }
+    const fingerprint = createHash('sha256').update(buffer).digest('hex');
+    const encrypted = encryptDocument(buffer);
+    const parseSummary = documentParseSummary(documentType, part.mimetype);
+    const inserted = await db.query(
+      `insert into tax_documents (
+         user_id, fy, document_type, original_filename, mime_type, byte_size,
+         sha256_fingerprint, ciphertext, iv, auth_tag, parse_status,
+         parse_summary, created_at, updated_at
+       ) values (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'metadata_ready',
+         $11::jsonb, now(), now()
+       )
+       on conflict (user_id, fy, document_type, sha256_fingerprint) do update set
+         original_filename = excluded.original_filename,
+         mime_type = excluded.mime_type,
+         byte_size = excluded.byte_size,
+         ciphertext = excluded.ciphertext,
+         iv = excluded.iv,
+         auth_tag = excluded.auth_tag,
+         parse_status = excluded.parse_status,
+         parse_summary = excluded.parse_summary,
+         updated_at = now()
+       returning id, fy, document_type, original_filename, mime_type, byte_size,
+                 sha256_fingerprint, parse_status, parse_summary, created_at, updated_at`,
+      [
+        auth.userId,
+        env.CURRENT_FY,
+        documentType,
+        safeFilename(part.filename),
+        part.mimetype,
+        buffer.length,
+        fingerprint,
+        encrypted.ciphertext,
+        encrypted.iv,
+        encrypted.authTag,
+        JSON.stringify(parseSummary),
+      ],
+    );
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [auth.userId, 'document_uploaded', JSON.stringify({ documentType })],
+    );
+    return { document: documentResponse(inserted.rows[0]) };
+  });
+
+  app.get('/documents/:id/download', readRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const result = await db.query(
+      `select original_filename, mime_type, ciphertext, iv, auth_tag
+       from tax_documents
+       where id = $1 and user_id = $2`,
+      [params.id, auth.userId],
+    );
+    if (!result.rowCount) {
+      return reply.code(404).send({ message: 'Document not found' });
+    }
+    const row = result.rows[0];
+    const bytes = decryptDocument({
+      ciphertext: row.ciphertext as string,
+      iv: row.iv as string,
+      authTag: row.auth_tag as string,
+    });
+    reply.header('content-type', row.mime_type as string);
+    reply.header(
+      'content-disposition',
+      `attachment; filename="${safeFilename(row.original_filename as string)}"`,
+    );
+    return reply.send(bytes);
+  });
+
+  app.delete('/documents/:id', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const result = await db.query(
+      'delete from tax_documents where id = $1 and user_id = $2 returning document_type',
+      [params.id, auth.userId],
+    );
+    if (!result.rowCount) {
+      return reply.code(404).send({ message: 'Document not found' });
+    }
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [
+        auth.userId,
+        'document_deleted',
+        JSON.stringify({ documentType: result.rows[0].document_type }),
+      ],
+    );
+    return reply.code(204).send();
   });
 
   app.get('/profile', readRateLimit, async (request, reply) => {
@@ -514,6 +1016,20 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
         await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
+        await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
+        await client.query(
+          `update user_private_identity
+           set pan_ciphertext = null,
+               pan_iv = null,
+               pan_auth_tag = null,
+               pan_last4 = null,
+               pan_last_char = null,
+               pan_fingerprint = null,
+               pan_deleted_at = now(),
+               updated_at = now()
+           where user_id = $1`,
+          [auth.userId],
+        );
         await client.query('commit');
       } catch (error) {
         await client.query('rollback');

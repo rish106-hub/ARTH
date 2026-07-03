@@ -8,6 +8,9 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-64-characters-minimum-0000
 process.env.ACCESS_TOKEN_TTL_MINUTES = '15';
 process.env.REFRESH_TOKEN_TTL_DAYS = '30';
 process.env.CORS_ORIGIN = 'https://app.example.com';
+process.env.PAN_ENCRYPTION_KEY = Buffer.from('0123456789abcdef0123456789abcdef').toString('base64');
+process.env.PAN_HASH_KEY = 'test-pan-hash-key-32-characters-min';
+process.env.DOCUMENT_ENCRYPTION_KEY = Buffer.from('abcdef0123456789abcdef0123456789').toString('base64');
 
 type Row = Record<string, unknown>;
 type QueryResult = { rowCount: number; rows: Row[] };
@@ -16,6 +19,9 @@ type UserRow = {
   id: string;
   email: string;
   name: string;
+  phone_e164: string | null;
+  avatar_initials: string | null;
+  avatar_color: string | null;
   password_hash: string;
   created_at: Date;
   updated_at: Date;
@@ -47,6 +53,8 @@ class FakeDb {
   private profiles = new Map<string, Row>();
   private taxResults = new Map<string, Row>();
   private doneGaps = new Map<string, Set<string>>();
+  private identities = new Map<string, Row>();
+  private documents = new Map<string, Row>();
   private events: Row[] = [];
   private ids = 0;
 
@@ -56,8 +64,18 @@ class FakeDb {
     this.profiles.clear();
     this.taxResults.clear();
     this.doneGaps.clear();
+    this.identities.clear();
+    this.documents.clear();
     this.events = [];
     this.ids = 0;
+  }
+
+  rawIdentity(userId: string) {
+    return this.identities.get(userId);
+  }
+
+  rawDocument(documentId: string) {
+    return this.documents.get(documentId);
   }
 
   async connect() {
@@ -81,6 +99,9 @@ class FakeDb {
         id: this.nextId('user'),
         email: params[0] as string,
         name: params[1] as string,
+        phone_e164: null,
+        avatar_initials: null,
+        avatar_color: null,
         password_hash: params[2] as string,
         created_at: now,
         updated_at: now,
@@ -90,7 +111,7 @@ class FakeDb {
       return rows([user as unknown as Row]);
     }
 
-    if (normalized.startsWith('select id, email, name, password_hash, created_at from app_users where email = $1')) {
+    if (normalized.startsWith('select id, email, name, phone_e164, avatar_initials, avatar_color, password_hash, created_at from app_users where email = $1')) {
       const user = this.userByEmail(params[0] as string);
       return rows(user ? [user as unknown as Row] : []);
     }
@@ -153,9 +174,144 @@ class FakeDb {
       return rows();
     }
 
-    if (normalized.startsWith('select id, email, name, created_at from app_users where id = $1')) {
+    if (normalized.startsWith('select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1')) {
       const user = this.users.get(params[0] as string);
       return rows(user ? [user as unknown as Row] : []);
+    }
+
+    if (normalized.startsWith('select pan_last4, pan_last_char, pan_consent_version')) {
+      const identity = this.identities.get(params[0] as string);
+      if (!identity || !identity.pan_ciphertext) return rows();
+      return rows([identity]);
+    }
+
+    if (normalized.startsWith('select pan_fingerprint from user_private_identity where user_id = $1')) {
+      const identity = this.identities.get(params[0] as string);
+      if (!identity || !identity.pan_ciphertext) return rows();
+      return rows([{ pan_fingerprint: identity.pan_fingerprint }]);
+    }
+
+    if (normalized.startsWith('select user_id from user_private_identity where pan_fingerprint = $1')) {
+      const fingerprint = params[0] as string;
+      const userId = params[1] as string;
+      const identity = [...this.identities.values()].find((candidate) =>
+        candidate.pan_fingerprint === fingerprint
+        && candidate.user_id !== userId
+        && candidate.pan_ciphertext,
+      );
+      return rows(identity ? [{ user_id: identity.user_id }] : []);
+    }
+
+    if (normalized.startsWith('update app_users set name = $1')) {
+      const userId = params[4] as string;
+      const user = this.users.get(userId);
+      if (user) {
+        user.name = params[0] as string;
+        user.phone_e164 = params[1] as string | null;
+        user.avatar_initials = params[2] as string | null;
+        user.avatar_color = params[3] as string | null;
+        user.updated_at = new Date();
+      }
+      return rows(user ? [user as unknown as Row] : []);
+    }
+
+    if (normalized.startsWith('insert into user_private_identity')) {
+      const duplicate = [...this.identities.values()].find((candidate) =>
+        candidate.pan_fingerprint === params[6]
+        && candidate.user_id !== params[0]
+        && candidate.pan_ciphertext,
+      );
+      if (duplicate) {
+        const error = new Error('duplicate PAN fingerprint') as Error & { code: string };
+        error.code = '23505';
+        throw error;
+      }
+      const existing = this.identities.get(params[0] as string) ?? {
+        user_id: params[0],
+        created_at: new Date(),
+      };
+      this.identities.set(params[0] as string, {
+        ...existing,
+        pan_ciphertext: params[1],
+        pan_iv: params[2],
+        pan_auth_tag: params[3],
+        pan_last4: params[4],
+        pan_last_char: params[5],
+        pan_fingerprint: params[6],
+        pan_consent_version: params[7],
+        pan_consented_at: new Date(),
+        pan_deleted_at: null,
+        updated_at: new Date(),
+      });
+      return rows();
+    }
+
+    if (normalized.startsWith('update user_private_identity set pan_ciphertext = null')) {
+      const identity = this.identities.get(params[0] as string);
+      if (identity) {
+        Object.assign(identity, {
+          pan_ciphertext: null,
+          pan_iv: null,
+          pan_auth_tag: null,
+          pan_last4: null,
+          pan_last_char: null,
+          pan_fingerprint: null,
+          pan_deleted_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
+      return rows();
+    }
+
+    if (normalized.startsWith('select id, fy, document_type, original_filename')) {
+      const docs = [...this.documents.values()]
+        .filter((doc) => doc.user_id === params[0] && doc.fy === params[1])
+        .sort((a, b) =>
+          (b.created_at as Date).getTime() - (a.created_at as Date).getTime(),
+        );
+      return rows(docs);
+    }
+
+    if (normalized.startsWith('insert into tax_documents')) {
+      const existing = [...this.documents.values()].find((doc) =>
+        doc.user_id === params[0]
+        && doc.fy === params[1]
+        && doc.document_type === params[2]
+        && doc.sha256_fingerprint === params[6],
+      );
+      const now = new Date();
+      const id = existing?.id as string | undefined ?? this.nextId('doc');
+      const doc = {
+        id,
+        user_id: params[0],
+        fy: params[1],
+        document_type: params[2],
+        original_filename: params[3],
+        mime_type: params[4],
+        byte_size: params[5],
+        sha256_fingerprint: params[6],
+        ciphertext: params[7],
+        iv: params[8],
+        auth_tag: params[9],
+        parse_status: 'metadata_ready',
+        parse_summary: JSON.parse(params[10] as string),
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      };
+      this.documents.set(id, doc);
+      return rows([doc]);
+    }
+
+    if (normalized.startsWith('select original_filename, mime_type, ciphertext')) {
+      const doc = this.documents.get(params[0] as string);
+      return rows(doc && doc.user_id === params[1] ? [doc] : []);
+    }
+
+    if (normalized.startsWith('delete from tax_documents where id = $1')) {
+      const doc = this.documents.get(params[0] as string);
+      if (!doc || doc.user_id !== params[1]) return rows();
+      this.documents.delete(params[0] as string);
+      return rows([{ document_type: doc.document_type }]);
     }
 
     if (normalized.startsWith('select * from tax_profiles where user_id = $1 and fy = $2')) {
@@ -214,6 +370,13 @@ class FakeDb {
       return rows();
     }
 
+    if (normalized.startsWith('delete from tax_documents where user_id = $1')) {
+      for (const [docId, doc] of this.documents.entries()) {
+        if (doc.user_id === params[0]) this.documents.delete(docId);
+      }
+      return rows();
+    }
+
     if (normalized.startsWith('insert into user_events')) {
       this.events.push({
         user_id: params[0],
@@ -232,6 +395,9 @@ class FakeDb {
 
   private nextId(prefix: string) {
     this.ids += 1;
+    if (prefix === 'doc') {
+      return `00000000-0000-4000-8000-${String(this.ids).padStart(12, '0')}`;
+    }
     return `${prefix}-${this.ids}`;
   }
 
@@ -412,6 +578,272 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('stores optional PAN as encrypted masked account data and isolates it by user', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+
+    const missingAuth = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      payload: {
+        pan: 'ABCDE1234F',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(missingAuth.statusCode, 401);
+
+    const missingConsent = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(alice.accessToken),
+      payload: {
+        pan: 'ABCDE1234F',
+        consentAccepted: false,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(missingConsent.statusCode, 400);
+
+    const invalidPan = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(alice.accessToken),
+      payload: {
+        pan: 'not-a-pan',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(invalidPan.statusCode, 400);
+
+    const putPan = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(alice.accessToken),
+      payload: {
+        pan: 'ABCDE1234F',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(putPan.statusCode, 200);
+    assert.equal(putPan.json().pan.maskedPan, '•••••1234F');
+    assert.equal(JSON.stringify(putPan.json()).includes('ABCDE1234F'), false);
+
+    const replacePan = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(alice.accessToken),
+      payload: {
+        pan: 'PQRST6789Z',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(replacePan.statusCode, 409);
+    assert.deepEqual(replacePan.json(), {
+      message: 'This account already has a different PAN linked',
+    });
+
+    const stored = fakeDb.rawIdentity(alice.user.id);
+    assert.ok(stored);
+    assert.notEqual(stored.pan_ciphertext, 'ABCDE1234F');
+    assert.equal(stored.pan_last4, '1234');
+    assert.equal(stored.pan_last_char, 'F');
+
+    const aliceProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/account/profile',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(aliceProfile.statusCode, 200);
+    assert.equal(aliceProfile.json().pan.maskedPan, '•••••1234F');
+    assert.equal(JSON.stringify(aliceProfile.json()).includes('ABCDE1234F'), false);
+
+    const bobProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/account/profile',
+      headers: bearer(bob.accessToken),
+    });
+    assert.equal(bobProfile.statusCode, 200);
+    assert.equal(bobProfile.json().pan.status, 'missing');
+
+    const duplicatePan = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(bob.accessToken),
+      payload: {
+        pan: 'ABCDE1234F',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(duplicatePan.statusCode, 409);
+    assert.deepEqual(duplicatePan.json(), {
+      message: 'This PAN is already linked to another ARTH account',
+    });
+
+    await app.close();
+  });
+
+  it('updates account display name and deletes PAN via clear data', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+
+    const patchName = await app.inject({
+      method: 'PATCH',
+      url: '/v1/account/profile',
+      headers: bearer(alice.accessToken),
+      payload: { name: 'Alice Rao' },
+    });
+    assert.equal(patchName.statusCode, 200);
+    assert.equal(patchName.json().user.name, 'Alice Rao');
+
+    const patchDetails = await app.inject({
+      method: 'PATCH',
+      url: '/v1/account/profile',
+      headers: bearer(alice.accessToken),
+      payload: {
+        phoneNumber: '+919749452397',
+        avatarInitials: 'AR',
+        avatarColor: 'teal',
+      },
+    });
+    assert.equal(patchDetails.statusCode, 200);
+    assert.equal(patchDetails.json().user.phoneNumber, '+919749452397');
+    assert.equal(patchDetails.json().user.avatarInitials, 'AR');
+    assert.equal(patchDetails.json().user.avatarColor, 'teal');
+
+    const putPan = await app.inject({
+      method: 'PUT',
+      url: '/v1/account/pan',
+      headers: bearer(alice.accessToken),
+      payload: {
+        pan: 'ABCDE1234F',
+        consentAccepted: true,
+        consentVersion: 'pan-v1',
+      },
+    });
+    assert.equal(putPan.statusCode, 200);
+
+    const clear = await app.inject({
+      method: 'DELETE',
+      url: '/v1/profile',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(clear.statusCode, 204);
+
+    const account = await app.inject({
+      method: 'GET',
+      url: '/v1/account/profile',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(account.statusCode, 200);
+    assert.equal(account.json().pan.status, 'missing');
+
+    await app.close();
+  });
+
+  it('stores tax documents encrypted, owner-scoped, and wiped by clear data', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const documentBytes = Buffer.from('%PDF-1.4 ARTH Form 16 fixture\n');
+
+    const missingAuth = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+    });
+    assert.equal(missingAuth.statusCode, 401);
+
+    const upload = await app.inject({
+      method: 'POST',
+      url: '/v1/documents',
+      headers: {
+        ...bearer(alice.accessToken),
+        'content-type': `multipart/form-data; boundary=${multipartBoundary}`,
+      },
+      payload: multipartPayload({
+        documentType: 'form16',
+        filename: 'Form 16 FY.pdf',
+        mimeType: 'application/pdf',
+        bytes: documentBytes,
+      }),
+    });
+    assert.equal(upload.statusCode, 200);
+    const uploaded = upload.json().document as {
+      id: string;
+      documentType: string;
+      originalFilename: string;
+      mimeType: string;
+      byteSize: number;
+      parseSummary: { llmUsed: boolean; insight: string };
+    };
+    assert.equal(uploaded.documentType, 'form16');
+    assert.equal(uploaded.originalFilename, 'Form 16 FY.pdf');
+    assert.equal(uploaded.mimeType, 'application/pdf');
+    assert.equal(uploaded.byteSize, documentBytes.length);
+    assert.equal(uploaded.parseSummary.llmUsed, false);
+    assert.equal(JSON.stringify(upload.json()).includes(documentBytes.toString()), false);
+    assert.equal(JSON.stringify(upload.json()).includes('ciphertext'), false);
+
+    const stored = fakeDb.rawDocument(uploaded.id);
+    assert.ok(stored);
+    assert.notEqual(stored.ciphertext, documentBytes.toString());
+    assert.equal(JSON.stringify(stored).includes(documentBytes.toString()), false);
+
+    const aliceList = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(aliceList.statusCode, 200);
+    assert.equal(aliceList.json().documents.length, 1);
+
+    const bobList = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+      headers: bearer(bob.accessToken),
+    });
+    assert.equal(bobList.statusCode, 200);
+    assert.equal(bobList.json().documents.length, 0);
+
+    const bobDownload = await app.inject({
+      method: 'GET',
+      url: `/v1/documents/${uploaded.id}/download`,
+      headers: bearer(bob.accessToken),
+    });
+    assert.equal(bobDownload.statusCode, 404);
+
+    const aliceDownload = await app.inject({
+      method: 'GET',
+      url: `/v1/documents/${uploaded.id}/download`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(aliceDownload.statusCode, 200);
+    assert.equal(aliceDownload.headers['content-type'], 'application/pdf');
+    assert.deepEqual(aliceDownload.rawPayload, documentBytes);
+
+    const clear = await app.inject({
+      method: 'DELETE',
+      url: '/v1/profile',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(clear.statusCode, 204);
+
+    const afterClear = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(afterClear.statusCode, 200);
+    assert.equal(afterClear.json().documents.length, 0);
+
+    await app.close();
+  });
+
   it('keeps plugin errors sanitized while preserving 413 and 429 status codes', async () => {
     const app = await buildApp();
 
@@ -465,11 +897,42 @@ async function createSession(app: Awaited<ReturnType<typeof buildApp>>, name: st
     payload: strongAuthPayload(name, email),
   });
   assert.equal(response.statusCode, 200);
-  return response.json() as { accessToken: string; refreshToken: string };
+  return response.json() as {
+    accessToken: string;
+    refreshToken: string;
+    user: { id: string; email: string; name: string; createdAt: string };
+  };
 }
 
 function bearer(accessToken: string) {
   return { authorization: `Bearer ${accessToken}` };
+}
+
+const multipartBoundary = 'arth-test-boundary';
+
+function multipartPayload(input: {
+  documentType: string;
+  filename: string;
+  mimeType: string;
+  bytes: Buffer;
+}) {
+  return Buffer.concat([
+    Buffer.from(
+      [
+        `--${multipartBoundary}`,
+        'Content-Disposition: form-data; name="documentType"',
+        '',
+        input.documentType,
+        `--${multipartBoundary}`,
+        `Content-Disposition: form-data; name="file"; filename="${input.filename}"`,
+        `Content-Type: ${input.mimeType}`,
+        '',
+        '',
+      ].join('\r\n'),
+    ),
+    input.bytes,
+    Buffer.from(`\r\n--${multipartBoundary}--\r\n`),
+  ]);
 }
 
 function profilePayload(name: string, email: string, annualCTC: number) {

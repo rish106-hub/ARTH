@@ -13,7 +13,7 @@ class ServerApiException implements Exception {
 
 class ServerApiService {
   static const String _defaultBaseUrl =
-      'https://arth-production-aaca.up.railway.app/v1';
+      'https://arth-backend-production.up.railway.app/v1';
   static const Duration _requestTimeout = Duration(seconds: 15);
 
   final HttpClient _client;
@@ -65,6 +65,20 @@ class ServerApiService {
     return _decodeMap(response);
   }
 
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
+  }) async {
+    final response = await _send(
+      'PATCH',
+      path,
+      body: body,
+      bearerToken: bearerToken,
+    );
+    return _decodeMap(response);
+  }
+
   Future<void> postNoContent(
     String path, {
     Map<String, dynamic>? body,
@@ -75,6 +89,55 @@ class ServerApiService {
 
   Future<void> delete(String path, {String? bearerToken}) async {
     await _send('DELETE', path, bearerToken: bearerToken);
+  }
+
+  Future<Map<String, dynamic>> uploadMultipart(
+    String path, {
+    required String bearerToken,
+    required Map<String, String> fields,
+    required String fieldName,
+    required String filename,
+    required String contentType,
+    required List<int> bytes,
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path');
+    final boundary = 'arth-${DateTime.now().microsecondsSinceEpoch}';
+    final request = await _client.openUrl('POST', uri).timeout(_requestTimeout);
+    request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+    request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $bearerToken');
+    request.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'multipart/form-data; boundary=$boundary',
+    );
+
+    void writeAscii(String value) => request.add(ascii.encode(value));
+
+    for (final entry in fields.entries) {
+      writeAscii('--$boundary\r\n');
+      writeAscii(
+        'content-disposition: form-data; name="${entry.key}"\r\n\r\n',
+      );
+      writeAscii('${entry.value}\r\n');
+    }
+
+    writeAscii('--$boundary\r\n');
+    writeAscii(
+      'content-disposition: form-data; name="$fieldName"; filename="$filename"\r\n',
+    );
+    writeAscii('content-type: $contentType\r\n\r\n');
+    request.add(bytes);
+    writeAscii('\r\n--$boundary--\r\n');
+
+    final response = await request.close().timeout(_requestTimeout);
+    final responseBody =
+        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ServerApiException(
+        response.statusCode,
+        _extractMessage(responseBody),
+      );
+    }
+    return _decodeMap(responseBody);
   }
 
   Future<String> _send(

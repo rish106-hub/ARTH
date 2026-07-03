@@ -13,8 +13,13 @@ import 'screens/s07_deduction_detail_screen.dart';
 import 'screens/s08_action_plan_screen.dart';
 import 'screens/s09_progress_tracker_screen.dart';
 import 'screens/s10_share_card_screen.dart';
-import 'screens/s11_settings_screen.dart';
 import 'screens/s12_budget_alert_screen.dart';
+import 'screens/s13_discover_screen.dart';
+import 'screens/s14_profile_screen.dart';
+import 'screens/s15_document_checklist_screen.dart';
+import 'screens/s16_ais_guide_screen.dart';
+import 'screens/s17_help_center_screen.dart';
+import 'screens/s18_tax_dossier_screen.dart';
 import 'models/gap_card.dart';
 
 final _router = GoRouter(
@@ -22,6 +27,7 @@ final _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+    GoRoute(path: '/discover', builder: (_, __) => const DiscoverScreen()),
     GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
     GoRoute(path: '/questions', builder: (_, __) => const QuestionsScreen()),
     GoRoute(path: '/gap-reveal', builder: (_, __) => const GapRevealScreen()),
@@ -49,7 +55,14 @@ final _router = GoRouter(
       builder: (_, __) => const ProgressTrackerScreen(),
     ),
     GoRoute(path: '/share', builder: (_, __) => const ShareCardScreen()),
-    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+    GoRoute(path: '/settings', builder: (_, __) => const ProfileScreen()),
+    GoRoute(
+        path: '/documents',
+        builder: (_, __) => const DocumentChecklistScreen()),
+    GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
+    GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
+    GoRoute(path: '/tax-dossier', builder: (_, __) => const TaxDossierScreen()),
     GoRoute(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),
@@ -63,7 +76,7 @@ class ArthApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'ARTH — Tax Gap Finder',
+      title: 'ARTH — Tax Readiness Cockpit',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       routerConfig: _router,

@@ -1,10 +1,12 @@
-# ARTH: Tax Deduction Gap Analyzer
+# ARTH: Private Tax Readiness Cockpit
 
 ## Problem & Solution
 
-**The Problem:** Salaried Indians lose Rs. 50,000+ per year in unclaimed deductions. They don't know they're eligible for standard deductions, LTA, professional development, home office setup during WFH.
+**The Problem:** Indian salaried professionals often think about tax only during filing season. By then, proofs are scattered, AIS/26AS mismatches are stressful, regime choice is unclear, and deduction gaps are easy to miss.
 
-**The Solution:** A 3-minute guided questionnaire that shows you exactly what deductions you're missing, without asking for PAN or ITR uploads.
+**The Solution:** ARTH is a privacy-first Tax OS cockpit. It helps users diagnose tax gaps, track proof readiness, understand AIS/26AS checks, prepare a private Tax Dossier, and hand off cleanly to the official portal, employer partner, or CA. The long-term product direction is simple: help taxpayers save, fix, and file-readiness everything in one place.
+
+ARTH does **not** file ITR in this version. It does **not** claim to be tax, legal, or CA advice. It prepares and organizes the user before filing.
 
 ---
 
@@ -22,7 +24,23 @@
 
 ## What You Get
 
-Twelve focused steps map to 8+ tax deduction categories. Answer once. ARTH calculates your gap across:
+The app starts with browse-first navigation: Discover, Actions, Progress, and Profile. A user can look around before completing the diagnostic.
+
+Core modules:
+
+- **Tax OS Home:** readiness score, next best action, seasonal calendar, and module shortcuts
+- **3-minute diagnostic:** guided salary/deduction profile
+- **Tax Cockpit:** gap amount, regime insight, and personal action plan
+- **Document checklist + vault:** Form 16, rent receipts, 80C, 80D, home loan, education loan, donations, AIS/26AS review; optional encrypted PDF/image uploads
+- **AIS & 26AS guide:** education-only checklist for official records, no import or OTP capture
+- **Tax Dossier:** in-app summary of income profile, regime insight, gaps, proof readiness, PAN status, and filing handoff
+- **Profile:** account, optional encrypted PAN vault, support, privacy, delete data
+
+Document upload now uses an encrypted Document Vault with deterministic,
+non-LLM metadata insights. Rich Form 16 field extraction is the next parser step.
+See [Document Vault plan](./docs/document-vault-tax-os-plan.md).
+
+The diagnostic maps to 8+ tax deduction categories:
 
 - **80C** investment deductions (₹1.5L limit)
 - **80CCD(1B)** NPS contributions (₹50k extra)
@@ -33,37 +51,46 @@ Twelve focused steps map to 8+ tax deduction categories. Answer once. ARTH calcu
 - **80TTA/80TTB** savings interest (age-based)
 - **80CCD(2)** employer NPS (informational)
 
-Plus automatic regime comparison (old vs new tax regime for FY 2026-27).
+Plus automatic regime comparison for FY 2026-27.
 
-**Output:** A prioritized list of gaps + actionable next steps.
+**Output:** A prioritized gap list, action plan, proof checklist, progress tracker, and readiness dossier.
 
 ---
 
 ## Design Philosophy
 
-### Why Guided Input, Not Document Upload?
+### Why Readiness First, Not Filing First?
 
-We tested two approaches:
+ClearTax, Quicko, TaxBuddy, myITreturn, and the official AIS app already cover filing, expert support, imports, and official statement access. ARTH's wedge is earlier in the year: make the user ready before filing starts.
 
-**Option A:** Auto-fill from ITR/income data. Easier technically. Users said no. They don't trust sending their PAN to a fintech app.
+ARTH focuses on:
 
-**Option B:** A short guided flow, local-first calculations, and account sync for continuity across sessions. No PAN or ITR upload required.
+- Privacy-first exploration before data collection
+- Guided deduction discovery
+- Proof readiness with optional encrypted document upload
+- AIS/26AS education without login capture
+- Optional PAN vault only after explicit consent
+- Clean handoff to filing, employer partner, or CA
 
-We picked B. This wasn't only a technical choice; it was a trust choice. Users care about privacy more than convenience.
-
-Finance Act 2025 compliance added a second layer: ARTH avoids collecting high-risk identifiers that are not needed for gap discovery.
+The product intentionally avoids fake filing claims. Utility and trust come first.
 
 ## Security Posture
 
-ARTH is a guided tax-gap analyzer for salaried users. It is not an ITR filing
-tool, legal advice service, CA replacement, bank account aggregator, or formal
-GDPR compliance certificate.
+ARTH is a private tax readiness app for salaried users. It is not an ITR filing
+tool, legal advice service, CA replacement, bank account aggregator, AIS importer,
+or formal GDPR compliance certificate.
 
-The product follows privacy-by-design defaults: no PAN, no ITR uploads, no bank
-statements, and no raw income documents are required. If you create an account,
-ARTH stores your email, hashed password, profile answers, calculated result,
-done-gap progress, and basic app events needed to run and improve the service.
-Local app data is stored through OS keychain/keystore-backed secure storage.
+The product follows privacy-by-design defaults: no PAN is required to start, no
+ITR uploads, no bank statements, and no AIS login capture. Optional document
+uploads are encrypted server-side, limited to supported PDFs/images, and wiped
+through delete-data. Optional PAN is available only in Profile, requires consent,
+is encrypted server-side, and is shown back only as a masked value.
+
+If you create an account, ARTH stores your email, hashed password, profile
+answers, calculated result, done-gap progress, optional masked PAN status, local
+document checklist status, and basic app events needed to run and improve the
+service. Local app data is stored through OS keychain/keystore-backed secure
+storage.
 
 The backend uses explicit production CORS, short-lived access tokens,
 hashed refresh tokens, password hashing, rate limits, security headers,
@@ -72,8 +99,8 @@ validation. Release readiness requires green CI, backend tests, dependency
 audit, zero unresolved security alerts, verified production environment values,
 and a working database restore path.
 
-Users can delete synced profile, result, and progress data from Settings. Secret
-or vulnerability reports should follow [SECURITY.md](./SECURITY.md).
+Users can delete synced profile, result, progress, and PAN vault data from
+Profile. Secret or vulnerability reports should follow [SECURITY.md](./SECURITY.md).
 
 ### The Questionnaire Decision (Completion Rates)
 
@@ -137,7 +164,7 @@ graph TB
         direction TB
 
         subgraph PRES ["«layer» Presentation"]
-            UI["«component»\nScreen Layer\nS00 Auth · S01–S03 Onboarding\nS04–S08 Results & Actions\nS09–S12 Tracker · Share · Settings"]
+            UI["«component»\nScreen Layer\nS00 Auth · S01–S03 Diagnostic\nS04–S12 Results · Actions · Progress\nS13–S18 Discover · Profile · Tax OS modules"]
         end
 
         subgraph APPLICATION ["«layer» Application"]
@@ -163,7 +190,7 @@ graph TB
 
     subgraph BACKEND_SYS ["«subsystem» ARTH Backend — Fastify / Node.js (Railway)"]
         direction TB
-        API["«component»\nREST API (Fastify)\nPOST /auth/sign-up · /sign-in · /refresh · /sign-out\nGET|PUT /profile · DELETE /profile\nGET|PUT /tax-results/current\nGET|PUT /done-gaps/current\nPOST /events · GET /health"]
+        API["«component»\nREST API (Fastify)\nPOST /auth/sign-up · /sign-in · /refresh · /sign-out\nGET|PATCH /account/profile · PUT|DELETE /account/pan\nGET|PUT|DELETE /profile\nGET|PUT /tax-results/current\nGET|PUT /done-gaps/current\nPOST /events · GET /health"]
         JWT_MW["«component»\nAuth Middleware\n«interface» IAuthMiddleware\nJWT verify — JOSE"]
         SEC_C["«component»\nSecurityService\nscrypt password hashing\nSHA-256 refresh token hashing"]
         POOL["«component»\nDB Connection Pool\npg — node-postgres"]

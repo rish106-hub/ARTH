@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import { ZodError } from 'zod';
 import { env } from './config.js';
 import { registerRoutes } from './routes.js';
@@ -28,6 +29,13 @@ export async function buildApp() {
   });
 
   await app.register(helmet);
+  await app.register(multipart, {
+    limits: {
+      files: 1,
+      fileSize: 8 * 1024 * 1024,
+      fields: 8,
+    },
+  });
 
   const allowedOrigins = env.CORS_ORIGIN.split(',')
     .map((origin) => origin.trim())

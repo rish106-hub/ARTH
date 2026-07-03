@@ -58,7 +58,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     //    Also works correctly on fresh device installs.
     final hasProfile = await ref.read(userProfileProvider.notifier).load();
     if (!mounted) return;
-    context.go(hasProfile ? '/gap-reveal' : '/welcome');
+    context.go(hasProfile ? '/gap-reveal' : '/discover');
   }
 
   @override

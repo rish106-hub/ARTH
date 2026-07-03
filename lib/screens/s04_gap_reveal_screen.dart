@@ -46,7 +46,7 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
               context.go('/progress');
               break;
             case 3:
-              context.go('/settings');
+              context.go('/profile');
               break;
           }
         },

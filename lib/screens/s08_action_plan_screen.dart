@@ -8,6 +8,7 @@ import '../widgets/animated_number.dart';
 import '../widgets/gap_card_widget.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/locked_diagnostic_state.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
@@ -34,6 +35,24 @@ class ActionPlanScreen extends ConsumerWidget {
           ),
         ],
       ),
+      bottomNavigationBar: ArthBottomNav(
+        selectedIndex: 1,
+        onTap: (i) {
+          switch (i) {
+            case 0:
+              context.go('/discover');
+              break;
+            case 1:
+              break;
+            case 2:
+              context.go('/progress');
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
+        },
+      ),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
           title: 'Preparing your action plan',
@@ -43,10 +62,12 @@ class ActionPlanScreen extends ConsumerWidget {
             'Turning gaps into simple steps.',
           ],
         ),
-        error: (_, __) => RetryErrorState(
-          message: 'Could not load your action plan.',
-          onRetry: () => ref.invalidate(taxResultProvider),
-        ),
+        error: (error, __) => isIncompleteTaxProfileError(error)
+            ? const _ActionPlanEmptyState()
+            : RetryErrorState(
+                message: 'Could not load your action plan.',
+                onRetry: () => ref.invalidate(taxResultProvider),
+              ),
         data: (result) {
           final gaps = result.gaps;
           final notifier = ref.read(gapStateProvider.notifier);
@@ -75,6 +96,14 @@ class ActionPlanScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+                      _ActionShortcut(
+                        icon: Icons.folder_special_outlined,
+                        title: 'Document checklist',
+                        body:
+                            'Prepare Form 16, rent, 80C, 80D, loan, education, donation, and AIS proof readiness.',
+                        onTap: () => context.push('/documents'),
+                      ),
                       if (pending.isNotEmpty) ...[
                         _SectionHeader(
                           title: 'To Do',
@@ -135,29 +164,76 @@ class ActionPlanScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // Bottom nav
-              ArthBottomNav(
-                selectedIndex: 1,
-                onTap: (i) {
-                  switch (i) {
-                    case 0:
-                      context.go('/gap-reveal');
-                      break;
-                    case 1:
-                      break;
-                    case 2:
-                      context.go('/progress');
-                      break;
-                    case 3:
-                      context.go('/settings');
-                      break;
-                  }
-                },
-              ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ActionPlanEmptyState extends StatelessWidget {
+  const _ActionPlanEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ArthStatePanel(
+            icon: Icons.checklist_rounded,
+            title: 'Actions start with your diagnostic',
+            message:
+                'You can still prepare documents now. Complete the diagnostic to unlock personal deduction tasks.',
+            actionLabel: 'Start diagnostic',
+            onAction: () => context.go('/questions'),
+          ),
+          _ActionShortcut(
+            icon: Icons.folder_special_outlined,
+            title: 'Prepare document checklist',
+            body:
+                'Mark proof readiness now. ARTH stores checklist status only, not files.',
+            onTap: () => context.push('/documents'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionShortcut extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+
+  const _ActionShortcut({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: PremiumGlassPanel(
+        padding: const EdgeInsets.all(16),
+        tint: AppColors.teal,
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(icon, color: AppColors.teal),
+          title: Text(title, style: AppTextStyles.bodyMedium()),
+          subtitle: Text(
+            body,
+            style: AppTextStyles.caption(color: AppColors.textSecondary),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: onTap,
+        ),
       ),
     );
   }

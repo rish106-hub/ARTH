@@ -61,7 +61,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
       final hasProfile = await ref.read(userProfileProvider.notifier).load();
       if (!mounted) return;
-      context.go(hasProfile ? '/gap-reveal' : '/welcome');
+      context.go(hasProfile ? '/gap-reveal' : '/discover');
     } on ServerApiException catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = _friendlyServerError(e));
@@ -162,7 +162,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       children: [
                         TrustBadge(
                           icon: Icons.badge_outlined,
-                          label: 'No PAN required',
+                          label: 'PAN optional later',
                         ),
                         TrustBadge(
                           icon: Icons.receipt_long_outlined,

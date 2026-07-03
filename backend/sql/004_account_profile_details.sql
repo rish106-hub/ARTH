@@ -1,0 +1,4 @@
+ALTER TABLE app_users
+    ADD COLUMN IF NOT EXISTS phone_e164 TEXT,
+    ADD COLUMN IF NOT EXISTS avatar_initials VARCHAR(2),
+    ADD COLUMN IF NOT EXISTS avatar_color TEXT;

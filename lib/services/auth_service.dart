@@ -120,6 +120,9 @@ class AuthService {
       uid: user['id'] as String?,
       name: user['name'] as String? ?? '',
       email: user['email'] as String? ?? '',
+      phoneNumber: user['phoneNumber'] as String?,
+      avatarInitials: user['avatarInitials'] as String?,
+      avatarColor: user['avatarColor'] as String?,
       createdAt: DateTime.parse(
         user['createdAt'] as String? ?? DateTime.now().toIso8601String(),
       ),

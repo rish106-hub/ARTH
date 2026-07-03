@@ -14,9 +14,9 @@ class ArthBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-      icon: Icons.explore_outlined,
-      activeIcon: Icons.explore_rounded,
-      label: 'Discover',
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
     ),
     _NavItem(
       icon: Icons.checklist_outlined,
