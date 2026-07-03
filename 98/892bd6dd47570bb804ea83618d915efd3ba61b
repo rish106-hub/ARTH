@@ -1,0 +1,27 @@
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_40b5a9f043e78c 1086
+README.md
+  s_56dd8210da6e59::t_45e35f5d46a357 703-705
+lib/screens/s12_budget_alert_screen.dart
+  s_56dd8210da6e59::t_dd5f6b9389a006 125
+test/tax_rule_engine_test.dart
+  s_56dd8210da6e59::t_7fc6734bbf7f38 8-9,13-19
+lib/providers/tax_year_provider.dart
+  s_56dd8210da6e59::t_0472954848cb3d 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "98892bd6dd47570bb804ea83618d915efd3ba61b",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
