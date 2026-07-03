@@ -1,0 +1,61 @@
+lib/widgets/tax_rule_badge.dart
+  s_56dd8210da6e59::t_b682701a51840c 50,52-56,59,61-65,74,79,95,97
+lib/engine/tax_engine.dart
+  s_56dd8210da6e59::t_0c3d7150de27b1 307-308
+  s_56dd8210da6e59::t_e5ae033149c4ed 72,78-79,88-93,117,142-143,156-157,207-212,296-306,309-318,378-379
+backend/README.md
+  s_56dd8210da6e59::t_b682701a51840c 44-45
+backend/test/security.test.ts
+  s_56dd8210da6e59::t_3651a95b63916f 88-89,91-116,940-1000,1006-1007,1009-1014,1020-1021,1030,1038
+  s_56dd8210da6e59::t_93f52d88dd2f0d 90
+  s_56dd8210da6e59::t_ccb4a30282279b 1001-1005,1008
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_a1b2bc0e703369 254
+lib/providers/tax_year_provider.dart
+  s_56dd8210da6e59::t_92381de81ad9b7 4-6,9-10,12-20,22-30
+backend/src/routes.ts
+  s_56dd8210da6e59::t_32efba966b15d4 13,261,271,285-332,770,802,805-808,810,813
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_0c3d7150de27b1 211-219,221-224,227-235,237-244,246,248-252
+  s_56dd8210da6e59::t_31be944a44b479 220
+  s_56dd8210da6e59::t_b682701a51840c 236,245,247,253-257
+lib/screens/s14_profile_screen.dart
+  s_56dd8210da6e59::t_3e282b29005a41 663
+lib/screens/s15_document_checklist_screen.dart
+  s_56dd8210da6e59::t_465bf358d78fcb 277-278,281-283
+backend/package.json
+  s_56dd8210da6e59::t_afd58d2401f83f 31
+lib/models/tax_rule_set.dart
+  s_56dd8210da6e59::t_7ec77e545d581b 68,157,161-170,177-181
+  s_56dd8210da6e59::t_b682701a51840c 20-64
+LOGIC_AUDIT_RESULTS.md
+  s_56dd8210da6e59::t_dca4e272272b9b 3,5,29-30
+backend/src/documentParser.ts
+  s_56dd8210da6e59::t_a4f9840ee048a4 1,9,121,142,235-246,258-260
+lib/screens/s09_progress_tracker_screen.dart
+  s_56dd8210da6e59::t_b682701a51840c 7,199,203-204,206-208,211,228,272-277,279,286-307
+  s_56dd8210da6e59::t_e264d6d50d3ccb 308
+lib/screens/s07_deduction_detail_screen.dart
+  s_56dd8210da6e59::t_b682701a51840c 240
+lib/screens/s19_filing_assistant_screen.dart
+  s_56dd8210da6e59::t_0c3d7150de27b1 105-130,132-171,175-239,243,245,247-248,251-253
+  s_56dd8210da6e59::t_a1600396842791 51-57,85,87-104,255,257-258
+backend/package-lock.json
+  s_56dd8210da6e59::t_7c1b819e08dcba 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e17606195e8d3c1961094fa436e8628828e6ae08",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
