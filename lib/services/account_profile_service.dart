@@ -34,6 +34,14 @@ class AccountProfileService {
     }
   }
 
+  Future<void> clearCachedForCurrentUser() async {
+    final account = await _auth.loadAccount();
+    final uid = account?.uid;
+    if (uid != null) {
+      await _storage.delete('$_cachePrefix$uid');
+    }
+  }
+
   Future<AccountProfile?> fetch() async {
     try {
       final token = await _auth.getValidAccessToken();
