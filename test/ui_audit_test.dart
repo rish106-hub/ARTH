@@ -358,6 +358,35 @@ void main() {
     expect(find.text('Tax reminders'), findsOneWidget);
   });
 
+  testWidgets('regime guidance follows useful income decision order', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const RegimeComparisonScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.text('General Guidance by Income'), findsOneWidget);
+    expect(find.text('Up to ₹12.75L salary'), findsOneWidget);
+    expect(find.text('₹12.75L – ₹24L'), findsOneWidget);
+    expect(find.text('₹24L – ₹50L'), findsOneWidget);
+    expect(find.text('Above ₹50L'), findsOneWidget);
+    expect(find.text('Usually New'), findsOneWidget);
+
+    final guidanceTop = tester
+        .getTopLeft(
+          find.text('General Guidance by Income'),
+        )
+        .dy;
+    final deductionTop = tester
+        .getTopLeft(
+          find.text('Old Regime Deduction Stack'),
+        )
+        .dy;
+    expect(guidanceTop, lessThan(deductionTop));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('browse-first discover works before diagnostic', (tester) async {
     final browseOverrides = [
       userProfileProvider.overrideWith(
