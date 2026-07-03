@@ -1,0 +1,86 @@
+backend/src/app.ts
+  s_56dd8210da6e59::t_60ad7e055283a3 7,62-66,85-103,108-112,116-120
+backend/test/security.test.ts
+  s_56dd8210da6e59::t_bf16dcc4a7410b 545-563,911-933
+  s_56dd8210da6e59::t_aae009d9c9e871 201-206,315-316,324-334,336
+  s_56dd8210da6e59::t_645657fd27283b 492-496,569-573,581-585,944-948,959-963
+  s_56dd8210da6e59::t_0743ba0a77223b 3,61,73-77,99-104
+  s_56dd8210da6e59::t_280fe6974dd864 335
+  s_56dd8210da6e59::t_c1ba9c4378f7b9 337
+  s_56dd8210da6e59::t_ab3b8ea26f1dd4 934
+lib/screens/s00_auth_screen.dart
+  s_56dd8210da6e59::t_026276802dea47 98-99
+  s_56dd8210da6e59::t_52c6d4e67d7a64 96-97
+lib/screens/s13_discover_screen.dart
+  s_56dd8210da6e59::t_d52f525dd52fed 304,307-308
+  s_56dd8210da6e59::t_ed31951fa80251 268-276
+  s_56dd8210da6e59::t_52c6d4e67d7a64 404-405,413-414
+  s_56dd8210da6e59::t_d86463365cc952 90,94-95,176-177,296-297,299-303,305-306,392-399,401-403,410-412,421-435
+lib/screens/s18_tax_dossier_screen.dart
+  s_56dd8210da6e59::t_96ea54cd95d584 234-242
+  s_56dd8210da6e59::t_ae736976bf8546 141-152,166-171
+  s_56dd8210da6e59::t_905ce3607d89af 172-173
+lib/models/tax_document.dart
+  s_56dd8210da6e59::t_cfbedda8415b48 35-56
+lib/models/tax_result.dart
+  s_56dd8210da6e59::t_799e1b6aecb12b 25,53,70-75,95-96
+  s_56dd8210da6e59::t_105f154c9fdc88 144-145
+test/tax_rule_engine_test.dart
+  s_56dd8210da6e59::t_864d8343f216b5 6,104-142
+  s_56dd8210da6e59::t_bd5a2e2d1df3d8 7
+  s_56dd8210da6e59::t_e2d91eb9c18db7 143
+backend/src/auth.ts
+  s_56dd8210da6e59::t_c8ca8197aea043 7-11,23-27
+lib/screens/s15_document_checklist_screen.dart
+  s_56dd8210da6e59::t_b800498ce8b0a0 122-123,239-306,309-370,380,390,436,458,463,497,505-513,523-558
+  s_56dd8210da6e59::t_52c6d4e67d7a64 307-308
+  s_56dd8210da6e59::t_7da4b0c754c40b 12
+lib/providers/tax_document_provider.dart
+  s_56dd8210da6e59::t_ea3b5453cddf56 48-55
+backend/src/documentParser.ts
+  s_56dd8210da6e59::t_3830f980e4fb35 1-269
+lib/services/server_api_service.dart
+  s_56dd8210da6e59::t_a6ad57a32f6a25 237-239
+  s_56dd8210da6e59::t_bf9cd88818f54b 2,7,9,11-16,52,59,158,160-172,174-175,177-226,236,242-246,248,251-264
+backend/package.json
+  s_56dd8210da6e59::t_8ce6959c9b9db8 25
+lib/engine/tax_engine.dart
+  s_56dd8210da6e59::t_ad7bf5b0b42885 63,422-427
+  s_56dd8210da6e59::t_6be98f3b36c9a6 428
+  s_56dd8210da6e59::t_ed14204ddafab6 429
+lib/app.dart
+  s_56dd8210da6e59::t_6732c2cca3fbab 23,67-70
+test/auth_sync_reliability_test.dart
+  s_56dd8210da6e59::t_aa7efa5a8e36ae 109
+lib/screens/s19_filing_assistant_screen.dart
+  s_56dd8210da6e59::t_de2d2c78018d3a 1-77,80-351
+  s_56dd8210da6e59::t_52c6d4e67d7a64 78-79
+backend/src/db.ts
+  s_56dd8210da6e59::t_12b386a26ba6a3 54
+backend/src/routes.ts
+  s_56dd8210da6e59::t_3cd1914c2aa1b9 6
+  s_56dd8210da6e59::t_e16baa9b9e9109 667-686,693-694,719-720,730-775
+  s_56dd8210da6e59::t_8c5644861d2872 776-777
+lib/services/auth_service.dart
+  s_56dd8210da6e59::t_38886a4160769d 27,39
+lib/services/tax_document_service.dart
+  s_56dd8210da6e59::t_813a71a9eccc13 52-63
+backend/package-lock.json
+  s_56dd8210da6e59::t_21a3c71d03a4b3 19,719-917,1358-1389
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "7df5d40ac94d0dbe7ec06d90b7f6369f88186d1a",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
