@@ -1,0 +1,22 @@
+lib/widgets/question_progress_bar.dart
+  s_56dd8210da6e59::t_aa722bf2307888 96-104
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_535b762a23a7a5 30,530-577
+  s_56dd8210da6e59::t_426b257ca95c2f 578-579
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "40e6632a111a59a22a486d7e5ea68ec674132381",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
