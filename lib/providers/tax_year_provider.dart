@@ -4,7 +4,7 @@ import '../models/tax_rule_set.dart';
 
 class ActiveTaxYearNotifier extends Notifier<TaxYearId> {
   @override
-  TaxYearId build() => TaxYearId.fy2025_26;
+  TaxYearId build() => TaxYearId.fy2026_27;
 
   void set(TaxYearId id) => state = id;
 }

@@ -5,9 +5,18 @@ import 'package:arth/engine/tax_engine.dart';
 import 'package:arth/models/gap_card.dart';
 import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
+import 'package:arth/providers/tax_year_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('diagnostic defaults to latest active planning year', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    expect(container.read(activeTaxYearProvider), TaxYearId.fy2026_27);
+  });
+
   test('bundled tax rule assets expose filing and planning context', () {
     final filing = _loadRuleSet(TaxYearId.fy2025_26);
     final planning = _loadRuleSet(TaxYearId.fy2026_27);

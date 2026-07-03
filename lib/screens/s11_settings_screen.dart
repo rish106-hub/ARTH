@@ -1083,7 +1083,7 @@ class _AppFooter extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'v1.0  |  Dual-year rules  |  FY2025-26 filing first',
+          'v1.0  |  Dual-year rules  |  FY2026-27 planning first',
           style: AppTextStyles.micro(color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),

@@ -122,7 +122,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                       SizedBox(height: compact ? 24 : 32),
 
                       Text(
-                        'Default filing view remains FY2025-26 / AY2026-27.',
+                        'Default diagnostic view uses FY2026-27 / AY2027-28 planning rules.',
                         style: AppTextStyles.micro(color: AppColors.textMuted),
                         textAlign: TextAlign.center,
                       ).animate(delay: 1100.ms).fadeIn(),
