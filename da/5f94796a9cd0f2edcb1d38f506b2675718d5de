@@ -1,0 +1,116 @@
+lib/screens/s04_gap_reveal_screen.dart
+  s_56dd8210da6e59::t_e34915ca25f076 195-197
+  s_56dd8210da6e59::t_1c3d048b5aa0b3 13,190-192,194,198-200,202,207-209,217,225,229-235,291-293
+backend/.env.example
+  s_56dd8210da6e59::t_4f52cba5f29650 13
+lib/screens/s09_progress_tracker_screen.dart
+  s_56dd8210da6e59::t_701012f37d4483 83,224-229,286,293,321,340,371
+lib/providers/tax_year_provider.dart
+  s_56dd8210da6e59::t_ff6bbbc8ec8281 1-20
+backend/sql/006_tax_accuracy_fields.sql
+  s_56dd8210da6e59::t_4f3c2e2320582e 1-17
+backend/src/routes.ts
+  s_56dd8210da6e59::t_67a9eee1b92a36 79-88
+  s_56dd8210da6e59::t_7461d12f6d96c3 847-855,875-878,881-882,909-917,946-954
+pubspec.yaml
+  s_56dd8210da6e59::t_ff6bbbc8ec8281 78
+lib/screens/s14_profile_screen.dart
+  s_56dd8210da6e59::t_c3f8612b8b6ab8 9,37,116-121,315-383,387-427,432-446,449-478
+  s_56dd8210da6e59::t_183d29d4cb2860 479,722-725,909-1000
+  s_56dd8210da6e59::t_e34915ca25f076 428-431,447-448,714-719
+  s_56dd8210da6e59::t_f1741b54142af9 384-386
+  s_56dd8210da6e59::t_0ebb6142846912 7,12,36,128-134,676-713,720-721
+  s_56dd8210da6e59::t_9fa73fb44e1f13 480
+  s_56dd8210da6e59::t_2c66dad6e0ece8 726
+test/logic_audit_test.dart
+  s_56dd8210da6e59::t_e34915ca25f076 347
+  s_56dd8210da6e59::t_13a09e84bb8741 366
+  s_56dd8210da6e59::t_488ab69b81e093 9,92-93,96,104,208-212,235,333-337,348-351,371-372,374,385-394,399,405,442
+backend/test/security.test.ts
+  s_56dd8210da6e59::t_74384d3d2429b4 995-1003
+assets/tax_rules/fy_2026_27.json
+  s_56dd8210da6e59::t_80f31910d8c1b7 1-92
+lib/models/user_profile.dart
+  s_56dd8210da6e59::t_70f2d4e54c3c61 6
+  s_56dd8210da6e59::t_7e58ecc132e392 60-62,66-68,81-82,139-150,157,160-161,188-196,227-235,268-276,280-286,289-295,324-332
+  s_56dd8210da6e59::t_e0c98f6af9ada6 335-340,377
+  s_56dd8210da6e59::t_e34915ca25f076 277-279,287-288,341-376
+lib/screens/s10_share_card_screen.dart
+  s_56dd8210da6e59::t_d4656f99180e4d 267
+  s_56dd8210da6e59::t_1c3d048b5aa0b3 36,55,94-98,133-134,155,157-161,199,217,233
+backend/src/config.ts
+  s_56dd8210da6e59::t_4f52cba5f29650 16
+lib/providers/tax_result_provider.dart
+  s_56dd8210da6e59::t_33e2afca24b6f2 9,18,21
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_d4656f99180e4d 5
+  s_56dd8210da6e59::t_1c3d048b5aa0b3 12,58-61,171-174,191-220
+  s_56dd8210da6e59::t_a00be77d73c77a 221-223
+  s_56dd8210da6e59::t_02b39bddf7ff4a 224
+README.md
+  s_56dd8210da6e59::t_2960087fcea3de 54-66,154,190,192-194,600-611,625,671-676,696-697,702-704
+  s_56dd8210da6e59::t_9c9ca3d5d05030 242,312,318
+lib/models/entitlement.dart
+  s_56dd8210da6e59::t_a3c0ef91d361bd 1-11
+lib/widgets/tax_rule_badge.dart
+  s_56dd8210da6e59::t_a3c0ef91d361bd 1-104
+lib/models/tax_rule_set.dart
+  s_56dd8210da6e59::t_74384d3d2429b4 116,123-124
+  s_56dd8210da6e59::t_a5759bf7ac7010 1-32,36-115,117-122,125-206,208-268
+  s_56dd8210da6e59::t_e34915ca25f076 33-35,207
+lib/screens/s06_deduction_cards_screen.dart
+  s_56dd8210da6e59::t_701012f37d4483 25,156,171
+lib/widgets/gap_card_widget.dart
+  s_56dd8210da6e59::t_701012f37d4483 135
+lib/models/tax_result.dart
+  s_56dd8210da6e59::t_f14573ed0edebf 2,7-10,20-21,23-24,27-30,40-41,43-52,69-72,82-83,85-86,95-100,115,121-133
+  s_56dd8210da6e59::t_e34915ca25f076 91,116-118
+  s_56dd8210da6e59::t_74384d3d2429b4 92-93,119-120
+lib/screens/s13_discover_screen.dart
+  s_56dd8210da6e59::t_e34915ca25f076 314-315,321-323
+  s_56dd8210da6e59::t_0ebb6142846912 7,89,247-266,292-313,316-320,324-341
+  s_56dd8210da6e59::t_e87122aceb8388 342-344
+lib/screens/s07_deduction_detail_screen.dart
+  s_56dd8210da6e59::t_701012f37d4483 64,151,240
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_701012f37d4483 320,1090
+lib/engine/tax_engine.dart
+  s_56dd8210da6e59::t_01e134fc194aa2 4,7,9-16,29-35,38-41,51-52,54-62,67-70,72,75-81,84,86-89,98,102-104,106,111-115,117,121,125,146-147,151-156,163,172-173,177-188,196-198,200,204-207,216,220-222,234,267-291,305,333-349,351-420
+  s_56dd8210da6e59::t_74384d3d2429b4 193-194
+test/tax_rule_engine_test.dart
+  s_56dd8210da6e59::t_e34915ca25f076 90-91
+  s_56dd8210da6e59::t_6a64ba2da2977e 1-89,92-98
+backend/sql/001_init.sql
+  s_56dd8210da6e59::t_4f3c2e2320582e 54-63
+lib/screens/s12_budget_alert_screen.dart
+  s_56dd8210da6e59::t_701012f37d4483 57,71,94,114,125
+lib/providers/entitlement_provider.dart
+  s_56dd8210da6e59::t_a3c0ef91d361bd 1-15,17-18
+  s_56dd8210da6e59::t_e34915ca25f076 16
+LOGIC_AUDIT_RESULTS.md
+  s_56dd8210da6e59::t_13a09e84bb8741 43
+  s_56dd8210da6e59::t_928bfef1747e12 3,5
+  s_56dd8210da6e59::t_c7a572430d1ba9 4,10,21,27-31,38
+lib/screens/s18_tax_dossier_screen.dart
+  s_56dd8210da6e59::t_d4656f99180e4d 120
+  s_56dd8210da6e59::t_1c3d048b5aa0b3 15,110-111,122-124,148-153
+  s_56dd8210da6e59::t_34ef55b9159ead 154
+assets/tax_rules/fy_2025_26.json
+  s_56dd8210da6e59::t_80f31910d8c1b7 1-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "da5f94796a9cd0f2edcb1d38f506b2675718d5de",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
