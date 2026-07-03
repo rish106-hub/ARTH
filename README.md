@@ -51,7 +51,19 @@ The diagnostic maps to 8+ tax deduction categories:
 - **80TTA/80TTB** savings interest (age-based)
 - **80CCD(2)** employer NPS (informational)
 
-Plus automatic regime comparison for FY 2026-27.
+Plus automatic regime comparison with explicit rule labels:
+
+- **FY2025-26 Filing / AY2026-27** using Finance Act 2025-era filing rules
+- **FY2026-27 Planning / AY2027-28** using Income-tax Act 2025 as amended by Finance Act 2026
+
+Optional accuracy inputs in Profile can tighten HRA, professional tax, 80D,
+80TTA/80TTB, employer NPS, and donation assumptions without slowing first-run
+onboarding.
+
+Free vs Premium demo:
+
+- **Free:** diagnostic, regime comparison, readiness score, action plan, PAN vault, encrypted document upload, AIS/26AS guide
+- **Premium demo:** Document Intelligence and CA-ready Filing Pack preview only; no payment gateway yet
 
 **Output:** A prioritized gap list, action plan, proof checklist, progress tracker, and readiness dossier.
 
@@ -139,7 +151,7 @@ ARTH showed me the difference between "problem is real" and "can build a busines
 | Alpha Users | 10 |
 | Rating | 4.8/5 (from those who completed) |
 | Avg Time to Insight | 3 minutes |
-| Finance Act 2025 Compliance | ✓ Validated |
+| Tax Rule Coverage | FY2025-26 filing + FY2026-27 planning assets |
 | Completion Rate | 80% |
 
 ---
@@ -175,10 +187,11 @@ graph TB
         end
 
         subgraph DOMAIN ["«layer» Domain"]
-            TAX_E["«component»\nTaxEngine\n+ calculate(profile, gaps): TaxResult\n+ marginalRateOld(income): double\n+ marginalRateNew(income): double"]
+            TAX_E["«component»\nTaxEngine\n+ calculate(profile, gaps, ruleSet): TaxResult\n+ marginalRateOld(income): double\n+ marginalRateNew(income): double"]
             GAP_F["«component»\nGapFinder\n+ findGaps(profile, triggers): GapCard[]\n+ loadTriggers(): Future‹List›"]
-            MODELS["«component»\nDomain Models\nUserProfile · TaxResult\nGapCard · UserAccount"]
-            ASSET[("«artifact»\ntax_data.json\nFinance Act 2026\ndecision_tree_triggers")]
+            MODELS["«component»\nDomain Models\nUserProfile · TaxResult\nTaxRuleSet · GapCard · UserAccount"]
+            ASSET[("«artifact»\ntax_data.json\ndecision_tree_triggers")]
+            RULES[("«artifact»\nassets/tax_rules/*.json\nFY2025-26 filing\nFY2026-27 planning")]
         end
 
         subgraph INFRA ["«layer» Infrastructure"]
@@ -226,6 +239,7 @@ graph TB
     PROF_P -.->|"«use»"| TAX_E
     PROF_P -.->|"«use»"| GAP_F
     TAX_P -.->|"«realize»"| MODELS
+    TAX_E -->|"«read»"| RULES
     ASSET -->|"«read»"| GAP_F
     PROF_P -.->|"«use»"| LOCAL
     TAX_P -.->|"«use»"| HTTP
@@ -295,13 +309,13 @@ sequenceDiagram
     Backend-->>Cloud: { ok: true }
 
     App->>TaxP: compute()
-    TaxP->>Engine: TaxEngine.calculate(profile, [])
+    TaxP->>Engine: TaxEngine.calculate(profile, [], ruleSet)
     Engine-->>TaxP: { oldTax, newTax, betterRegime }
     TaxP->>Engine: GapFinder.loadTriggers()
     Engine-->>TaxP: triggers[ ] from tax_data.json
     TaxP->>Engine: GapFinder.findGaps(profile, triggers)
     Engine-->>TaxP: GapCard[ ] sorted by amount ↓
-    TaxP->>Engine: TaxEngine.calculate(profile, gaps)
+    TaxP->>Engine: TaxEngine.calculate(profile, gaps, ruleSet)
     Engine-->>TaxP: TaxResult (final)
 
     TaxP->>Cloud: PUT /tax-results/current
@@ -583,7 +597,18 @@ Full interactive docs: `http://localhost:3000/docs`
 
 ## Tax Calculation Engine
 
-### Tax Slabs — FY 2026-27
+### Versioned Rule Sets
+
+ARTH uses bundled deterministic tax-rule assets, not LLM-generated rules:
+
+- `assets/tax_rules/fy_2025_26.json`: filing mode, AY 2026-27
+- `assets/tax_rules/fy_2026_27.json`: planning mode, AY 2027-28
+
+Every calculated `TaxResult` stores `ruleSetId`, `assessmentYear`,
+`calculationMode`, `deductionOpportunity`, `estimatedTaxBenefit`, and visible
+assumption notes.
+
+### New-Regime Slabs
 
 **New Regime:**
 
@@ -597,7 +622,7 @@ Full interactive docs: `http://localhost:3000/docs`
 | ₹20L – ₹24L | 25% |
 | ₹24L+ | 30% |
 
-87A rebate for income ≤ ₹12L: up to ₹60,000 off.
+87A rebate for income ≤ ₹12L: up to ₹60,000 off in the bundled rule assets.
 
 **Old Regime (below 60):**
 
@@ -643,11 +668,12 @@ Release checklist: [docs/release-preflight.md](./docs/release-preflight.md)
 
 | Area | Limitation |
 |------|-----------|
-| HRA calculation | Basic salary approximated as 40% of CTC |
-| 80D health insurance | Premiums not collected; deduction excluded from regime comparison |
-| 80TTA/80TTB | Surfaced as informational, not modeled from actual interest |
-| Donations (80G) | 50% of declared; qualifying limits not enforced |
-| Super-senior (80+) | Bundled into "Above 60" group |
+| HRA calculation | Exact when basic salary/HRA are added; otherwise visible approximation |
+| 80D health insurance | Exact when premium amounts are added; otherwise readiness guidance |
+| 80TTA/80TTB | Exact when savings/FD interest is added; otherwise readiness guidance |
+| Donations (80G) | User can set 50%/100% rate; qualifying limits still simplified |
+| Surcharge / marginal relief | Needs deeper golden-case validation before production tax advice |
+| Filing | No ITR filing, official portal login, AIS import, or CA workflow automation yet |
 | iOS / macOS | Android-only today |
 
 ---
@@ -667,13 +693,15 @@ Release checklist: [docs/release-preflight.md](./docs/release-preflight.md)
 ## FAQ
 
 **Q: Will this file my tax return?**
-No. ARTH identifies gaps. You still file via ITR-1/ITR-2 manually or via a CA.
+No. ARTH prepares your tax readiness, documents, assumptions, and handoff
+summary. You still file via the official portal, employer partner, or CA.
 
 **Q: Is my data stored?**
 Yes, if you create an account. ARTH syncs profile and calculation state to the backend so you can recover it later. Local app cache uses OS keychain/keystore-backed secure storage.
 
-**Q: Does this work for FY 2026-27?**
-Yes. Tax slabs + deduction limits are current as of March 2026.
+**Q: Which tax year does this use?**
+The default filing view is FY2025-26 / AY2026-27. Planning modules can switch to
+FY2026-27 / AY2027-28. Every result shows the active rule label.
 
 **Q: What if I'm self-employed / have capital gains?**
 ARTH is for salaried individuals. Capital gains + business income calculations not included.

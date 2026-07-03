@@ -61,7 +61,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: _MetricCard(
-                          label: 'You\'re leaving behind',
+                          label: 'Deduction opportunity',
                           value: gap.gapAmount,
                           color: gap.accentColor,
                         ),
@@ -148,7 +148,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   // Legal footer
                   Center(
                     child: Text(
-                      'Powered by Income Tax Act 1961 + Finance Act 2026',
+                      'Modeled with ARTH versioned tax rules. Confirm proof eligibility before filing.',
                       style: AppTextStyles.micro(color: AppColors.textMuted),
                       textAlign: TextAlign.center,
                     ),
@@ -237,7 +237,7 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            isDone ? 'You claimed this gap!' : 'You\'re leaving behind',
+            isDone ? 'Marked addressed' : 'Deduction opportunity',
             style: AppTextStyles.caption(
               color: isDone ? AppColors.success : AppColors.textSecondary,
             ),

@@ -1,12 +1,13 @@
 # Logic Audit Results
 
-Generated: 2026-03-28T18:49:06.383064
-Runtime: 25s
+Generated: 2026-07-03T17:33:13.168208
+Rule set: FY2025-26 Filing / AY 2026-27
+Runtime: 52s
 
 ## Sweep Scope
 
 - Incomes: ₹1L to ₹60L in ₹1L increments
-- Age groups: all 4 app-supported groups
+- Age groups: all 5 app-supported groups
 - Employment types: both
 - City mode: metro and non-metro
 - Rent/HRA scenarios: 5
@@ -17,27 +18,26 @@ Runtime: 25s
 - Education loan scenarios: 4
 - Donation scenarios: 3
 
-Total profiles audited: 12960000
+Total profiles audited: 16200000
 
 ## Core Results
 
 - Invariant failures: 0
 - Monotonicity failures: 0
-- Profiles with zero tax in both regimes: 1792400
-- Profiles with non-zero and different tax in both regimes: 10364580
-- Old regime better: 706690
-- New regime better: 10457490
-- Equal tax in both regimes: 1795820
+- Profiles with zero tax in both regimes: 2240500
+- Profiles with non-zero and different tax in both regimes: 12956580
+- Old regime better: 953030
+- New regime better: 13003050
+- Equal tax in both regimes: 2243920
 
 ## Notable Findings
 
 - No fatal engine invariant failures were detected if `invariant failures` is `0`.
 - No tax monotonicity regressions across rising income were detected if `monotonicity failures` is `0`.
 - The regime engine remains approximation-driven for HRA/basic salary, 80GG ATI, donations, and professional tax.
-- The app does not currently collect rupee inputs for health insurance premium or bank interest, so these cannot be modeled as exact deductions in tax payable.
+- Health insurance premium and bank interest are exact when users add optional accuracy inputs; otherwise they stay as visible assumptions/readiness guidance.
 
 ## Samples
 
 - Sensitivity: hasNPS flag does not affect tax logic when contribution is unchanged.
-- Sensitivity: health-insurance yes/no does not affect tax payable because premium amounts are not collected.
-- Sensitivity: app has no distinct 80+ slab input; "Above 60" always uses the 60-79 slab.
+- Sensitivity: health-insurance yes/no does not affect tax payable until an exact premium amount is added.

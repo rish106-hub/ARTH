@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/account_profile.dart';
+import '../models/entitlement.dart';
 import '../models/user_account.dart';
+import '../models/user_profile.dart';
 import '../providers/account_profile_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/entitlement_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
@@ -30,6 +33,8 @@ class ProfileScreen extends ConsumerWidget {
     final accountAsync = ref.watch(accountProfileProvider);
     final authAccount = ref.watch(authProvider);
     final completeAsync = ref.watch(completedTaxProfileProvider);
+    final entitlement = ref.watch(entitlementProvider);
+    final taxProfile = ref.watch(userProfileProvider);
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
@@ -108,10 +113,23 @@ class ProfileScreen extends ConsumerWidget {
                         onStart: () => context.go('/questions'),
                       ),
                       const SizedBox(height: 16),
+                      _TaxAccuracyCard(
+                        profile: taxProfile,
+                        onEdit: () =>
+                            _showTaxAccuracySheet(context, ref, taxProfile),
+                      ),
+                      const SizedBox(height: 16),
                       _PanVaultCard(
                         pan: profile?.pan ?? PanVaultStatus.missing,
                         onAdd: () => _showPanSheet(context, ref),
                         onDelete: () => _confirmDeletePan(context, ref),
+                      ),
+                      const SizedBox(height: 16),
+                      _PremiumDemoCard(
+                        entitlement: entitlement,
+                        onChanged: (enabled) => ref
+                            .read(entitlementProvider.notifier)
+                            .setPremiumDemo(enabled),
                       ),
                       const SizedBox(height: 16),
                       const _SupportAndDossierCard(),
@@ -292,6 +310,172 @@ class ProfileScreen extends ConsumerWidget {
       return compact;
     }
     return null;
+  }
+
+  void _showTaxAccuracySheet(
+    BuildContext context,
+    WidgetRef ref,
+    UserProfile profile,
+  ) {
+    TextEditingController money(int? value) =>
+        TextEditingController(text: value?.toString() ?? '');
+    final basic = money(profile.actualBasicSalary);
+    final hra = money(profile.actualHraReceived);
+    final professionalTax = money(profile.actualProfessionalTax);
+    final selfPremium = money(profile.healthInsuranceSelfPremium);
+    final parentPremium = money(profile.healthInsuranceParentsPremium);
+    final savingsInterest = money(profile.savingsInterest);
+    final fdInterest = money(profile.fdInterest);
+    final employerNps = money(profile.employerNpsContribution);
+    final donationRate = money(profile.donationDeductionRatePercent);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.graphite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        var saving = false;
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            int? read(
+              TextEditingController controller,
+              String label, {
+              int max = 100000000,
+            }) {
+              final raw = controller.text.trim().replaceAll(',', '');
+              if (raw.isEmpty) return null;
+              final value = int.tryParse(raw);
+              if (value == null || value < 0 || value > max) {
+                throw FormatException(label);
+              }
+              return value;
+            }
+
+            Future<void> save() async {
+              setSheetState(() {
+                saving = true;
+                error = null;
+              });
+              try {
+                final updated = ref.read(userProfileProvider).copyWith(
+                      actualBasicSalary: read(basic, 'basic salary'),
+                      actualHraReceived: read(hra, 'HRA received'),
+                      actualProfessionalTax: read(
+                        professionalTax,
+                        'professional tax',
+                        max: 100000,
+                      ),
+                      healthInsuranceSelfPremium:
+                          read(selfPremium, 'self premium'),
+                      healthInsuranceParentsPremium:
+                          read(parentPremium, 'parents premium'),
+                      savingsInterest:
+                          read(savingsInterest, 'savings interest'),
+                      fdInterest: read(fdInterest, 'FD interest'),
+                      employerNpsContribution:
+                          read(employerNps, 'employer NPS'),
+                      donationDeductionRatePercent:
+                          read(donationRate, 'donation rate', max: 100),
+                    );
+                ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((_) => updated);
+                final complete = await ref
+                    .read(userProfileProvider.notifier)
+                    .isOnboardingComplete();
+                if (complete) {
+                  await ref.read(userProfileProvider.notifier).save();
+                  ref.invalidate(taxResultProvider);
+                }
+                if (sheetContext.mounted) Navigator.pop(sheetContext);
+              } on FormatException catch (e) {
+                setSheetState(() {
+                  saving = false;
+                  error = 'Check ${e.message}. Use whole rupee amounts only.';
+                });
+              } catch (_) {
+                setSheetState(() {
+                  saving = false;
+                  error = 'Could not save accuracy inputs. Try again.';
+                });
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Tax accuracy inputs', style: AppTextStyles.h2()),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Optional. Empty fields use ARTH assumptions and are shown in calculation notes.',
+                      style: AppTextStyles.body(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    _AccuracyInput(
+                        controller: basic, label: 'Actual basic salary'),
+                    _AccuracyInput(
+                        controller: hra, label: 'Actual HRA received'),
+                    _AccuracyInput(
+                      controller: professionalTax,
+                      label: 'Actual professional tax',
+                    ),
+                    _AccuracyInput(
+                      controller: selfPremium,
+                      label: '80D self/family premium',
+                    ),
+                    _AccuracyInput(
+                      controller: parentPremium,
+                      label: '80D parents premium',
+                    ),
+                    _AccuracyInput(
+                      controller: savingsInterest,
+                      label: 'Savings account interest',
+                    ),
+                    _AccuracyInput(
+                        controller: fdInterest, label: 'FD interest'),
+                    _AccuracyInput(
+                      controller: employerNps,
+                      label: 'Employer NPS contribution',
+                    ),
+                    _AccuracyInput(
+                      controller: donationRate,
+                      label: 'Donation deduction rate %',
+                      hint: '50 or 100',
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        error!,
+                        style: AppTextStyles.caption(color: AppColors.alert),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      style: AppButtons.primaryGold,
+                      onPressed: saving ? null : save,
+                      child: Text(saving ? 'Saving...' : 'Save inputs'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showPanSheet(BuildContext context, WidgetRef ref) {
@@ -489,6 +673,57 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+class _PremiumDemoCard extends StatelessWidget {
+  final Entitlement entitlement;
+  final ValueChanged<bool> onChanged;
+
+  const _PremiumDemoCard({
+    required this.entitlement,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ArthSection(
+      title: 'Plan',
+      child: PremiumGlassPanel(
+        tint: AppColors.gold,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: entitlement.isPremiumDemo,
+              onChanged: onChanged,
+              title: Text(
+                entitlement.label,
+                style: AppTextStyles.bodyMedium(),
+              ),
+              subtitle: Text(
+                'Demo toggle only. No payment, no entitlement enforcement, and no hidden data collection.',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              secondary: Icon(
+                entitlement.isPremiumDemo
+                    ? Icons.workspace_premium_outlined
+                    : Icons.lock_open_outlined,
+                color: AppColors.gold,
+              ),
+            ),
+            const Divider(color: AppColors.divider),
+            const _BenefitLine(
+                text:
+                    'Free: diagnostic, cockpit, PAN vault, document upload, AIS guide'),
+            const _BenefitLine(
+                text:
+                    'Premium demo: document intelligence and CA-ready filing pack'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AccountCard extends StatelessWidget {
   final UserAccount account;
   final VoidCallback onEditName;
@@ -666,6 +901,98 @@ class _DiagnosticCard extends StatelessWidget {
             label: Text(complete ? 'Update diagnostic' : 'Start diagnostic'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TaxAccuracyCard extends StatelessWidget {
+  final UserProfile profile;
+  final VoidCallback onEdit;
+
+  const _TaxAccuracyCard({
+    required this.profile,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeCount = [
+      profile.actualBasicSalary,
+      profile.actualHraReceived,
+      profile.actualProfessionalTax,
+      profile.healthInsuranceSelfPremium,
+      profile.healthInsuranceParentsPremium,
+      profile.savingsInterest,
+      profile.fdInterest,
+      profile.employerNpsContribution,
+      profile.donationDeductionRatePercent,
+    ].where((value) => value != null).length;
+
+    return PremiumGlassPanel(
+      tint: AppColors.info,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.tune_rounded, color: AppColors.info),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Tax accuracy inputs', style: AppTextStyles.h3()),
+              ),
+              TrustBadge(
+                icon: activeCount > 0
+                    ? Icons.verified_outlined
+                    : Icons.info_outline_rounded,
+                label: activeCount > 0 ? '$activeCount exact' : 'Optional',
+                color: activeCount > 0 ? AppColors.success : AppColors.info,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Add exact salary breakup, HRA, 80D premium, interest, NPS, and donation inputs to reduce assumptions in tax results.',
+            style: AppTextStyles.body(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            style: AppButtons.outlineGold,
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_note_rounded),
+            label: const Text('Edit accuracy inputs'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccuracyInput extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+
+  const _AccuracyInput({
+    required this.controller,
+    required this.label,
+    this.hint = 'Optional',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          prefixText: label.contains('%') ? null : '₹ ',
+          border: const OutlineInputBorder(),
+        ),
       ),
     );
   }

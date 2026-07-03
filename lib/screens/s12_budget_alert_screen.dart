@@ -54,7 +54,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                       SizedBox(height: compact ? 20 : 28),
 
                       Text(
-                        'Budget 2026\nChanged India\'s\nTax Slabs.',
+                        'Planning rules\nare ready for\nFY2026-27.',
                         style: AppTextStyles.h1().copyWith(
                           fontSize: compact ? 28 : 32,
                           height: 1.2,
@@ -68,7 +68,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
 
                       Text(
-                        'Your tax gap may have changed.\nRecalculate now to see your updated numbers.',
+                        'ARTH now separates filing-year calculations from planning-year estimates.',
                         style: AppTextStyles.body(
                           color: AppColors.textSecondary,
                         ),
@@ -91,7 +91,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'Union Budget — February 1, 2026',
+                          'Finance Act 2026 planning context',
                           style: AppTextStyles.caption(color: AppColors.alert),
                           textAlign: TextAlign.center,
                         ),
@@ -111,7 +111,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Flexible(child: Text('Recalculate Now')),
+                              Flexible(child: Text('Review diagnostic')),
                               SizedBox(width: 8),
                               Icon(Icons.arrow_forward_rounded, size: 18),
                             ],
@@ -122,7 +122,7 @@ class BudgetAlertScreen extends ConsumerWidget {
                       SizedBox(height: compact ? 24 : 32),
 
                       Text(
-                        'New tax data loaded from Finance Act 2026.',
+                        'Default filing view remains FY2025-26 / AY2026-27.',
                         style: AppTextStyles.micro(color: AppColors.textMuted),
                         textAlign: TextAlign.center,
                       ).animate(delay: 1100.ms).fadeIn(),

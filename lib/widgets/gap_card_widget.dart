@@ -132,7 +132,7 @@ class GapCardWidget extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'You\'re leaving behind',
+                                'Deduction opportunity',
                                 style: AppTextStyles.micro(
                                   color: AppColors.textSecondary,
                                 ),

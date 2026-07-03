@@ -13,7 +13,7 @@ const envSchema = z.object({
   DB_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
   DB_IDLE_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
   DB_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(30_000).default(10_000),
-  CURRENT_FY: z.string().default('2026-27'),
+  CURRENT_FY: z.string().default('2025-26'),
   CORS_ORIGIN: z.string().default('*'),
   PAN_ENCRYPTION_KEY: z.string().optional(),
   PAN_HASH_KEY: z.string().optional(),

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 enum EmploymentType { salaried, selfEmployed }
 
-enum AgeGroup { below30, age30to45, age45to60, above60 }
+enum AgeGroup { below30, age30to45, age45to60, above60, above80 }
 
 enum PropertyType { selfOccupied, letOut }
 
@@ -57,12 +57,15 @@ extension AgeGroupExtension on AgeGroup {
       case AgeGroup.age45to60:
         return '45 – 60';
       case AgeGroup.above60:
-        return 'Above 60';
+        return '60 – 79';
+      case AgeGroup.above80:
+        return '80+';
     }
   }
 
-  bool get isSenior => this == AgeGroup.above60;
-  bool get isBelow60 => this != AgeGroup.above60;
+  bool get isSenior => this == AgeGroup.above60 || this == AgeGroup.above80;
+  bool get isSuperSenior => this == AgeGroup.above80;
+  bool get isBelow60 => !isSenior;
 
   // Approximate mid-age for calculations
   int get midAge {
@@ -75,6 +78,8 @@ extension AgeGroupExtension on AgeGroup {
         return 52;
       case AgeGroup.above60:
         return 65;
+      case AgeGroup.above80:
+        return 82;
     }
   }
 }
@@ -131,15 +136,29 @@ class UserProfile {
   // Q12
   final AgeGroup ageGroup;
 
+  // Optional exactness inputs. Null means "not collected yet" and the engine
+  // will use a conservative app assumption with a visible assumption tag.
+  final int? actualBasicSalary;
+  final int? actualHraReceived;
+  final int? actualProfessionalTax;
+  final int? healthInsuranceSelfPremium;
+  final int? healthInsuranceParentsPremium;
+  final int? savingsInterest;
+  final int? fdInterest;
+  final int? employerNpsContribution;
+  final int? donationDeductionRatePercent;
+
   // Derived
   bool get paysRentNoHRA => paysRent && !hasHRA;
   bool get hasHomeLoanSelfOccupied =>
       hasHomeLoan && propertyType == PropertyType.selfOccupied;
   bool get ageBelow60 => ageGroup.isBelow60;
   bool get ageAbove60 => ageGroup.isSenior;
+  bool get ageAbove80 => ageGroup.isSuperSenior;
 
   // Approximate basic salary = 40% of CTC (common approximation)
-  int get approximateBasicSalary => (annualCTC * 0.40).round();
+  int get approximateBasicSalary =>
+      actualBasicSalary ?? (annualCTC * 0.40).round();
 
   const UserProfile({
     this.name = '',
@@ -166,6 +185,15 @@ class UserProfile {
     this.hasDonations = false,
     this.donationAmount = 0,
     this.ageGroup = AgeGroup.below30,
+    this.actualBasicSalary,
+    this.actualHraReceived,
+    this.actualProfessionalTax,
+    this.healthInsuranceSelfPremium,
+    this.healthInsuranceParentsPremium,
+    this.savingsInterest,
+    this.fdInterest,
+    this.employerNpsContribution,
+    this.donationDeductionRatePercent,
   });
 
   // Sentinel so callers can explicitly pass null for nullable fields.
@@ -196,6 +224,15 @@ class UserProfile {
     bool? hasDonations,
     int? donationAmount,
     AgeGroup? ageGroup,
+    Object? actualBasicSalary = _unset,
+    Object? actualHraReceived = _unset,
+    Object? actualProfessionalTax = _unset,
+    Object? healthInsuranceSelfPremium = _unset,
+    Object? healthInsuranceParentsPremium = _unset,
+    Object? savingsInterest = _unset,
+    Object? fdInterest = _unset,
+    Object? employerNpsContribution = _unset,
+    Object? donationDeductionRatePercent = _unset,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -228,6 +265,34 @@ class UserProfile {
       hasDonations: hasDonations ?? this.hasDonations,
       donationAmount: donationAmount ?? this.donationAmount,
       ageGroup: ageGroup ?? this.ageGroup,
+      actualBasicSalary: identical(actualBasicSalary, _unset)
+          ? this.actualBasicSalary
+          : actualBasicSalary as int?,
+      actualHraReceived: identical(actualHraReceived, _unset)
+          ? this.actualHraReceived
+          : actualHraReceived as int?,
+      actualProfessionalTax: identical(actualProfessionalTax, _unset)
+          ? this.actualProfessionalTax
+          : actualProfessionalTax as int?,
+      healthInsuranceSelfPremium: identical(healthInsuranceSelfPremium, _unset)
+          ? this.healthInsuranceSelfPremium
+          : healthInsuranceSelfPremium as int?,
+      healthInsuranceParentsPremium:
+          identical(healthInsuranceParentsPremium, _unset)
+              ? this.healthInsuranceParentsPremium
+              : healthInsuranceParentsPremium as int?,
+      savingsInterest: identical(savingsInterest, _unset)
+          ? this.savingsInterest
+          : savingsInterest as int?,
+      fdInterest:
+          identical(fdInterest, _unset) ? this.fdInterest : fdInterest as int?,
+      employerNpsContribution: identical(employerNpsContribution, _unset)
+          ? this.employerNpsContribution
+          : employerNpsContribution as int?,
+      donationDeductionRatePercent:
+          identical(donationDeductionRatePercent, _unset)
+              ? this.donationDeductionRatePercent
+              : donationDeductionRatePercent as int?,
     );
   }
 
@@ -256,34 +321,60 @@ class UserProfile {
         'hasDonations': hasDonations,
         'donationAmount': donationAmount,
         'ageGroup': ageGroup.name,
+        'actualBasicSalary': actualBasicSalary,
+        'actualHraReceived': actualHraReceived,
+        'actualProfessionalTax': actualProfessionalTax,
+        'healthInsuranceSelfPremium': healthInsuranceSelfPremium,
+        'healthInsuranceParentsPremium': healthInsuranceParentsPremium,
+        'savingsInterest': savingsInterest,
+        'fdInterest': fdInterest,
+        'employerNpsContribution': employerNpsContribution,
+        'donationDeductionRatePercent': donationDeductionRatePercent,
       };
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        name: json['name'] ?? '',
-        email: json['email'] ?? '',
-        annualCTC: json['annualCTC'] ?? 1000000,
-        employmentType: _employmentTypeFromJson(json['employmentType']),
-        city: json['city'] ?? 'Bengaluru',
-        isMetroCity: json['isMetroCity'] ?? false,
-        paysRent: json['paysRent'] ?? false,
-        monthlyRent: json['monthlyRent'] ?? 0,
-        hasHRA: json['hasHRA'] ?? false,
-        invested80C: json['invested80C'] ?? 0,
-        hasHomeLoan: json['hasHomeLoan'] ?? false,
-        propertyType: _propertyTypeFromJson(json['propertyType']),
-        homeLoanInterest: json['homeLoanInterest'] ?? 0,
-        hasNPS: json['hasNPS'] ?? false,
-        npsExtraContribution: json['npsExtraContribution'] ?? 0,
-        hasHealthInsuranceSelf: json['hasHealthInsuranceSelf'] ?? false,
-        hasHealthInsuranceParents: json['hasHealthInsuranceParents'] ?? false,
-        parentsAbove60: json['parentsAbove60'] ?? false,
-        hasEducationLoan: json['hasEducationLoan'] ?? false,
-        educationLoanRepaymentYear: json['educationLoanRepaymentYear'] ?? 1,
-        educationLoanInterest: json['educationLoanInterest'] ?? 0,
-        hasDonations: json['hasDonations'] ?? false,
-        donationAmount: json['donationAmount'] ?? 0,
-        ageGroup: _ageGroupFromJson(json['ageGroup']),
-      );
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    int readInt(String key, int fallback) =>
+        (json[key] as num?)?.round() ?? fallback;
+    int? readOptionalInt(String key) => (json[key] as num?)?.round();
+
+    return UserProfile(
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      annualCTC: readInt('annualCTC', 1000000),
+      employmentType: _employmentTypeFromJson(json['employmentType']),
+      city: json['city'] ?? 'Bengaluru',
+      isMetroCity: json['isMetroCity'] ?? false,
+      paysRent: json['paysRent'] ?? false,
+      monthlyRent: readInt('monthlyRent', 0),
+      hasHRA: json['hasHRA'] ?? false,
+      invested80C: readInt('invested80C', 0),
+      hasHomeLoan: json['hasHomeLoan'] ?? false,
+      propertyType: _propertyTypeFromJson(json['propertyType']),
+      homeLoanInterest: readInt('homeLoanInterest', 0),
+      hasNPS: json['hasNPS'] ?? false,
+      npsExtraContribution: readInt('npsExtraContribution', 0),
+      hasHealthInsuranceSelf: json['hasHealthInsuranceSelf'] ?? false,
+      hasHealthInsuranceParents: json['hasHealthInsuranceParents'] ?? false,
+      parentsAbove60: json['parentsAbove60'] ?? false,
+      hasEducationLoan: json['hasEducationLoan'] ?? false,
+      educationLoanRepaymentYear: readInt('educationLoanRepaymentYear', 1),
+      educationLoanInterest: readInt('educationLoanInterest', 0),
+      hasDonations: json['hasDonations'] ?? false,
+      donationAmount: readInt('donationAmount', 0),
+      ageGroup: _ageGroupFromJson(json['ageGroup']),
+      actualBasicSalary: readOptionalInt('actualBasicSalary'),
+      actualHraReceived: readOptionalInt('actualHraReceived'),
+      actualProfessionalTax: readOptionalInt('actualProfessionalTax'),
+      healthInsuranceSelfPremium: readOptionalInt('healthInsuranceSelfPremium'),
+      healthInsuranceParentsPremium:
+          readOptionalInt('healthInsuranceParentsPremium'),
+      savingsInterest: readOptionalInt('savingsInterest'),
+      fdInterest: readOptionalInt('fdInterest'),
+      employerNpsContribution: readOptionalInt('employerNpsContribution'),
+      donationDeductionRatePercent:
+          readOptionalInt('donationDeductionRatePercent'),
+    );
+  }
 
   String toJsonString() => jsonEncode(toJson());
   static UserProfile fromJsonString(String s) =>

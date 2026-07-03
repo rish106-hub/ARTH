@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
+import '../models/tax_rule_set.dart';
 import '../models/tax_result.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
+import '../widgets/tax_rule_badge.dart';
 
 class RegimeComparisonScreen extends ConsumerWidget {
   const RegimeComparisonScreen({super.key});
@@ -53,6 +55,10 @@ class _RegimeContent extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const TaxYearSelector(),
+              const SizedBox(height: 14),
+              TaxRuleBadge(result: result),
+              const SizedBox(height: 16),
               Text(
                 'Based on your profile:',
                 style: AppTextStyles.caption(color: AppColors.textSecondary),
@@ -162,6 +168,10 @@ class _RegimeContent extends StatelessWidget {
                   ],
                 ),
               ),
+              if (result.assumptions.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _AssumptionsPanel(assumptions: result.assumptions),
+              ],
               const SizedBox(height: 24),
               Text('General Guidance by Income', style: AppTextStyles.h3()),
               const SizedBox(height: 12),
@@ -173,6 +183,40 @@ class _RegimeContent extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _AssumptionsPanel extends StatelessWidget {
+  final List<TaxAssumption> assumptions;
+
+  const _AssumptionsPanel({required this.assumptions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.08),
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Calculation assumptions', style: AppTextStyles.h3()),
+          const SizedBox(height: 8),
+          ...assumptions.take(4).map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '${item.title}: ${item.detail}',
+                    style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+        ],
       ),
     );
   }

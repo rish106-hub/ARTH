@@ -6,6 +6,7 @@ import 'package:arth/engine/gap_finder.dart';
 import 'package:arth/engine/tax_engine.dart';
 import 'package:arth/models/gap_card.dart';
 import 'package:arth/models/tax_result.dart';
+import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
 
 class _RentScenario {
@@ -88,10 +89,11 @@ class _TaxPair {
 void main() {
   test('logic audit across income brackets and scenario permutations', () {
     final stopwatch = Stopwatch()..start();
-    final audit = _runAudit();
+    final ruleSet = _loadRuleSet(TaxYearId.fy2025_26);
+    final audit = _runAudit(ruleSet);
     stopwatch.stop();
 
-    final report = _buildReport(audit, stopwatch.elapsed);
+    final report = _buildReport(audit, stopwatch.elapsed, ruleSet);
     File('LOGIC_AUDIT_RESULTS.md').writeAsStringSync(report);
 
     // This is an audit harness, not a behavior gate. It should run and emit a report.
@@ -99,7 +101,7 @@ void main() {
   });
 }
 
-_AuditStats _runAudit() {
+_AuditStats _runAudit(TaxRuleSet ruleSet) {
   final stats = _AuditStats();
   final triggers = _loadTriggers();
   final previousByScenario = <String, _TaxPair>{};
@@ -203,7 +205,11 @@ _AuditStats _runAudit() {
                         );
 
                         final gaps = GapFinder.findGaps(profile, triggers);
-                        final result = TaxEngine.calculate(profile, gaps);
+                        final result = TaxEngine.calculate(
+                          profile,
+                          gaps,
+                          ruleSet: ruleSet,
+                        );
                         stats.totalProfiles++;
 
                         _checkInvariants(stats, profile, gaps, result);
@@ -226,7 +232,7 @@ _AuditStats _runAudit() {
     }
   }
 
-  _runSensitivityChecks(stats, triggers);
+  _runSensitivityChecks(stats, triggers, ruleSet);
   return stats;
 }
 
@@ -324,7 +330,11 @@ void _updateAggregateCounts(_AuditStats stats, TaxResult result) {
   }
 }
 
-void _runSensitivityChecks(_AuditStats stats, List<dynamic> triggers) {
+void _runSensitivityChecks(
+  _AuditStats stats,
+  List<dynamic> triggers,
+  TaxRuleSet ruleSet,
+) {
   const base = UserProfile(
     annualCTC: 1800000,
     employmentType: EmploymentType.salaried,
@@ -334,8 +344,11 @@ void _runSensitivityChecks(_AuditStats stats, List<dynamic> triggers) {
     ageGroup: AgeGroup.below30,
   );
 
-  TaxResult calc(UserProfile profile) =>
-      TaxEngine.calculate(profile, GapFinder.findGaps(profile, triggers));
+  TaxResult calc(UserProfile profile) => TaxEngine.calculate(
+        profile,
+        GapFinder.findGaps(profile, triggers),
+        ruleSet: ruleSet,
+      );
 
   final npsOff = calc(base.copyWith(hasNPS: false, npsExtraContribution: 0));
   final npsOn = calc(base.copyWith(hasNPS: true, npsExtraContribution: 0));
@@ -350,15 +363,15 @@ void _runSensitivityChecks(_AuditStats stats, List<dynamic> triggers) {
   final insuranceOn = calc(base.copyWith(hasHealthInsuranceSelf: true));
   if ((insuranceOff.oldRegimeTax - insuranceOn.oldRegimeTax).abs() < 0.01) {
     stats.addSample(
-      'Sensitivity: health-insurance yes/no does not affect tax payable because premium amounts are not collected.',
+      'Sensitivity: health-insurance yes/no does not affect tax payable until an exact premium amount is added.',
     );
   }
 
   final seniorBase = calc(base.copyWith(ageGroup: AgeGroup.above60));
-  final superSeniorProxy = calc(base.copyWith(ageGroup: AgeGroup.above60));
-  if ((seniorBase.oldRegimeTax - superSeniorProxy.oldRegimeTax).abs() < 0.01) {
+  final superSenior = calc(base.copyWith(ageGroup: AgeGroup.above80));
+  if ((seniorBase.oldRegimeTax - superSenior.oldRegimeTax).abs() < 0.01) {
     stats.addSample(
-      'Sensitivity: app has no distinct 80+ slab input; "Above 60" always uses the 60-79 slab.',
+      'Sensitivity: 80+ slab did not change this sample because income/deductions stayed below the differential old-regime range.',
     );
   }
 }
@@ -369,17 +382,27 @@ List<dynamic> _loadTriggers() {
   return data['decision_tree_triggers'] as List<dynamic>;
 }
 
-String _buildReport(_AuditStats stats, Duration elapsed) {
+TaxRuleSet _loadRuleSet(TaxYearId id) {
+  final jsonStr = File(id.assetPath).readAsStringSync();
+  return TaxRuleSet.fromJson(jsonDecode(jsonStr) as Map<String, dynamic>);
+}
+
+String _buildReport(
+  _AuditStats stats,
+  Duration elapsed,
+  TaxRuleSet ruleSet,
+) {
   final buffer = StringBuffer()
     ..writeln('# Logic Audit Results')
     ..writeln()
     ..writeln('Generated: ${DateTime.now().toIso8601String()}')
+    ..writeln('Rule set: ${ruleSet.displayLabel} / ${ruleSet.assessmentYear}')
     ..writeln('Runtime: ${elapsed.inSeconds}s')
     ..writeln()
     ..writeln('## Sweep Scope')
     ..writeln()
     ..writeln('- Incomes: ₹1L to ₹60L in ₹1L increments')
-    ..writeln('- Age groups: all 4 app-supported groups')
+    ..writeln('- Age groups: all 5 app-supported groups')
     ..writeln('- Employment types: both')
     ..writeln('- City mode: metro and non-metro')
     ..writeln('- Rent/HRA scenarios: 5')
@@ -416,7 +439,7 @@ String _buildReport(_AuditStats stats, Duration elapsed) {
       '- The regime engine remains approximation-driven for HRA/basic salary, 80GG ATI, donations, and professional tax.',
     )
     ..writeln(
-      '- The app does not currently collect rupee inputs for health insurance premium or bank interest, so these cannot be modeled as exact deductions in tax payable.',
+      '- Health insurance premium and bank interest are exact when users add optional accuracy inputs; otherwise they stay as visible assumptions/readiness guidance.',
     )
     ..writeln()
     ..writeln('## Samples')

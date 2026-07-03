@@ -12,6 +12,7 @@ import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
+import '../widgets/tax_rule_badge.dart';
 
 class TaxDossierScreen extends ConsumerWidget {
   const TaxDossierScreen({super.key});
@@ -106,6 +107,8 @@ class TaxDossierScreen extends ConsumerWidget {
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
+                                const SizedBox(height: 14),
+                                TaxRuleBadge(result: result),
                               ],
                             ),
                           ),
@@ -114,10 +117,11 @@ class TaxDossierScreen extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: ArthMetricCard(
-                                  label: 'Gap value',
+                                  label: 'Deduction opportunity',
                                   value: formatRupeesCompact(
-                                      result.totalGapAmount),
-                                  helper: '${result.gapCount} items',
+                                      result.deductionOpportunity),
+                                  helper:
+                                      'Est. benefit ${formatRupeesCompact(result.estimatedTaxBenefit)}',
                                   icon: Icons.savings_outlined,
                                 ),
                               ),
@@ -140,6 +144,13 @@ class TaxDossierScreen extends ConsumerWidget {
                             child: PremiumGlassPanel(
                               child: Column(
                                 children: [
+                                  _DossierRow(
+                                    icon: Icons.gavel_outlined,
+                                    title: 'Rule version',
+                                    body:
+                                        '${result.ruleSetLabel}, ${result.assessmentYear}.',
+                                  ),
+                                  const Divider(color: AppColors.divider),
                                   _DossierRow(
                                     icon: Icons.person_outline_rounded,
                                     title: 'Income profile',

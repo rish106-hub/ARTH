@@ -22,7 +22,7 @@ class DeductionCardsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: ArthAppBar(
-        title: 'Your Tax Gaps',
+        title: 'Deduction Opportunities',
         actions: [
           TextButton(
             onPressed: () => context.push('/action-plan'),
@@ -153,7 +153,7 @@ class _GapSummaryHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total Gap', style: AppTextStyles.micro()),
+                    Text('Total opportunity', style: AppTextStyles.micro()),
                     Text(
                       formatRupeesCompact(totalGap),
                       maxLines: 1,
@@ -168,7 +168,7 @@ class _GapSummaryHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Still recoverable', style: AppTextStyles.micro()),
+                    Text('Still open', style: AppTextStyles.micro()),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
