@@ -45,6 +45,14 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     await _service.deleteDocument(id);
     state = AsyncData(previous.where((doc) => doc.id != id).toList());
   }
+
+  Future<void> confirmParsedFields(String id) async {
+    final previous = state.asData?.value ?? const <TaxDocument>[];
+    final confirmed = await _service.confirmParsedFields(id);
+    state = AsyncData([
+      for (final doc in previous) doc.id == id ? confirmed : doc,
+    ]);
+  }
 }
 
 final taxDocumentProvider =

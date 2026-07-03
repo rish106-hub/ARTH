@@ -93,6 +93,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (error.statusCode == 413) {
       return 'That request was too large. Try again.';
     }
+    if (error.statusCode == 503 ||
+        error.code == 'backend_temporarily_unavailable') {
+      return 'ARTH is still connecting to its secure database. We retried once; please try again in a moment.';
+    }
     if (error.statusCode >= 500) {
       return 'ARTH server had a problem. Please try again in a moment.';
     }

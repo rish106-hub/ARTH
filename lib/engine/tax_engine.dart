@@ -60,6 +60,7 @@ class TaxEngine {
         oldCess: oldResult['cess'] as double,
         newCess: newResult['cess'] as double,
       ),
+      confidenceScore: _confidenceScore(assumptions),
     );
   }
 
@@ -417,5 +418,13 @@ class TaxEngine {
       );
     }
     return assumptions;
+  }
+
+  static int _confidenceScore(List<TaxAssumption> assumptions) {
+    final penalty = assumptions.fold<int>(0, (sum, assumption) {
+      return sum +
+          (assumption.severity == TaxAssumptionSeverity.caution ? 10 : 5);
+    });
+    return (100 - penalty).clamp(45, 100).toInt();
   }
 }

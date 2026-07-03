@@ -138,6 +138,18 @@ class TaxDossierScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          ArthMetricCard(
+                            label: 'Calculation confidence',
+                            value: '${result.confidenceScore}%',
+                            helper: result.assumptions.isEmpty
+                                ? 'No current assumption flags'
+                                : '${result.assumptions.length} assumption notes',
+                            icon: Icons.verified_outlined,
+                            color: result.confidenceScore >= 85
+                                ? AppColors.success
+                                : AppColors.gold,
+                          ),
                           const SizedBox(height: 20),
                           ArthSection(
                             title: 'Summary',
@@ -149,6 +161,14 @@ class TaxDossierScreen extends ConsumerWidget {
                                     title: 'Rule version',
                                     body:
                                         '${result.ruleSetLabel}, ${result.assessmentYear}.',
+                                  ),
+                                  const Divider(color: AppColors.divider),
+                                  _DossierRow(
+                                    icon: Icons.verified_outlined,
+                                    title: 'Accuracy',
+                                    body: result.assumptions.isEmpty
+                                        ? 'High-confidence calculation based on the current profile inputs.'
+                                        : '${result.confidenceLabel}. ARTH is still using assumptions for ${result.assumptions.first.title.toLowerCase()}.',
                                   ),
                                   const Divider(color: AppColors.divider),
                                   _DossierRow(
@@ -210,6 +230,15 @@ class TaxDossierScreen extends ConsumerWidget {
                                   body:
                                       'Know what official data to verify before filing.',
                                   onTap: () => context.push('/ais-guide'),
+                                ),
+                                const SizedBox(height: 10),
+                                _DossierAction(
+                                  icon: Icons.inventory_2_outlined,
+                                  title: 'Open Filing Assistant',
+                                  body:
+                                      'Prepare a CA/portal handoff checklist without claiming ITR filing.',
+                                  onTap: () =>
+                                      context.push('/filing-assistant'),
                                 ),
                               ],
                             ),

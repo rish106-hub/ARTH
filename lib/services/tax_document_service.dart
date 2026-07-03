@@ -49,4 +49,16 @@ class TaxDocumentService {
     if (token == null) throw StateError('not signed in');
     await _api.delete('/documents/$id', bearerToken: token);
   }
+
+  Future<TaxDocument> confirmParsedFields(String id) async {
+    final token = await _auth.getValidAccessToken();
+    if (token == null) throw StateError('not signed in');
+    final response = await _api.postJson(
+      '/documents/$id/confirm',
+      bearerToken: token,
+    );
+    return TaxDocument.fromJson(
+      response['document'] as Map<String, dynamic>? ?? const {},
+    );
+  }
 }

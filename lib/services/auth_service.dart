@@ -24,6 +24,7 @@ class AuthService {
     final response = await _api.postJson(
       '/auth/sign-up',
       body: {'name': name, 'email': email, 'password': password},
+      retryTransient: true,
     );
     return _persistAuthResponse(response);
   }
@@ -35,6 +36,7 @@ class AuthService {
     final response = await _api.postJson(
       '/auth/sign-in',
       body: {'email': email, 'password': password},
+      retryTransient: true,
     );
     return _persistAuthResponse(response);
   }

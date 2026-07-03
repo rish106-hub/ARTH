@@ -22,6 +22,7 @@ class TaxResult {
   final int gapCount;
   final List<TaxAssumption> assumptions;
   final TaxComputationTrace trace;
+  final int confidenceScore;
 
   const TaxResult({
     this.ruleSetId = 'fy_2025_26',
@@ -49,6 +50,7 @@ class TaxResult {
       oldCess: 0,
       newCess: 0,
     ),
+    this.confidenceScore = 70,
   }) : deductionOpportunity = deductionOpportunity ?? totalGapAmount;
 
   bool get isOldBetter => betterRegime == TaxRegime.oldRegime;
@@ -64,6 +66,12 @@ class TaxResult {
 
   String get worseRegimeLabel =>
       betterRegime == TaxRegime.oldRegime ? 'New Regime' : 'Old Regime';
+
+  String get confidenceLabel {
+    if (confidenceScore >= 85) return 'High confidence';
+    if (confidenceScore >= 65) return 'Medium confidence';
+    return 'Needs more inputs';
+  }
 
   Map<String, dynamic> toJson() => {
         'ruleSetId': ruleSetId,
@@ -84,6 +92,8 @@ class TaxResult {
         'gapCount': gapCount,
         'assumptions': assumptions.map((item) => item.toJson()).toList(),
         'trace': trace.toJson(),
+        'confidenceScore': confidenceScore,
+        'confidenceLabel': confidenceLabel,
       };
 
   factory TaxResult.fromJson(Map<String, dynamic> json) {
@@ -131,6 +141,8 @@ class TaxResult {
               oldCess: 0,
               newCess: 0,
             ),
+      confidenceScore:
+          (json['confidenceScore'] as num? ?? 70).round().clamp(0, 100).toInt(),
     );
   }
 }
