@@ -76,7 +76,16 @@ const profileSchema = z.object({
   educationLoanInterest: z.number().int().min(0).max(10_000_000),
   hasDonations: z.boolean(),
   donationAmount: z.number().int().min(0).max(10_000_000),
-  ageGroup: z.enum(['below30', 'age30to45', 'age45to60', 'above60']),
+  ageGroup: z.enum(['below30', 'age30to45', 'age45to60', 'above60', 'above80']),
+  actualBasicSalary: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  actualHraReceived: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  actualProfessionalTax: z.number().int().min(0).max(100_000).nullable().optional(),
+  healthInsuranceSelfPremium: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  healthInsuranceParentsPremium: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  savingsInterest: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  fdInterest: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  employerNpsContribution: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  donationDeductionRatePercent: z.number().int().min(0).max(100).nullable().optional(),
 });
 
 const taxResultSchema = z.record(z.string(), z.any());
@@ -835,6 +844,15 @@ export async function registerRoutes(app: FastifyInstance) {
         hasDonations: row.has_donations,
         donationAmount: row.donation_amount,
         ageGroup: row.age_group,
+        actualBasicSalary: row.actual_basic_salary ?? null,
+        actualHraReceived: row.actual_hra_received ?? null,
+        actualProfessionalTax: row.actual_professional_tax ?? null,
+        healthInsuranceSelfPremium: row.health_insurance_self_premium ?? null,
+        healthInsuranceParentsPremium: row.health_insurance_parents_premium ?? null,
+        savingsInterest: row.savings_interest ?? null,
+        fdInterest: row.fd_interest ?? null,
+        employerNpsContribution: row.employer_nps_contribution ?? null,
+        donationDeductionRatePercent: row.donation_deduction_rate_percent ?? null,
       },
     };
   });
@@ -854,10 +872,14 @@ export async function registerRoutes(app: FastifyInstance) {
            home_loan_interest, has_nps, nps_extra_contribution, has_health_insurance_self,
            has_health_insurance_parents, parents_above_60, has_education_loan,
            education_loan_repayment_year, education_loan_interest, has_donations,
-           donation_amount, age_group, updated_at
+           donation_amount, age_group, actual_basic_salary, actual_hra_received,
+           actual_professional_tax, health_insurance_self_premium,
+           health_insurance_parents_premium, savings_interest, fd_interest,
+           employer_nps_contribution, donation_deduction_rate_percent, updated_at
          ) values (
            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-           $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, now()
+           $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
+           $29, $30, $31, $32, $33, $34, $35, now()
          )
          on conflict (user_id, fy) do update set
            name = excluded.name,
@@ -884,6 +906,15 @@ export async function registerRoutes(app: FastifyInstance) {
            has_donations = excluded.has_donations,
            donation_amount = excluded.donation_amount,
            age_group = excluded.age_group,
+           actual_basic_salary = excluded.actual_basic_salary,
+           actual_hra_received = excluded.actual_hra_received,
+           actual_professional_tax = excluded.actual_professional_tax,
+           health_insurance_self_premium = excluded.health_insurance_self_premium,
+           health_insurance_parents_premium = excluded.health_insurance_parents_premium,
+           savings_interest = excluded.savings_interest,
+           fd_interest = excluded.fd_interest,
+           employer_nps_contribution = excluded.employer_nps_contribution,
+           donation_deduction_rate_percent = excluded.donation_deduction_rate_percent,
            updated_at = now()`,
         [
           auth.userId,
@@ -912,6 +943,15 @@ export async function registerRoutes(app: FastifyInstance) {
           profile.hasDonations,
           profile.donationAmount,
           profile.ageGroup,
+          profile.actualBasicSalary ?? null,
+          profile.actualHraReceived ?? null,
+          profile.actualProfessionalTax ?? null,
+          profile.healthInsuranceSelfPremium ?? null,
+          profile.healthInsuranceParentsPremium ?? null,
+          profile.savingsInterest ?? null,
+          profile.fdInterest ?? null,
+          profile.employerNpsContribution ?? null,
+          profile.donationDeductionRatePercent ?? null,
         ],
       );
       return { ok: true };

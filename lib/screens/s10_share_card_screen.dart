@@ -33,7 +33,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
       await Share.shareXFiles(
         [XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png')],
         text:
-            'I just found ₹${_fmt(totalGap)} I was overpaying in taxes every year.\n\nFind your tax gap → https://arth-website.vercel.app/',
+            'I just found ₹${_fmt(totalGap)} in deduction opportunities with ARTH.\n\nBuild your tax readiness cockpit → https://arth-website.vercel.app/',
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -52,7 +52,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
-      appBar: const ArthAppBar(title: 'Share Your Gap'),
+      appBar: const ArthAppBar(title: 'Share Opportunity'),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
           title: 'Preparing your share card',
@@ -91,7 +91,11 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                       // The card itself (screenshot target)
                       Screenshot(
                         controller: _screenshotCtrl,
-                        child: _ShareCard(totalGap: total, items: items),
+                        child: _ShareCard(
+                          totalGap: total,
+                          items: items,
+                          ruleLabel: result.ruleSetLabel,
+                        ),
                       ),
 
                       const SizedBox(height: 20),
@@ -126,7 +130,8 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                             ),
                           )
                         : const Icon(Icons.ios_share_rounded, size: 18),
-                    label: Text(_sharing ? 'Preparing...' : 'Share My Gap'),
+                    label:
+                        Text(_sharing ? 'Preparing...' : 'Share Opportunity'),
                   ),
                 ),
               ),
@@ -147,8 +152,13 @@ class _ShareItem {
 class _ShareCard extends StatelessWidget {
   final int totalGap;
   final List<_ShareItem> items;
+  final String ruleLabel;
 
-  const _ShareCard({required this.totalGap, required this.items});
+  const _ShareCard({
+    required this.totalGap,
+    required this.items,
+    required this.ruleLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +196,7 @@ class _ShareCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Tax Gap Finder',
+                    'Tax Readiness Cockpit',
                     style: AppTextStyles.micro(color: AppColors.textSecondary),
                     textAlign: TextAlign.right,
                     maxLines: 1,
@@ -204,7 +214,7 @@ class _ShareCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'I just found',
+                  'Deduction opportunities',
                   style: AppTextStyles.body(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
@@ -220,7 +230,7 @@ class _ShareCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'I was overpaying in taxes every year.',
+                  ruleLabel,
                   style: AppTextStyles.body(color: AppColors.textPrimary),
                 ),
               ],
@@ -254,7 +264,7 @@ class _ShareCard extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Find your gap →',
+                    'Build yours →',
                     style: AppTextStyles.bodyMedium(color: AppColors.gold),
                     textAlign: TextAlign.center,
                   ),

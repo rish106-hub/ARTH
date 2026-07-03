@@ -1,0 +1,91 @@
+{
+  "id": "fy_2025_26",
+  "calculation_mode": "filing",
+  "display_label": "FY2025-26 Filing",
+  "fy_label": "FY 2025-26",
+  "assessment_year": "AY 2026-27",
+  "finance_act": "Finance Act 2025",
+  "legal_basis": "Income-tax Act, 1961 as amended by Finance Act 2025",
+  "effective_from": "2025-04-01",
+  "effective_to": "2026-03-31",
+  "source_urls": [
+    "https://www.incometaxindia.gov.in/w/tax-rates%E2%80%8B",
+    "https://www.incometaxindia.gov.in/w/threshold-limits-under-income-tax-act",
+    "https://www.incometaxindia.gov.in/w/brief-on-budget"
+  ],
+  "cess_rate": 0.04,
+  "new_regime": {
+    "standard_deduction": 75000,
+    "rebate_87a_limit": 1200000,
+    "rebate_87a_amount": 60000,
+    "slabs": [
+      { "from": 0, "to": 400000, "rate": 0.0 },
+      { "from": 400000, "to": 800000, "rate": 0.05 },
+      { "from": 800000, "to": 1200000, "rate": 0.10 },
+      { "from": 1200000, "to": 1600000, "rate": 0.15 },
+      { "from": 1600000, "to": 2000000, "rate": 0.20 },
+      { "from": 2000000, "to": 2400000, "rate": 0.25 },
+      { "from": 2400000, "to": 999999999, "rate": 0.30 }
+    ]
+  },
+  "old_regime": {
+    "standard_deduction": 50000,
+    "professional_tax_default": 2500,
+    "rebate_87a_limit": 500000,
+    "rebate_87a_amount": 12500,
+    "slabs_below_60": [
+      { "from": 0, "to": 250000, "rate": 0.0 },
+      { "from": 250000, "to": 500000, "rate": 0.05 },
+      { "from": 500000, "to": 1000000, "rate": 0.20 },
+      { "from": 1000000, "to": 999999999, "rate": 0.30 }
+    ],
+    "slabs_60_to_79": [
+      { "from": 0, "to": 300000, "rate": 0.0 },
+      { "from": 300000, "to": 500000, "rate": 0.05 },
+      { "from": 500000, "to": 1000000, "rate": 0.20 },
+      { "from": 1000000, "to": 999999999, "rate": 0.30 }
+    ],
+    "slabs_80_plus": [
+      { "from": 0, "to": 500000, "rate": 0.0 },
+      { "from": 500000, "to": 1000000, "rate": 0.20 },
+      { "from": 1000000, "to": 999999999, "rate": 0.30 }
+    ]
+  },
+  "deductions": {
+    "80c": 150000,
+    "80ccd_1b": 50000,
+    "80d_self_below60": 25000,
+    "80d_self_above60": 50000,
+    "80d_parents_below60": 25000,
+    "80d_parents_above60": 50000,
+    "section_24b_self_occupied": 200000,
+    "80tta": 10000,
+    "80ttb": 50000
+  },
+  "income_guidance": [
+    {
+      "range": "Up to ₹12.75L salary",
+      "recommendation": "New Regime",
+      "reason": "Rebate plus standard deduction can make tax zero",
+      "tone": "success"
+    },
+    {
+      "range": "₹12.75L – ₹24L",
+      "recommendation": "Usually New",
+      "reason": "Lower slabs help unless old-regime deductions are strong",
+      "tone": "success"
+    },
+    {
+      "range": "₹24L – ₹50L",
+      "recommendation": "Compare both",
+      "reason": "Old can win with HRA, 80C, NPS, insurance, or home loan",
+      "tone": "gold"
+    },
+    {
+      "range": "Above ₹50L",
+      "recommendation": "Consult CA",
+      "reason": "Surcharge and marginal relief matter",
+      "tone": "muted"
+    }
+  ]
+}

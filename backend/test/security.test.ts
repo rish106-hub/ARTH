@@ -992,5 +992,14 @@ function profileRowFromParams(params: unknown[]): Row {
     has_donations: params[23],
     donation_amount: params[24],
     age_group: params[25],
+    actual_basic_salary: params[26] ?? null,
+    actual_hra_received: params[27] ?? null,
+    actual_professional_tax: params[28] ?? null,
+    health_insurance_self_premium: params[29] ?? null,
+    health_insurance_parents_premium: params[30] ?? null,
+    savings_interest: params[31] ?? null,
+    fd_interest: params[32] ?? null,
+    employer_nps_contribution: params[33] ?? null,
+    donation_deduction_rate_percent: params[34] ?? null,
   };
 }

@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/tax_rule_badge.dart';
 
 class GapRevealScreen extends ConsumerStatefulWidget {
   const GapRevealScreen({super.key});
@@ -186,28 +187,26 @@ class _HeroCockpitCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: TrustBadge(
-                    icon: hasGap
-                        ? Icons.auto_awesome_rounded
-                        : Icons.verified_rounded,
-                    label:
-                        hasGap ? 'Recoverable gap found' : 'No major gap found',
-                  ),
-                ),
+              TrustBadge(
+                icon: hasGap
+                    ? Icons.auto_awesome_rounded
+                    : Icons.verified_rounded,
+                label: hasGap
+                    ? 'Deduction opportunity found'
+                    : 'No major gap found',
               ),
-              const SizedBox(width: 10),
-              Text('FY 2026-27', style: AppTextStyles.micro()),
+              TaxRuleBadge(result: result),
             ],
           ),
           const SizedBox(height: 24),
           Text(
-            hasGap ? 'You may be leaving behind' : 'Your profile looks tight',
+            hasGap
+                ? 'Potential deduction opportunity'
+                : 'Your profile looks tight',
             style: AppTextStyles.body(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
@@ -215,7 +214,7 @@ class _HeroCockpitCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: AnimatedRupeeNumber(
-              value: result.totalGapAmount,
+              value: result.deductionOpportunity,
               duration: const Duration(milliseconds: 1400),
               style: AppTextStyles.display(),
             ),
@@ -223,10 +222,17 @@ class _HeroCockpitCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             hasGap
-                ? '${result.gapCount} opportunities ranked by impact.'
+                ? '${result.gapCount} opportunities ranked by impact. Estimated tax benefit: ${formatRupeesCompact(result.estimatedTaxBenefit)}.'
                 : 'Keep documents ready and re-check when income changes.',
             style: AppTextStyles.body(color: AppColors.textSecondary),
           ),
+          if (result.assumptions.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              '${result.assumptions.length} calculation assumption${result.assumptions.length == 1 ? '' : 's'} active. Add exact inputs to tighten the result.',
+              style: AppTextStyles.micro(color: AppColors.amber),
+            ),
+          ],
           const SizedBox(height: 20),
           ClipRRect(
             borderRadius: AppRadius.pill,
@@ -282,7 +288,9 @@ class _NextActionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  formatRupees(gap.gapAmount),
+                  'Opportunity ${formatRupees(gap.gapAmount)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.h3(color: AppColors.gold),
                 ),
               ),

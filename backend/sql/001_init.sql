@@ -51,7 +51,16 @@ CREATE TABLE IF NOT EXISTS tax_profiles (
     education_loan_interest     INTEGER NOT NULL DEFAULT 0,
     has_donations               BOOLEAN NOT NULL DEFAULT FALSE,
     donation_amount             INTEGER NOT NULL DEFAULT 0,
-    age_group                   TEXT NOT NULL CHECK (age_group IN ('below30', 'age30to45', 'age45to60', 'above60')),
+    age_group                   TEXT NOT NULL CHECK (age_group IN ('below30', 'age30to45', 'age45to60', 'above60', 'above80')),
+    actual_basic_salary         INTEGER CHECK (actual_basic_salary IS NULL OR actual_basic_salary >= 0),
+    actual_hra_received         INTEGER CHECK (actual_hra_received IS NULL OR actual_hra_received >= 0),
+    actual_professional_tax     INTEGER CHECK (actual_professional_tax IS NULL OR actual_professional_tax >= 0),
+    health_insurance_self_premium INTEGER CHECK (health_insurance_self_premium IS NULL OR health_insurance_self_premium >= 0),
+    health_insurance_parents_premium INTEGER CHECK (health_insurance_parents_premium IS NULL OR health_insurance_parents_premium >= 0),
+    savings_interest            INTEGER CHECK (savings_interest IS NULL OR savings_interest >= 0),
+    fd_interest                 INTEGER CHECK (fd_interest IS NULL OR fd_interest >= 0),
+    employer_nps_contribution   INTEGER CHECK (employer_nps_contribution IS NULL OR employer_nps_contribution >= 0),
+    donation_deduction_rate_percent INTEGER CHECK (donation_deduction_rate_percent IS NULL OR donation_deduction_rate_percent BETWEEN 0 AND 100),
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, fy)
 );

@@ -75,6 +75,7 @@ flutter:
 
   assets:
     - assets/tax_data.json
+    - assets/tax_rules/
     - assets/lottie/coins.json
     - assets/images/
 

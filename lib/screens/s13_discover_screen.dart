@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/tax_readiness.dart';
 import '../providers/account_profile_provider.dart';
+import '../providers/entitlement_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
@@ -85,6 +86,7 @@ class _TaxOsHome extends ConsumerWidget {
     final docPercent = documentReadinessPercent(checklist);
     final panPresent =
         ref.watch(accountProfileProvider).asData?.value?.pan.present ?? false;
+    final entitlement = ref.watch(entitlementProvider);
     final readiness = _readinessScore(
       diagnosticComplete: complete,
       docPercent: docPercent,
@@ -242,6 +244,26 @@ class _TaxOsHome extends ConsumerWidget {
                   onTap: () => context.push('/tax-dossier'),
                 ),
                 const SizedBox(height: 10),
+                _PremiumModuleTile(
+                  icon: Icons.document_scanner_outlined,
+                  title: 'Document Intelligence',
+                  body: entitlement.isPremiumDemo
+                      ? 'Premium demo unlocked. Upload Form 16, AIS, or 26AS for deterministic parsing readiness.'
+                      : 'Premium demo. Form 16, AIS, and 26AS parsing plus mismatch checklist.',
+                  unlocked: entitlement.isPremiumDemo,
+                  onTap: () => context.push('/documents'),
+                ),
+                const SizedBox(height: 10),
+                _PremiumModuleTile(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'CA-ready Filing Pack',
+                  body: entitlement.isPremiumDemo
+                      ? 'Premium demo unlocked. Build a dossier and proof handoff checklist.'
+                      : 'Premium demo. Exportable dossier, proof bundle, and filing handoff checklist.',
+                  unlocked: entitlement.isPremiumDemo,
+                  onTap: () => context.push('/tax-dossier'),
+                ),
+                const SizedBox(height: 10),
                 _ModuleTile(
                   icon: Icons.support_agent_rounded,
                   title: 'Help Center',
@@ -264,6 +286,59 @@ class _TaxOsHome extends ConsumerWidget {
     final docs = (docPercent * 0.40).round();
     final guideBase = 15;
     return (diagnostic + docs + guideBase).clamp(0, 100);
+  }
+}
+
+class _PremiumModuleTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final bool unlocked;
+  final VoidCallback onTap;
+
+  const _PremiumModuleTile({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.unlocked,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      padding: const EdgeInsets.all(16),
+      tint: unlocked ? AppColors.gold : AppColors.textSecondary,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon,
+            color: unlocked ? AppColors.gold : AppColors.textSecondary),
+        title: Row(
+          children: [
+            Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
+            const SizedBox(width: 8),
+            TrustBadge(
+              icon: unlocked
+                  ? Icons.workspace_premium_outlined
+                  : Icons.lock_outline_rounded,
+              label: unlocked ? 'Premium demo' : 'Locked',
+              color: unlocked ? AppColors.gold : AppColors.textSecondary,
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            body,
+            style: AppTextStyles.caption(color: AppColors.textSecondary),
+          ),
+        ),
+        trailing: Icon(
+          unlocked ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
+        ),
+        onTap: unlocked ? onTap : null,
+      ),
+    );
   }
 }
 

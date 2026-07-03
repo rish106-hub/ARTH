@@ -80,6 +80,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
                         remaining: remaining,
                         doneCount: doneCount,
                         totalCount: gaps.length,
+                        ruleLabel: result.ruleSetLabel,
                       ),
                       const SizedBox(height: 24),
 
@@ -220,7 +221,12 @@ class _FYTimeline extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text('FY 2026-27', style: AppTextStyles.h3())),
+              Expanded(
+                child: Text(
+                  'FY2026-27 Planning',
+                  style: AppTextStyles.h3(),
+                ),
+              ),
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
@@ -277,12 +283,14 @@ class _OverallProgress extends StatelessWidget {
   final int remaining;
   final int doneCount;
   final int totalCount;
+  final String ruleLabel;
 
   const _OverallProgress({
     required this.totalGap,
     required this.remaining,
     required this.doneCount,
     required this.totalCount,
+    required this.ruleLabel,
   });
 
   @override
@@ -310,7 +318,7 @@ class _OverallProgress extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Claimed so far',
+                      'Addressed so far',
                       style: AppTextStyles.micro(
                         color: AppColors.textSecondary,
                       ),
@@ -329,7 +337,7 @@ class _OverallProgress extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Still to claim',
+                      'Still open',
                       style: AppTextStyles.micro(
                         color: AppColors.textSecondary,
                       ),
@@ -360,7 +368,7 @@ class _OverallProgress extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '$doneCount of $totalCount gaps addressed',
+            '$doneCount of $totalCount opportunities addressed • $ruleLabel',
             style: AppTextStyles.caption(color: AppColors.textSecondary),
           ),
         ],
