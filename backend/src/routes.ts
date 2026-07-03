@@ -10,6 +10,7 @@ import {
   decryptDocument,
   encryptDocument,
   encryptPan,
+  type EncryptedSecret,
   hashPan,
   hashPassword,
   hashRefreshToken,
@@ -257,6 +258,7 @@ function accountResponse(user: {
 }
 
 function documentResponse(row: Record<string, unknown>) {
+  const parseSummary = publicParseSummary(row.parse_summary);
   return {
     id: row.id,
     fy: row.fy,
@@ -266,7 +268,7 @@ function documentResponse(row: Record<string, unknown>) {
     byteSize: row.byte_size,
     sha256Fingerprint: row.sha256_fingerprint,
     parseStatus: row.parse_status,
-    parseSummary: row.parse_summary ?? {},
+    parseSummary,
     createdAt: row.created_at
       ? new Date(row.created_at as string | Date).toISOString()
       : null,
@@ -278,6 +280,54 @@ function documentResponse(row: Record<string, unknown>) {
 
 function safeFilename(filename: string): string {
   return filename.replace(/[^\w.\- ()]/g, '').slice(0, 160) || 'document';
+}
+
+function storedParseSummary(summary: Record<string, unknown>) {
+  const extractedFields = summary.extractedFields;
+  if (!extractedFields || typeof extractedFields !== 'object') {
+    return summary;
+  }
+  const encrypted = encryptDocument(
+    Buffer.from(JSON.stringify(extractedFields), 'utf8'),
+  );
+  const { extractedFields: _removed, ...rest } = summary;
+  return {
+    ...rest,
+    encryptedExtractedFields: encrypted,
+    extractedFieldKeys: Object.keys(extractedFields),
+  };
+}
+
+function publicParseSummary(raw: unknown) {
+  const summary = raw && typeof raw === 'object'
+    ? { ...(raw as Record<string, unknown>) }
+    : {};
+  const encrypted = encryptedExtractedFields(summary.encryptedExtractedFields);
+  if (encrypted) {
+    try {
+      summary.extractedFields = JSON.parse(
+        decryptDocument(encrypted).toString('utf8'),
+      );
+    } catch (_) {
+      summary.extractedFieldsUnavailable = true;
+    }
+  }
+  delete summary.encryptedExtractedFields;
+  return summary;
+}
+
+function encryptedExtractedFields(value: unknown): EncryptedSecret | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.ciphertext === 'string'
+    && typeof candidate.iv === 'string'
+    && typeof candidate.authTag === 'string'
+    ? {
+        ciphertext: candidate.ciphertext,
+        iv: candidate.iv,
+        authTag: candidate.authTag,
+      }
+    : null;
 }
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -717,7 +767,7 @@ export async function registerRoutes(app: FastifyInstance) {
         encrypted.iv,
         encrypted.authTag,
         parsed.status,
-        JSON.stringify(parsed.summary),
+        JSON.stringify(storedParseSummary(parsed.summary)),
       ],
     );
     await db.query(
@@ -749,14 +799,18 @@ export async function registerRoutes(app: FastifyInstance) {
       });
     }
 
-    const summary = typeof row.parse_summary === 'object' && row.parse_summary
+    const storedSummary = typeof row.parse_summary === 'object' && row.parse_summary
       ? row.parse_summary as Record<string, unknown>
       : {};
+    const summary = publicParseSummary(storedSummary);
+    const extractedFields = summary.extractedFields && typeof summary.extractedFields === 'object'
+      ? summary.extractedFields as Record<string, unknown>
+      : {};
     const confirmedSummary = {
-      ...summary,
+      ...storedSummary,
       confirmationStatus: 'confirmed',
       confirmedAt: new Date().toISOString(),
-      confirmedFields: summary.extractedFields ?? {},
+      confirmedFieldKeys: Object.keys(extractedFields),
     };
     const updated = await db.query(
       `update tax_documents

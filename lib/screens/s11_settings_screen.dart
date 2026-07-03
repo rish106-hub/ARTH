@@ -251,7 +251,7 @@ class SettingsScreen extends ConsumerWidget {
         confirmColor: AppColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
-          scheduleDeviceSignOut(context, ref);
+          await signOutDeviceAndRouteToAuth(context, ref);
         },
       ),
     );

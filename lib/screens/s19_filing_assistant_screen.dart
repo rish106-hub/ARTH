@@ -48,7 +48,13 @@ class FilingAssistantScreen extends ConsumerWidget {
             title: 'Filing Assistant',
             leading: IconButton(
               tooltip: 'Back',
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/action-plan');
+                }
+              },
               icon: const Icon(Icons.arrow_back_rounded),
               color: AppColors.textSecondary,
             ),
@@ -74,168 +80,182 @@ class FilingAssistantScreen extends ConsumerWidget {
                   ),
                   data: (result) {
                     final checklist = ref.watch(documentChecklistProvider);
-                    final documents =
-                        ref.watch(taxDocumentProvider).asData?.value ??
-                            const [];
                     final entitlement = ref.watch(entitlementProvider);
                     final readyDocs = completedDocumentCount(checklist);
-                    final confirmedDocs =
-                        documents.where((doc) => doc.parsed).length;
+                    final documentsAsync = ref.watch(taxDocumentProvider);
 
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          PremiumGlassPanel(
-                            elevated: true,
-                            borderRadius: BorderRadius.circular(28),
-                            tint: AppColors.gold,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const TrustBadge(
-                                  icon: Icons.inventory_2_outlined,
-                                  label: 'Filing prep, not ITR submission',
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'CA-ready Filing Pack',
-                                  style: AppTextStyles.h1(),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Prepare the numbers, documents, assumptions, and missing items you would hand to a CA, employer portal, or the official tax portal.',
-                                  style: AppTextStyles.body(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                TaxRuleBadge(result: result),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          ArthSection(
-                            title: 'Readiness map',
-                            child: PremiumGlassPanel(
-                              child: Column(
-                                children: [
-                                  _ReadinessRow(
-                                    icon: Icons.verified_outlined,
-                                    title: 'Calculation confidence',
-                                    body:
-                                        '${result.confidenceScore}% • ${result.confidenceLabel}',
-                                    ready: result.confidenceScore >= 85,
-                                  ),
-                                  const Divider(color: AppColors.divider),
-                                  _ReadinessRow(
-                                    icon: Icons.folder_copy_outlined,
-                                    title: 'Proof checklist',
-                                    body:
-                                        '$readyDocs/${taxDocumentItems.length} proof categories marked ready',
-                                    ready: readyDocs >= taxDocumentItems.length,
-                                  ),
-                                  const Divider(color: AppColors.divider),
-                                  _ReadinessRow(
-                                    icon: Icons.document_scanner_outlined,
-                                    title: 'Confirmed parsed documents',
-                                    body:
-                                        '$confirmedDocs confirmed. Upload Form 16 as a text PDF for deterministic parsing.',
-                                    ready: confirmedDocs > 0,
-                                  ),
-                                  const Divider(color: AppColors.divider),
-                                  _ReadinessRow(
-                                    icon: Icons.account_balance_outlined,
-                                    title: 'AIS / 26AS review',
-                                    body:
-                                        'Use the guide to check tax credits and reported income before filing.',
-                                    ready: false,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          ArthSection(
-                            title: 'Pack contents',
-                            child: PremiumGlassPanel(
-                              tint: entitlement.isPremiumDemo
-                                  ? AppColors.gold
-                                  : AppColors.textSecondary,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TrustBadge(
-                                    icon: entitlement.isPremiumDemo
-                                        ? Icons.workspace_premium_outlined
-                                        : Icons.lock_outline_rounded,
-                                    label: entitlement.isPremiumDemo
-                                        ? 'Premium demo unlocked'
-                                        : 'Premium demo locked',
-                                    color: entitlement.isPremiumDemo
-                                        ? AppColors.gold
-                                        : AppColors.textSecondary,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const _PackLine(
-                                    title: 'Tax Dossier',
-                                    body:
-                                        'Income profile, regime insight, deduction opportunity, tax benefit, and assumptions.',
-                                  ),
-                                  const _PackLine(
-                                    title: 'Proof bundle checklist',
-                                    body:
-                                        'What is ready, what is uploaded, and what still needs collection.',
-                                  ),
-                                  const _PackLine(
-                                    title: 'Filing handoff notes',
-                                    body:
-                                        'Clear reminders for CA/portal review. No official ITR filing claim.',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  if (entitlement.isPremiumDemo)
-                                    Wrap(
-                                      spacing: 10,
-                                      runSpacing: 10,
-                                      children: [
-                                        OutlinedButton.icon(
-                                          style: AppButtons.outlineGold,
-                                          onPressed: () =>
-                                              context.push('/tax-dossier'),
-                                          icon: const Icon(
-                                            Icons.assignment_outlined,
-                                          ),
-                                          label: const Text('Open dossier'),
-                                        ),
-                                        OutlinedButton.icon(
-                                          style: AppButtons.outlineGold,
-                                          onPressed: () =>
-                                              context.push('/documents'),
-                                          icon: const Icon(
-                                            Icons.folder_special_outlined,
-                                          ),
-                                          label: const Text('Review docs'),
-                                        ),
-                                      ],
-                                    )
-                                  else
-                                    OutlinedButton.icon(
-                                      style: AppButtons.outlineGold,
-                                      onPressed: () => context.go('/profile'),
-                                      icon: const Icon(
-                                        Icons.workspace_premium_outlined,
-                                      ),
-                                      label: const Text(
-                                        'Enable demo in Profile',
+                    return documentsAsync.when(
+                      loading: () => const ArthLoadingPanel(
+                        title: 'Checking document vault',
+                        insights: ['Confirming uploaded proof status.'],
+                      ),
+                      error: (_, __) => RetryErrorState(
+                        message:
+                            'Could not load document readiness. Retry before using the filing pack.',
+                        onRetry: () => ref.invalidate(taxDocumentProvider),
+                      ),
+                      data: (documents) {
+                        final confirmedDocs =
+                            documents.where((doc) => doc.parsed).length;
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              PremiumGlassPanel(
+                                elevated: true,
+                                borderRadius: BorderRadius.circular(28),
+                                tint: AppColors.gold,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const TrustBadge(
+                                      icon: Icons.inventory_2_outlined,
+                                      label: 'Filing prep, not ITR submission',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'CA-ready Filing Pack',
+                                      style: AppTextStyles.h1(),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Prepare the numbers, documents, assumptions, and missing items you would hand to a CA, employer portal, or the official tax portal.',
+                                      style: AppTextStyles.body(
+                                        color: AppColors.textSecondary,
                                       ),
                                     ),
-                                ],
+                                    const SizedBox(height: 14),
+                                    TaxRuleBadge(result: result),
+                                  ],
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 18),
+                              ArthSection(
+                                title: 'Readiness map',
+                                child: PremiumGlassPanel(
+                                  child: Column(
+                                    children: [
+                                      _ReadinessRow(
+                                        icon: Icons.verified_outlined,
+                                        title: 'Calculation confidence',
+                                        body:
+                                            '${result.confidenceScore}% • ${result.confidenceLabel}',
+                                        ready: result.confidenceScore >= 85,
+                                      ),
+                                      const Divider(color: AppColors.divider),
+                                      _ReadinessRow(
+                                        icon: Icons.folder_copy_outlined,
+                                        title: 'Proof checklist',
+                                        body:
+                                            '$readyDocs/${taxDocumentItems.length} proof categories marked ready',
+                                        ready: readyDocs >=
+                                            taxDocumentItems.length,
+                                      ),
+                                      const Divider(color: AppColors.divider),
+                                      _ReadinessRow(
+                                        icon: Icons.document_scanner_outlined,
+                                        title: 'Confirmed parsed documents',
+                                        body:
+                                            '$confirmedDocs confirmed. Upload Form 16 as a text PDF for deterministic parsing.',
+                                        ready: confirmedDocs > 0,
+                                      ),
+                                      const Divider(color: AppColors.divider),
+                                      _ReadinessRow(
+                                        icon: Icons.account_balance_outlined,
+                                        title: 'AIS / 26AS review',
+                                        body:
+                                            'Use the guide to check tax credits and reported income before filing.',
+                                        ready: false,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ArthSection(
+                                title: 'Pack contents',
+                                child: PremiumGlassPanel(
+                                  tint: entitlement.isPremiumDemo
+                                      ? AppColors.gold
+                                      : AppColors.textSecondary,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      TrustBadge(
+                                        icon: entitlement.isPremiumDemo
+                                            ? Icons.workspace_premium_outlined
+                                            : Icons.lock_outline_rounded,
+                                        label: entitlement.isPremiumDemo
+                                            ? 'Premium demo unlocked'
+                                            : 'Premium demo locked',
+                                        color: entitlement.isPremiumDemo
+                                            ? AppColors.gold
+                                            : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const _PackLine(
+                                        title: 'Tax Dossier',
+                                        body:
+                                            'Income profile, regime insight, deduction opportunity, tax benefit, and assumptions.',
+                                      ),
+                                      const _PackLine(
+                                        title: 'Proof bundle checklist',
+                                        body:
+                                            'What is ready, what is uploaded, and what still needs collection.',
+                                      ),
+                                      const _PackLine(
+                                        title: 'Filing handoff notes',
+                                        body:
+                                            'Clear reminders for CA/portal review. No official ITR filing claim.',
+                                      ),
+                                      const SizedBox(height: 12),
+                                      if (entitlement.isPremiumDemo)
+                                        Wrap(
+                                          spacing: 10,
+                                          runSpacing: 10,
+                                          children: [
+                                            OutlinedButton.icon(
+                                              style: AppButtons.outlineGold,
+                                              onPressed: () =>
+                                                  context.push('/tax-dossier'),
+                                              icon: const Icon(
+                                                Icons.assignment_outlined,
+                                              ),
+                                              label: const Text('Open dossier'),
+                                            ),
+                                            OutlinedButton.icon(
+                                              style: AppButtons.outlineGold,
+                                              onPressed: () =>
+                                                  context.push('/documents'),
+                                              icon: const Icon(
+                                                Icons.folder_special_outlined,
+                                              ),
+                                              label: const Text('Review docs'),
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        OutlinedButton.icon(
+                                          style: AppButtons.outlineGold,
+                                          onPressed: () =>
+                                              context.go('/profile'),
+                                          icon: const Icon(
+                                            Icons.workspace_premium_outlined,
+                                          ),
+                                          label: const Text(
+                                            'Enable demo in Profile',
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 );

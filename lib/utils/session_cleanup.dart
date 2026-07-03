@@ -40,13 +40,3 @@ Future<void> signOutDeviceAndRouteToAuth(
     context.go('/auth');
   }
 }
-
-void scheduleDeviceSignOut(
-  BuildContext context,
-  WidgetRef ref,
-) {
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!context.mounted) return;
-    signOutDeviceAndRouteToAuth(context, ref);
-  });
-}

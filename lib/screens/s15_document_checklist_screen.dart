@@ -274,10 +274,13 @@ class DocumentChecklistScreen extends ConsumerWidget {
                     ),
                   );
                 }
-              } catch (_) {
+              } catch (caught) {
+                if (!sheetContext.mounted) return;
                 setSheetState(() {
                   saving = false;
-                  error = 'Could not confirm fields. Try again.';
+                  error = caught is ServerApiException
+                      ? caught.message
+                      : 'Could not confirm fields. Try again.';
                 });
               }
             }

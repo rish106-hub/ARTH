@@ -660,7 +660,7 @@ class ProfileScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              scheduleDeviceSignOut(context, ref);
+              await signOutDeviceAndRouteToAuth(context, ref);
             },
             child: const Text('Sign out'),
           ),

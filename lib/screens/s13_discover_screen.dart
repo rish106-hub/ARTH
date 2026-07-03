@@ -269,14 +269,6 @@ class _TaxOsHome extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 _ModuleTile(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Filing Assistant',
-                  body:
-                      'Map your result, proofs, and assumptions into a CA/portal handoff checklist.',
-                  onTap: () => context.push('/filing-assistant'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
                   icon: Icons.support_agent_rounded,
                   title: 'Help Center',
                   body: 'Report issues, ask questions, or get data help.',

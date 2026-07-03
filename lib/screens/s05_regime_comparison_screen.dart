@@ -208,14 +208,53 @@ class _AssumptionsPanel extends StatelessWidget {
           Text('Calculation assumptions', style: AppTextStyles.h3()),
           const SizedBox(height: 8),
           ...assumptions.take(4).map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    '${item.title}: ${item.detail}',
-                    style: AppTextStyles.micro(color: AppColors.textSecondary),
+            (item) {
+              final caution = item.severity == TaxAssumptionSeverity.caution;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: caution
+                      ? AppColors.amber.withValues(alpha: 0.10)
+                      : AppColors.bgSurface.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: caution
+                        ? AppColors.amber.withValues(alpha: 0.32)
+                        : AppColors.border,
                   ),
                 ),
-              ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      caution
+                          ? Icons.warning_amber_rounded
+                          : Icons.info_outline_rounded,
+                      size: 15,
+                      color: caution ? AppColors.amber : AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${item.title}: ${item.detail}',
+                        style: AppTextStyles.micro(
+                          color: caution
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          if (assumptions.length > 4)
+            Text(
+              '+${assumptions.length - 4} more assumption${assumptions.length - 4 == 1 ? '' : 's'} affect this estimate.',
+              style: AppTextStyles.micro(color: AppColors.textSecondary),
+            ),
         ],
       ),
     );

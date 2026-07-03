@@ -41,7 +41,8 @@ Railway variables:
 - `DB_POOL_MAX=5`
 - `DB_IDLE_TIMEOUT_MS=30000`
 - `DB_CONNECTION_TIMEOUT_MS=10000`
-- `CURRENT_FY=2026-27`
+- `CURRENT_FY=2025-26`
+- `DOCUMENT_ENCRYPTION_KEY` as 32 random bytes, base64 encoded
 
 Fail-fast checks reject wildcard production CORS, non-HTTPS production origins,
 matching JWT secrets, placeholder JWT secrets, and out-of-range token or DB

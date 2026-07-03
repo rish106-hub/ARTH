@@ -48,8 +48,6 @@ class TaxDocument {
         return 'Confirmed';
       case 'unsupported':
         return 'Manual review';
-      case 'failed':
-        return 'Parse failed';
       default:
         return 'Stored';
     }

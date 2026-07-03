@@ -85,6 +85,35 @@ class FakeDb {
     return this.documents.get(documentId);
   }
 
+  seedDocument(userId: string, overrides: Row = {}) {
+    const now = new Date();
+    const id = (overrides.id as string | undefined) ?? this.nextId('doc');
+    const doc = {
+      id,
+      user_id: userId,
+      fy: '2025-26',
+      document_type: 'form16',
+      original_filename: 'Form 16.pdf',
+      mime_type: 'application/pdf',
+      byte_size: 1024,
+      sha256_fingerprint: `seed-${id}`,
+      ciphertext: 'encrypted-document',
+      iv: 'document-iv',
+      auth_tag: 'document-auth-tag',
+      parse_status: 'needs_confirmation',
+      parse_summary: {
+        parser: 'deterministic-form16-v1',
+        llmUsed: false,
+        confirmationStatus: 'pending',
+      },
+      created_at: now,
+      updated_at: now,
+      ...overrides,
+    };
+    this.documents.set(id, doc);
+    return doc;
+  }
+
   async connect() {
     return new FakeDbClient(this);
   }
@@ -908,12 +937,88 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('confirms parsed document fields only for the owner and pending documents', async () => {
+    const { encryptDocument } = await import('../src/security.js');
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const extractedFields = {
+      employerName: 'Example Technologies Private Limited',
+      employerTan: 'ABCD12345E',
+      grossSalary: 1850000,
+      taxDeductedAtSource: 125500,
+      panMatchStatus: 'matches_vault',
+    };
+    const encryptedExtractedFields = encryptDocument(
+      Buffer.from(JSON.stringify(extractedFields), 'utf8'),
+    );
+    const pending = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000091',
+      parse_status: 'needs_confirmation',
+      parse_summary: {
+        parser: 'deterministic-form16-v1',
+        llmUsed: false,
+        confirmationStatus: 'pending',
+        encryptedExtractedFields,
+      },
+    });
+    const wrongStatus = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000092',
+      parse_status: 'metadata_ready',
+    });
+
+    const bobConfirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${pending.id}/confirm`,
+      headers: bearer(bob.accessToken),
+    });
+    assert.equal(bobConfirm.statusCode, 404);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${wrongStatus.id}/confirm`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(conflict.statusCode, 409);
+
+    const confirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${pending.id}/confirm`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(confirm.statusCode, 200);
+    assert.equal(confirm.json().document.parseStatus, 'parsed');
+    assert.equal(
+      confirm.json().document.parseSummary.extractedFields.grossSalary,
+      1850000,
+    );
+    assert.equal(JSON.stringify(confirm.json()).includes('encryptedExtractedFields'), false);
+    assert.equal(JSON.stringify(confirm.json()).includes(encryptedExtractedFields.ciphertext), false);
+
+    const stored = fakeDb.rawDocument(pending.id);
+    assert.ok(stored);
+    assert.equal(stored.parse_status, 'parsed');
+    const storedSummary = stored.parse_summary as Record<string, unknown>;
+    assert.equal(Object.hasOwn(storedSummary, 'extractedFields'), false);
+    assert.equal(Object.hasOwn(storedSummary, 'encryptedExtractedFields'), true);
+    assert.equal(JSON.stringify(storedSummary).includes('1850000'), false);
+    assert.equal(JSON.stringify(storedSummary).includes('Example Technologies'), false);
+    assert.equal(JSON.stringify(stored.parse_summary).includes('confirmedFields'), false);
+    assert.deepEqual(
+      storedSummary.confirmedFieldKeys,
+      Object.keys(extractedFields),
+    );
+
+    await app.close();
+  });
+
   it('extracts deterministic Form 16 fields without returning raw PAN', () => {
     const fields = parseForm16Text(
       [
         'Employer Name: Example Technologies Private Limited',
         'TAN: ABCD12345E',
-        'PAN: ABCDE1234F',
+        'Employer PAN: ABCDE1234F',
+        'Employee PAN: fghij5678k',
         'Financial Year: 2025-26',
         'Assessment Year: 2026-27',
         'Gross Salary: Rs. 18,50,000',
@@ -922,7 +1027,7 @@ describe('backend security harness', () => {
         'Tax deducted at source: Rs. 1,25,500',
         'Taxable income: Rs. 15,75,000',
       ].join('\n'),
-      { last4: '1234', lastChar: 'F' },
+      { last4: '5678', lastChar: 'K' },
     );
 
     assert.equal(fields.employerTan, 'ABCD12345E');
@@ -930,6 +1035,7 @@ describe('backend security harness', () => {
     assert.equal(fields.grossSalary, 1850000);
     assert.equal(fields.taxDeductedAtSource, 125500);
     assert.equal(JSON.stringify(fields).includes('ABCDE1234F'), false);
+    assert.equal(JSON.stringify(fields).includes('FGHIJ5678K'), false);
   });
 
   it('keeps plugin errors sanitized while preserving 413 and 429 status codes', async () => {

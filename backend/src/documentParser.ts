@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse';
+import { PasswordException, PDFParse } from 'pdf-parse';
 
 export type PanVaultSuffix = {
   last4: string;
@@ -6,7 +6,7 @@ export type PanVaultSuffix = {
 } | null;
 
 export type DocumentParseResult = {
-  status: 'metadata_ready' | 'needs_confirmation' | 'unsupported' | 'failed';
+  status: 'metadata_ready' | 'needs_confirmation' | 'unsupported';
   summary: Record<string, unknown>;
 };
 
@@ -118,7 +118,7 @@ export async function parseUploadedDocument(input: {
       },
     };
   } catch (error) {
-    const reason = error instanceof Error && /password/i.test(error.message)
+    const reason = error instanceof PasswordException
       ? 'password_protected_pdf'
       : 'pdf_text_extraction_failed';
     return unsupportedTextPdf(base, reason);
@@ -139,7 +139,7 @@ export function metadataSummary(documentType: string, mimeType: string) {
 
 export function parseForm16Text(text: string, panVaultSuffix: PanVaultSuffix): ParsedForm16Fields {
   const normalized = normalizeText(text);
-  const pan = findFirst(normalized, /\b([A-Z]{5}[0-9]{4}[A-Z])\b/);
+  const pan = extractEmployeePan(normalized);
   return compactFields({
     employerName: extractEmployerName(normalized),
     employerTan: findFirst(normalized, /\b([A-Z]{4}[0-9]{5}[A-Z])\b/),
@@ -232,6 +232,18 @@ function findFirst(text: string, pattern: RegExp): string | undefined {
   return cleanText(pattern.exec(text)?.[1]);
 }
 
+function extractEmployeePan(text: string): string | undefined {
+  const employeePatterns = [
+    /(?:employee|deductee)(?:'s)?\s+pan\s*[:\-]?\s*([a-z]{5}[0-9]{4}[a-z])/i,
+    /pan\s+of\s+(?:the\s+)?(?:employee|deductee)\s*[:\-]?\s*([a-z]{5}[0-9]{4}[a-z])/i,
+  ];
+  for (const pattern of employeePatterns) {
+    const match = findFirst(text, pattern);
+    if (match) return match.toUpperCase();
+  }
+  return findFirst(text, /\b([a-z]{5}[0-9]{4}[a-z])\b/i)?.toUpperCase();
+}
+
 function cleanText(value: string | undefined): string | undefined {
   const cleaned = value?.replace(/\s+/g, ' ').trim();
   return cleaned && cleaned.length <= 120 ? cleaned : undefined;
@@ -243,8 +255,9 @@ function panMatchStatus(
 ): ParsedForm16Fields['panMatchStatus'] {
   if (!pan) return 'not_found';
   if (!panVaultSuffix) return 'not_checked';
-  const last4 = pan.slice(5, 9);
-  const lastChar = pan.slice(9);
+  const normalizedPan = pan.toUpperCase();
+  const last4 = normalizedPan.slice(5, 9);
+  const lastChar = normalizedPan.slice(9);
   return last4 === panVaultSuffix.last4 && lastChar === panVaultSuffix.lastChar
     ? 'matches_vault'
     : 'differs_from_vault';

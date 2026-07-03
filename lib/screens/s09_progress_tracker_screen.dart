@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/tax_readiness_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
@@ -195,18 +196,19 @@ class _ReadinessProgressCard extends StatelessWidget {
   }
 }
 
-class _FYTimeline extends StatelessWidget {
+class _FYTimeline extends ConsumerWidget {
   const _FYTimeline();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeYear = ref.watch(activeTaxYearProvider);
     final now = DateTime.now();
-    final fyEnd = DateTime(2027, 3, 31);
-    final fyStart = DateTime(2026, 4, 1);
-    final totalDays = fyEnd.difference(fyStart).inDays;
+    final fyStart = activeYear.fyStart;
+    final fyEnd = activeYear.fyEnd;
+    final totalDays = fyEnd.difference(fyStart).inDays + 1;
     final elapsedDays = now.difference(fyStart).inDays.clamp(0, totalDays);
     final progress = elapsedDays / totalDays;
-    final daysLeft = fyEnd.difference(now).inDays.clamp(0, 365);
+    final daysLeft = fyEnd.difference(now).inDays.clamp(0, totalDays);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -223,7 +225,7 @@ class _FYTimeline extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'FY2026-27 Planning',
+                  activeYear.displayLabel,
                   style: AppTextStyles.h3(),
                 ),
               ),
@@ -267,14 +269,42 @@ class _FYTimeline extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: Text('Apr 2026', style: AppTextStyles.micro())),
+              Expanded(
+                child: Text(
+                  _monthYear(fyStart),
+                  style: AppTextStyles.micro(),
+                ),
+              ),
               const SizedBox(width: 8),
-              Text('Mar 31, 2027', style: AppTextStyles.micro()),
+              Text(_dateLabel(fyEnd), style: AppTextStyles.micro()),
             ],
           ),
         ],
       ),
     );
+  }
+
+  String _monthYear(DateTime date) => '${_monthName(date.month)} ${date.year}';
+
+  String _dateLabel(DateTime date) =>
+      '${_monthName(date.month)} ${date.day}, ${date.year}';
+
+  String _monthName(int month) {
+    const names = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return names[month - 1];
   }
 }
 
