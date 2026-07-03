@@ -15,6 +15,9 @@ const envSchema = z.object({
   DB_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(30_000).default(10_000),
   CURRENT_FY: z.string().default('2026-27'),
   CORS_ORIGIN: z.string().default('*'),
+  PAN_ENCRYPTION_KEY: z.string().optional(),
+  PAN_HASH_KEY: z.string().optional(),
+  DOCUMENT_ENCRYPTION_KEY: z.string().optional(),
 }).superRefine((env, ctx) => {
   if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
     ctx.addIssue({
@@ -25,6 +28,62 @@ const envSchema = z.object({
   }
 
   if (env.NODE_ENV !== 'production') return;
+
+  if (!env.PAN_ENCRYPTION_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['PAN_ENCRYPTION_KEY'],
+      message: 'PAN_ENCRYPTION_KEY is required in production',
+    });
+  } else {
+    try {
+      if (Buffer.from(env.PAN_ENCRYPTION_KEY, 'base64').length !== 32) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['PAN_ENCRYPTION_KEY'],
+          message: 'PAN_ENCRYPTION_KEY must be 32 base64-encoded bytes',
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['PAN_ENCRYPTION_KEY'],
+        message: 'PAN_ENCRYPTION_KEY must be valid base64',
+      });
+    }
+  }
+
+  if (!env.PAN_HASH_KEY || env.PAN_HASH_KEY.length < 32) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['PAN_HASH_KEY'],
+      message: 'PAN_HASH_KEY is required in production and must be at least 32 characters',
+    });
+  }
+
+  if (!env.DOCUMENT_ENCRYPTION_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['DOCUMENT_ENCRYPTION_KEY'],
+      message: 'DOCUMENT_ENCRYPTION_KEY is required in production',
+    });
+  } else {
+    try {
+      if (Buffer.from(env.DOCUMENT_ENCRYPTION_KEY, 'base64').length !== 32) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DOCUMENT_ENCRYPTION_KEY'],
+          message: 'DOCUMENT_ENCRYPTION_KEY must be 32 base64-encoded bytes',
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DOCUMENT_ENCRYPTION_KEY'],
+        message: 'DOCUMENT_ENCRYPTION_KEY must be valid base64',
+      });
+    }
+  }
 
   const corsOrigins = env.CORS_ORIGIN.split(',')
     .map((origin) => origin.trim())

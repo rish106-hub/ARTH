@@ -163,13 +163,13 @@ class _RegimeContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
-              const SizedBox(height: 12),
-              _DeductionBreakdown(result: result),
-              const SizedBox(height: 24),
               Text('General Guidance by Income', style: AppTextStyles.h3()),
               const SizedBox(height: 12),
               _IncomeGuidance(),
+              const SizedBox(height: 24),
+              Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
+              const SizedBox(height: 12),
+              _DeductionBreakdown(result: result),
             ],
           );
         },
@@ -505,21 +505,21 @@ class _IncomeGuidance extends StatelessWidget {
 
   static const _items = [
     _GuidanceItem(
-      range: 'Up to ₹12 lakh',
+      range: 'Up to ₹12.75L salary',
       rec: 'New Regime',
-      reason: '₹60,000 rebate makes effective tax zero',
+      reason: 'Rebate plus standard deduction can make tax zero',
       color: AppColors.success,
     ),
     _GuidanceItem(
-      range: '₹12L – ₹15L',
-      rec: 'Compare both',
-      reason: 'Depends on HRA and investments',
-      color: AppColors.amber,
+      range: '₹12.75L – ₹24L',
+      rec: 'Usually New',
+      reason: 'Lower slabs help unless old-regime deductions are strong',
+      color: AppColors.success,
     ),
     _GuidanceItem(
-      range: '₹15L – ₹50L',
-      rec: 'Old Regime',
-      reason: 'Wins with full deductions stack',
+      range: '₹24L – ₹50L',
+      rec: 'Compare both',
+      reason: 'Old can win with HRA, 80C, NPS, insurance, or home loan',
       color: AppColors.gold,
     ),
     _GuidanceItem(

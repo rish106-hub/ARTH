@@ -223,8 +223,7 @@ class _HeroBanner extends StatelessWidget {
                     Flexible(
                       child: Text(
                         gap.difficultyLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                         textAlign: TextAlign.right,
                         style: AppTextStyles.micro(
                           color: AppColors.textSecondary,

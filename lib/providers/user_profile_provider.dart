@@ -25,6 +25,14 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 
   void update(UserProfile updated) => state = updated;
 
+  Future<void> restoreDraft(UserProfile profile) async {
+    state = profile;
+    final uid = _currentUid();
+    if (uid != null) {
+      await _storage.write(_profileKey(uid), state.toJsonString());
+    }
+  }
+
   void updateField(UserProfile Function(UserProfile) updater) {
     state = updater(state);
     _scheduleDraftSync();
@@ -143,6 +151,10 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 final userProfileProvider = NotifierProvider<UserProfileNotifier, UserProfile>(
   UserProfileNotifier.new,
 );
+
+final completedTaxProfileProvider = FutureProvider<bool>((ref) async {
+  return ref.read(userProfileProvider.notifier).isOnboardingComplete();
+});
 
 // ─── ONBOARDING STATE ────────────────────────────────────────────────────────
 class OnboardingNotifier extends Notifier<int> {

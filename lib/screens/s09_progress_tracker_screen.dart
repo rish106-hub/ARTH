@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_readiness_provider.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
+import '../widgets/locked_diagnostic_state.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
 
@@ -16,10 +18,29 @@ class ProgressTrackerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resultAsync = ref.watch(taxResultProvider);
     final doneMap = ref.watch(gapStateProvider);
+    final documentPercent = ref.watch(documentReadinessPercentProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Progress Tracker'),
+      bottomNavigationBar: ArthBottomNav(
+        selectedIndex: 2,
+        onTap: (i) {
+          switch (i) {
+            case 0:
+              context.go('/discover');
+              break;
+            case 1:
+              context.go('/action-plan');
+              break;
+            case 2:
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
+        },
+      ),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
           title: 'Loading progress',
@@ -29,10 +50,12 @@ class ProgressTrackerScreen extends ConsumerWidget {
             'Keeping your tax sprint current.',
           ],
         ),
-        error: (_, __) => RetryErrorState(
-          message: 'Could not load your progress.',
-          onRetry: () => ref.invalidate(taxResultProvider),
-        ),
+        error: (error, __) => isIncompleteTaxProfileError(error)
+            ? _ProgressEmptyState(documentPercent: documentPercent)
+            : RetryErrorState(
+                message: 'Could not load your progress.',
+                onRetry: () => ref.invalidate(taxResultProvider),
+              ),
         data: (result) {
           final gaps = result.gaps;
           final notifier = ref.read(gapStateProvider.notifier);
@@ -66,6 +89,9 @@ class ProgressTrackerScreen extends ConsumerWidget {
                       const _DeadlineTimeline(),
                       const SizedBox(height: 24),
 
+                      _ReadinessProgressCard(documentPercent: documentPercent),
+                      const SizedBox(height: 24),
+
                       // Gap status grid
                       Text('Gap Status', style: AppTextStyles.h3()),
                       const SizedBox(height: 12),
@@ -84,29 +110,85 @@ class ProgressTrackerScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // Bottom nav
-              ArthBottomNav(
-                selectedIndex: 2,
-                onTap: (i) {
-                  switch (i) {
-                    case 0:
-                      context.go('/gap-reveal');
-                      break;
-                    case 1:
-                      context.go('/action-plan');
-                      break;
-                    case 2:
-                      break;
-                    case 3:
-                      context.go('/settings');
-                      break;
-                  }
-                },
-              ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ProgressEmptyState extends StatelessWidget {
+  final int documentPercent;
+
+  const _ProgressEmptyState({required this.documentPercent});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ArthStatePanel(
+            icon: Icons.timeline_rounded,
+            title: 'Progress starts after diagnostic',
+            message:
+                'Your timeline is visible now. Complete the diagnostic to track savings progress and completed actions.',
+            actionLabel: 'Start diagnostic',
+            onAction: () => context.go('/questions'),
+          ),
+          const SizedBox(height: 16),
+          const _FYTimeline(),
+          const SizedBox(height: 16),
+          _ReadinessProgressCard(documentPercent: documentPercent),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadinessProgressCard extends StatelessWidget {
+  final int documentPercent;
+
+  const _ReadinessProgressCard({required this.documentPercent});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      tint: AppColors.teal,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Filing readiness', style: AppTextStyles.h3()),
+          const SizedBox(height: 8),
+          Text(
+            'Document checklist is $documentPercent% ready. Keep AIS/26AS review separate and use official records before filing.',
+            style: AppTextStyles.caption(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: AppButtons.outlineGold,
+                  onPressed: () => context.push('/documents'),
+                  icon: const Icon(Icons.folder_special_outlined),
+                  label: const Text('Documents'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: AppButtons.outlineGold,
+                  onPressed: () => context.push('/ais-guide'),
+                  icon: const Icon(Icons.account_balance_outlined),
+                  label: const Text('AIS guide'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

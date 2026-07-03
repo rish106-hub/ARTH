@@ -9,6 +9,10 @@ import 'user_profile_provider.dart';
 
 // Async provider that loads triggers from JSON and computes gaps
 final taxResultProvider = FutureProvider<TaxResult>((ref) async {
+  final complete = await ref.watch(completedTaxProfileProvider.future);
+  if (!complete) {
+    throw StateError('tax profile incomplete');
+  }
   final profile = ref.watch(userProfileProvider);
   final triggers = await GapFinder.loadTriggers();
   final gaps = GapFinder.findGaps(profile, triggers);

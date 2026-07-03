@@ -21,6 +21,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
+  late UserProfile _entryProfile;
   int _step = 0; // 0–11 tax questions only
   bool _finishing = false;
 
@@ -33,6 +34,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     );
     _slideAnim = CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut);
     _slideCtrl.value = 1.0;
+    _entryProfile = ref.read(userProfileProvider);
   }
 
   @override
@@ -52,15 +54,24 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     }
   }
 
-  void _prev() {
+  Future<void> _prev() async {
     if (_step > 0) {
       HapticFeedback.lightImpact();
       setState(() => _step--);
       _slideCtrl.reset();
       _slideCtrl.forward();
     } else {
-      context.go('/welcome');
+      await _exitDiagnostic();
     }
+  }
+
+  Future<void> _exitDiagnostic() async {
+    HapticFeedback.lightImpact();
+    await ref.read(userProfileProvider.notifier).restoreDraft(_entryProfile);
+    final complete =
+        await ref.read(userProfileProvider.notifier).isOnboardingComplete();
+    if (!mounted) return;
+    context.go(complete ? '/profile' : '/discover');
   }
 
   Future<void> _finish() async {
@@ -97,86 +108,94 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
     final meta = _DiagnosticMeta.forStep(_step);
 
-    return ArthScaffold(
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Progress bar + back
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_rounded,
-                          size: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                        onPressed: _prev,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: QuestionProgressBar(current: _step, total: 12),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  PremiumGlassPanel(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    child: Row(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _exitDiagnostic();
+        }
+      },
+      child: ArthScaffold(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Progress bar + back
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        Icon(meta.icon, size: 18, color: meta.color),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                meta.title,
-                                style: AppTextStyles.caption(
-                                  color: AppColors.textPrimary,
-                                ).copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                meta.helper,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.micro(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_rounded,
+                            size: 18,
+                            color: AppColors.textSecondary,
                           ),
+                          onPressed: _prev,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: QuestionProgressBar(current: _step, total: 12),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            // Question content — slides in
-            Expanded(
-              child: AnimatedBuilder(
-                animation: _slideAnim,
-                builder: (_, child) => Transform.translate(
-                  offset: Offset(30 * (1 - _slideAnim.value), 0),
-                  child: Opacity(opacity: _slideAnim.value, child: child),
+                    const SizedBox(height: 14),
+                    PremiumGlassPanel(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(meta.icon, size: 18, color: meta.color),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  meta.title,
+                                  style: AppTextStyles.caption(
+                                    color: AppColors.textPrimary,
+                                  ).copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  meta.helper,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.micro(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                child: _buildStep(context, profile, _step),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 18),
+
+              // Question content — slides in
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: _slideAnim,
+                  builder: (_, child) => Transform.translate(
+                    offset: Offset(30 * (1 - _slideAnim.value), 0),
+                    child: Opacity(opacity: _slideAnim.value, child: child),
+                  ),
+                  child: _buildStep(context, profile, _step),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

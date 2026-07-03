@@ -99,7 +99,7 @@ class DeductionCardsScreen extends ConsumerWidget {
                 onTap: (i) {
                   switch (i) {
                     case 0:
-                      context.go('/gap-reveal');
+                      context.go('/discover');
                       break;
                     case 1:
                       context.go('/action-plan');
@@ -108,7 +108,7 @@ class DeductionCardsScreen extends ConsumerWidget {
                       context.go('/progress');
                       break;
                     case 3:
-                      context.go('/settings');
+                      context.go('/profile');
                       break;
                   }
                 },

@@ -42,7 +42,7 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.9
-
+  file_selector: ^1.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
