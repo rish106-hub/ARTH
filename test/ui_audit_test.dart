@@ -111,6 +111,22 @@ void main() {
     colorHex: '26A69A',
   );
 
+  const sampleGap80TTA = GapCard(
+    id: 'T09_80TTA',
+    section: '80TTA',
+    title: 'Savings Account Interest',
+    shortDesc: 'Up to ₹10,000 tax-free',
+    message: 'Your savings account interest up to ₹10,000 is tax-free.',
+    gapAmount: 10000,
+    difficulty: GapDifficulty.easy,
+    difficultyLabel: 'Easy (auto-claimed on ITR)',
+    deadline: '31 July 2026',
+    actions: [
+      GapAction(label: 'Claim on ITR Portal', url: 'https://example.com'),
+    ],
+    colorHex: '26A69A',
+  );
+
   final sampleResult = TaxResult(
     oldRegimeTax: 272220,
     newRegimeTax: 169000,
@@ -575,6 +591,21 @@ void main() {
       errors.add(exception!);
     }
     expect(errors, isEmpty);
+  });
+
+  testWidgets('80TTA difficulty label is not truncated to one line', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(
+      tester,
+      const DeductionDetailScreen(gap: sampleGap80TTA),
+    );
+
+    final labelFinder = find.text('Easy (auto-claimed on ITR)');
+    expect(labelFinder, findsOneWidget);
+    final label = tester.widget<Text>(labelFinder);
+    expect(label.maxLines, isNull);
+    expect(label.overflow, isNot(TextOverflow.ellipsis));
   });
 
   testWidgets('reduced-motion mode keeps navigation calm on narrow phone', (
