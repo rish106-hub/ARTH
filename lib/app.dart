@@ -20,6 +20,7 @@ import 'screens/s15_document_checklist_screen.dart';
 import 'screens/s16_ais_guide_screen.dart';
 import 'screens/s17_help_center_screen.dart';
 import 'screens/s18_tax_dossier_screen.dart';
+import 'screens/s19_filing_assistant_screen.dart';
 import 'models/gap_card.dart';
 
 final _router = GoRouter(
@@ -63,6 +64,10 @@ final _router = GoRouter(
     GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
     GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
     GoRoute(path: '/tax-dossier', builder: (_, __) => const TaxDossierScreen()),
+    GoRoute(
+      path: '/filing-assistant',
+      builder: (_, __) => const FilingAssistantScreen(),
+    ),
     GoRoute(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),

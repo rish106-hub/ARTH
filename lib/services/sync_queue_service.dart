@@ -108,5 +108,7 @@ class SyncQueueService {
     return ops;
   }
 
+  Future<void> clear() => _write([]);
+
   Future<bool> get hasItems async => (await _read()).isNotEmpty;
 }

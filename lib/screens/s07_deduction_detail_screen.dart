@@ -237,7 +237,7 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            isDone ? 'Marked addressed' : 'Deduction opportunity',
+            isDone ? 'Marked as addressed' : 'Deduction opportunity',
             style: AppTextStyles.caption(
               color: isDone ? AppColors.success : AppColors.textSecondary,
             ),

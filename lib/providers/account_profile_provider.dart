@@ -66,6 +66,11 @@ class AccountProfileNotifier extends AsyncNotifier<AccountProfile?> {
     await _service.deletePan();
     state = AsyncData(current.copyWith(pan: PanVaultStatus.missing));
   }
+
+  Future<void> clearLocalOnly() async {
+    await _service.clearCachedForCurrentUser();
+    state = const AsyncData(null);
+  }
 }
 
 final accountProfileProvider =

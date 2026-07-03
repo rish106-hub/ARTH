@@ -572,6 +572,111 @@ void main() {
     expect(find.text('Skip story and answer questions'), findsNothing);
   });
 
+  testWidgets(
+    'diagnostic completion refreshes stale completion cache and opens cockpit',
+    (tester) async {
+      tester.view.physicalSize = const Size(600, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final complete = ValueNotifier(false);
+      final container = ProviderContainer(
+        overrides: [
+          userProfileProvider.overrideWith(
+            () => _CompletingUserProfileNotifier(sampleProfile, complete),
+          ),
+          completedTaxProfileProvider.overrideWith((ref) async {
+            return complete.value;
+          }),
+          taxResultProvider.overrideWith((ref) async {
+            final isComplete =
+                await ref.watch(completedTaxProfileProvider.future);
+            if (!isComplete) throw StateError('tax profile incomplete');
+            return sampleResult;
+          }),
+          accountProfileProvider.overrideWith(
+            () => _FixedAccountProfileNotifier(accountProfile),
+          ),
+          gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
+          documentChecklistProvider.overrideWith(
+            () => _FixedDocumentChecklistNotifier({}),
+          ),
+          authProvider.overrideWith(
+            () => _FixedAuthNotifier(_FixedAuthService(account)),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(await container.read(completedTaxProfileProvider.future), isFalse);
+
+      final router = GoRouter(
+        initialLocation: '/questions',
+        routes: [
+          GoRoute(
+            path: '/questions',
+            builder: (_, __) => const QuestionsScreen(),
+          ),
+          GoRoute(
+            path: '/gap-reveal',
+            builder: (_, __) => const GapRevealScreen(),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> tapContinue() async {
+        final continueButton = find.widgetWithText(
+          ElevatedButton,
+          'Continue →',
+        );
+        await tester.ensureVisible(continueButton);
+        await tester.tap(continueButton);
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> tapChoice(String label) async {
+        final choice = find.text(label).first;
+        await tester.ensureVisible(choice);
+        await tester.tap(choice);
+        await tester.pumpAndSettle();
+      }
+
+      await tapContinue(); // CTC
+      await tapChoice('Salaried Employee');
+      await tapChoice('Delhi');
+      await tapContinue(); // rent amount
+      await tapChoice('Yes, HRA is in my salary');
+      await tapContinue(); // 80C
+      await tapContinue(); // home loan
+      await tapContinue(); // NPS
+      await tapContinue(); // health insurance
+      await tapContinue(); // education loan
+      await tapContinue(); // donations
+
+      final ageChoice = find.text('30 – 45');
+      await tester.ensureVisible(ageChoice);
+      await tester.tap(ageChoice);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Deduction opportunity'), findsOneWidget);
+      expect(
+        find.text('Could not build your tax cockpit. Please try again.'),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('home-loan property chips do not overflow on 320px phones', (
     tester,
   ) async {
@@ -660,6 +765,34 @@ class _FixedUserProfileNotifier extends UserProfileNotifier {
 
   @override
   Future<bool> isOnboardingComplete() async => _complete;
+
+  @override
+  Future<void> restoreDraft(UserProfile profile) async {
+    state = profile;
+  }
+}
+
+class _CompletingUserProfileNotifier extends UserProfileNotifier {
+  final UserProfile _profile;
+  final ValueNotifier<bool> _complete;
+
+  _CompletingUserProfileNotifier(this._profile, this._complete);
+
+  @override
+  UserProfile build() => _profile;
+
+  @override
+  void updateField(UserProfile Function(UserProfile) updater) {
+    state = updater(state);
+  }
+
+  @override
+  Future<void> save() async {
+    _complete.value = true;
+  }
+
+  @override
+  Future<bool> isOnboardingComplete() async => _complete.value;
 
   @override
   Future<void> restoreDraft(UserProfile profile) async {

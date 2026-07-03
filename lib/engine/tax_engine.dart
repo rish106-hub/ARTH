@@ -60,6 +60,7 @@ class TaxEngine {
         oldCess: oldResult['cess'] as double,
         newCess: newResult['cess'] as double,
       ),
+      confidenceScore: _confidenceScore(assumptions),
     );
   }
 
@@ -68,13 +69,14 @@ class TaxEngine {
     UserProfile p,
     TaxRuleSet ruleSet,
   ) {
-    double gross = p.annualCTC.toDouble();
+    double gross = p.annualCTC.toDouble() + _modeledInterestIncome(p);
     final rule = ruleSet.newRegime;
 
     // Standard deduction
     double deductions = rule.standardDeduction.toDouble();
 
-    if (p.employerNpsContribution != null) {
+    if (p.employmentType == EmploymentType.salaried &&
+        p.employerNpsContribution != null) {
       deductions += _employerNpsDeduction(p);
     }
 
@@ -83,13 +85,12 @@ class TaxEngine {
 
     double tax = _applySlabs(taxable, rule.slabs);
 
-    // 87A rebate
-    if (taxable <= rule.rebate87ALimit) {
-      double rebate =
-          tax < rule.rebate87AAmount ? tax : rule.rebate87AAmount.toDouble();
-      tax = tax - rebate;
-      if (tax < 0) tax = 0;
-    }
+    tax = _apply87ARebateAndMarginalRelief(
+      tax,
+      taxable,
+      rule,
+      cessRate: ruleSet.cessRate,
+    );
 
     // Surcharge
     double surcharge = _surcharge(tax, taxable, isNew: true);
@@ -113,7 +114,7 @@ class TaxEngine {
     TaxRuleSet ruleSet, {
     double extraDeductions = 0,
   }) {
-    double gross = p.annualCTC.toDouble();
+    double gross = p.annualCTC.toDouble() + _modeledInterestIncome(p);
     final rule = ruleSet.oldRegime;
     double deductions = 0;
 
@@ -138,7 +139,8 @@ class TaxEngine {
     // Section 24(b) — home loan interest (self-occupied, max 2L)
     if (p.hasHomeLoanSelfOccupied) {
       double interest = p.homeLoanInterest.toDouble();
-      deductions += interest < 200000 ? interest : 200000;
+      final cap = ruleSet.deductionCaps['section_24b_self_occupied'] ?? 200000;
+      deductions += interest < cap ? interest : cap.toDouble();
     }
 
     // 80C (max 1.5L)
@@ -151,7 +153,8 @@ class TaxEngine {
     final npsCap = ruleSet.deductionCaps['80ccd_1b'] ?? 50000;
     deductions += npsExtra < npsCap ? npsExtra : npsCap.toDouble();
 
-    if (p.employerNpsContribution != null) {
+    if (p.employmentType == EmploymentType.salaried &&
+        p.employerNpsContribution != null) {
       deductions += _employerNpsDeduction(p);
     }
 
@@ -201,13 +204,12 @@ class TaxEngine {
     }
     double tax = _applySlabs(taxable, slabs);
 
-    // 87A rebate
-    if (taxable <= rule.rebate87ALimit) {
-      double rebate =
-          tax < rule.rebate87AAmount ? tax : rule.rebate87AAmount.toDouble();
-      tax = tax - rebate;
-      if (tax < 0) tax = 0;
-    }
+    tax = _apply87ARebateAndMarginalRelief(
+      tax,
+      taxable,
+      rule,
+      cessRate: ruleSet.cessRate,
+    );
 
     // Surcharge
     double surcharge = _surcharge(tax, taxable, isNew: false);
@@ -291,6 +293,29 @@ class TaxEngine {
     return contribution < cap ? contribution.toDouble() : cap;
   }
 
+  static double _modeledInterestIncome(UserProfile p) {
+    return ((p.savingsInterest ?? 0) + (p.fdInterest ?? 0)).toDouble();
+  }
+
+  static double _apply87ARebateAndMarginalRelief(
+    double tax,
+    double taxable,
+    RegimeRuleSet rule, {
+    required double cessRate,
+  }) {
+    if (taxable <= rule.rebate87ALimit) {
+      final rebate =
+          tax < rule.rebate87AAmount ? tax : rule.rebate87AAmount.toDouble();
+      final afterRebate = tax - rebate;
+      return afterRebate < 0 ? 0 : afterRebate;
+    }
+
+    final excess = taxable - rule.rebate87ALimit;
+    if (excess <= 0) return tax;
+    final preCessCap = excess / (1 + cessRate);
+    return tax > preCessCap ? preCessCap : tax;
+  }
+
   // ─── SURCHARGE ───────────────────────────────────────────────────────────
   static double _surcharge(double tax, double taxable, {required bool isNew}) {
     if (taxable <= 5000000) return 0;
@@ -350,7 +375,8 @@ class TaxEngine {
 
   static List<TaxAssumption> _assumptions(UserProfile p) {
     final assumptions = <TaxAssumption>[];
-    if (p.actualBasicSalary == null) {
+    if (p.employmentType == EmploymentType.salaried &&
+        p.actualBasicSalary == null) {
       assumptions.add(
         const TaxAssumption(
           code: 'basic_salary_estimated',
@@ -417,5 +443,13 @@ class TaxEngine {
       );
     }
     return assumptions;
+  }
+
+  static int _confidenceScore(List<TaxAssumption> assumptions) {
+    final penalty = assumptions.fold<int>(0, (sum, assumption) {
+      return sum +
+          (assumption.severity == TaxAssumptionSeverity.caution ? 10 : 5);
+    });
+    return (100 - penalty).clamp(45, 100).toInt();
   }
 }

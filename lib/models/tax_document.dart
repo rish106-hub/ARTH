@@ -32,6 +32,26 @@ class TaxDocument {
         parseSummary: json['parseSummary'] as Map<String, dynamic>? ?? const {},
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       );
+
+  bool get needsConfirmation => parseStatus == 'needs_confirmation';
+  bool get parsed => parseStatus == 'parsed';
+  bool get unsupported => parseStatus == 'unsupported';
+
+  Map<String, dynamic> get extractedFields =>
+      parseSummary['extractedFields'] as Map<String, dynamic>? ?? const {};
+
+  String get parseStatusLabel {
+    switch (parseStatus) {
+      case 'needs_confirmation':
+        return 'Review needed';
+      case 'parsed':
+        return 'Confirmed';
+      case 'unsupported':
+        return 'Manual review';
+      default:
+        return 'Stored';
+    }
+  }
 }
 
 String formatFileSize(int bytes) {

@@ -700,8 +700,9 @@ summary. You still file via the official portal, employer partner, or CA.
 Yes, if you create an account. ARTH syncs profile and calculation state to the backend so you can recover it later. Local app cache uses OS keychain/keystore-backed secure storage.
 
 **Q: Which tax year does this use?**
-The default filing view is FY2025-26 / AY2026-27. Planning modules can switch to
-FY2026-27 / AY2027-28. Every result shows the active rule label.
+The default diagnostic view is FY2026-27 / AY2027-28 planning. FY2025-26 /
+AY2026-27 filing remains available as a separate context. Every result shows
+the active rule label.
 
 **Q: What if I'm self-employed / have capital gains?**
 ARTH is for salaried individuals. Capital gains + business income calculations not included.

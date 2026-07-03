@@ -35,6 +35,7 @@ class AuthService {
     final response = await _api.postJson(
       '/auth/sign-in',
       body: {'email': email, 'password': password},
+      retryTransient: true,
     );
     return _persistAuthResponse(response);
   }

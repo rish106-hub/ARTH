@@ -11,6 +11,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/animated_number.dart';
+import '../utils/session_cleanup.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -250,12 +251,7 @@ class SettingsScreen extends ConsumerWidget {
         confirmColor: AppColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
-          // Sign-out removes only this device's cached state.
-          await ref.read(userProfileProvider.notifier).clearLocalOnly();
-          ref.invalidate(gapStateProvider);
-          ref.invalidate(taxResultProvider);
-          await ref.read(authProvider.notifier).signOut();
-          if (context.mounted) context.go('/auth');
+          await signOutDeviceAndRouteToAuth(context, ref);
         },
       ),
     );
@@ -1087,7 +1083,7 @@ class _AppFooter extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'v1.0  |  Dual-year rules  |  FY2025-26 filing first',
+          'v1.0  |  Dual-year rules  |  FY2026-27 planning first',
           style: AppTextStyles.micro(color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),

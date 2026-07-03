@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, before, beforeEach, after } from 'node:test';
+import { parseForm16Text } from '../src/documentParser.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test';
@@ -57,6 +58,7 @@ class FakeDb {
   private documents = new Map<string, Row>();
   private events: Row[] = [];
   private ids = 0;
+  private transientEmailLookupFailures = 0;
 
   reset() {
     this.users.clear();
@@ -68,6 +70,11 @@ class FakeDb {
     this.documents.clear();
     this.events = [];
     this.ids = 0;
+    this.transientEmailLookupFailures = 0;
+  }
+
+  failNextEmailLookups(count: number) {
+    this.transientEmailLookupFailures = count;
   }
 
   rawIdentity(userId: string) {
@@ -76,6 +83,35 @@ class FakeDb {
 
   rawDocument(documentId: string) {
     return this.documents.get(documentId);
+  }
+
+  seedDocument(userId: string, overrides: Row = {}) {
+    const now = new Date();
+    const id = (overrides.id as string | undefined) ?? this.nextId('doc');
+    const doc = {
+      id,
+      user_id: userId,
+      fy: '2025-26',
+      document_type: 'form16',
+      original_filename: 'Form 16.pdf',
+      mime_type: 'application/pdf',
+      byte_size: 1024,
+      sha256_fingerprint: `seed-${id}`,
+      ciphertext: 'encrypted-document',
+      iv: 'document-iv',
+      auth_tag: 'document-auth-tag',
+      parse_status: 'needs_confirmation',
+      parse_summary: {
+        parser: 'deterministic-form16-v1',
+        llmUsed: false,
+        confirmationStatus: 'pending',
+      },
+      created_at: now,
+      updated_at: now,
+      ...overrides,
+    };
+    this.documents.set(id, doc);
+    return doc;
   }
 
   async connect() {
@@ -89,6 +125,12 @@ class FakeDb {
     }
 
     if (normalized.startsWith('select id from app_users where email = $1')) {
+      if (this.transientEmailLookupFailures > 0) {
+        this.transientEmailLookupFailures -= 1;
+        const error = new Error('database warming up') as Error & { code: string };
+        error.code = '57P03';
+        throw error;
+      }
       const user = this.userByEmail(params[0] as string);
       return rows(user ? [{ id: user.id }] : []);
     }
@@ -180,6 +222,12 @@ class FakeDb {
     }
 
     if (normalized.startsWith('select pan_last4, pan_last_char, pan_consent_version')) {
+      const identity = this.identities.get(params[0] as string);
+      if (!identity || !identity.pan_ciphertext) return rows();
+      return rows([identity]);
+    }
+
+    if (normalized.startsWith('select pan_last4, pan_last_char from user_private_identity')) {
       const identity = this.identities.get(params[0] as string);
       if (!identity || !identity.pan_ciphertext) return rows();
       return rows([identity]);
@@ -293,12 +341,26 @@ class FakeDb {
         ciphertext: params[7],
         iv: params[8],
         auth_tag: params[9],
-        parse_status: 'metadata_ready',
-        parse_summary: JSON.parse(params[10] as string),
+        parse_status: params[10],
+        parse_summary: JSON.parse(params[11] as string),
         created_at: existing?.created_at ?? now,
         updated_at: now,
       };
       this.documents.set(id, doc);
+      return rows([doc]);
+    }
+
+    if (normalized.startsWith('select parse_status, parse_summary from tax_documents')) {
+      const doc = this.documents.get(params[0] as string);
+      return rows(doc && doc.user_id === params[1] ? [doc] : []);
+    }
+
+    if (normalized.startsWith('update tax_documents set parse_status =')) {
+      const doc = this.documents.get(params[0] as string);
+      if (!doc || doc.user_id !== params[1]) return rows();
+      doc.parse_status = 'parsed';
+      doc.parse_summary = JSON.parse(params[2] as string);
+      doc.updated_at = new Date();
       return rows([doc]);
     }
 
@@ -456,7 +518,11 @@ describe('backend security harness', () => {
     });
 
     assert.equal(response.statusCode, 400);
-    assert.deepEqual(response.json(), { message: 'Invalid request' });
+    assert.deepEqual(response.json(), {
+      code: 'invalid_request',
+      message: 'Invalid request',
+      retryable: false,
+    });
     await app.close();
   });
 
@@ -505,12 +571,35 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('marks transient auth dependency failures as retryable 503 responses', async () => {
+    const app = await buildApp();
+    fakeDb.failNextEmailLookups(10);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-up',
+      payload: strongAuthPayload('Retry User', 'retry@example.com'),
+    });
+
+    assert.equal(response.statusCode, 503);
+    assert.deepEqual(response.json(), {
+      code: 'backend_temporarily_unavailable',
+      message: 'Service temporarily unavailable',
+      retryable: true,
+    });
+    await app.close();
+  });
+
   it('rejects missing and invalid bearer tokens', async () => {
     const app = await buildApp();
 
     const missing = await app.inject({ method: 'GET', url: '/v1/me' });
     assert.equal(missing.statusCode, 401);
-    assert.deepEqual(missing.json(), { message: 'Missing bearer token' });
+    assert.deepEqual(missing.json(), {
+      code: 'missing_bearer_token',
+      message: 'Missing bearer token',
+      retryable: false,
+    });
 
     const invalid = await app.inject({
       method: 'GET',
@@ -518,7 +607,11 @@ describe('backend security harness', () => {
       headers: { authorization: 'Bearer not-a-jwt' },
     });
     assert.equal(invalid.statusCode, 401);
-    assert.deepEqual(invalid.json(), { message: 'Invalid or expired access token' });
+    assert.deepEqual(invalid.json(), {
+      code: 'invalid_or_expired_access_token',
+      message: 'Invalid or expired access token',
+      retryable: false,
+    });
 
     await app.close();
   });
@@ -844,6 +937,107 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('confirms parsed document fields only for the owner and pending documents', async () => {
+    const { encryptDocument } = await import('../src/security.js');
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const extractedFields = {
+      employerName: 'Example Technologies Private Limited',
+      employerTan: 'ABCD12345E',
+      grossSalary: 1850000,
+      taxDeductedAtSource: 125500,
+      panMatchStatus: 'matches_vault',
+    };
+    const encryptedExtractedFields = encryptDocument(
+      Buffer.from(JSON.stringify(extractedFields), 'utf8'),
+    );
+    const pending = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000091',
+      parse_status: 'needs_confirmation',
+      parse_summary: {
+        parser: 'deterministic-form16-v1',
+        llmUsed: false,
+        confirmationStatus: 'pending',
+        encryptedExtractedFields,
+      },
+    });
+    const wrongStatus = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000092',
+      parse_status: 'metadata_ready',
+    });
+
+    const bobConfirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${pending.id}/confirm`,
+      headers: bearer(bob.accessToken),
+    });
+    assert.equal(bobConfirm.statusCode, 404);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${wrongStatus.id}/confirm`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(conflict.statusCode, 409);
+
+    const confirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${pending.id}/confirm`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(confirm.statusCode, 200);
+    assert.equal(confirm.json().document.parseStatus, 'parsed');
+    assert.equal(
+      confirm.json().document.parseSummary.extractedFields.grossSalary,
+      1850000,
+    );
+    assert.equal(JSON.stringify(confirm.json()).includes('encryptedExtractedFields'), false);
+    assert.equal(JSON.stringify(confirm.json()).includes(encryptedExtractedFields.ciphertext), false);
+
+    const stored = fakeDb.rawDocument(pending.id);
+    assert.ok(stored);
+    assert.equal(stored.parse_status, 'parsed');
+    const storedSummary = stored.parse_summary as Record<string, unknown>;
+    assert.equal(Object.hasOwn(storedSummary, 'extractedFields'), false);
+    assert.equal(Object.hasOwn(storedSummary, 'encryptedExtractedFields'), true);
+    assert.equal(JSON.stringify(storedSummary).includes('1850000'), false);
+    assert.equal(JSON.stringify(storedSummary).includes('Example Technologies'), false);
+    assert.equal(JSON.stringify(stored.parse_summary).includes('confirmedFields'), false);
+    assert.deepEqual(
+      storedSummary.confirmedFieldKeys,
+      Object.keys(extractedFields),
+    );
+
+    await app.close();
+  });
+
+  it('extracts deterministic Form 16 fields without returning raw PAN', () => {
+    const fields = parseForm16Text(
+      [
+        'Employer Name: Example Technologies Private Limited',
+        'TAN: ABCD12345E',
+        'Employer PAN: ABCDE1234F',
+        'Employee PAN: fghij5678k',
+        'Financial Year: 2025-26',
+        'Assessment Year: 2026-27',
+        'Gross Salary: Rs. 18,50,000',
+        'Standard Deduction: Rs. 75,000',
+        'Chapter VI-A deductions: Rs. 1,50,000',
+        'Tax deducted at source: Rs. 1,25,500',
+        'Taxable income: Rs. 15,75,000',
+      ].join('\n'),
+      { last4: '5678', lastChar: 'K' },
+    );
+
+    assert.equal(fields.employerTan, 'ABCD12345E');
+    assert.equal(fields.panMatchStatus, 'matches_vault');
+    assert.equal(fields.grossSalary, 1850000);
+    assert.equal(fields.taxDeductedAtSource, 125500);
+    assert.equal(JSON.stringify(fields).includes('ABCDE1234F'), false);
+    assert.equal(JSON.stringify(fields).includes('FGHIJ5678K'), false);
+  });
+
   it('keeps plugin errors sanitized while preserving 413 and 429 status codes', async () => {
     const app = await buildApp();
 
@@ -853,7 +1047,11 @@ describe('backend security harness', () => {
       payload: { blob: 'x'.repeat(110 * 1024) },
     });
     assert.equal(tooLarge.statusCode, 413);
-    assert.deepEqual(tooLarge.json(), { message: 'Request body too large' });
+    assert.deepEqual(tooLarge.json(), {
+      code: 'request_body_too_large',
+      message: 'Request body too large',
+      retryable: false,
+    });
 
     let limitedStatus = 0;
     for (let i = 0; i < 25; i += 1) {
@@ -864,7 +1062,11 @@ describe('backend security harness', () => {
       });
       limitedStatus = response.statusCode;
       if (limitedStatus === 429) {
-        assert.deepEqual(response.json(), { message: 'Too many requests' });
+        assert.deepEqual(response.json(), {
+          code: 'too_many_requests',
+          message: 'Too many requests',
+          retryable: false,
+        });
         break;
       }
     }

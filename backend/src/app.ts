@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import { ZodError } from 'zod';
 import { env } from './config.js';
+import { isTransientDbError } from './db.js';
 import { registerRoutes } from './routes.js';
 
 export async function buildApp() {
@@ -58,7 +59,11 @@ export async function buildApp() {
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
-      reply.code(400).send({ message: 'Invalid request' });
+      reply.code(400).send({
+        code: 'invalid_request',
+        message: 'Invalid request',
+        retryable: false,
+      });
       return;
     }
 
@@ -77,16 +82,42 @@ export async function buildApp() {
         : statusCode === 413
           ? 'Request body too large'
           : 'Request failed';
-      reply.code(statusCode).send({ message });
+      reply.code(statusCode).send({
+        code: statusCode === 429
+          ? 'too_many_requests'
+          : statusCode === 413
+            ? 'request_body_too_large'
+            : 'request_failed',
+        message,
+        retryable: false,
+      });
+      return;
+    }
+
+    if (isTransientDbError(error)) {
+      request.log.warn(error, 'transient backend dependency failure');
+      reply.code(503).send({
+        code: 'backend_temporarily_unavailable',
+        message: 'Service temporarily unavailable',
+        retryable: true,
+      });
       return;
     }
 
     request.log.error(error);
-    reply.code(500).send({ message: 'Internal server error' });
+    reply.code(500).send({
+      code: 'internal_server_error',
+      message: 'Internal server error',
+      retryable: true,
+    });
   });
 
   app.setNotFoundHandler((_request, reply) => {
-    reply.code(404).send({ message: 'Not found' });
+    reply.code(404).send({
+      code: 'not_found',
+      message: 'Not found',
+      retryable: false,
+    });
   });
 
   await app.register(registerRoutes, { prefix: '/v1' });

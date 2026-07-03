@@ -87,9 +87,12 @@ class _TaxOsHome extends ConsumerWidget {
     final panPresent =
         ref.watch(accountProfileProvider).asData?.value?.pan.present ?? false;
     final entitlement = ref.watch(entitlementProvider);
+    final result = complete ? ref.watch(taxResultProvider).asData?.value : null;
     final readiness = _readinessScore(
       diagnosticComplete: complete,
       docPercent: docPercent,
+      panPresent: panPresent,
+      confidenceScore: result?.confidenceScore,
     );
 
     return SingleChildScrollView(
@@ -170,7 +173,8 @@ class _TaxOsHome extends ConsumerWidget {
                 child: ArthMetricCard(
                   label: 'Readiness',
                   value: '$readiness%',
-                  helper: complete ? 'diagnostic active' : 'diagnostic pending',
+                  helper: result?.confidenceLabel ??
+                      (complete ? 'diagnostic active' : 'diagnostic pending'),
                   icon: Icons.speed_rounded,
                 ),
               ),
@@ -261,7 +265,7 @@ class _TaxOsHome extends ConsumerWidget {
                       ? 'Premium demo unlocked. Build a dossier and proof handoff checklist.'
                       : 'Premium demo. Exportable dossier, proof bundle, and filing handoff checklist.',
                   unlocked: entitlement.isPremiumDemo,
-                  onTap: () => context.push('/tax-dossier'),
+                  onTap: () => context.push('/filing-assistant'),
                 ),
                 const SizedBox(height: 10),
                 _ModuleTile(
@@ -281,11 +285,19 @@ class _TaxOsHome extends ConsumerWidget {
   int _readinessScore({
     required bool diagnosticComplete,
     required int docPercent,
+    required bool panPresent,
+    int? confidenceScore,
   }) {
-    final diagnostic = diagnosticComplete ? 45 : 0;
-    final docs = (docPercent * 0.40).round();
-    final guideBase = 15;
-    return (diagnostic + docs + guideBase).clamp(0, 100);
+    final diagnostic = diagnosticComplete ? 32 : 0;
+    final docs = (docPercent * 0.28).round();
+    final identity = panPresent ? 8 : 0;
+    final confidence = confidenceScore == null
+        ? 0
+        : (confidenceScore.clamp(0, 100) * 0.25).round();
+    const guideBase = 12;
+    return (diagnostic + docs + identity + confidence + guideBase)
+        .clamp(0, 100)
+        .toInt();
   }
 }
 
@@ -369,26 +381,50 @@ class _CompletedSummary extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    TrustBadge(
+                      icon: Icons.verified_outlined,
+                      label: '${result.confidenceScore}% confidence',
+                      color: result.confidenceScore >= 85
+                          ? AppColors.success
+                          : AppColors.gold,
+                    ),
+                    const SizedBox(height: 10),
                     Text(
-                      result.gaps.isEmpty
-                          ? 'Keep documents ready'
-                          : result.gaps.first.title,
+                      result.assumptions.isNotEmpty
+                          ? 'Improve calculation accuracy'
+                          : result.gaps.isEmpty
+                              ? 'Keep documents ready'
+                              : result.gaps.first.title,
                       style: AppTextStyles.h3(),
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      result.gaps.isEmpty
-                          ? 'No major gap found. Maintain proof readiness and AIS review.'
-                          : 'Potential gap value: ${formatRupeesCompact(result.gaps.first.gapAmount)}.',
+                      result.assumptions.isNotEmpty
+                          ? result.assumptions.first.detail
+                          : result.gaps.isEmpty
+                              ? 'No major gap found. Maintain proof readiness and AIS review.'
+                              : 'Potential gap value: ${formatRupeesCompact(result.gaps.first.gapAmount)}.',
                       style:
                           AppTextStyles.caption(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       style: AppButtons.outlineGold,
-                      onPressed: () => context.go('/action-plan'),
-                      icon: const Icon(Icons.checklist_rounded),
-                      label: const Text('Open actions'),
+                      onPressed: () => context.go(
+                        result.assumptions.isNotEmpty
+                            ? '/profile'
+                            : '/action-plan',
+                      ),
+                      icon: Icon(
+                        result.assumptions.isNotEmpty
+                            ? Icons.tune_rounded
+                            : Icons.checklist_rounded,
+                      ),
+                      label: Text(
+                        result.assumptions.isNotEmpty
+                            ? 'Add exact inputs'
+                            : 'Open actions',
+                      ),
                     ),
                   ],
                 ),

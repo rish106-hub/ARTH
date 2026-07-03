@@ -9,6 +9,7 @@ import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -118,6 +119,8 @@ class DocumentChecklistScreen extends ConsumerWidget {
                                 .read(documentChecklistProvider.notifier)
                                 .setReady(item.id, value),
                             onUpload: () => _pickAndUpload(context, ref, item),
+                            onReview: (doc) =>
+                                _showParsedFieldsSheet(context, ref, doc),
                             onDelete: (id) => ref
                                 .read(taxDocumentProvider.notifier)
                                 .delete(id),
@@ -233,6 +236,141 @@ class DocumentChecklistScreen extends ConsumerWidget {
     if (lower.endsWith('.png')) return 'image/png';
     return null;
   }
+
+  void _showParsedFieldsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    TaxDocument document,
+  ) {
+    final fields = document.extractedFields;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.graphite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        var saving = false;
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> confirm() async {
+              setSheetState(() {
+                saving = true;
+                error = null;
+              });
+              try {
+                await ref
+                    .read(taxDocumentProvider.notifier)
+                    .confirmParsedFields(document.id);
+                if (sheetContext.mounted) Navigator.pop(sheetContext);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Form 16 fields confirmed. Open Profile accuracy inputs before using them in calculations.',
+                      ),
+                    ),
+                  );
+                }
+              } catch (caught) {
+                if (!sheetContext.mounted) return;
+                setSheetState(() {
+                  saving = false;
+                  error = caught is ServerApiException
+                      ? caught.message
+                      : 'Could not confirm fields. Try again.';
+                });
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Review Form 16 fields', style: AppTextStyles.h2()),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Deterministic parser only. Confirming stores structured fields separately; ARTH will not change your tax profile silently.',
+                      style: AppTextStyles.body(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    if (fields.isEmpty)
+                      Text(
+                        'No structured fields were extracted from this file.',
+                        style: AppTextStyles.caption(
+                            color: AppColors.textSecondary),
+                      )
+                    else
+                      ...fields.entries.map(
+                        (entry) => _ParsedFieldRow(
+                          label: _fieldLabel(entry.key),
+                          value: _fieldValue(entry.value),
+                        ),
+                      ),
+                    if (error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        error!,
+                        style: AppTextStyles.caption(color: AppColors.alert),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: AppButtons.primaryGold,
+                      onPressed: saving || fields.isEmpty ? null : confirm,
+                      icon: const Icon(Icons.verified_outlined),
+                      label: Text(saving ? 'Confirming...' : 'Confirm fields'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed:
+                          saving ? null : () => Navigator.pop(sheetContext),
+                      child: const Text('Not now'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _fieldLabel(String key) {
+    const labels = {
+      'employerName': 'Employer',
+      'employerTan': 'Employer TAN',
+      'financialYear': 'Financial year',
+      'assessmentYear': 'Assessment year',
+      'grossSalary': 'Gross salary',
+      'standardDeduction': 'Standard deduction',
+      'chapterViaDeductions': 'Chapter VI-A deductions',
+      'taxDeductedAtSource': 'TDS',
+      'taxableIncome': 'Taxable income',
+      'panMatchStatus': 'PAN match',
+    };
+    return labels[key] ?? key;
+  }
+
+  String _fieldValue(Object? value) {
+    if (value is num) return formatRupeesCompact(value.round());
+    if (value == 'matches_vault') return 'Matches PAN vault';
+    if (value == 'differs_from_vault') return 'Differs from PAN vault';
+    if (value == 'not_checked') return 'PAN vault not added';
+    if (value == 'not_found') return 'Not found in text';
+    return value?.toString() ?? '-';
+  }
 }
 
 class _DocumentTile extends StatelessWidget {
@@ -242,6 +380,7 @@ class _DocumentTile extends StatelessWidget {
   final bool busy;
   final ValueChanged<bool> onChanged;
   final VoidCallback onUpload;
+  final ValueChanged<TaxDocument> onReview;
   final ValueChanged<String> onDelete;
 
   const _DocumentTile({
@@ -251,6 +390,7 @@ class _DocumentTile extends StatelessWidget {
     required this.busy,
     required this.onChanged,
     required this.onUpload,
+    required this.onReview,
     required this.onDelete,
   });
 
@@ -296,6 +436,7 @@ class _DocumentTile extends StatelessWidget {
                   ...documents.map(
                     (doc) => _UploadedDocumentRow(
                       document: doc,
+                      onReview: () => onReview(doc),
                       onDelete: () => onDelete(doc.id),
                     ),
                   ),
@@ -317,10 +458,12 @@ class _DocumentTile extends StatelessWidget {
 
 class _UploadedDocumentRow extends StatelessWidget {
   final TaxDocument document;
+  final VoidCallback onReview;
   final VoidCallback onDelete;
 
   const _UploadedDocumentRow({
     required this.document,
+    required this.onReview,
     required this.onDelete,
   });
 
@@ -354,7 +497,7 @@ class _UploadedDocumentRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${formatFileSize(document.byteSize)} • ${document.parseStatus}',
+                  '${formatFileSize(document.byteSize)} • ${document.parseStatusLabel}',
                   style: AppTextStyles.micro(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
@@ -362,6 +505,15 @@ class _UploadedDocumentRow extends StatelessWidget {
                   insight,
                   style: AppTextStyles.micro(color: AppColors.textSecondary),
                 ),
+                if (document.needsConfirmation) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    style: AppButtons.outlineGold,
+                    onPressed: onReview,
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('Review extracted fields'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -370,6 +522,42 @@ class _UploadedDocumentRow extends StatelessWidget {
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline_rounded),
             color: AppColors.alert,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ParsedFieldRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ParsedFieldRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.caption(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.bodyMedium(),
+            ),
           ),
         ],
       ),

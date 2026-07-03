@@ -47,20 +47,22 @@ class TaxYearSelector extends ConsumerWidget {
         runSpacing: 8,
         children: [
           _TaxYearChip(
-            label: 'FY2025-26 Filing',
-            helper: 'AY2026-27',
+            taxYear: TaxYearId.fy2025_26,
             selected: active == TaxYearId.fy2025_26,
-            onSelected: () => ref
-                .read(activeTaxYearProvider.notifier)
-                .set(TaxYearId.fy2025_26),
+            onSelected: () {
+              ref.read(activeTaxYearProvider.notifier).set(
+                    TaxYearId.fy2025_26,
+                  );
+            },
           ),
           _TaxYearChip(
-            label: 'FY2026-27 Planning',
-            helper: 'AY2027-28',
+            taxYear: TaxYearId.fy2026_27,
             selected: active == TaxYearId.fy2026_27,
-            onSelected: () => ref
-                .read(activeTaxYearProvider.notifier)
-                .set(TaxYearId.fy2026_27),
+            onSelected: () {
+              ref.read(activeTaxYearProvider.notifier).set(
+                    TaxYearId.fy2026_27,
+                  );
+            },
           ),
         ],
       ),
@@ -69,14 +71,12 @@ class TaxYearSelector extends ConsumerWidget {
 }
 
 class _TaxYearChip extends StatelessWidget {
-  final String label;
-  final String helper;
+  final TaxYearId taxYear;
   final bool selected;
   final VoidCallback onSelected;
 
   const _TaxYearChip({
-    required this.label,
-    required this.helper,
+    required this.taxYear,
     required this.selected,
     required this.onSelected,
   });
@@ -92,9 +92,9 @@ class _TaxYearChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.micro(color: color)),
+          Text(taxYear.displayLabel, style: AppTextStyles.micro(color: color)),
           Text(
-            helper,
+            taxYear.assessmentYear,
             style: AppTextStyles.micro(color: AppColors.textMuted),
           ),
         ],

@@ -14,6 +14,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/session_cleanup.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -659,11 +660,7 @@ class ProfileScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(userProfileProvider.notifier).clearLocalOnly();
-              ref.invalidate(taxResultProvider);
-              ref.invalidate(gapStateProvider);
-              await ref.read(authProvider.notifier).signOut();
-              if (context.mounted) context.go('/auth');
+              await signOutDeviceAndRouteToAuth(context, ref);
             },
             child: const Text('Sign out'),
           ),

@@ -3,11 +3,22 @@ import 'dart:io';
 
 import 'package:arth/engine/tax_engine.dart';
 import 'package:arth/models/gap_card.dart';
+import 'package:arth/models/tax_document.dart';
+import 'package:arth/models/tax_result.dart';
 import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
+import 'package:arth/providers/tax_year_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('diagnostic defaults to latest active planning year', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    expect(container.read(activeTaxYearProvider), TaxYearId.fy2026_27);
+  });
+
   test('bundled tax rule assets expose filing and planning context', () {
     final filing = _loadRuleSet(TaxYearId.fy2025_26);
     final planning = _loadRuleSet(TaxYearId.fy2026_27);
@@ -89,6 +100,46 @@ void main() {
     expect(result.estimatedTaxBenefit, lessThanOrEqualTo(100000));
     expect(result.assumptions.map((item) => item.code),
         contains('basic_salary_estimated'));
+  });
+
+  test('tax result confidence and document parse status survive json roundtrip',
+      () {
+    final ruleSet = _loadRuleSet(TaxYearId.fy2026_27);
+    final result = TaxEngine.calculate(
+      const UserProfile(
+        annualCTC: 1800000,
+        actualBasicSalary: 720000,
+        actualProfessionalTax: 2400,
+        savingsInterest: 4000,
+      ),
+      const [],
+      ruleSet: ruleSet,
+    );
+    final restored = TaxResult.fromJson(result.toJson());
+
+    expect(restored.confidenceScore, result.confidenceScore);
+    expect(restored.confidenceLabel, result.confidenceLabel);
+    expect(restored.confidenceScore, greaterThan(70));
+
+    final document = TaxDocument.fromJson({
+      'id': 'doc-1',
+      'fy': 'FY2026-27',
+      'documentType': 'form16',
+      'originalFilename': 'form16.pdf',
+      'mimeType': 'application/pdf',
+      'byteSize': 2048,
+      'parseStatus': 'needs_confirmation',
+      'parseSummary': {
+        'extractedFields': {
+          'employerTan': 'ABCD12345E',
+          'grossSalary': 1800000,
+        },
+      },
+    });
+
+    expect(document.needsConfirmation, isTrue);
+    expect(document.parseStatusLabel, 'Review needed');
+    expect(document.extractedFields['grossSalary'], 1800000);
   });
 }
 

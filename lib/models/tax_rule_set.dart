@@ -17,10 +17,55 @@ enum TaxYearId {
 
   String get assetPath => 'assets/tax_rules/$wireName.json';
 
+  String get displayLabel {
+    switch (this) {
+      case TaxYearId.fy2025_26:
+        return 'FY2025-26 Filing';
+      case TaxYearId.fy2026_27:
+        return 'FY2026-27 Planning';
+    }
+  }
+
+  String get fyLabel {
+    switch (this) {
+      case TaxYearId.fy2025_26:
+        return 'FY 2025-26';
+      case TaxYearId.fy2026_27:
+        return 'FY 2026-27';
+    }
+  }
+
+  String get assessmentYear {
+    switch (this) {
+      case TaxYearId.fy2025_26:
+        return 'AY 2026-27';
+      case TaxYearId.fy2026_27:
+        return 'AY 2027-28';
+    }
+  }
+
+  DateTime get fyStart {
+    switch (this) {
+      case TaxYearId.fy2025_26:
+        return DateTime(2025, 4, 1);
+      case TaxYearId.fy2026_27:
+        return DateTime(2026, 4, 1);
+    }
+  }
+
+  DateTime get fyEnd {
+    switch (this) {
+      case TaxYearId.fy2025_26:
+        return DateTime(2026, 3, 31);
+      case TaxYearId.fy2026_27:
+        return DateTime(2027, 3, 31);
+    }
+  }
+
   static TaxYearId fromWireName(String value) {
     return TaxYearId.values.firstWhere(
       (id) => id.wireName == value,
-      orElse: () => TaxYearId.fy2025_26,
+      orElse: () => throw FormatException('Unknown tax year id: $value'),
     );
   }
 }
@@ -109,21 +154,31 @@ class RegimeRuleSet {
   });
 
   factory RegimeRuleSet.fromJson(Map<String, dynamic> json) {
-    List<TaxSlab> parseSlabs(String key) =>
+    List<TaxSlab> parseRequiredSlabs(String key) =>
         (json[key] as List<dynamic>? ?? const [])
             .map((item) => TaxSlab.fromJson(item as Map<String, dynamic>))
             .toList();
-    final regularSlabs = parseSlabs('slabs');
+    List<TaxSlab>? parseOptionalSlabs(String key) {
+      final raw = json[key] as List<dynamic>?;
+      if (raw == null) return null;
+      final parsed = raw
+          .map((item) => TaxSlab.fromJson(item as Map<String, dynamic>))
+          .toList();
+      return parsed.isEmpty ? null : parsed;
+    }
+
+    final regularSlabs = parseRequiredSlabs('slabs');
 
     return RegimeRuleSet(
       standardDeduction: json['standard_deduction'] as int? ?? 0,
       professionalTaxDefault: json['professional_tax_default'] as int? ?? 0,
       rebate87ALimit: json['rebate_87a_limit'] as int? ?? 0,
       rebate87AAmount: json['rebate_87a_amount'] as int? ?? 0,
-      slabs:
-          regularSlabs.isNotEmpty ? regularSlabs : parseSlabs('slabs_below_60'),
-      slabs60To79: parseSlabs('slabs_60_to_79'),
-      slabs80Plus: parseSlabs('slabs_80_plus'),
+      slabs: regularSlabs.isNotEmpty
+          ? regularSlabs
+          : parseRequiredSlabs('slabs_below_60'),
+      slabs60To79: parseOptionalSlabs('slabs_60_to_79'),
+      slabs80Plus: parseOptionalSlabs('slabs_80_plus'),
     );
   }
 }

@@ -106,6 +106,7 @@ class _FakeApi extends ServerApiService {
     String path, {
     Map<String, dynamic>? body,
     String? bearerToken,
+    bool retryTransient = false,
   }) async {
     postCalls.add(path);
     final error = postErrors[path];

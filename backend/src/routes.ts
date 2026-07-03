@@ -3,12 +3,14 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
 import { db, Queryable } from './db.js';
+import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { env } from './config.js';
 import {
   createRefreshToken,
   decryptDocument,
   encryptDocument,
   encryptPan,
+  type EncryptedSecret,
   hashPan,
   hashPassword,
   hashRefreshToken,
@@ -256,6 +258,7 @@ function accountResponse(user: {
 }
 
 function documentResponse(row: Record<string, unknown>) {
+  const parseSummary = publicParseSummary(row.parse_summary);
   return {
     id: row.id,
     fy: row.fy,
@@ -265,7 +268,7 @@ function documentResponse(row: Record<string, unknown>) {
     byteSize: row.byte_size,
     sha256Fingerprint: row.sha256_fingerprint,
     parseStatus: row.parse_status,
-    parseSummary: row.parse_summary ?? {},
+    parseSummary,
     createdAt: row.created_at
       ? new Date(row.created_at as string | Date).toISOString()
       : null,
@@ -279,53 +282,52 @@ function safeFilename(filename: string): string {
   return filename.replace(/[^\w.\- ()]/g, '').slice(0, 160) || 'document';
 }
 
-function documentParseSummary(documentType: string, mimeType: string) {
-  const common = {
-    parser: 'deterministic-metadata-v1',
-    llmUsed: false,
-    confidence: 'metadata_only',
-    mimeType,
+function storedParseSummary(summary: Record<string, unknown>) {
+  const extractedFields = summary.extractedFields;
+  if (!extractedFields || typeof extractedFields !== 'object') {
+    return summary;
+  }
+  const encrypted = encryptDocument(
+    Buffer.from(JSON.stringify(extractedFields), 'utf8'),
+  );
+  const { extractedFields: _removed, ...rest } = summary;
+  return {
+    ...rest,
+    encryptedExtractedFields: encrypted,
+    extractedFieldKeys: Object.keys(extractedFields),
   };
-  const byType: Record<string, Record<string, unknown>> = {
-    form16: {
-      expectedSignals: ['employer TAN', 'gross salary', 'taxable income', 'TDS'],
-      insight:
-        'Form 16 stored. Deterministic value extraction will ask for user confirmation before changing the tax profile.',
-    },
-    rentReceipts: {
-      expectedSignals: ['rent amount', 'landlord details', 'rental period'],
-      insight: 'Rent proof stored for HRA or rent deduction readiness.',
-    },
-    investment80c: {
-      expectedSignals: ['ELSS', 'PPF', 'EPF', 'LIC', 'tuition fee', 'home loan principal'],
-      insight: '80C proof stored for deduction readiness.',
-    },
-    healthInsurance80d: {
-      expectedSignals: ['premium amount', 'insured person', 'policy year'],
-      insight: '80D proof stored for health insurance deduction readiness.',
-    },
-    homeLoanCertificate: {
-      expectedSignals: ['interest paid', 'principal paid', 'lender name'],
-      insight: 'Home loan certificate stored for Section 24(b) and 80C review.',
-    },
-    educationLoanInterest: {
-      expectedSignals: ['interest amount', 'repayment year', 'lender name'],
-      insight: 'Education loan proof stored for Section 80E review.',
-    },
-    donationReceipts: {
-      expectedSignals: ['80G eligibility', 'donee details', 'eligible amount'],
-      insight: 'Donation receipt stored for 80G readiness.',
-    },
-    ais26asReview: {
-      expectedSignals: ['TDS', 'TCS', 'interest', 'dividend', 'tax payments'],
-      insight: 'AIS/26AS record stored for mismatch review.',
-    },
-    otherTaxDocument: {
-      expectedSignals: ['manual review required'],
-      insight: 'Tax document stored for manual readiness review.',
-    },
-  };
-  return { ...common, ...(byType[documentType] ?? byType.otherTaxDocument) };
+}
+
+function publicParseSummary(raw: unknown) {
+  const summary = raw && typeof raw === 'object'
+    ? { ...(raw as Record<string, unknown>) }
+    : {};
+  const encrypted = encryptedExtractedFields(summary.encryptedExtractedFields);
+  if (encrypted) {
+    try {
+      summary.extractedFields = JSON.parse(
+        decryptDocument(encrypted).toString('utf8'),
+      );
+    } catch (_) {
+      summary.extractedFieldsUnavailable = true;
+    }
+  }
+  delete summary.encryptedExtractedFields;
+  return summary;
+}
+
+function encryptedExtractedFields(value: unknown): EncryptedSecret | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.ciphertext === 'string'
+    && typeof candidate.iv === 'string'
+    && typeof candidate.authTag === 'string'
+    ? {
+        ciphertext: candidate.ciphertext,
+        iv: candidate.iv,
+        authTag: candidate.authTag,
+      }
+    : null;
 }
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -712,15 +714,34 @@ export async function registerRoutes(app: FastifyInstance) {
     }
     const fingerprint = createHash('sha256').update(buffer).digest('hex');
     const encrypted = encryptDocument(buffer);
-    const parseSummary = documentParseSummary(documentType, part.mimetype);
+    const identity = await db.query(
+      `select pan_last4, pan_last_char
+       from user_private_identity
+       where user_id = $1 and pan_ciphertext is not null`,
+      [auth.userId],
+    );
+    const panVaultSuffix: PanVaultSuffix = identity.rowCount
+      && typeof identity.rows[0].pan_last4 === 'string'
+      && typeof identity.rows[0].pan_last_char === 'string'
+      ? {
+          last4: identity.rows[0].pan_last4 as string,
+          lastChar: identity.rows[0].pan_last_char as string,
+        }
+      : null;
+    const parsed = await parseUploadedDocument({
+      documentType,
+      mimeType: part.mimetype,
+      bytes: buffer,
+      panVaultSuffix,
+    });
     const inserted = await db.query(
       `insert into tax_documents (
          user_id, fy, document_type, original_filename, mime_type, byte_size,
          sha256_fingerprint, ciphertext, iv, auth_tag, parse_status,
          parse_summary, created_at, updated_at
        ) values (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'metadata_ready',
-         $11::jsonb, now(), now()
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+         $12::jsonb, now(), now()
        )
        on conflict (user_id, fy, document_type, sha256_fingerprint) do update set
          original_filename = excluded.original_filename,
@@ -745,7 +766,8 @@ export async function registerRoutes(app: FastifyInstance) {
         encrypted.ciphertext,
         encrypted.iv,
         encrypted.authTag,
-        JSON.stringify(parseSummary),
+        parsed.status,
+        JSON.stringify(storedParseSummary(parsed.summary)),
       ],
     );
     await db.query(
@@ -753,6 +775,58 @@ export async function registerRoutes(app: FastifyInstance) {
       [auth.userId, 'document_uploaded', JSON.stringify({ documentType })],
     );
     return { document: documentResponse(inserted.rows[0]) };
+  });
+
+  app.post('/documents/:id/confirm', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const current = await db.query(
+      `select parse_status, parse_summary
+       from tax_documents
+       where id = $1 and user_id = $2`,
+      [params.id, auth.userId],
+    );
+    if (!current.rowCount) {
+      return reply.code(404).send({ message: 'Document not found' });
+    }
+
+    const row = current.rows[0];
+    if (row.parse_status !== 'needs_confirmation') {
+      return reply.code(409).send({
+        message: 'This document has no pending parsed fields to confirm',
+      });
+    }
+
+    const storedSummary = typeof row.parse_summary === 'object' && row.parse_summary
+      ? row.parse_summary as Record<string, unknown>
+      : {};
+    const summary = publicParseSummary(storedSummary);
+    const extractedFields = summary.extractedFields && typeof summary.extractedFields === 'object'
+      ? summary.extractedFields as Record<string, unknown>
+      : {};
+    const confirmedSummary = {
+      ...storedSummary,
+      confirmationStatus: 'confirmed',
+      confirmedAt: new Date().toISOString(),
+      confirmedFieldKeys: Object.keys(extractedFields),
+    };
+    const updated = await db.query(
+      `update tax_documents
+       set parse_status = 'parsed',
+           parse_summary = $3::jsonb,
+           updated_at = now()
+       where id = $1 and user_id = $2
+       returning id, fy, document_type, original_filename, mime_type, byte_size,
+                 sha256_fingerprint, parse_status, parse_summary, created_at, updated_at`,
+      [params.id, auth.userId, JSON.stringify(confirmedSummary)],
+    );
+    await db.query(
+      'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
+      [auth.userId, 'document_fields_confirmed', '{}'],
+    );
+    return { document: documentResponse(updated.rows[0]) };
   });
 
   app.get('/documents/:id/download', readRateLimit, async (request, reply) => {

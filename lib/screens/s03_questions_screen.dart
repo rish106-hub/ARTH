@@ -78,9 +78,21 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     setState(() => _finishing = true);
     try {
       await ref.read(userProfileProvider.notifier).save();
+      ref.invalidate(completedTaxProfileProvider);
+      ref.invalidate(taxResultProvider);
       await ref.read(taxResultProvider.future);
       if (mounted) {
         context.go('/gap-reveal');
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not build your tax cockpit. Please try again.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {

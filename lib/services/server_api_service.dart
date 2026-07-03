@@ -1,11 +1,19 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 class ServerApiException implements Exception {
   final int statusCode;
+  final String? code;
   final String message;
+  final bool retryable;
 
-  const ServerApiException(this.statusCode, this.message);
+  const ServerApiException(
+    this.statusCode,
+    this.message, {
+    this.code,
+    this.retryable = false,
+  });
 
   @override
   String toString() => 'ServerApiException($statusCode): $message';
@@ -41,12 +49,14 @@ class ServerApiService {
     String path, {
     Map<String, dynamic>? body,
     String? bearerToken,
+    bool retryTransient = false,
   }) async {
     final response = await _send(
       'POST',
       path,
       body: body,
       bearerToken: bearerToken,
+      retryTransient: retryTransient,
     );
     return _decodeMap(response);
   }
@@ -145,31 +155,77 @@ class ServerApiService {
     String path, {
     Map<String, dynamic>? body,
     String? bearerToken,
+    bool retryTransient = false,
+  }) async {
+    final maxAttempts = retryTransient ? 2 : 1;
+    for (var attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await _sendOnce(
+          method,
+          path,
+          body: body,
+          bearerToken: bearerToken,
+        );
+      } on ServerApiException catch (error) {
+        if (attempt + 1 >= maxAttempts || !error.retryable) rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 450));
+      }
+    }
+    throw const ServerApiException(0, 'Network request failed');
+  }
+
+  Future<String> _sendOnce(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final request = await _client.openUrl(method, uri).timeout(_requestTimeout);
-    request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-    request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
-    if (bearerToken != null && bearerToken.isNotEmpty) {
-      request.headers.set(
-        HttpHeaders.authorizationHeader,
-        'Bearer $bearerToken',
-      );
-    }
-    if (body != null) {
-      request.write(jsonEncode(body));
-    }
+    late final HttpClientRequest request;
+    try {
+      request = await _client.openUrl(method, uri).timeout(_requestTimeout);
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+      if (bearerToken != null && bearerToken.isNotEmpty) {
+        request.headers.set(
+          HttpHeaders.authorizationHeader,
+          'Bearer $bearerToken',
+        );
+      }
+      if (body != null) {
+        request.write(jsonEncode(body));
+      }
 
-    final response = await request.close().timeout(_requestTimeout);
-    final responseBody =
-        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ServerApiException(
-        response.statusCode,
-        _extractMessage(responseBody),
+      final response = await request.close().timeout(_requestTimeout);
+      final responseBody = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(_requestTimeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final details = _extractErrorDetails(responseBody);
+        throw ServerApiException(
+          response.statusCode,
+          details.message,
+          code: details.code,
+          retryable: details.retryable || response.statusCode >= 500,
+        );
+      }
+      return responseBody;
+    } on TimeoutException {
+      throw const ServerApiException(
+        0,
+        'Network request timed out',
+        code: 'network_timeout',
+        retryable: true,
+      );
+    } on SocketException {
+      throw const ServerApiException(
+        0,
+        'Cannot reach ARTH',
+        code: 'network_unreachable',
+        retryable: true,
       );
     }
-    return responseBody;
   }
 
   Map<String, dynamic> _decodeMap(String raw) {
@@ -177,13 +233,33 @@ class ServerApiService {
     return jsonDecode(raw) as Map<String, dynamic>;
   }
 
-  String _extractMessage(String raw) {
-    if (raw.trim().isEmpty) return 'Request failed';
+  _ApiErrorDetails _extractErrorDetails(String raw) {
+    if (raw.trim().isEmpty) {
+      return const _ApiErrorDetails(message: 'Request failed');
+    }
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return decoded['message'] as String? ?? raw;
+      return _ApiErrorDetails(
+        message: decoded['message'] as String? ?? raw,
+        code: decoded['code'] as String?,
+        retryable: decoded['retryable'] == true,
+      );
     } catch (_) {
-      return raw;
+      return _ApiErrorDetails(message: raw);
     }
   }
+
+  String _extractMessage(String raw) => _extractErrorDetails(raw).message;
+}
+
+class _ApiErrorDetails {
+  final String message;
+  final String? code;
+  final bool retryable;
+
+  const _ApiErrorDetails({
+    required this.message,
+    this.code,
+    this.retryable = false,
+  });
 }

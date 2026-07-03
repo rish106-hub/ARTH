@@ -51,7 +51,7 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isTransientDbError(error: unknown): boolean {
+export function isTransientDbError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const directCode = (error as { code?: unknown }).code;
   if (typeof directCode === 'string' && transientDbErrorCodes.has(directCode)) {
