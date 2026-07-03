@@ -1,0 +1,24 @@
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_e00fa82ada89b0 114-129,596-608
+  s_56dd8210da6e59::t_91ea955f9e6219 609-610
+lib/screens/s07_deduction_detail_screen.dart
+  s_56dd8210da6e59::t_f12a0e33b66e39 226
+lib/widgets/gap_card_widget.dart
+  s_56dd8210da6e59::t_f12a0e33b66e39 106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "bce65c8b61a0bfc5f3ad12623b28a0f0c282ba00",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
