@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/product_insights.dart';
+import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
 import '../providers/account_profile_provider.dart';
 import '../providers/entitlement_provider.dart';
+import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -23,21 +26,7 @@ class DiscoverScreen extends ConsumerWidget {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
@@ -84,9 +73,13 @@ class _TaxOsHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final checklist = ref.watch(documentChecklistProvider);
     final docPercent = documentReadinessPercent(checklist);
+    final documents =
+        ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
+    final vaultSummary = DocumentVaultSummary.fromDocuments(documents);
     final panPresent =
         ref.watch(accountProfileProvider).asData?.value?.pan.present ?? false;
     final entitlement = ref.watch(entitlementProvider);
+    final activeYear = ref.watch(activeTaxYearProvider);
     final result = complete ? ref.watch(taxResultProvider).asData?.value : null;
     final readiness = _readinessScore(
       diagnosticComplete: complete,
@@ -94,76 +87,32 @@ class _TaxOsHome extends ConsumerWidget {
       panPresent: panPresent,
       confidenceScore: result?.confidenceScore,
     );
+    final next = buildNextBestAction(
+      diagnosticComplete: complete,
+      documentPercent: docPercent,
+      panPresent: panPresent,
+      result: result,
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PremiumGlassPanel(
-            elevated: true,
-            borderRadius: BorderRadius.circular(30),
-            tint: AppColors.gold,
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    TrustBadge(
-                      icon: Icons.shield_outlined,
-                      label: 'Privacy-first',
-                    ),
-                    TrustBadge(
-                      icon: Icons.lock_outline_rounded,
-                      label: 'Encrypted documents',
-                      color: AppColors.teal,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text('Private Tax Readiness Cockpit',
-                    style: AppTextStyles.h1()),
-                const SizedBox(height: 10),
-                Text(
-                  complete
-                      ? 'Track gaps, proofs, deadlines, AIS checks, and handoff readiness from one place.'
-                      : 'Explore the app first. Start a 3-minute diagnostic when ready. PAN and document uploads are optional.',
-                  style: AppTextStyles.body(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: AppButtons.primaryGold,
-                        onPressed: () => context.go(
-                          complete ? '/gap-reveal' : '/questions',
-                        ),
-                        icon: Icon(
-                          complete
-                              ? Icons.radar_rounded
-                              : Icons.play_arrow_rounded,
-                        ),
-                        label: Text(
-                          complete ? 'Open cockpit' : 'Start diagnostic',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      tooltip: 'Tax Dossier',
-                      style: IconButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                      ),
-                      onPressed: () => context.push('/tax-dossier'),
-                      icon: const Icon(Icons.assignment_outlined),
-                    ),
-                  ],
-                ),
-              ],
+          PremiumHeader(
+            eyebrow: 'Private Tax OS',
+            title: 'Readiness cockpit',
+            body: complete
+                ? 'Gaps, proof vault, assumptions, AIS checks, and CA-ready handoff in one calm view.'
+                : 'Explore first. Start the diagnostic when ready. PAN and document uploads stay optional.',
+            icon: Icons.home_work_outlined,
+            trailing: IconButton(
+              tooltip: 'Tax Story',
+              style: IconButton.styleFrom(
+                side: const BorderSide(color: AppColors.border),
+              ),
+              onPressed: () => context.push('/tax-story'),
+              icon: const Icon(Icons.auto_stories_outlined),
             ),
           ),
           const SizedBox(height: 18),
@@ -181,42 +130,58 @@ class _TaxOsHome extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ArthMetricCard(
-                  label: 'PAN',
-                  value: panPresent ? 'Saved' : 'Optional',
-                  helper: 'Profile vault',
-                  icon: Icons.badge_outlined,
-                  color: panPresent ? AppColors.success : AppColors.teal,
+                  label: 'Vault',
+                  value: '${vaultSummary.needsReview}',
+                  helper: 'needs review',
+                  icon: Icons.folder_special_outlined,
+                  color: vaultSummary.needsReview > 0
+                      ? AppColors.amber
+                      : AppColors.teal,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          ActionDock(
+            primaryLabel: next.cta,
+            primaryIcon: next.icon,
+            onPrimary: () => context.go(next.route),
+            secondaryLabel: 'Open Vault',
+            secondaryIcon: Icons.folder_special_outlined,
+            onSecondary: () => context.push('/documents'),
+          ),
           const SizedBox(height: 18),
-          if (complete) const _CompletedSummary() else const _FreshUserPlan(),
+          _NextBestActionCard(action: next),
+          const SizedBox(height: 20),
+          _QuickActionStrip(complete: complete),
           const SizedBox(height: 20),
           ArthSection(
             title: 'Seasonal calendar',
             child: Column(
-              children: const [
+              children: [
                 _CalendarTile(
                   icon: Icons.event_note_outlined,
                   title: 'Proof collection',
-                  date: 'Now to Mar 31',
+                  date: activeYear.fyLabel,
                   body:
                       'Prepare salary, rent, insurance, loan, and 80C proofs.',
+                  onTap: () => context.push('/tax-calendar'),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 _CalendarTile(
                   icon: Icons.account_balance_outlined,
                   title: 'AIS / 26AS review',
                   date: 'Before filing',
                   body: 'Check official tax credits and reported income.',
+                  onTap: () => context.push('/ais-guide'),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 _CalendarTile(
                   icon: Icons.task_alt_rounded,
                   title: 'Filing handoff',
                   date: 'By Jul 31',
                   body: 'Use official portal, employer partner, or CA.',
+                  onTap: () => context.push('/filing-assistant'),
                 ),
               ],
             ),
@@ -227,10 +192,24 @@ class _TaxOsHome extends ConsumerWidget {
             child: Column(
               children: [
                 _ModuleTile(
+                  icon: Icons.auto_stories_outlined,
+                  title: 'My Tax Story',
+                  body: 'Premium summary of your tax readiness and next move.',
+                  onTap: () => context.push('/tax-story'),
+                ),
+                const SizedBox(height: 10),
+                _ModuleTile(
+                  icon: Icons.science_outlined,
+                  title: 'What-if simulator',
+                  body: 'Try 80C, NPS, and 80D changes without mutating data.',
+                  onTap: () => context.push('/tax-simulator'),
+                ),
+                const SizedBox(height: 10),
+                _ModuleTile(
                   icon: Icons.folder_special_outlined,
-                  title: 'Document checklist',
+                  title: 'Document Vault',
                   body:
-                      '$docPercent% proof readiness. Encrypted upload optional.',
+                      '$docPercent% proof readiness. ${vaultSummary.needsReview} item(s) need review.',
                   onTap: () => context.push('/documents'),
                 ),
                 const SizedBox(height: 10),
@@ -354,124 +333,47 @@ class _PremiumModuleTile extends StatelessWidget {
   }
 }
 
-class _CompletedSummary extends ConsumerWidget {
-  const _CompletedSummary();
+class _NextBestActionCard extends StatelessWidget {
+  final NextBestAction action;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resultAsync = ref.watch(taxResultProvider);
-    return resultAsync.when(
-      loading: () => const PremiumSkeleton(height: 122),
-      error: (_, __) => _ModuleTile(
-        icon: Icons.error_outline_rounded,
-        title: 'Cockpit temporarily unavailable',
-        body: 'Retry from the cockpit when network is stable.',
-        onTap: () => context.go('/gap-reveal'),
-      ),
-      data: (result) => ArthSection(
-        title: 'Next best action',
-        child: PremiumGlassPanel(
-          tint: AppColors.teal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.bolt_rounded, color: AppColors.gold, size: 26),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TrustBadge(
-                      icon: Icons.verified_outlined,
-                      label: '${result.confidenceScore}% confidence',
-                      color: result.confidenceScore >= 85
-                          ? AppColors.success
-                          : AppColors.gold,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      result.assumptions.isNotEmpty
-                          ? 'Improve calculation accuracy'
-                          : result.gaps.isEmpty
-                              ? 'Keep documents ready'
-                              : result.gaps.first.title,
-                      style: AppTextStyles.h3(),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      result.assumptions.isNotEmpty
-                          ? result.assumptions.first.detail
-                          : result.gaps.isEmpty
-                              ? 'No major gap found. Maintain proof readiness and AIS review.'
-                              : 'Potential gap value: ${formatRupeesCompact(result.gaps.first.gapAmount)}.',
-                      style:
-                          AppTextStyles.caption(color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      style: AppButtons.outlineGold,
-                      onPressed: () => context.go(
-                        result.assumptions.isNotEmpty
-                            ? '/profile'
-                            : '/action-plan',
-                      ),
-                      icon: Icon(
-                        result.assumptions.isNotEmpty
-                            ? Icons.tune_rounded
-                            : Icons.checklist_rounded,
-                      ),
-                      label: Text(
-                        result.assumptions.isNotEmpty
-                            ? 'Add exact inputs'
-                            : 'Open actions',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FreshUserPlan extends StatelessWidget {
-  const _FreshUserPlan();
+  const _NextBestActionCard({required this.action});
 
   @override
   Widget build(BuildContext context) {
     return ArthSection(
-      title: 'Start here',
+      title: 'Next best action',
       child: PremiumGlassPanel(
-        child: Column(
+        tint: AppColors.teal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _PlanRow(
-              icon: Icons.route_rounded,
-              title: 'Run 3-minute diagnostic',
-              body:
-                  'Answer salary, rent, deduction, loan, and insurance basics.',
-            ),
-            const Divider(color: AppColors.divider),
-            const _PlanRow(
-              icon: Icons.folder_copy_outlined,
-              title: 'Prepare proofs',
-              body:
-                  'Use the checklist before collecting or sharing files anywhere.',
-            ),
-            const Divider(color: AppColors.divider),
-            const _PlanRow(
-              icon: Icons.account_balance_outlined,
-              title: 'Review official records',
-              body: 'Use AIS and 26AS guide before filing.',
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => context.push('/welcome'),
-                child: const Text('See onboarding story'),
+            Icon(action.icon, color: AppColors.gold, size: 26),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const TrustBadge(
+                    icon: Icons.bolt_rounded,
+                    label: 'Guided',
+                    color: AppColors.teal,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(action.title, style: AppTextStyles.h3()),
+                  const SizedBox(height: 5),
+                  Text(
+                    action.body,
+                    style:
+                        AppTextStyles.caption(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    style: AppButtons.outlineGold,
+                    onPressed: () => context.push(action.route),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: Text(action.cta),
+                  ),
+                ],
               ),
             ),
           ],
@@ -481,40 +383,81 @@ class _FreshUserPlan extends StatelessWidget {
   }
 }
 
-class _PlanRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String body;
+class _QuickActionStrip extends StatelessWidget {
+  final bool complete;
 
-  const _PlanRow({
+  const _QuickActionStrip({required this.complete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      padding: const EdgeInsets.all(12),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          _MiniAction(
+            icon: Icons.tune_rounded,
+            label: 'Accuracy',
+            onTap: () => context.push(
+              complete ? '/accuracy-coach' : '/questions',
+            ),
+          ),
+          _MiniAction(
+            icon: Icons.science_outlined,
+            label: 'What-if',
+            onTap: () => context.push(
+              complete ? '/tax-simulator' : '/questions',
+            ),
+          ),
+          _MiniAction(
+            icon: Icons.event_available_outlined,
+            label: 'Calendar',
+            onTap: () => context.push('/tax-calendar'),
+          ),
+          _MiniAction(
+            icon: Icons.support_agent_rounded,
+            label: 'Help',
+            onTap: () => context.push('/help'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MiniAction({
     required this.icon,
-    required this.title,
-    required this.body,
+    required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.gold, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
-                const SizedBox(height: 3),
-                Text(
-                  body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return InkWell(
+      borderRadius: AppRadius.pill,
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.pill,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.gold, size: 19),
+            const SizedBox(height: 4),
+            Text(label, style: AppTextStyles.micro()),
+          ],
+        ),
       ),
     );
   }
@@ -525,45 +468,52 @@ class _CalendarTile extends StatelessWidget {
   final String title;
   final String date;
   final String body;
+  final VoidCallback onTap;
 
   const _CalendarTile({
     required this.icon,
     required this.title,
     required this.date,
     required this.body,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PremiumGlassPanel(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.teal, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: Text(title, style: AppTextStyles.h3())),
-                    const SizedBox(width: 8),
-                    Text(date,
-                        style: AppTextStyles.micro(color: AppColors.gold)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
-                ),
-              ],
+    return InkWell(
+      borderRadius: AppRadius.card,
+      onTap: onTap,
+      child: PremiumGlassPanel(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.teal, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: Text(title, style: AppTextStyles.h3())),
+                      const SizedBox(width: 8),
+                      Text(date,
+                          style: AppTextStyles.micro(color: AppColors.gold)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style:
+                        AppTextStyles.caption(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

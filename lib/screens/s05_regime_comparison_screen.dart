@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+
 import '../theme/app_theme.dart';
 import '../models/tax_rule_set.dart';
 import '../models/tax_result.dart';
@@ -172,6 +174,25 @@ class _RegimeContent extends StatelessWidget {
                 const SizedBox(height: 14),
                 _AssumptionsPanel(assumptions: result.assumptions),
               ],
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  OutlinedButton.icon(
+                    style: AppButtons.outlineGold,
+                    onPressed: () => context.push('/accuracy-coach'),
+                    icon: const Icon(Icons.tune_rounded),
+                    label: const Text('Improve accuracy'),
+                  ),
+                  OutlinedButton.icon(
+                    style: AppButtons.outlineGold,
+                    onPressed: () => context.push('/tax-simulator'),
+                    icon: const Icon(Icons.science_outlined),
+                    label: const Text('What-if'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               Text('General Guidance by Income', style: AppTextStyles.h3()),
               const SizedBox(height: 12),

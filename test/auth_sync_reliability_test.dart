@@ -35,6 +35,23 @@ void main() {
     expect(api.postCalls, contains('/auth/refresh'));
   });
 
+  test('sign-up retries transient server failures like sign-in', () async {
+    final api = _FakeApi()
+      ..postResponses['/auth/sign-up'] = _authResponse(
+        _jwtWithExpiry(DateTime.now().add(const Duration(minutes: 15))),
+        'refresh-1',
+      );
+    final auth = AuthService(api: api);
+
+    await auth.signUp(
+      name: 'User',
+      email: 'user@example.com',
+      password: 'CorrectHorse9',
+    );
+
+    expect(api.postRetryFlags['/auth/sign-up'], isTrue);
+  });
+
   test('refresh failure clears auth tokens but leaves profile storage alone',
       () async {
     final storage = const SecureStorageService();
@@ -91,12 +108,26 @@ void main() {
     await sync.syncProfile(_sampleProfile());
     expect(queue.enqueuedTypes, ['profile']);
   });
+
+  test('missing auth token is not queued for later replay', () async {
+    final queue = _RecordingQueue();
+    final sync = BackendSyncService(
+      api: _FakeApi(),
+      auth: _MissingTokenAuthService(),
+      queue: queue,
+    );
+
+    await sync.syncProfile(_sampleProfile());
+
+    expect(queue.enqueuedTypes, isEmpty);
+  });
 }
 
 class _FakeApi extends ServerApiService {
   final postResponses = <String, Map<String, dynamic>>{};
   final postErrors = <String, ServerApiException>{};
   final postCalls = <String>[];
+  final postRetryFlags = <String, bool>{};
   ServerApiException? putError;
 
   _FakeApi() : super(baseUrl: 'http://localhost');
@@ -109,6 +140,7 @@ class _FakeApi extends ServerApiService {
     bool retryTransient = false,
   }) async {
     postCalls.add(path);
+    postRetryFlags[path] = retryTransient;
     final error = postErrors[path];
     if (error != null) throw error;
     return postResponses[path] ?? <String, dynamic>{};
@@ -136,6 +168,11 @@ class _FakeApi extends ServerApiService {
 class _FixedTokenAuthService extends AuthService {
   @override
   Future<String?> getValidAccessToken() async => 'access-token';
+}
+
+class _MissingTokenAuthService extends AuthService {
+  @override
+  Future<String?> getValidAccessToken() async => null;
 }
 
 class _RecordingQueue extends SyncQueueService {

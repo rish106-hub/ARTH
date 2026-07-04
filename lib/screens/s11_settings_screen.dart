@@ -217,21 +217,7 @@ class SettingsScreen extends ConsumerWidget {
 
                 ArthBottomNav(
                   selectedIndex: 3,
-                  onTap: (i) {
-                    switch (i) {
-                      case 0:
-                        context.go('/gap-reveal');
-                        break;
-                      case 1:
-                        context.go('/action-plan');
-                        break;
-                      case 2:
-                        context.go('/progress');
-                        break;
-                      case 3:
-                        break;
-                    }
-                  },
+                  onTap: (i) => goToArthTab(context, i),
                 ),
               ],
             ),
@@ -302,7 +288,7 @@ class _SettingsHeader extends StatelessWidget {
               fontSize: compact ? 24 : 26,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
             ),
           ),
           Container(

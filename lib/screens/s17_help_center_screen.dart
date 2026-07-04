@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../providers/tax_year_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -10,30 +12,18 @@ const _supportName = 'Rishav Dewan';
 const _supportEmail = 'rishavdewan10@gmail.com';
 const _supportPhone = '9749452397';
 
-class HelpCenterScreen extends StatelessWidget {
+class HelpCenterScreen extends ConsumerWidget {
   const HelpCenterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeYear = ref.watch(activeTaxYearProvider);
+    final safeContext =
+        'Tax year: ${activeYear.displayLabel} / ${activeYear.assessmentYear}\nDo not include PAN, passwords, tokens, or uploaded documents in this email.\n\n';
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 3,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/discover');
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
@@ -82,6 +72,7 @@ class HelpCenterScreen extends StatelessWidget {
                               style: AppButtons.outlineGold,
                               onPressed: () => _email(
                                 subject: 'ARTH support request',
+                                body: safeContext,
                               ),
                               icon: const Icon(Icons.mail_outline_rounded),
                               label: const Text('Email'),
@@ -137,7 +128,7 @@ class HelpCenterScreen extends StatelessWidget {
                           onTap: () => _email(
                             subject: 'ARTH issue report',
                             body:
-                                'Issue:\n\nScreen:\n\nDevice:\n\nSteps to reproduce:\n',
+                                '${safeContext}Issue:\n\nScreen:\n\nDevice:\n\nSteps to reproduce:\n',
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -148,7 +139,7 @@ class HelpCenterScreen extends StatelessWidget {
                               'Ask for product guidance or tax-readiness explanation.',
                           onTap: () => _email(
                             subject: 'ARTH tax-readiness question',
-                            body: 'Question:\n\nContext:\n',
+                            body: '${safeContext}Question:\n\nContext:\n',
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -159,7 +150,19 @@ class HelpCenterScreen extends StatelessWidget {
                               'Ask about PAN vault, account deletion, or saved data.',
                           onTap: () => _email(
                             subject: 'ARTH data/privacy help',
-                            body: 'Privacy question:\n\n',
+                            body: '${safeContext}Privacy question:\n\n',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _SupportTopic(
+                          icon: Icons.slideshow_outlined,
+                          title: 'Demo walkthrough',
+                          body:
+                              'Ask for a quick walkthrough of Home, Accuracy, Simulator, and Dossier.',
+                          onTap: () => _email(
+                            subject: 'ARTH demo walkthrough request',
+                            body:
+                                '${safeContext}I would like a walkthrough of:\n\nBest time to connect:\n',
                           ),
                         ),
                       ],

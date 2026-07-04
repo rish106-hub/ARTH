@@ -1,11 +1,13 @@
 import 'package:arth/models/gap_card.dart';
 import 'package:arth/models/account_profile.dart';
+import 'package:arth/models/tax_document.dart';
 import 'package:arth/models/tax_readiness.dart';
 import 'package:arth/models/tax_result.dart';
 import 'package:arth/models/user_account.dart';
 import 'package:arth/models/user_profile.dart';
 import 'package:arth/providers/account_profile_provider.dart';
 import 'package:arth/providers/auth_provider.dart';
+import 'package:arth/providers/tax_document_provider.dart';
 import 'package:arth/providers/tax_readiness_provider.dart';
 import 'package:arth/providers/tax_result_provider.dart';
 import 'package:arth/providers/user_profile_provider.dart';
@@ -26,7 +28,12 @@ import 'package:arth/screens/s15_document_checklist_screen.dart';
 import 'package:arth/screens/s16_ais_guide_screen.dart';
 import 'package:arth/screens/s17_help_center_screen.dart';
 import 'package:arth/screens/s18_tax_dossier_screen.dart';
+import 'package:arth/screens/s20_accuracy_coach_screen.dart';
+import 'package:arth/screens/s21_tax_simulator_screen.dart';
+import 'package:arth/screens/s22_tax_story_screen.dart';
+import 'package:arth/screens/s23_tax_calendar_screen.dart';
 import 'package:arth/services/auth_service.dart';
+import 'package:arth/services/backend_sync_service.dart';
 import 'package:arth/widgets/question_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,6 +159,24 @@ void main() {
     pan: const PanVaultStatus(present: false),
   );
 
+  const sampleDocument = TaxDocument(
+    id: 'doc-1',
+    fy: '2026-27',
+    documentType: 'form16',
+    originalFilename: 'form16.pdf',
+    mimeType: 'application/pdf',
+    byteSize: 2048,
+    parseStatus: 'needs_confirmation',
+    parseSummary: {
+      'insight': 'Form 16 text parsed. Review and confirm these values.',
+      'extractedFields': {
+        'employerTan': 'ABCD12345E',
+        'grossSalary': 1800000,
+      },
+    },
+    tags: ['salary'],
+  );
+
   final overrides = [
     userProfileProvider.overrideWith(
       () => _FixedUserProfileNotifier(sampleProfile),
@@ -163,6 +188,9 @@ void main() {
     gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
     documentChecklistProvider.overrideWith(
       () => _FixedDocumentChecklistNotifier({}),
+    ),
+    taxDocumentProvider.overrideWith(
+      () => _FixedTaxDocumentNotifier(const [sampleDocument]),
     ),
     taxResultProvider.overrideWith((ref) async => sampleResult),
     authProvider.overrideWith(
@@ -181,6 +209,9 @@ void main() {
         gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
         documentChecklistProvider.overrideWith(
           () => _FixedDocumentChecklistNotifier(checklist),
+        ),
+        taxDocumentProvider.overrideWith(
+          () => _FixedTaxDocumentNotifier(const []),
         ),
         taxResultProvider.overrideWith((ref) async => sampleResult),
         authProvider.overrideWith(
@@ -276,6 +307,10 @@ void main() {
         const AisGuideScreen(),
         const HelpCenterScreen(),
         const TaxDossierScreen(),
+        const AccuracyCoachScreen(),
+        const TaxSimulatorScreen(),
+        const TaxStoryScreen(),
+        const TaxCalendarScreen(),
         const BudgetAlertScreen(),
       ];
 
@@ -338,7 +373,7 @@ void main() {
     await tester.drag(find.byType(PageView), const Offset(-320, 0));
     await tester.pumpAndSettle();
     expect(find.text('Get a cockpit, not a spreadsheet.'), findsOneWidget);
-    expect(find.text('Start diagnostic'), findsOneWidget);
+    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('tax cockpit shows next action and future modules', (
@@ -399,6 +434,9 @@ void main() {
       documentChecklistProvider.overrideWith(
         () => _FixedDocumentChecklistNotifier({}),
       ),
+      taxDocumentProvider.overrideWith(
+        () => _FixedTaxDocumentNotifier(const [sampleDocument]),
+      ),
       authProvider.overrideWith(
         () => _FixedAuthNotifier(_FixedAuthService(account)),
       ),
@@ -410,9 +448,9 @@ void main() {
       customOverrides: browseOverrides,
     );
 
-    expect(find.text('Start diagnostic'), findsOneWidget);
-    expect(find.text('Private Tax Readiness Cockpit'), findsOneWidget);
-    expect(find.text('Document checklist'), findsOneWidget);
+    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
+    expect(find.text('Readiness cockpit'), findsOneWidget);
+    expect(find.text('Document Vault'), findsOneWidget);
     expect(find.text('AIS & 26AS guide'), findsOneWidget);
   });
 
@@ -422,7 +460,7 @@ void main() {
     await pumpAuditedScreen(tester, const DiscoverScreen());
 
     expect(find.text('HOME'), findsOneWidget);
-    expect(find.text('Private Tax Readiness Cockpit'), findsOneWidget);
+    expect(find.text('Readiness cockpit'), findsOneWidget);
     expect(find.text('Readiness'), findsOneWidget);
 
     await tester.scrollUntilVisible(
@@ -432,6 +470,8 @@ void main() {
     );
     expect(find.text('Tax Dossier'), findsOneWidget);
     expect(find.text('Help Center'), findsOneWidget);
+    expect(find.text('My Tax Story'), findsOneWidget);
+    expect(find.text('What-if simulator'), findsOneWidget);
   });
 
   testWidgets('Help Center shows contact actions and support details', (
@@ -444,10 +484,10 @@ void main() {
     expect(find.text('9749452397'), findsOneWidget);
     expect(find.text('Report an issue'), findsOneWidget);
     expect(find.text('Data/privacy help'), findsOneWidget);
+    expect(find.text('Demo walkthrough'), findsOneWidget);
   });
 
-  testWidgets('Document checklist renders empty, partial, and complete states',
-      (
+  testWidgets('Document Vault renders empty, partial, and complete states', (
     tester,
   ) async {
     await pumpAuditedScreen(
@@ -455,7 +495,7 @@ void main() {
       const DocumentChecklistScreen(),
       customOverrides: overridesWithChecklist({}),
     );
-    expect(find.text('0/8 ready'), findsOneWidget);
+    expect(find.textContaining('Your tax proof vault'), findsOneWidget);
     expect(find.text('Form 16'), findsOneWidget);
 
     await pumpAuditedScreen(
@@ -466,7 +506,7 @@ void main() {
         taxDocumentItems[1].id: true,
       }),
     );
-    expect(find.text('2/8 ready'), findsOneWidget);
+    expect(find.textContaining('25%'), findsAtLeastNWidgets(1));
 
     await pumpAuditedScreen(
       tester,
@@ -475,7 +515,7 @@ void main() {
         for (final item in taxDocumentItems) item.id: true,
       }),
     );
-    expect(find.text('8/8 ready'), findsOneWidget);
+    expect(find.textContaining('100%'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('AIS guide is visible without asking for PAN', (tester) async {
@@ -511,6 +551,9 @@ void main() {
         gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
         documentChecklistProvider.overrideWith(
           () => _FixedDocumentChecklistNotifier({}),
+        ),
+        taxDocumentProvider.overrideWith(
+          () => _FixedTaxDocumentNotifier(const [sampleDocument]),
         ),
         taxResultProvider.overrideWith((ref) async => sampleResult),
         authProvider.overrideWith(
@@ -597,12 +640,17 @@ void main() {
             if (!isComplete) throw StateError('tax profile incomplete');
             return sampleResult;
           }),
+          backendSyncServiceProvider
+              .overrideWithValue(_NoopBackendSyncService()),
           accountProfileProvider.overrideWith(
             () => _FixedAccountProfileNotifier(accountProfile),
           ),
           gapStateProvider.overrideWith(() => _FixedGapStateNotifier({})),
           documentChecklistProvider.overrideWith(
             () => _FixedDocumentChecklistNotifier({}),
+          ),
+          taxDocumentProvider.overrideWith(
+            () => _FixedTaxDocumentNotifier(const [sampleDocument]),
           ),
           authProvider.overrideWith(
             () => _FixedAuthNotifier(_FixedAuthService(account)),
@@ -748,7 +796,8 @@ void main() {
     await pumpReducedMotionScreen(tester, const ProgressTrackerScreen());
 
     expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Actions'), findsOneWidget);
+    expect(find.text('Vault'), findsOneWidget);
+    expect(find.text('Coach'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
   });
 }
@@ -823,6 +872,20 @@ class _FixedDocumentChecklistNotifier extends DocumentChecklistNotifier {
   }
 }
 
+class _FixedTaxDocumentNotifier extends TaxDocumentNotifier {
+  final List<TaxDocument> _documents;
+
+  _FixedTaxDocumentNotifier(this._documents);
+
+  @override
+  Future<List<TaxDocument>> build() async => _documents;
+
+  @override
+  Future<void> refresh() async {
+    state = AsyncData(_documents);
+  }
+}
+
 class _FixedAuthService extends AuthService {
   final UserAccount? _account;
 
@@ -836,6 +899,11 @@ class _FixedAuthService extends AuthService {
 
   @override
   Future<void> clearAccount() async {}
+}
+
+class _NoopBackendSyncService extends BackendSyncService {
+  @override
+  Future<void> syncTaxResult(TaxResult result) async {}
 }
 
 class _FixedAuthNotifier extends AuthNotifier {

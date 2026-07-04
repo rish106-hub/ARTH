@@ -23,23 +23,8 @@ class FilingAssistantScreen extends ConsumerWidget {
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 1,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/discover');
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        selectedIndex: 2,
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [

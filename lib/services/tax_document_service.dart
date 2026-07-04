@@ -22,6 +22,32 @@ class TaxDocumentService {
         .toList();
   }
 
+  Future<TaxDocument> updateDocument(
+    String id, {
+    String? userLabel,
+    String? notes,
+    List<String>? tags,
+    String? vaultStatus,
+    String? reviewStatus,
+  }) async {
+    final token = await _auth.getValidAccessToken();
+    if (token == null) throw StateError('not signed in');
+    final body = <String, dynamic>{};
+    if (userLabel != null) body['userLabel'] = userLabel;
+    if (notes != null) body['notes'] = notes;
+    if (tags != null) body['tags'] = tags;
+    if (vaultStatus != null) body['vaultStatus'] = vaultStatus;
+    if (reviewStatus != null) body['reviewStatus'] = reviewStatus;
+    final response = await _api.patchJson(
+      '/documents/$id',
+      bearerToken: token,
+      body: body,
+    );
+    return TaxDocument.fromJson(
+      response['document'] as Map<String, dynamic>? ?? const {},
+    );
+  }
+
   Future<TaxDocument> uploadDocument({
     required String documentType,
     required String filename,

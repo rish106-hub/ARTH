@@ -28,22 +28,7 @@ class TaxDossierScreen extends ConsumerWidget {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/discover');
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
@@ -209,11 +194,35 @@ class TaxDossierScreen extends ConsumerWidget {
                             child: Column(
                               children: [
                                 _DossierAction(
+                                  icon: Icons.auto_stories_outlined,
+                                  title: 'Open My Tax Story',
+                                  body:
+                                      'See the cleaner interview-ready summary of readiness and next move.',
+                                  onTap: () => context.push('/tax-story'),
+                                ),
+                                const SizedBox(height: 10),
+                                _DossierAction(
+                                  icon: Icons.tune_rounded,
+                                  title: 'Improve calculation accuracy',
+                                  body:
+                                      'Replace assumptions with exact payslip and proof values.',
+                                  onTap: () => context.push('/accuracy-coach'),
+                                ),
+                                const SizedBox(height: 10),
+                                _DossierAction(
                                   icon: Icons.checklist_rounded,
                                   title: 'Open action plan',
                                   body:
                                       'Close deduction gaps from highest-value to easiest.',
                                   onTap: () => context.go('/action-plan'),
+                                ),
+                                const SizedBox(height: 10),
+                                _DossierAction(
+                                  icon: Icons.science_outlined,
+                                  title: 'Run what-if simulator',
+                                  body:
+                                      'Try 80C, NPS, and 80D changes before editing the diagnostic.',
+                                  onTap: () => context.push('/tax-simulator'),
                                 ),
                                 const SizedBox(height: 10),
                                 _DossierAction(

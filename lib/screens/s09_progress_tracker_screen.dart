@@ -26,21 +26,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
       appBar: const ArthAppBar(title: 'Progress Tracker'),
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 2,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/discover');
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
