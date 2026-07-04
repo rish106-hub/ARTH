@@ -1,0 +1,67 @@
+lib/widgets/premium_ui.dart
+  s_56dd8210da6e59::t_3c67b330425177 5,107,109,111-122,124-125,127,405
+lib/screens/s20_accuracy_coach_screen.dart
+  s_56dd8210da6e59::t_b97292b18c31d2 283,285-287,293-303,305-306,308-311,313-353,355
+  s_56dd8210da6e59::t_127fe8d26e72eb 1-113,118-205,214-215,359-361
+  s_56dd8210da6e59::t_a88744c063d809 114-117
+  s_56dd8210da6e59::t_8af413c460de7f 206-208,217-282,284,288-292,304,312,354,356-358
+  s_56dd8210da6e59::t_ded991f41b666e 209-213
+  s_56dd8210da6e59::t_9b2cdd2b1fc133 307
+  s_56dd8210da6e59::t_f7636f7a9b50e8 216
+lib/screens/s14_profile_screen.dart
+  s_56dd8210da6e59::t_a88744c063d809 944-945
+  s_56dd8210da6e59::t_1511d6a421bd21 119,923-943,946-953
+lib/screens/s05_regime_comparison_screen.dart
+  s_56dd8210da6e59::t_bb7b30d750d79c 4-5
+  s_56dd8210da6e59::t_1511d6a421bd21 177-195
+lib/models/product_insights.dart
+  s_56dd8210da6e59::t_eb45222229a615 1-4,6-69,72-78,81-167,170-277,279-281,284-286,288-294,296-298,301-303,305-312
+  s_56dd8210da6e59::t_a88744c063d809 70-71,79-80,168-169,282-283,299-300
+  s_56dd8210da6e59::t_40d227c25ad721 5,278,287
+  s_56dd8210da6e59::t_d78312d7316989 295,304
+lib/screens/s22_tax_story_screen.dart
+  s_56dd8210da6e59::t_127fe8d26e72eb 1-299
+test/product_insights_test.dart
+  s_56dd8210da6e59::t_2de008828c0713 1-98
+lib/widgets/ui_policy.dart
+  s_56dd8210da6e59::t_eb45222229a615 1-36,39-73
+  s_56dd8210da6e59::t_a88744c063d809 37-38
+lib/screens/s21_tax_simulator_screen.dart
+  s_56dd8210da6e59::t_127fe8d26e72eb 1-312
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_5a0624d8d2808a 421
+  s_56dd8210da6e59::t_c64d4727b5dceb 349
+  s_56dd8210da6e59::t_2de008828c0713 29-32,283-286,443-444,457
+lib/app.dart
+  s_56dd8210da6e59::t_64b9dd1bcee536 24-27,71-83
+lib/screens/s18_tax_dossier_screen.dart
+  s_56dd8210da6e59::t_1511d6a421bd21 211-226,235-242
+lib/screens/s17_help_center_screen.dart
+  s_56dd8210da6e59::t_dcbc6600552811 2,6,15,19-22,90,146,157,168-180
+lib/widgets/arth_bottom_nav.dart
+  s_56dd8210da6e59::t_3c67b330425177 4,42-43,48-60,62-80
+  s_56dd8210da6e59::t_b2372c165c26ac 149
+  s_56dd8210da6e59::t_95c1ddcabc3568 81-123,132-137,139-140,142-148,150-160,162-163
+lib/screens/s13_discover_screen.dart
+  s_56dd8210da6e59::t_a88744c063d809 408-409,540-553
+  s_56dd8210da6e59::t_64b9dd1bcee536 5,11,91,99-104,140-141,151,153-154,163-164,196-198,203,207,210,212,218,220,226,236-249,378-381,384-407,410-418,420-421,428-431,435-446,448-453,455-466,472,474-475,477,479-480,485-502,513,520,525-539,554-555,557-558
+lib/screens/s23_tax_calendar_screen.dart
+  s_56dd8210da6e59::t_a88744c063d809 93,125-126
+  s_56dd8210da6e59::t_127fe8d26e72eb 1-92,94-124,127-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "7839c3960ba80716dcb7c1c54d68b8d79ef81783",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    }
+  }
+}
