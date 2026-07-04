@@ -198,100 +198,164 @@ class _AccuracyTaskCard extends ConsumerWidget {
     WidgetRef ref,
     AccuracyTask task,
   ) async {
-    final controller = TextEditingController(
-      text: task.currentValue == null ? '' : task.currentValue.toString(),
-    );
-    String? error;
-    var saving = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            Future<void> save() async {
-              final raw = int.tryParse(controller.text.trim());
-              if (raw == null || raw < task.min || raw > task.max) {
-                setSheetState(() {
-                  error =
-                      'Enter a value between ${task.min} and ${task.max} ${task.suffix}.';
-                });
-                return;
-              }
-              setSheetState(() {
-                saving = true;
-                error = null;
-              });
-              ref.read(userProfileProvider.notifier).updateField(
-                    (profile) => task.apply(profile, raw),
-                  );
-              await ref.read(userProfileProvider.notifier).save();
-              ref.invalidate(taxResultProvider);
-              if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                ),
-                child: PremiumGlassPanel(
-                  borderRadius: BorderRadius.circular(28),
-                  tint: AppColors.gold,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(task.fieldLabel, style: AppTextStyles.h2()),
-                      const SizedBox(height: 8),
-                      Text(
-                        task.body,
-                        style: AppTextStyles.caption(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: controller,
-                        autofocus: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          prefixText: task.suffix == '₹' ? '₹ ' : null,
-                          suffixText: task.suffix == '%' ? '%' : null,
-                          errorText: error,
-                          labelText: task.fieldLabel,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        style: AppButtons.primaryGold,
-                        onPressed: saving ? null : save,
-                        icon: saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.check_rounded),
-                        label: Text(saving ? 'Saving' : 'Save input'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+        return _AccuracyInputSheet(
+          task: task,
+          onSave: (value) async {
+            ref.read(userProfileProvider.notifier).updateField(
+                  (profile) => task.apply(profile, value),
+                );
+            await ref.read(userProfileProvider.notifier).save();
+            ref.invalidate(taxResultProvider);
           },
         );
       },
     );
-    controller.dispose();
+  }
+}
+
+class _AccuracyInputSheet extends StatefulWidget {
+  final AccuracyTask task;
+  final Future<void> Function(int value) onSave;
+
+  const _AccuracyInputSheet({
+    required this.task,
+    required this.onSave,
+  });
+
+  @override
+  State<_AccuracyInputSheet> createState() => _AccuracyInputSheetState();
+}
+
+class _AccuracyInputSheetState extends State<_AccuracyInputSheet> {
+  late final TextEditingController _controller;
+  String? _error;
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final value = widget.task.currentValue;
+    _controller = TextEditingController(
+      text: value == null ? '' : value.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final task = widget.task;
+    final value = int.tryParse(_controller.text.trim());
+    if (value == null || value < task.min || value > task.max) {
+      setState(() {
+        _error =
+            'Enter a value between ${task.min} and ${task.max} ${task.suffix}.';
+      });
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(value);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = 'Could not save this input. Please try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final task = widget.task;
+    final height = MediaQuery.sizeOf(context).height;
+    return SafeArea(
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: height * 0.58),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.graphite,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: AppColors.gold.withValues(alpha: 0.28),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 24,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(task.fieldLabel, style: AppTextStyles.h2()),
+                    const SizedBox(height: 8),
+                    Text(
+                      task.body,
+                      style: AppTextStyles.caption(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        prefixText: task.suffix == '₹' ? '₹ ' : null,
+                        suffixText: task.suffix == '%' ? '%' : null,
+                        errorText: _error,
+                        labelText: task.fieldLabel,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: AppButtons.primaryGold,
+                      onPressed: _saving ? null : _save,
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: Text(_saving ? 'Saving' : 'Save input'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
