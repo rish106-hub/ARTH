@@ -1,0 +1,19 @@
+lib/screens/s20_accuracy_coach_screen.dart
+  s_56dd8210da6e59::t_a1a2a8da4308ad 206-278,280-303,305-323,325-336,338-352,355-358
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "62bfdb2b7193f0d8bc4f1545a2684260a869c266",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
