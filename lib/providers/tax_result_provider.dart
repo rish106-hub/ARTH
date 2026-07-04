@@ -8,6 +8,10 @@ import '../services/backend_sync_service.dart';
 import 'user_profile_provider.dart';
 import 'tax_year_provider.dart';
 
+final backendSyncServiceProvider = Provider<BackendSyncService>(
+  (ref) => BackendSyncService(),
+);
+
 // Async provider that loads triggers from JSON and computes gaps
 final taxResultProvider = FutureProvider<TaxResult>((ref) async {
   final complete = await ref.watch(completedTaxProfileProvider.future);
@@ -19,9 +23,14 @@ final taxResultProvider = FutureProvider<TaxResult>((ref) async {
   final triggers = await GapFinder.loadTriggers();
   final gaps = GapFinder.findGaps(profile, triggers);
   final result = TaxEngine.calculate(profile, gaps, ruleSet: ruleSet);
-  await BackendSyncService().syncTaxResult(result);
   return result;
 });
+
+Future<TaxResult> computeAndSyncCurrentTaxResult(WidgetRef ref) async {
+  final result = await ref.read(taxResultProvider.future);
+  await ref.read(backendSyncServiceProvider).syncTaxResult(result);
+  return result;
+}
 
 // Mutable gap state for "mark done" functionality
 class GapStateNotifier extends Notifier<Map<String, bool>> {
@@ -108,6 +117,15 @@ final activeGapsProvider = Provider<AsyncValue<List<GapCard>>>((ref) {
 
 // Tax savings rate at the user's income level
 final marginalRateProvider = Provider<double>((ref) {
+  final result = ref.watch(taxResultProvider).asData?.value;
+  if (result != null) {
+    final taxable = result.betterRegime == TaxRegime.oldRegime
+        ? result.oldRegimeTaxableIncome
+        : result.newRegimeTaxableIncome;
+    return result.betterRegime == TaxRegime.oldRegime
+        ? TaxEngine.marginalRateOldRegime(taxable)
+        : TaxEngine.marginalRateNewRegime(taxable);
+  }
   final profile = ref.watch(userProfileProvider);
-  return TaxEngine.marginalRateOldRegime(profile.annualCTC.toDouble());
+  return TaxEngine.marginalRateNewRegime(profile.annualCTC.toDouble());
 });

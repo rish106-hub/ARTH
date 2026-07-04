@@ -236,18 +236,31 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                             ElevatedButton.icon(
                               style: AppButtons.primaryGold,
                               onPressed: () async {
-                                ref
-                                    .read(userProfileProvider.notifier)
-                                    .updateField(
-                                      (_) => simulatedProfile,
+                                final notifier =
+                                    ref.read(userProfileProvider.notifier);
+                                final previous = ref.read(userProfileProvider);
+                                notifier.updateField(
+                                  (_) => simulatedProfile,
+                                );
+                                try {
+                                  await notifier.save();
+                                  ref.invalidate(taxResultProvider);
+                                  await computeAndSyncCurrentTaxResult(ref);
+                                  if (context.mounted) {
+                                    HapticFeedback.selectionClick();
+                                    context.go('/gap-reveal');
+                                  }
+                                } catch (_) {
+                                  notifier.update(previous);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Could not apply this scenario. Please try again.',
+                                        ),
+                                      ),
                                     );
-                                await ref
-                                    .read(userProfileProvider.notifier)
-                                    .save();
-                                ref.invalidate(taxResultProvider);
-                                if (context.mounted) {
-                                  HapticFeedback.selectionClick();
-                                  context.go('/gap-reveal');
+                                  }
                                 }
                               },
                               icon: const Icon(Icons.check_rounded),

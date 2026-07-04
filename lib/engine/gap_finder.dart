@@ -79,16 +79,23 @@ class GapFinder {
         return null;
 
       case 'T09_80TTA':
-        // 80TTA: Deduction up to ₹10,000 on savings account interest (below 60).
-        // Shown as a potential gap — many users overlook claiming this.
-        // Shown as a low-value informational gap (₹5,000 conservative estimate).
-        if (p.ageBelow60) return 5000;
+        // 80TTA: show only when the user supplied savings interest.
+        // Otherwise this belongs in education/checklist copy, not monetary gaps.
+        if (p.ageBelow60 && p.savingsInterest != null) {
+          final interest = p.savingsInterest!;
+          if (interest <= 0) return null;
+          return interest > 10000 ? 10000 : interest;
+        }
         return null;
 
       case 'T10_80TTB_senior':
-        // 80TTB: Deduction up to ₹50,000 on interest income (FDs + savings) for 60+.
-        // Shown as a potential gap — conservative estimate at ₹25,000.
-        if (p.ageAbove60) return 25000;
+        // 80TTB: show only when the user supplied savings/FD interest.
+        if (p.ageAbove60 &&
+            (p.savingsInterest != null || p.fdInterest != null)) {
+          final interest = (p.savingsInterest ?? 0) + (p.fdInterest ?? 0);
+          if (interest <= 0) return null;
+          return interest > 50000 ? 50000 : interest;
+        }
         return null;
 
       case 'T11_regime_switch':
@@ -98,11 +105,9 @@ class GapFinder {
       case 'T12_80CCD2_employer_nps':
         // Section 80CCD(2) is an EMPLOYER contribution to NPS — the employee
         // cannot claim this independently. It is the employer's CTC routing
-        // decision. We surface this as a notification gap (₹1) so the GapCard
-        // still appears as an action item ("Ask HR about NPS routing"), but we
-        // do NOT inflate the employee's gap with an amount they cannot fill.
-        // The UI card should be marked as 'ask your HR' not 'you can save X'.
-        return 1;
+        // decision. Keep it out of monetary gaps until non-monetary action
+        // cards exist, otherwise the UI shows a misleading ₹1 opportunity.
+        return null;
 
       default:
         return null;

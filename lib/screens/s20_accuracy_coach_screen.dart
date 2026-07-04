@@ -206,11 +206,19 @@ class _AccuracyTaskCard extends ConsumerWidget {
         return _AccuracyInputSheet(
           task: task,
           onSave: (value) async {
-            ref.read(userProfileProvider.notifier).updateField(
-                  (profile) => task.apply(profile, value),
-                );
-            await ref.read(userProfileProvider.notifier).save();
-            ref.invalidate(taxResultProvider);
+            final notifier = ref.read(userProfileProvider.notifier);
+            final previous = ref.read(userProfileProvider);
+            notifier.updateField(
+              (profile) => task.apply(profile, value),
+            );
+            try {
+              await notifier.save();
+              ref.invalidate(taxResultProvider);
+              await computeAndSyncCurrentTaxResult(ref);
+            } catch (_) {
+              notifier.update(previous);
+              rethrow;
+            }
           },
         );
       },
@@ -329,6 +337,11 @@ class _AccuracyInputSheetState extends State<_AccuracyInputSheet> {
                       autofocus: true,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (_) {
+                        if (_error != null) {
+                          setState(() => _error = null);
+                        }
+                      },
                       decoration: InputDecoration(
                         prefixText: task.suffix == '₹' ? '₹ ' : null,
                         suffixText: task.suffix == '%' ? '%' : null,

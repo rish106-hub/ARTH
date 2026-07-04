@@ -102,6 +102,54 @@ void main() {
         contains('basic_salary_estimated'));
   });
 
+  test('already-modeled guidance gaps do not inflate estimated tax benefit',
+      () {
+    final ruleSet = _loadRuleSet(TaxYearId.fy2026_27);
+    const gaps = [
+      GapCard(
+        id: 'T08_section24b_home_loan',
+        section: 'Section 24(b)',
+        title: 'Home loan interest',
+        shortDesc: 'Already entered',
+        message: 'Use your certificate while filing.',
+        gapAmount: 200000,
+        difficulty: GapDifficulty.easy,
+        difficultyLabel: 'Easy',
+        deadline: '31 July 2027',
+        actions: [],
+        colorHex: 'F5C842',
+      ),
+      GapCard(
+        id: 'T09_80TTA',
+        section: '80TTA',
+        title: 'Savings interest',
+        shortDesc: 'Already modeled',
+        message: 'Review your bank interest.',
+        gapAmount: 10000,
+        difficulty: GapDifficulty.easy,
+        difficultyLabel: 'Easy',
+        deadline: '31 July 2027',
+        actions: [],
+        colorHex: '26A69A',
+      ),
+    ];
+
+    final result = TaxEngine.calculate(
+      const UserProfile(
+        annualCTC: 1800000,
+        hasHomeLoan: true,
+        propertyType: PropertyType.selfOccupied,
+        homeLoanInterest: 200000,
+        savingsInterest: 10000,
+      ),
+      gaps,
+      ruleSet: ruleSet,
+    );
+
+    expect(result.deductionOpportunity, 210000);
+    expect(result.estimatedTaxBenefit, 0);
+  });
+
   test('tax result confidence and document parse status survive json roundtrip',
       () {
     final ruleSet = _loadRuleSet(TaxYearId.fy2026_27);

@@ -80,7 +80,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       await ref.read(userProfileProvider.notifier).save();
       ref.invalidate(completedTaxProfileProvider);
       ref.invalidate(taxResultProvider);
-      await ref.read(taxResultProvider.future);
+      await computeAndSyncCurrentTaxResult(ref);
       if (mounted) {
         context.go('/gap-reveal');
       }

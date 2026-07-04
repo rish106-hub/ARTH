@@ -31,6 +31,7 @@ import 'package:arth/screens/s21_tax_simulator_screen.dart';
 import 'package:arth/screens/s22_tax_story_screen.dart';
 import 'package:arth/screens/s23_tax_calendar_screen.dart';
 import 'package:arth/services/auth_service.dart';
+import 'package:arth/services/backend_sync_service.dart';
 import 'package:arth/widgets/question_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -608,6 +609,8 @@ void main() {
             if (!isComplete) throw StateError('tax profile incomplete');
             return sampleResult;
           }),
+          backendSyncServiceProvider
+              .overrideWithValue(_NoopBackendSyncService()),
           accountProfileProvider.overrideWith(
             () => _FixedAccountProfileNotifier(accountProfile),
           ),
@@ -847,6 +850,11 @@ class _FixedAuthService extends AuthService {
 
   @override
   Future<void> clearAccount() async {}
+}
+
+class _NoopBackendSyncService extends BackendSyncService {
+  @override
+  Future<void> syncTaxResult(TaxResult result) async {}
 }
 
 class _FixedAuthNotifier extends AuthNotifier {

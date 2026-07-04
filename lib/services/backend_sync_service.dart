@@ -246,6 +246,9 @@ class BackendSyncService {
   }
 
   bool _shouldQueue(Object error) {
+    if (error is StateError && error.message == 'no auth token') {
+      return false;
+    }
     return error is! ServerApiException || error.statusCode >= 500;
   }
 }

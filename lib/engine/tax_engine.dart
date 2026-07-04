@@ -26,12 +26,13 @@ class TaxEngine {
     final regimeSavings = (oldTax - newTax).abs();
 
     final totalGapAmount = gaps.fold<int>(0, (sum, g) => sum + g.gapAmount);
+    final benefitEligibleGapAmount = _benefitEligibleGapAmount(gaps);
     final estimatedTaxBenefit = _estimateTaxBenefit(
       profile,
       ruleSet,
       currentTax: betterRegime == TaxRegime.oldRegime ? oldTax : newTax,
       newTax: newTax,
-      totalGapAmount: totalGapAmount,
+      totalGapAmount: benefitEligibleGapAmount,
     );
 
     return TaxResult(
@@ -371,6 +372,20 @@ class TaxEngine {
     final bestAfterAction = oldWithGap < newTax ? oldWithGap : newTax;
     final benefit = currentTax - bestAfterAction;
     return benefit > 0 ? benefit.round() : 0;
+  }
+
+  static int _benefitEligibleGapAmount(List<GapCard> gaps) {
+    const idsAlreadyModeledOrInformational = {
+      'T06_80GG_rent',
+      'T07_80E_education_loan',
+      'T08_section24b_home_loan',
+      'T09_80TTA',
+      'T10_80TTB_senior',
+      'T12_80CCD2_employer_nps',
+    };
+    return gaps
+        .where((gap) => !idsAlreadyModeledOrInformational.contains(gap.id))
+        .fold<int>(0, (sum, gap) => sum + gap.gapAmount);
   }
 
   static List<TaxAssumption> _assumptions(UserProfile p) {
