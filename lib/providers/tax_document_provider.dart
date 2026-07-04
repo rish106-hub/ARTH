@@ -46,6 +46,28 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     state = AsyncData(previous.where((doc) => doc.id != id).toList());
   }
 
+  Future<void> updateMetadata(
+    String id, {
+    String? userLabel,
+    String? notes,
+    List<String>? tags,
+    String? vaultStatus,
+    String? reviewStatus,
+  }) async {
+    final previous = state.asData?.value ?? const <TaxDocument>[];
+    final updated = await _service.updateDocument(
+      id,
+      userLabel: userLabel,
+      notes: notes,
+      tags: tags,
+      vaultStatus: vaultStatus,
+      reviewStatus: reviewStatus,
+    );
+    state = AsyncData([
+      for (final doc in previous) doc.id == id ? updated : doc,
+    ]);
+  }
+
   Future<void> confirmParsedFields(String id) async {
     final previous = state.asData?.value ?? const <TaxDocument>[];
     final confirmed = await _service.confirmParsedFields(id);

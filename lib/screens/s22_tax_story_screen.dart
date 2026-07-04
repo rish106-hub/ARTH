@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/product_insights.dart';
+import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
 import '../providers/account_profile_provider.dart';
+import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animated_number.dart';
@@ -24,22 +27,7 @@ class TaxStoryScreen extends ConsumerWidget {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/discover');
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
@@ -93,6 +81,12 @@ class TaxStoryScreen extends ConsumerWidget {
                   data: (result) {
                     final profile = ref.watch(userProfileProvider);
                     final checklist = ref.watch(documentChecklistProvider);
+                    final documents =
+                        ref.watch(taxDocumentProvider).asData?.value ??
+                            const <TaxDocument>[];
+                    final vaultSummary =
+                        DocumentVaultSummary.fromDocuments(documents);
+                    final activeYear = ref.watch(activeTaxYearProvider);
                     final docPercent = documentReadinessPercent(checklist);
                     final panPresent = ref
                             .watch(accountProfileProvider)
@@ -112,33 +106,14 @@ class TaxStoryScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          PremiumGlassPanel(
-                            elevated: true,
-                            borderRadius: BorderRadius.circular(30),
-                            tint: AppColors.gold,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const TrustBadge(
-                                  icon: Icons.lock_outline_rounded,
-                                  label: 'Private summary',
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '${profile.name.isEmpty ? 'Your' : '${profile.name.split(' ').first}’s'} tax readiness story',
-                                  style: AppTextStyles.h1(),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'A clean interview-ready view of what ARTH knows, what it assumes, and what you should do next.',
-                                  style: AppTextStyles.body(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                TaxRuleBadge(result: result),
-                              ],
-                            ),
+                          PremiumHeader(
+                            eyebrow: '${activeYear.fyLabel} story',
+                            title:
+                                '${profile.name.isEmpty ? 'Your' : '${profile.name.split(' ').first}’s'} tax story',
+                            body:
+                                'A private narrative of income, regime insight, proof readiness, assumptions, and handoff next steps.',
+                            icon: Icons.auto_stories_outlined,
+                            trailing: TaxRuleBadge(result: result),
                           ),
                           const SizedBox(height: 18),
                           Row(
@@ -174,6 +149,46 @@ class TaxStoryScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 20),
                           ArthSection(
+                            title: 'Vault map',
+                            child: Column(
+                              children: [
+                                StoryPanel(
+                                  icon: Icons.folder_special_outlined,
+                                  title:
+                                      '${vaultSummary.active} active proof(s)',
+                                  body:
+                                      '$docPercent% proof readiness. ${vaultSummary.needsReview} document(s) need review and ${vaultSummary.ready} are confirmed.',
+                                  color: vaultSummary.needsReview > 0
+                                      ? AppColors.amber
+                                      : AppColors.teal,
+                                  trailing: IconButton(
+                                    tooltip: 'Open Vault',
+                                    onPressed: () => context.push('/documents'),
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                StoryPanel(
+                                  icon: Icons.account_balance_outlined,
+                                  title: 'AIS / 26AS check',
+                                  body:
+                                      'Use official records to compare TDS, interest, dividends, and reported income before filing handoff.',
+                                  color: AppColors.info,
+                                  trailing: IconButton(
+                                    tooltip: 'Open guide',
+                                    onPressed: () => context.push('/ais-guide'),
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          ArthSection(
                             title: 'Top proof and gap signals',
                             child: PremiumGlassPanel(
                               child: Column(
@@ -198,6 +213,14 @@ class TaxStoryScreen extends ConsumerWidget {
                                     body: panPresent
                                         ? 'Optional PAN vault is active and masked.'
                                         : 'PAN is optional and not required for this story.',
+                                  ),
+                                  const Divider(color: AppColors.divider),
+                                  _StoryLine(
+                                    icon: Icons.warning_amber_outlined,
+                                    title: 'Assumptions',
+                                    body: result.assumptions.isEmpty
+                                        ? 'No major estimation warnings are visible.'
+                                        : '${result.assumptions.length} input(s) can improve this story.',
                                   ),
                                 ],
                               ),

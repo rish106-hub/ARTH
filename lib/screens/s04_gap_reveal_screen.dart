@@ -36,21 +36,7 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: resultAsync.when(
         loading: () => const ArthLoadingPanel(

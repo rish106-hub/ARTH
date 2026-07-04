@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/product_insights.dart';
+import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
 import '../providers/account_profile_provider.dart';
 import '../providers/entitlement_provider.dart';
+import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/tax_year_provider.dart';
@@ -24,21 +26,7 @@ class DiscoverScreen extends ConsumerWidget {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              break;
-            case 1:
-              context.go('/action-plan');
-              break;
-            case 2:
-              context.go('/progress');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
+        onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
@@ -85,6 +73,9 @@ class _TaxOsHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final checklist = ref.watch(documentChecklistProvider);
     final docPercent = documentReadinessPercent(checklist);
+    final documents =
+        ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
+    final vaultSummary = DocumentVaultSummary.fromDocuments(documents);
     final panPresent =
         ref.watch(accountProfileProvider).asData?.value?.pan.present ?? false;
     final entitlement = ref.watch(entitlementProvider);
@@ -108,64 +99,20 @@ class _TaxOsHome extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PremiumGlassPanel(
-            elevated: true,
-            borderRadius: BorderRadius.circular(30),
-            tint: AppColors.gold,
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    TrustBadge(
-                      icon: Icons.shield_outlined,
-                      label: 'Privacy-first',
-                    ),
-                    TrustBadge(
-                      icon: Icons.lock_outline_rounded,
-                      label: 'Encrypted documents',
-                      color: AppColors.teal,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text('Private Tax Readiness Cockpit',
-                    style: AppTextStyles.h1()),
-                const SizedBox(height: 10),
-                Text(
-                  complete
-                      ? 'Your year-round tax cockpit for gaps, proofs, deadlines, AIS checks, and CA-ready handoff.'
-                      : 'Explore first. Start the diagnostic when ready. PAN and document uploads stay optional.',
-                  style: AppTextStyles.body(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: AppButtons.primaryGold,
-                        onPressed: () => context.go(
-                          next.route,
-                        ),
-                        icon: Icon(next.icon),
-                        label: Text(next.cta),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      tooltip: 'Tax Dossier',
-                      style: IconButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                      ),
-                      onPressed: () => context.push('/tax-story'),
-                      icon: const Icon(Icons.auto_stories_outlined),
-                    ),
-                  ],
-                ),
-              ],
+          PremiumHeader(
+            eyebrow: 'Private Tax OS',
+            title: 'Readiness cockpit',
+            body: complete
+                ? 'Gaps, proof vault, assumptions, AIS checks, and CA-ready handoff in one calm view.'
+                : 'Explore first. Start the diagnostic when ready. PAN and document uploads stay optional.',
+            icon: Icons.home_work_outlined,
+            trailing: IconButton(
+              tooltip: 'Tax Story',
+              style: IconButton.styleFrom(
+                side: const BorderSide(color: AppColors.border),
+              ),
+              onPressed: () => context.push('/tax-story'),
+              icon: const Icon(Icons.auto_stories_outlined),
             ),
           ),
           const SizedBox(height: 18),
@@ -183,14 +130,25 @@ class _TaxOsHome extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ArthMetricCard(
-                  label: 'PAN',
-                  value: panPresent ? 'Saved' : 'Optional',
-                  helper: 'Profile vault',
-                  icon: Icons.badge_outlined,
-                  color: panPresent ? AppColors.success : AppColors.teal,
+                  label: 'Vault',
+                  value: '${vaultSummary.needsReview}',
+                  helper: 'needs review',
+                  icon: Icons.folder_special_outlined,
+                  color: vaultSummary.needsReview > 0
+                      ? AppColors.amber
+                      : AppColors.teal,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          ActionDock(
+            primaryLabel: next.cta,
+            primaryIcon: next.icon,
+            onPrimary: () => context.go(next.route),
+            secondaryLabel: 'Open Vault',
+            secondaryIcon: Icons.folder_special_outlined,
+            onSecondary: () => context.push('/documents'),
           ),
           const SizedBox(height: 18),
           _NextBestActionCard(action: next),
@@ -249,9 +207,9 @@ class _TaxOsHome extends ConsumerWidget {
                 const SizedBox(height: 10),
                 _ModuleTile(
                   icon: Icons.folder_special_outlined,
-                  title: 'Document checklist',
+                  title: 'Document Vault',
                   body:
-                      '$docPercent% proof readiness. Encrypted upload optional.',
+                      '$docPercent% proof readiness. ${vaultSummary.needsReview} item(s) need review.',
                   onTap: () => context.push('/documents'),
                 ),
                 const SizedBox(height: 10),

@@ -106,6 +106,14 @@ class FakeDb {
         llmUsed: false,
         confirmationStatus: 'pending',
       },
+      user_label: null,
+      notes: null,
+      tags: [],
+      vault_status: 'active',
+      review_status: 'not_reviewed',
+      confirmed_fields: {},
+      reviewed_at: null,
+      archived_at: null,
       created_at: now,
       updated_at: now,
       ...overrides,
@@ -343,6 +351,14 @@ class FakeDb {
         auth_tag: params[9],
         parse_status: params[10],
         parse_summary: JSON.parse(params[11] as string),
+        user_label: existing?.user_label ?? null,
+        notes: existing?.notes ?? null,
+        tags: existing?.tags ?? [],
+        vault_status: existing?.vault_status ?? 'active',
+        review_status: existing?.review_status ?? 'not_reviewed',
+        confirmed_fields: existing?.confirmed_fields ?? {},
+        reviewed_at: existing?.reviewed_at ?? null,
+        archived_at: existing?.archived_at ?? null,
         created_at: existing?.created_at ?? now,
         updated_at: now,
       };
@@ -350,7 +366,7 @@ class FakeDb {
       return rows([doc]);
     }
 
-    if (normalized.startsWith('select parse_status, parse_summary from tax_documents')) {
+    if (normalized.startsWith('select parse_status, parse_summary')) {
       const doc = this.documents.get(params[0] as string);
       return rows(doc && doc.user_id === params[1] ? [doc] : []);
     }
@@ -360,6 +376,28 @@ class FakeDb {
       if (!doc || doc.user_id !== params[1]) return rows();
       doc.parse_status = 'parsed';
       doc.parse_summary = JSON.parse(params[2] as string);
+      doc.confirmed_fields = JSON.parse(params[3] as string);
+      doc.review_status = 'reviewed';
+      doc.reviewed_at = new Date();
+      doc.updated_at = new Date();
+      return rows([doc]);
+    }
+
+    if (normalized.startsWith('select user_label, notes, tags, vault_status')) {
+      const doc = this.documents.get(params[0] as string);
+      return rows(doc && doc.user_id === params[1] ? [doc] : []);
+    }
+
+    if (normalized.startsWith('update tax_documents set user_label =')) {
+      const doc = this.documents.get(params[0] as string);
+      if (!doc || doc.user_id !== params[1]) return rows();
+      doc.user_label = params[2] as string | null;
+      doc.notes = params[3] as string | null;
+      doc.tags = JSON.parse(params[4] as string);
+      doc.vault_status = params[5] as string;
+      doc.review_status = params[6] as string;
+      doc.reviewed_at = params[7] as Date | null;
+      doc.archived_at = params[8] as Date | null;
       doc.updated_at = new Date();
       return rows([doc]);
     }
@@ -444,6 +482,16 @@ class FakeDb {
         user_id: params[0],
         name: params[1],
         metadata: JSON.parse(params[2] as string),
+      });
+      return rows();
+    }
+
+    if (normalized.startsWith('insert into document_events')) {
+      this.events.push({
+        user_id: params[0],
+        document_id: params[1],
+        event_type: params[2],
+        metadata: JSON.parse(params[3] as string),
       });
       return rows();
     }
@@ -894,6 +942,59 @@ describe('backend security harness', () => {
     });
     assert.equal(aliceList.statusCode, 200);
     assert.equal(aliceList.json().documents.length, 1);
+    assert.equal(aliceList.json().summary.active, 1);
+    assert.equal(aliceList.json().summary.archived, 0);
+
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: `/v1/documents/${uploaded.id}`,
+      headers: bearer(alice.accessToken),
+      payload: {
+        userLabel: 'FY Form 16',
+        notes: 'Reviewed with payroll portal.',
+        tags: ['salary', 'form16'],
+        reviewStatus: 'needs_review',
+      },
+    });
+    assert.equal(patch.statusCode, 200);
+    assert.equal(patch.json().document.userLabel, 'FY Form 16');
+    assert.deepEqual(patch.json().document.tags, ['salary', 'form16']);
+
+    const bobPatch = await app.inject({
+      method: 'PATCH',
+      url: `/v1/documents/${uploaded.id}`,
+      headers: bearer(bob.accessToken),
+      payload: { userLabel: 'Bob label' },
+    });
+    assert.equal(bobPatch.statusCode, 404);
+
+    const archive = await app.inject({
+      method: 'PATCH',
+      url: `/v1/documents/${uploaded.id}`,
+      headers: bearer(alice.accessToken),
+      payload: { vaultStatus: 'archived' },
+    });
+    assert.equal(archive.statusCode, 200);
+    assert.equal(archive.json().document.vaultStatus, 'archived');
+    assert.ok(fakeDb.rawDocument(uploaded.id)?.ciphertext);
+
+    const archivedList = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(archivedList.json().summary.active, 0);
+    assert.equal(archivedList.json().summary.archived, 1);
+
+    const restore = await app.inject({
+      method: 'PATCH',
+      url: `/v1/documents/${uploaded.id}`,
+      headers: bearer(alice.accessToken),
+      payload: { vaultStatus: 'active', reviewStatus: 'reviewed' },
+    });
+    assert.equal(restore.statusCode, 200);
+    assert.equal(restore.json().document.vaultStatus, 'active');
+    assert.equal(restore.json().document.reviewStatus, 'reviewed');
 
     const bobList = await app.inject({
       method: 'GET',
@@ -992,6 +1093,7 @@ describe('backend security harness', () => {
       confirm.json().document.parseSummary.extractedFields.grossSalary,
       1850000,
     );
+    assert.equal(confirm.json().document.confirmedFields.grossSalary, 1850000);
     assert.equal(JSON.stringify(confirm.json()).includes('encryptedExtractedFields'), false);
     assert.equal(JSON.stringify(confirm.json()).includes(encryptedExtractedFields.ciphertext), false);
 
@@ -1004,6 +1106,7 @@ describe('backend security harness', () => {
     assert.equal(JSON.stringify(storedSummary).includes('1850000'), false);
     assert.equal(JSON.stringify(storedSummary).includes('Example Technologies'), false);
     assert.equal(JSON.stringify(stored.parse_summary).includes('confirmedFields'), false);
+    assert.equal((stored.confirmed_fields as Row).grossSalary, 1850000);
     assert.deepEqual(
       storedSummary.confirmedFieldKeys,
       Object.keys(extractedFields),

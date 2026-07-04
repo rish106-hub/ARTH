@@ -43,7 +43,7 @@ class AppTextStyles {
         fontSize: 56,
         fontWeight: FontWeight.w900,
         color: color,
-        letterSpacing: -1.5,
+        letterSpacing: 0,
         height: 1.0,
       );
 
@@ -52,7 +52,7 @@ class AppTextStyles {
         fontSize: 40,
         fontWeight: FontWeight.w900,
         color: color,
-        letterSpacing: -1.0,
+        letterSpacing: 0,
         height: 1.0,
       );
 
@@ -62,7 +62,7 @@ class AppTextStyles {
         fontSize: 28,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -0.5,
+        letterSpacing: 0,
         height: 1.2,
       );
 
@@ -71,7 +71,7 @@ class AppTextStyles {
         fontSize: 22,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -0.3,
+        letterSpacing: 0,
         height: 1.3,
       );
 

@@ -55,6 +55,7 @@ final _router = GoRouter(
       },
     ),
     GoRoute(path: '/action-plan', builder: (_, __) => const ActionPlanScreen()),
+    GoRoute(path: '/coach', builder: (_, __) => const ActionPlanScreen()),
     GoRoute(
       path: '/progress',
       builder: (_, __) => const ProgressTrackerScreen(),
@@ -65,6 +66,8 @@ final _router = GoRouter(
     GoRoute(
         path: '/documents',
         builder: (_, __) => const DocumentChecklistScreen()),
+    GoRoute(
+        path: '/vault', builder: (_, __) => const DocumentChecklistScreen()),
     GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
     GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
     GoRoute(path: '/tax-dossier', builder: (_, __) => const TaxDossierScreen()),

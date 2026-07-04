@@ -1,7 +1,25 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import 'ui_policy.dart';
+
+void goToArthTab(BuildContext context, int index) {
+  switch (index) {
+    case 0:
+      context.go('/discover');
+      break;
+    case 1:
+      context.go('/documents');
+      break;
+    case 2:
+      context.go('/action-plan');
+      break;
+    case 3:
+      context.go('/profile');
+      break;
+  }
+}
 
 class ArthBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -20,14 +38,14 @@ class ArthBottomNav extends StatelessWidget {
       label: 'Home',
     ),
     _NavItem(
-      icon: Icons.checklist_outlined,
-      activeIcon: Icons.checklist_rounded,
-      label: 'Actions',
+      icon: Icons.folder_special_outlined,
+      activeIcon: Icons.folder_special_rounded,
+      label: 'Vault',
     ),
     _NavItem(
-      icon: Icons.timeline_outlined,
-      activeIcon: Icons.timeline_rounded,
-      label: 'Progress',
+      icon: Icons.auto_awesome_outlined,
+      activeIcon: Icons.auto_awesome_rounded,
+      label: 'Coach',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
@@ -112,8 +130,8 @@ class _NavContainer extends StatelessWidget {
                     duration: reduceMotion
                         ? Duration.zero
                         : const Duration(milliseconds: 200),
-                    width: isSelected ? 36 : 0,
-                    height: isSelected ? 36 : 0,
+                    width: 34,
+                    height: 30,
                     decoration: isSelected
                         ? BoxDecoration(
                             color: AppColors.gold.withValues(alpha: 0.15),
@@ -123,39 +141,36 @@ class _NavContainer extends StatelessWidget {
                                 : [
                                     BoxShadow(
                                       color: AppColors.gold.withValues(
-                                        alpha: 0.25,
+                                        alpha: 0.2,
                                       ),
-                                      blurRadius: 12,
-                                      spreadRadius: 2,
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
                                     ),
                                   ],
                           )
                         : null,
-                    child: isSelected
-                        ? Icon(
-                            item.activeIcon,
-                            color: AppColors.gold,
-                            size: 20,
-                          )
-                        : null,
-                  ),
-                  if (!isSelected) ...[
-                    Icon(
-                      item.icon,
-                      color: AppColors.textSecondary,
+                    child: Icon(
+                      isSelected ? item.activeIcon : item.icon,
+                      color:
+                          isSelected ? AppColors.gold : AppColors.textSecondary,
                       size: 20,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 9,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.3,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 9,
+                      color:
+                          isSelected ? AppColors.gold : AppColors.textSecondary,
+                      letterSpacing: 0,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),

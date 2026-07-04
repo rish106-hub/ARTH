@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../theme/app_theme.dart';
+import 'arth_bottom_nav.dart';
 import 'ui_policy.dart';
 
 class ArthScaffold extends StatelessWidget {
@@ -32,6 +33,33 @@ class ArthScaffold extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class ArthShell extends StatelessWidget {
+  final Widget child;
+  final int selectedIndex;
+  final ValueChanged<int> onTab;
+  final bool showAmbientGlow;
+
+  const ArthShell({
+    super.key,
+    required this.child,
+    required this.selectedIndex,
+    required this.onTab,
+    this.showAmbientGlow = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ArthScaffold(
+      showAmbientGlow: showAmbientGlow,
+      bottomNavigationBar: ArthBottomNav(
+        selectedIndex: selectedIndex,
+        onTap: onTab,
+      ),
+      child: child,
     );
   }
 }
@@ -80,6 +108,72 @@ class ArthPremiumAppBar extends StatelessWidget {
             ),
           ),
           ...actions,
+        ],
+      ),
+    );
+  }
+}
+
+class PremiumHeader extends StatelessWidget {
+  final String eyebrow;
+  final String title;
+  final String body;
+  final IconData icon;
+  final Widget? trailing;
+
+  const PremiumHeader({
+    super.key,
+    required this.eyebrow,
+    required this.title,
+    required this.body,
+    required this.icon,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      elevated: true,
+      borderRadius: BorderRadius.circular(30),
+      tint: AppColors.gold,
+      padding: const EdgeInsets.all(22),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.26)),
+            ),
+            child: Icon(icon, color: AppColors.gold),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  eyebrow.toUpperCase(),
+                  style: AppTextStyles.micro(color: AppColors.gold)
+                      .copyWith(fontWeight: FontWeight.w700, letterSpacing: 1),
+                ),
+                const SizedBox(height: 6),
+                Text(title, style: AppTextStyles.h1()),
+                const SizedBox(height: 8),
+                Text(
+                  body,
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 10),
+            trailing!,
+          ],
         ],
       ),
     );
@@ -165,6 +259,137 @@ class TrustBadge extends StatelessWidget {
                   .copyWith(fontWeight: FontWeight.w600),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class StatusPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const StatusPill({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.color = AppColors.gold,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: AppRadius.pill,
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.micro(color: AppColors.textPrimary)
+                  .copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ActionDock extends StatelessWidget {
+  final String primaryLabel;
+  final IconData primaryIcon;
+  final VoidCallback? onPrimary;
+  final String? secondaryLabel;
+  final IconData? secondaryIcon;
+  final VoidCallback? onSecondary;
+
+  const ActionDock({
+    super.key,
+    required this.primaryLabel,
+    required this.primaryIcon,
+    required this.onPrimary,
+    this.secondaryLabel,
+    this.secondaryIcon,
+    this.onSecondary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            style: AppButtons.primaryGold,
+            onPressed: onPrimary,
+            icon: Icon(primaryIcon),
+            label: Text(primaryLabel),
+          ),
+        ),
+        if (secondaryLabel != null && secondaryIcon != null) ...[
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            style: AppButtons.outlineGold,
+            onPressed: onSecondary,
+            icon: Icon(secondaryIcon),
+            label: Text(secondaryLabel!),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class StoryPanel extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final Color color;
+  final Widget? trailing;
+
+  const StoryPanel({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.color = AppColors.gold,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      tint: color,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.bodyMedium()),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

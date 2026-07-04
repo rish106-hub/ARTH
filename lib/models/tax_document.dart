@@ -7,6 +7,14 @@ class TaxDocument {
   final int byteSize;
   final String parseStatus;
   final Map<String, dynamic> parseSummary;
+  final String? userLabel;
+  final String? notes;
+  final List<String> tags;
+  final String vaultStatus;
+  final String reviewStatus;
+  final Map<String, dynamic> confirmedFields;
+  final DateTime? reviewedAt;
+  final DateTime? archivedAt;
   final DateTime? createdAt;
 
   const TaxDocument({
@@ -18,6 +26,14 @@ class TaxDocument {
     required this.byteSize,
     required this.parseStatus,
     required this.parseSummary,
+    this.userLabel,
+    this.notes,
+    this.tags = const [],
+    this.vaultStatus = 'active',
+    this.reviewStatus = 'not_reviewed',
+    this.confirmedFields = const {},
+    this.reviewedAt,
+    this.archivedAt,
     this.createdAt,
   });
 
@@ -30,12 +46,32 @@ class TaxDocument {
         byteSize: json['byteSize'] as int? ?? 0,
         parseStatus: json['parseStatus'] as String? ?? 'metadata_ready',
         parseSummary: json['parseSummary'] as Map<String, dynamic>? ?? const {},
+        userLabel: json['userLabel'] as String?,
+        notes: json['notes'] as String?,
+        tags: (json['tags'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList(),
+        vaultStatus: json['vaultStatus'] as String? ?? 'active',
+        reviewStatus: json['reviewStatus'] as String? ?? 'not_reviewed',
+        confirmedFields:
+            json['confirmedFields'] as Map<String, dynamic>? ?? const {},
+        reviewedAt: DateTime.tryParse(json['reviewedAt'] as String? ?? ''),
+        archivedAt: DateTime.tryParse(json['archivedAt'] as String? ?? ''),
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       );
 
   bool get needsConfirmation => parseStatus == 'needs_confirmation';
   bool get parsed => parseStatus == 'parsed';
   bool get unsupported => parseStatus == 'unsupported';
+  bool get archived => vaultStatus == 'archived';
+  bool get active => !archived;
+  bool get reviewed => reviewStatus == 'reviewed' || parsed;
+  bool get needsReview =>
+      needsConfirmation || reviewStatus == 'needs_review' || unsupported;
+
+  String get displayName => userLabel?.trim().isNotEmpty == true
+      ? userLabel!.trim()
+      : originalFilename;
 
   Map<String, dynamic> get extractedFields =>
       parseSummary['extractedFields'] as Map<String, dynamic>? ?? const {};
@@ -48,9 +84,41 @@ class TaxDocument {
         return 'Confirmed';
       case 'unsupported':
         return 'Manual review';
+      case 'failed':
+        return 'Failed';
       default:
         return 'Stored';
     }
+  }
+}
+
+class DocumentVaultSummary {
+  final int total;
+  final int active;
+  final int archived;
+  final int needsReview;
+  final int ready;
+  final int unsupported;
+
+  const DocumentVaultSummary({
+    required this.total,
+    required this.active,
+    required this.archived,
+    required this.needsReview,
+    required this.ready,
+    required this.unsupported,
+  });
+
+  factory DocumentVaultSummary.fromDocuments(List<TaxDocument> documents) {
+    final active = documents.where((doc) => doc.active).toList();
+    return DocumentVaultSummary(
+      total: documents.length,
+      active: active.length,
+      archived: documents.length - active.length,
+      needsReview: active.where((doc) => doc.needsReview).length,
+      ready: active.where((doc) => doc.reviewed).length,
+      unsupported: active.where((doc) => doc.unsupported).length,
+    );
   }
 }
 

@@ -100,6 +100,14 @@ const eventSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+const documentPatchSchema = z.object({
+  userLabel: z.string().trim().max(80).nullable().optional(),
+  notes: z.string().trim().max(1200).nullable().optional(),
+  tags: z.array(z.string().trim().min(1).max(32)).max(12).optional(),
+  vaultStatus: z.enum(['active', 'archived']).optional(),
+  reviewStatus: z.enum(['not_reviewed', 'needs_review', 'reviewed']).optional(),
+}).refine((value) => Object.keys(value).length > 0);
+
 const documentTypeSchema = z.enum([
   'form16',
   'rentReceipts',
@@ -269,6 +277,20 @@ function documentResponse(row: Record<string, unknown>) {
     sha256Fingerprint: row.sha256_fingerprint,
     parseStatus: row.parse_status,
     parseSummary,
+    userLabel: row.user_label ?? null,
+    notes: row.notes ?? null,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    vaultStatus: row.vault_status ?? 'active',
+    reviewStatus: row.review_status ?? 'not_reviewed',
+    confirmedFields: row.confirmed_fields && typeof row.confirmed_fields === 'object'
+      ? row.confirmed_fields
+      : {},
+    reviewedAt: row.reviewed_at
+      ? new Date(row.reviewed_at as string | Date).toISOString()
+      : null,
+    archivedAt: row.archived_at
+      ? new Date(row.archived_at as string | Date).toISOString()
+      : null,
     createdAt: row.created_at
       ? new Date(row.created_at as string | Date).toISOString()
       : null,
@@ -276,6 +298,45 @@ function documentResponse(row: Record<string, unknown>) {
       ? new Date(row.updated_at as string | Date).toISOString()
       : null,
   };
+}
+
+function documentSummary(rows: Record<string, unknown>[]) {
+  const active = rows.filter((row) => (row.vault_status ?? 'active') !== 'archived');
+  const needsReview = active.filter((row) =>
+    row.parse_status === 'needs_confirmation'
+    || row.review_status === 'needs_review',
+  ).length;
+  const ready = active.filter((row) =>
+    row.parse_status === 'parsed'
+    || row.review_status === 'reviewed',
+  ).length;
+  const unsupported = active.filter((row) => row.parse_status === 'unsupported').length;
+  return {
+    total: rows.length,
+    active: active.length,
+    archived: rows.length - active.length,
+    needsReview,
+    ready,
+    unsupported,
+  };
+}
+
+async function recordDocumentEvent(input: {
+  userId: string;
+  documentId?: string | null;
+  eventType: string;
+  metadata?: Record<string, unknown>;
+}) {
+  await db.query(
+    `insert into document_events (user_id, document_id, event_type, metadata)
+     values ($1, $2, $3, $4::jsonb)`,
+    [
+      input.userId,
+      input.documentId ?? null,
+      input.eventType,
+      JSON.stringify(input.metadata ?? {}),
+    ],
+  );
 }
 
 function safeFilename(filename: string): string {
@@ -678,13 +739,18 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const result = await db.query(
       `select id, fy, document_type, original_filename, mime_type, byte_size,
-              sha256_fingerprint, parse_status, parse_summary, created_at, updated_at
+              sha256_fingerprint, parse_status, parse_summary, user_label,
+              notes, tags, vault_status, review_status, confirmed_fields,
+              reviewed_at, archived_at, created_at, updated_at
        from tax_documents
        where user_id = $1 and fy = $2
        order by created_at desc`,
       [auth.userId, env.CURRENT_FY],
     );
-    return { documents: result.rows.map(documentResponse) };
+    return {
+      documents: result.rows.map(documentResponse),
+      summary: documentSummary(result.rows),
+    };
   });
 
   app.post('/documents', dataRateLimit, async (request, reply) => {
@@ -754,7 +820,9 @@ export async function registerRoutes(app: FastifyInstance) {
          parse_summary = excluded.parse_summary,
          updated_at = now()
        returning id, fy, document_type, original_filename, mime_type, byte_size,
-                 sha256_fingerprint, parse_status, parse_summary, created_at, updated_at`,
+                 sha256_fingerprint, parse_status, parse_summary, user_label,
+                 notes, tags, vault_status, review_status, confirmed_fields,
+                 reviewed_at, archived_at, created_at, updated_at`,
       [
         auth.userId,
         env.CURRENT_FY,
@@ -774,6 +842,12 @@ export async function registerRoutes(app: FastifyInstance) {
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
       [auth.userId, 'document_uploaded', JSON.stringify({ documentType })],
     );
+    await recordDocumentEvent({
+      userId: auth.userId,
+      documentId: inserted.rows[0].id as string,
+      eventType: 'upload',
+      metadata: { documentType },
+    });
     return { document: documentResponse(inserted.rows[0]) };
   });
 
@@ -783,7 +857,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const current = await db.query(
-      `select parse_status, parse_summary
+      `select parse_status, parse_summary, document_type
        from tax_documents
        where id = $1 and user_id = $2`,
       [params.id, auth.userId],
@@ -816,16 +890,95 @@ export async function registerRoutes(app: FastifyInstance) {
       `update tax_documents
        set parse_status = 'parsed',
            parse_summary = $3::jsonb,
+           confirmed_fields = $4::jsonb,
+           review_status = 'reviewed',
+           reviewed_at = now(),
            updated_at = now()
        where id = $1 and user_id = $2
        returning id, fy, document_type, original_filename, mime_type, byte_size,
-                 sha256_fingerprint, parse_status, parse_summary, created_at, updated_at`,
-      [params.id, auth.userId, JSON.stringify(confirmedSummary)],
+                 sha256_fingerprint, parse_status, parse_summary, user_label,
+                 notes, tags, vault_status, review_status, confirmed_fields,
+                 reviewed_at, archived_at, created_at, updated_at`,
+      [
+        params.id,
+        auth.userId,
+        JSON.stringify(confirmedSummary),
+        JSON.stringify(extractedFields),
+      ],
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
       [auth.userId, 'document_fields_confirmed', '{}'],
     );
+    await recordDocumentEvent({
+      userId: auth.userId,
+      documentId: params.id,
+      eventType: 'confirm',
+      metadata: {
+        documentType: row.document_type,
+        fieldKeys: Object.keys(extractedFields),
+      },
+    });
+    return { document: documentResponse(updated.rows[0]) };
+  });
+
+  app.patch('/documents/:id', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const payload = documentPatchSchema.parse(request.body);
+    const current = await db.query(
+      `select user_label, notes, tags, vault_status, review_status, document_type
+       from tax_documents
+       where id = $1 and user_id = $2`,
+      [params.id, auth.userId],
+    );
+    if (!current.rowCount) {
+      return reply.code(404).send({ message: 'Document not found' });
+    }
+    const row = current.rows[0];
+    const vaultStatus = payload.vaultStatus ?? row.vault_status ?? 'active';
+    const reviewStatus = payload.reviewStatus ?? row.review_status ?? 'not_reviewed';
+    const reviewedAt = reviewStatus === 'reviewed' ? new Date() : null;
+    const archivedAt = vaultStatus === 'archived' ? new Date() : null;
+    const updated = await db.query(
+      `update tax_documents
+       set user_label = $3,
+           notes = $4,
+           tags = $5::jsonb,
+           vault_status = $6,
+           review_status = $7,
+           reviewed_at = $8,
+           archived_at = $9,
+           updated_at = now()
+       where id = $1 and user_id = $2
+       returning id, fy, document_type, original_filename, mime_type, byte_size,
+                 sha256_fingerprint, parse_status, parse_summary, user_label,
+                 notes, tags, vault_status, review_status, confirmed_fields,
+                 reviewed_at, archived_at, created_at, updated_at`,
+      [
+        params.id,
+        auth.userId,
+        payload.userLabel === undefined ? row.user_label ?? null : payload.userLabel,
+        payload.notes === undefined ? row.notes ?? null : payload.notes,
+        JSON.stringify(payload.tags ?? row.tags ?? []),
+        vaultStatus,
+        reviewStatus,
+        reviewedAt,
+        archivedAt,
+      ],
+    );
+    await recordDocumentEvent({
+      userId: auth.userId,
+      documentId: params.id,
+      eventType: vaultStatus === 'archived' ? 'archive' : 'review',
+      metadata: {
+        documentType: row.document_type,
+        reviewStatus,
+        vaultStatus,
+      },
+    });
     return { document: documentResponse(updated.rows[0]) };
   });
 
@@ -877,6 +1030,15 @@ export async function registerRoutes(app: FastifyInstance) {
         JSON.stringify({ documentType: result.rows[0].document_type }),
       ],
     );
+    await recordDocumentEvent({
+      userId: auth.userId,
+      documentId: null,
+      eventType: 'delete',
+      metadata: {
+        documentType: result.rows[0].document_type,
+        deletedDocumentId: params.id,
+      },
+    });
     return reply.code(204).send();
   });
 
