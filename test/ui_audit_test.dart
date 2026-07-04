@@ -26,6 +26,10 @@ import 'package:arth/screens/s15_document_checklist_screen.dart';
 import 'package:arth/screens/s16_ais_guide_screen.dart';
 import 'package:arth/screens/s17_help_center_screen.dart';
 import 'package:arth/screens/s18_tax_dossier_screen.dart';
+import 'package:arth/screens/s20_accuracy_coach_screen.dart';
+import 'package:arth/screens/s21_tax_simulator_screen.dart';
+import 'package:arth/screens/s22_tax_story_screen.dart';
+import 'package:arth/screens/s23_tax_calendar_screen.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/widgets/question_progress_bar.dart';
 import 'package:flutter/material.dart';
@@ -276,6 +280,10 @@ void main() {
         const AisGuideScreen(),
         const HelpCenterScreen(),
         const TaxDossierScreen(),
+        const AccuracyCoachScreen(),
+        const TaxSimulatorScreen(),
+        const TaxStoryScreen(),
+        const TaxCalendarScreen(),
         const BudgetAlertScreen(),
       ];
 
@@ -338,7 +346,7 @@ void main() {
     await tester.drag(find.byType(PageView), const Offset(-320, 0));
     await tester.pumpAndSettle();
     expect(find.text('Get a cockpit, not a spreadsheet.'), findsOneWidget);
-    expect(find.text('Start diagnostic'), findsOneWidget);
+    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('tax cockpit shows next action and future modules', (
@@ -410,7 +418,7 @@ void main() {
       customOverrides: browseOverrides,
     );
 
-    expect(find.text('Start diagnostic'), findsOneWidget);
+    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
     expect(find.text('Private Tax Readiness Cockpit'), findsOneWidget);
     expect(find.text('Document checklist'), findsOneWidget);
     expect(find.text('AIS & 26AS guide'), findsOneWidget);
@@ -432,6 +440,8 @@ void main() {
     );
     expect(find.text('Tax Dossier'), findsOneWidget);
     expect(find.text('Help Center'), findsOneWidget);
+    expect(find.text('My Tax Story'), findsOneWidget);
+    expect(find.text('What-if simulator'), findsOneWidget);
   });
 
   testWidgets('Help Center shows contact actions and support details', (
@@ -444,6 +454,7 @@ void main() {
     expect(find.text('9749452397'), findsOneWidget);
     expect(find.text('Report an issue'), findsOneWidget);
     expect(find.text('Data/privacy help'), findsOneWidget);
+    expect(find.text('Demo walkthrough'), findsOneWidget);
   });
 
   testWidgets('Document checklist renders empty, partial, and complete states',

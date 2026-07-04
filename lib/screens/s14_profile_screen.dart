@@ -116,8 +116,7 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       _TaxAccuracyCard(
                         profile: taxProfile,
-                        onEdit: () =>
-                            _showTaxAccuracySheet(context, ref, taxProfile),
+                        onEdit: () => context.push('/accuracy-coach'),
                       ),
                       const SizedBox(height: 16),
                       _PanVaultCard(
@@ -311,172 +310,6 @@ class ProfileScreen extends ConsumerWidget {
       return compact;
     }
     return null;
-  }
-
-  void _showTaxAccuracySheet(
-    BuildContext context,
-    WidgetRef ref,
-    UserProfile profile,
-  ) {
-    TextEditingController money(int? value) =>
-        TextEditingController(text: value?.toString() ?? '');
-    final basic = money(profile.actualBasicSalary);
-    final hra = money(profile.actualHraReceived);
-    final professionalTax = money(profile.actualProfessionalTax);
-    final selfPremium = money(profile.healthInsuranceSelfPremium);
-    final parentPremium = money(profile.healthInsuranceParentsPremium);
-    final savingsInterest = money(profile.savingsInterest);
-    final fdInterest = money(profile.fdInterest);
-    final employerNps = money(profile.employerNpsContribution);
-    final donationRate = money(profile.donationDeductionRatePercent);
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.graphite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) {
-        var saving = false;
-        String? error;
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            int? read(
-              TextEditingController controller,
-              String label, {
-              int max = 100000000,
-            }) {
-              final raw = controller.text.trim().replaceAll(',', '');
-              if (raw.isEmpty) return null;
-              final value = int.tryParse(raw);
-              if (value == null || value < 0 || value > max) {
-                throw FormatException(label);
-              }
-              return value;
-            }
-
-            Future<void> save() async {
-              setSheetState(() {
-                saving = true;
-                error = null;
-              });
-              try {
-                final updated = ref.read(userProfileProvider).copyWith(
-                      actualBasicSalary: read(basic, 'basic salary'),
-                      actualHraReceived: read(hra, 'HRA received'),
-                      actualProfessionalTax: read(
-                        professionalTax,
-                        'professional tax',
-                        max: 100000,
-                      ),
-                      healthInsuranceSelfPremium:
-                          read(selfPremium, 'self premium'),
-                      healthInsuranceParentsPremium:
-                          read(parentPremium, 'parents premium'),
-                      savingsInterest:
-                          read(savingsInterest, 'savings interest'),
-                      fdInterest: read(fdInterest, 'FD interest'),
-                      employerNpsContribution:
-                          read(employerNps, 'employer NPS'),
-                      donationDeductionRatePercent:
-                          read(donationRate, 'donation rate', max: 100),
-                    );
-                ref
-                    .read(userProfileProvider.notifier)
-                    .updateField((_) => updated);
-                final complete = await ref
-                    .read(userProfileProvider.notifier)
-                    .isOnboardingComplete();
-                if (complete) {
-                  await ref.read(userProfileProvider.notifier).save();
-                  ref.invalidate(taxResultProvider);
-                }
-                if (sheetContext.mounted) Navigator.pop(sheetContext);
-              } on FormatException catch (e) {
-                setSheetState(() {
-                  saving = false;
-                  error = 'Check ${e.message}. Use whole rupee amounts only.';
-                });
-              } catch (_) {
-                setSheetState(() {
-                  saving = false;
-                  error = 'Could not save accuracy inputs. Try again.';
-                });
-              }
-            }
-
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Tax accuracy inputs', style: AppTextStyles.h2()),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Optional. Empty fields use ARTH assumptions and are shown in calculation notes.',
-                      style: AppTextStyles.body(color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    _AccuracyInput(
-                        controller: basic, label: 'Actual basic salary'),
-                    _AccuracyInput(
-                        controller: hra, label: 'Actual HRA received'),
-                    _AccuracyInput(
-                      controller: professionalTax,
-                      label: 'Actual professional tax',
-                    ),
-                    _AccuracyInput(
-                      controller: selfPremium,
-                      label: '80D self/family premium',
-                    ),
-                    _AccuracyInput(
-                      controller: parentPremium,
-                      label: '80D parents premium',
-                    ),
-                    _AccuracyInput(
-                      controller: savingsInterest,
-                      label: 'Savings account interest',
-                    ),
-                    _AccuracyInput(
-                        controller: fdInterest, label: 'FD interest'),
-                    _AccuracyInput(
-                      controller: employerNps,
-                      label: 'Employer NPS contribution',
-                    ),
-                    _AccuracyInput(
-                      controller: donationRate,
-                      label: 'Donation deduction rate %',
-                      hint: '50 or 100',
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        error!,
-                        style: AppTextStyles.caption(color: AppColors.alert),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      style: AppButtons.primaryGold,
-                      onPressed: saving ? null : save,
-                      child: Text(saving ? 'Saving...' : 'Save inputs'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   void _showPanSheet(BuildContext context, WidgetRef ref) {
@@ -965,36 +798,6 @@ class _TaxAccuracyCard extends StatelessWidget {
   }
 }
 
-class _AccuracyInput extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-
-  const _AccuracyInput({
-    required this.controller,
-    required this.label,
-    this.hint = 'Optional',
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          prefixText: label.contains('%') ? null : '₹ ',
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-}
-
 class _PanVaultCard extends StatelessWidget {
   final PanVaultStatus pan;
   final VoidCallback onAdd;
@@ -1115,6 +918,37 @@ class _SupportAndDossierCard extends StatelessWidget {
               ),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => context.push('/tax-dossier'),
+            ),
+            const Divider(color: AppColors.divider),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.auto_stories_outlined,
+                color: AppColors.gold,
+              ),
+              title: Text('My Tax Story', style: AppTextStyles.bodyMedium()),
+              subtitle: Text(
+                'A polished private story of income, readiness, gaps, and next action.',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/tax-story'),
+            ),
+            const Divider(color: AppColors.divider),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.science_outlined,
+                color: AppColors.teal,
+              ),
+              title:
+                  Text('What-if simulator', style: AppTextStyles.bodyMedium()),
+              subtitle: Text(
+                'Try tax-saving moves without changing your saved diagnostic.',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/tax-simulator'),
             ),
             const Divider(color: AppColors.divider),
             ListTile(
