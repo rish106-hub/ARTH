@@ -1,0 +1,104 @@
+lib/services/tax_document_service.dart
+  s_56dd8210da6e59::t_49dacd9b6147b2 25-50
+lib/screens/s17_help_center_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 26
+lib/screens/s09_progress_tracker_screen.dart
+  s_56dd8210da6e59::t_92336aeb41caba 29
+lib/screens/s16_ais_guide_screen.dart
+  s_56dd8210da6e59::t_d515cb624664e5 16
+  s_56dd8210da6e59::t_3116c7137a3dff 17
+lib/app.dart
+  s_56dd8210da6e59::t_ac5012cee10654 69-70
+  s_56dd8210da6e59::t_c1b2f8269b29ef 58
+lib/screens/s22_tax_story_screen.dart
+  s_56dd8210da6e59::t_e530145ed72c8e 6,9,12,84-89,109-116,151-156,159-190,217-224
+  s_56dd8210da6e59::t_3116c7137a3dff 30
+  s_56dd8210da6e59::t_4409644c43a9e4 157-158
+lib/widgets/premium_ui.dart
+  s_56dd8210da6e59::t_bbf4909ef1ee60 40-66,117-182,268-397
+  s_56dd8210da6e59::t_9cc3b7ab732414 5
+  s_56dd8210da6e59::t_881827527c3b75 398
+backend/sql/006_document_vault_model.sql
+  s_56dd8210da6e59::t_d69033731e1896 1-24
+backend/test/security.test.ts
+  s_56dd8210da6e59::t_25894a659d9ecf 109-116,354-361,379-400,489-494,497
+  s_56dd8210da6e59::t_370a7e228c00e4 369
+  s_56dd8210da6e59::t_3cd51f612dec1b 945-997,1096,1109
+  s_56dd8210da6e59::t_9245f9db406db1 495-496
+  s_56dd8210da6e59::t_4bd4f1b1cf66ca 498
+lib/screens/s20_accuracy_coach_screen.dart
+  s_56dd8210da6e59::t_a9cf9363fe3c70 22
+  s_56dd8210da6e59::t_3116c7137a3dff 23
+lib/screens/s13_discover_screen.dart
+  s_56dd8210da6e59::t_4409644c43a9e4 76-77
+  s_56dd8210da6e59::t_3116c7137a3dff 29
+  s_56dd8210da6e59::t_77595940e4e80b 6,10,78,102-115,133-139,144-152,210,212
+lib/screens/s06_deduction_cards_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 99
+  s_56dd8210da6e59::t_139e30697925bc 98
+lib/screens/s04_gap_reveal_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 39
+lib/theme/app_theme.dart
+  s_56dd8210da6e59::t_e92d8e80b55815 46,55,65,74
+lib/screens/s19_filing_assistant_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 27
+  s_56dd8210da6e59::t_67ef588bd6635d 26
+lib/providers/tax_document_provider.dart
+  s_56dd8210da6e59::t_f4e5216f1e7b52 49-70
+lib/screens/s23_tax_calendar_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 21
+lib/screens/s21_tax_simulator_screen.dart
+  s_56dd8210da6e59::t_419b28d98f65f5 35
+  s_56dd8210da6e59::t_3116c7137a3dff 36
+lib/screens/s08_action_plan_screen.dart
+  s_56dd8210da6e59::t_2a163932f5420b 39-40
+lib/models/tax_document.dart
+  s_56dd8210da6e59::t_b899526f9b1118 10-17,29-36,49-59,66-70,87-88,95-121
+  s_56dd8210da6e59::t_4409644c43a9e4 72-74
+  s_56dd8210da6e59::t_fce6e233519be9 71,122-124
+test/ui_audit_test.dart
+  s_56dd8210da6e59::t_37facef54b8811 214
+  s_56dd8210da6e59::t_a7ea18c107df05 652-654
+  s_56dd8210da6e59::t_aa2f2cd874be79 162-179,192-194,213
+  s_56dd8210da6e59::t_0a3ce4f4c43e3c 437-439
+  s_56dd8210da6e59::t_572ec01d1c3a09 3,10
+  s_56dd8210da6e59::t_5ed2dd787fa755 452-453,463,498,509,518,799-800,875-885
+  s_56dd8210da6e59::t_4409644c43a9e4 490
+  s_56dd8210da6e59::t_5b1041d6ba0d0e 215,555-557
+  s_56dd8210da6e59::t_04dc5b2990b187 886-888
+lib/screens/s18_tax_dossier_screen.dart
+  s_56dd8210da6e59::t_3116c7137a3dff 31
+backend/src/routes.ts
+  s_56dd8210da6e59::t_535e07fd4ec382 742-744,750-753,823-825,845-850,860,893-895,899-907,913-981
+  s_56dd8210da6e59::t_a847c8d0da0089 103-110,280-293,303-340
+  s_56dd8210da6e59::t_d813f4dda730db 1033-1041
+  s_56dd8210da6e59::t_e396c0f28282be 341
+lib/widgets/arth_bottom_nav.dart
+  s_56dd8210da6e59::t_8e43ba283fed16 133-134,144,146-147,152-153,158-166,169-171,173
+  s_56dd8210da6e59::t_0c0e8ed41e6607 154-155,167-168
+  s_56dd8210da6e59::t_9fb7401c6572d1 3,7-23,41-43,46-48
+lib/screens/s15_document_checklist_screen.dart
+  s_56dd8210da6e59::t_4409644c43a9e4 90-92,99-101,119-120,289-290,361-363,459-460,724-725
+  s_56dd8210da6e59::t_9e97269ec3bc25 2,10,24-26,32,37-46,49-60,62-65,67-82,86-89,93-98,102-118,121-133,142-212,282,287-288,303-337,353,358-360,364-413,416-458,461-484,486-489,492,528-631,635,638,642,648,650-654,660,664,670,675-685,687-694,704,706,708-709,711,714-723,726-779,784-808,810-828,832-837,842,845,893-903,905-909
+lib/screens/s14_profile_screen.dart
+  s_56dd8210da6e59::t_00eabb5eaa4630 43
+lib/screens/s11_settings_screen.dart
+  s_56dd8210da6e59::t_a96e53917058ce 220
+  s_56dd8210da6e59::t_1b01f5da4698a7 291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e7473e13e8d0a85a5039bdda65408e1141522122",
+  "prompts": {},
+  "sessions": {
+    "s_56dd8210da6e59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2184-cd26-7771-a5e8-166e1be1cb8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "RISHAV DEWAN <rishavdewan10@gmail.com>"
+    }
+  }
+}
