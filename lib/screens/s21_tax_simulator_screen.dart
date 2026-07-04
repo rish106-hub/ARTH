@@ -1,0 +1,312 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../engine/tax_engine.dart';
+import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
+import '../providers/user_profile_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/animated_number.dart';
+import '../widgets/arth_bottom_nav.dart';
+import '../widgets/premium_ui.dart';
+import '../widgets/retry_error_state.dart';
+import '../widgets/tax_rule_badge.dart';
+
+class TaxSimulatorScreen extends ConsumerStatefulWidget {
+  const TaxSimulatorScreen({super.key});
+
+  @override
+  ConsumerState<TaxSimulatorScreen> createState() => _TaxSimulatorScreenState();
+}
+
+class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
+  late double _invest80c;
+  late double _nps;
+  late double _health80d;
+  bool _seeded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final completeAsync = ref.watch(completedTaxProfileProvider);
+    return ArthScaffold(
+      bottomNavigationBar: ArthBottomNav(
+        selectedIndex: 0,
+        onTap: (i) {
+          switch (i) {
+            case 0:
+              context.go('/discover');
+              break;
+            case 1:
+              context.go('/action-plan');
+              break;
+            case 2:
+              context.go('/progress');
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
+        },
+      ),
+      child: Column(
+        children: [
+          ArthPremiumAppBar(
+            eyebrow: 'What-if',
+            title: 'Tax Simulator',
+            leading: IconButton(
+              tooltip: 'Back',
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/discover');
+                }
+              },
+              icon: const Icon(Icons.arrow_back_rounded),
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Expanded(
+            child: completeAsync.when(
+              loading: () => const ArthLoadingPanel(
+                title: 'Opening simulator',
+                insights: ['Loading deterministic tax rules.'],
+              ),
+              error: (_, __) => RetryErrorState(
+                message: 'Could not check diagnostic status.',
+                onRetry: () => ref.invalidate(completedTaxProfileProvider),
+              ),
+              data: (complete) {
+                if (!complete) {
+                  return ArthStatePanel(
+                    icon: Icons.science_outlined,
+                    title: 'Diagnostic needed',
+                    message:
+                        'Run the diagnostic once so simulator changes have a real baseline.',
+                    actionLabel: 'Start diagnostic',
+                    onAction: () => context.go('/questions'),
+                  );
+                }
+                final profile = ref.watch(userProfileProvider);
+                if (!_seeded) {
+                  _invest80c = profile.invested80C.toDouble();
+                  _nps = profile.npsExtraContribution.toDouble();
+                  _health80d =
+                      (profile.healthInsuranceSelfPremium ?? 0).toDouble();
+                  _seeded = true;
+                }
+                final resultAsync = ref.watch(taxResultProvider);
+                final ruleSetAsync = ref.watch(activeTaxRuleSetProvider);
+                return resultAsync.when(
+                  loading: () => const ArthLoadingPanel(
+                    title: 'Preparing baseline',
+                    insights: ['Computing current regime comparison.'],
+                  ),
+                  error: (_, __) => RetryErrorState(
+                    message: 'Could not load simulator baseline.',
+                    onRetry: () => ref.invalidate(taxResultProvider),
+                  ),
+                  data: (current) => ruleSetAsync.when(
+                    loading: () => const ArthLoadingPanel(
+                      title: 'Loading tax year',
+                      insights: ['Checking active rule set.'],
+                    ),
+                    error: (_, __) => RetryErrorState(
+                      message: 'Could not load active tax rules.',
+                      onRetry: () => ref.invalidate(activeTaxRuleSetProvider),
+                    ),
+                    data: (ruleSet) {
+                      final simulatedProfile = profile.copyWith(
+                        invested80C: _invest80c.round(),
+                        npsExtraContribution: _nps.round(),
+                        hasNPS: _nps > 0 || profile.hasNPS,
+                        hasHealthInsuranceSelf:
+                            _health80d > 0 || profile.hasHealthInsuranceSelf,
+                        healthInsuranceSelfPremium: _health80d.round(),
+                      );
+                      final simulated = TaxEngine.calculate(
+                        simulatedProfile,
+                        current.gaps,
+                        ruleSet: ruleSet,
+                      );
+                      final benefit =
+                          (current.currentTax - simulated.currentTax)
+                              .clamp(0, double.infinity)
+                              .round();
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            PremiumGlassPanel(
+                              elevated: true,
+                              borderRadius: BorderRadius.circular(28),
+                              tint: AppColors.gold,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const TrustBadge(
+                                    icon: Icons.functions_rounded,
+                                    label: 'Deterministic estimate',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text('Try a tax-saving move',
+                                      style: AppTextStyles.h1()),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Change 80C, NPS, and 80D values without touching your saved diagnostic.',
+                                    style: AppTextStyles.body(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TaxRuleBadge(result: current),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ArthMetricCard(
+                                    label: 'Possible benefit',
+                                    value: formatRupeesCompact(benefit),
+                                    helper: 'vs current estimate',
+                                    icon: Icons.savings_outlined,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ArthMetricCard(
+                                    label: 'Best regime',
+                                    value: simulated.betterRegimeLabel,
+                                    helper:
+                                        '${simulated.confidenceScore}% confidence',
+                                    icon: Icons.compare_arrows_rounded,
+                                    color: AppColors.teal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            _SimulatorSlider(
+                              title: '80C investment',
+                              value: _invest80c,
+                              max: 150000,
+                              onChanged: (value) =>
+                                  setState(() => _invest80c = value),
+                            ),
+                            const SizedBox(height: 12),
+                            _SimulatorSlider(
+                              title: 'Extra NPS 80CCD(1B)',
+                              value: _nps,
+                              max: 50000,
+                              onChanged: (value) =>
+                                  setState(() => _nps = value),
+                            ),
+                            const SizedBox(height: 12),
+                            _SimulatorSlider(
+                              title: 'Self/family 80D premium',
+                              value: _health80d,
+                              max: profile.ageAbove60 ? 50000 : 25000,
+                              onChanged: (value) =>
+                                  setState(() => _health80d = value),
+                            ),
+                            const SizedBox(height: 18),
+                            PremiumGlassPanel(
+                              tint: AppColors.teal,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Assumption guardrail',
+                                      style: AppTextStyles.h3()),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'This does not file ITR and does not change your profile unless you apply it. Tax shown follows the active rule set and current profile assumptions.',
+                                    style: AppTextStyles.caption(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              style: AppButtons.primaryGold,
+                              onPressed: () async {
+                                ref
+                                    .read(userProfileProvider.notifier)
+                                    .updateField(
+                                      (_) => simulatedProfile,
+                                    );
+                                await ref
+                                    .read(userProfileProvider.notifier)
+                                    .save();
+                                ref.invalidate(taxResultProvider);
+                                if (context.mounted) {
+                                  HapticFeedback.selectionClick();
+                                  context.go('/gap-reveal');
+                                }
+                              },
+                              icon: const Icon(Icons.check_rounded),
+                              label: const Text('Apply to diagnostic'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SimulatorSlider extends StatelessWidget {
+  final String title;
+  final double value;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _SimulatorSlider({
+    required this.title,
+    required this.value,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
+              Text(
+                formatRupeesCompact(value.round()),
+                style: AppTextStyles.caption(color: AppColors.gold),
+              ),
+            ],
+          ),
+          Slider(
+            value: value.clamp(0, max),
+            min: 0,
+            max: max,
+            divisions: max <= 50000 ? 10 : 15,
+            label: formatRupeesCompact(value.round()),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -21,6 +21,10 @@ import 'screens/s16_ais_guide_screen.dart';
 import 'screens/s17_help_center_screen.dart';
 import 'screens/s18_tax_dossier_screen.dart';
 import 'screens/s19_filing_assistant_screen.dart';
+import 'screens/s20_accuracy_coach_screen.dart';
+import 'screens/s21_tax_simulator_screen.dart';
+import 'screens/s22_tax_story_screen.dart';
+import 'screens/s23_tax_calendar_screen.dart';
 import 'models/gap_card.dart';
 
 final _router = GoRouter(
@@ -64,6 +68,19 @@ final _router = GoRouter(
     GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
     GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
     GoRoute(path: '/tax-dossier', builder: (_, __) => const TaxDossierScreen()),
+    GoRoute(
+      path: '/accuracy-coach',
+      builder: (_, __) => const AccuracyCoachScreen(),
+    ),
+    GoRoute(
+      path: '/tax-simulator',
+      builder: (_, __) => const TaxSimulatorScreen(),
+    ),
+    GoRoute(path: '/tax-story', builder: (_, __) => const TaxStoryScreen()),
+    GoRoute(
+      path: '/tax-calendar',
+      builder: (_, __) => const TaxCalendarScreen(),
+    ),
     GoRoute(
       path: '/filing-assistant',
       builder: (_, __) => const FilingAssistantScreen(),

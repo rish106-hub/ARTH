@@ -1,0 +1,183 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../models/product_insights.dart';
+import '../providers/tax_year_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/arth_bottom_nav.dart';
+import '../widgets/premium_ui.dart';
+
+class TaxCalendarScreen extends ConsumerWidget {
+  const TaxCalendarScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeYear = ref.watch(activeTaxYearProvider);
+    final items = taxCalendarItems(activeYear.fyLabel);
+    return ArthScaffold(
+      bottomNavigationBar: ArthBottomNav(
+        selectedIndex: 2,
+        onTap: (i) {
+          switch (i) {
+            case 0:
+              context.go('/discover');
+              break;
+            case 1:
+              context.go('/action-plan');
+              break;
+            case 2:
+              context.go('/progress');
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
+        },
+      ),
+      child: Column(
+        children: [
+          ArthPremiumAppBar(
+            eyebrow: 'Timeline',
+            title: 'Tax Calendar',
+            leading: IconButton(
+              tooltip: 'Back',
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/discover');
+                }
+              },
+              icon: const Icon(Icons.arrow_back_rounded),
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PremiumGlassPanel(
+                    elevated: true,
+                    borderRadius: BorderRadius.circular(28),
+                    tint: AppColors.gold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const TrustBadge(
+                          icon: Icons.event_available_outlined,
+                          label: 'Local milestones',
+                        ),
+                        const SizedBox(height: 16),
+                        Text(activeYear.displayLabel,
+                            style: AppTextStyles.h1()),
+                        const SizedBox(height: 8),
+                        Text(
+                          'A readiness timeline for proofs, official-record review, accuracy cleanup, and filing handoff. No reminders or push notifications yet.',
+                          style: AppTextStyles.body(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ArthSection(
+                    title: 'Milestones',
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < items.length; i += 1) ...[
+                          _CalendarMilestone(item: items[i], index: i + 1),
+                          if (i != items.length - 1) const _TimelineConnector(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarMilestone extends StatelessWidget {
+  final TaxCalendarItem item;
+  final int index;
+
+  const _CalendarMilestone({required this.item, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumGlassPanel(
+      padding: const EdgeInsets.all(16),
+      tint: index.isEven ? AppColors.teal : AppColors.gold,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.gold.withValues(alpha: 0.15),
+            child: Text('$index',
+                style: AppTextStyles.caption(color: AppColors.gold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Icon(item.icon, color: AppColors.gold, size: 18),
+                    Text(item.title, style: AppTextStyles.h3()),
+                    TrustBadge(
+                      icon: Icons.schedule_rounded,
+                      label: item.date,
+                      color: AppColors.teal,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.body,
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  style: AppButtons.outlineGold,
+                  onPressed: () => context.push(item.route),
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: Text(item.cta),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineConnector extends StatelessWidget {
+  const _TimelineConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(left: 34),
+        width: 1,
+        height: 18,
+        color: AppColors.border,
+      ),
+    );
+  }
+}

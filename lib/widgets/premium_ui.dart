@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../theme/app_theme.dart';
+import 'ui_policy.dart';
 
 class ArthScaffold extends StatelessWidget {
   final Widget child;
@@ -105,38 +104,27 @@ class PremiumGlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final blur = reduceMotion ? 0.0 : 14.0;
+    final blur = SurfacePolicy.blur(context);
 
-    return ClipRRect(
+    return CheapBackdrop(
       borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            borderRadius: borderRadius,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                tint.withValues(alpha: 0.10),
-                tint.withValues(alpha: 0.035),
-              ],
-            ),
-            border: Border.all(color: AppColors.glassStroke),
-            boxShadow: elevated
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.28),
-                      blurRadius: 24,
-                      offset: const Offset(0, 14),
-                    ),
-                  ]
-                : null,
+      blur: blur,
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              tint.withValues(alpha: blur <= 0 ? 0.075 : 0.10),
+              tint.withValues(alpha: blur <= 0 ? 0.025 : 0.035),
+            ],
           ),
-          child: child,
+          border: Border.all(color: AppColors.glassStroke),
+          boxShadow: SurfacePolicy.shadow(context, elevated: elevated),
         ),
+        child: child,
       ),
     );
   }
@@ -414,7 +402,7 @@ class ArthLoadingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final reduceMotion = MotionPolicy.reduce(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
