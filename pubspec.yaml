@@ -28,7 +28,7 @@ dependencies:
 
   # Animations
   flutter_animate: ^4.5.0
-  lottie: ^3.4.0
+  lottie: ^3.5.1
 
   # Sharing & Screenshot
   share_plus: ^13.2.0
