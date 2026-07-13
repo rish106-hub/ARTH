@@ -16,7 +16,7 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
-    "@fastify/multipart": "^10.0.0",
+    "@fastify/multipart": "^10.1.0",
     "@fastify/rate-limit": "^11.1.0",
     "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^17.4.2",
