@@ -34,6 +34,7 @@ import 'package:arth/screens/s22_tax_story_screen.dart';
 import 'package:arth/screens/s23_tax_calendar_screen.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/services/backend_sync_service.dart';
+import 'package:arth/theme/app_theme.dart';
 import 'package:arth/widgets/question_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -235,7 +236,7 @@ void main() {
       ProviderScope(
         key: UniqueKey(),
         overrides: customOverrides ?? overrides,
-        child: MaterialApp(home: child),
+        child: MaterialApp(theme: AppTheme.light, home: child),
       ),
     );
     await tester.pump(const Duration(seconds: 2));
@@ -264,6 +265,7 @@ void main() {
         key: UniqueKey(),
         overrides: overrides,
         child: MaterialApp(
+          theme: AppTheme.light,
           home: MediaQuery(
             data: MediaQueryData.fromView(
               tester.view,
@@ -348,8 +350,8 @@ void main() {
   ) async {
     await pumpAuditedScreen(tester, const AuthScreen());
 
-    expect(find.text('Enter your tax intelligence vault.'), findsOneWidget);
-    expect(find.text('PAN optional later'), findsOneWidget);
+    expect(find.text('Build your tax position.'), findsOneWidget);
+    expect(find.text('3-minute first map'), findsOneWidget);
 
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
@@ -358,22 +360,23 @@ void main() {
     expect(find.text('Sign in'), findsWidgets);
   });
 
-  testWidgets('welcome narrative exposes trust-first onboarding story', (
+  testWidgets('welcome presents the tax journey and input choices', (
     tester,
   ) async {
     await pumpAuditedScreen(tester, const WelcomeScreen());
 
-    expect(find.text('Find money your salary already earned.'), findsOneWidget);
+    expect(find.text('You earned it.\nKeep more of it.'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
 
-    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('No PAN. No ITR upload. No document dragnet.'),
-        findsOneWidget);
+    expect(find.text('Your tax year has a shape.'), findsOneWidget);
 
-    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Get a cockpit, not a spreadsheet.'), findsOneWidget);
-    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
+    expect(find.text('Start with what you know.'), findsOneWidget);
+    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
+    expect(find.text('Begin my tax journey'), findsOneWidget);
   });
 
   testWidgets('tax cockpit shows next action and future modules', (
@@ -448,8 +451,14 @@ void main() {
       customOverrides: browseOverrides,
     );
 
-    expect(find.text('Start diagnostic'), findsAtLeastNWidgets(1));
+    expect(find.text('Start 3-minute tax check'), findsOneWidget);
     expect(find.text('Readiness cockpit'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Document Vault'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Document Vault'), findsOneWidget);
     expect(find.text('AIS & 26AS guide'), findsOneWidget);
   });
@@ -459,19 +468,33 @@ void main() {
   ) async {
     await pumpAuditedScreen(tester, const DiscoverScreen());
 
-    expect(find.text('HOME'), findsOneWidget);
+    expect(find.text('ARTH'), findsOneWidget);
     expect(find.text('Readiness cockpit'), findsOneWidget);
-    expect(find.text('Readiness'), findsOneWidget);
+    expect(find.text('Open my tax position'), findsOneWidget);
 
     await tester.scrollUntilVisible(
-      find.text('EVERYTHING TAX'),
+      find.text('Bring in your tax data'),
+      350,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Bring in your tax data'), findsOneWidget);
+    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Explore ARTH'),
       500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('My Tax Story'), findsOneWidget);
+    expect(find.text('What-if simulator'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Help Center'),
+      400,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Tax Dossier'), findsOneWidget);
     expect(find.text('Help Center'), findsOneWidget);
-    expect(find.text('My Tax Story'), findsOneWidget);
-    expect(find.text('What-if simulator'), findsOneWidget);
   });
 
   testWidgets('Help Center shows contact actions and support details', (
@@ -495,7 +518,8 @@ void main() {
       const DocumentChecklistScreen(),
       customOverrides: overridesWithChecklist({}),
     );
-    expect(find.textContaining('Your tax proof vault'), findsOneWidget);
+    expect(find.text('Proof readiness'), findsOneWidget);
+    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
     expect(find.text('Form 16'), findsOneWidget);
 
     await pumpAuditedScreen(
@@ -516,6 +540,30 @@ void main() {
       }),
     );
     expect(find.textContaining('100%'), findsAtLeastNWidgets(1));
+  });
+
+  testWidgets('Document Vault upload sheet stays compact on 320px', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(
+      tester,
+      const DocumentChecklistScreen(),
+      customOverrides: overridesWithChecklist({}),
+    );
+
+    await tester.tap(find.byTooltip('Upload Form 16'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upload Form 16'), findsOneWidget);
+    expect(
+      find.text('PDF · JPG · PNG   Maximum 8 MB'),
+      findsOneWidget,
+    );
+    expect(find.text('Choose file'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+
+    final chooseFileButton = find.widgetWithText(ElevatedButton, 'Choose file');
+    expect(tester.getSize(chooseFileButton).height, lessThanOrEqualTo(60));
   });
 
   testWidgets('AIS guide is visible without asking for PAN', (tester) async {
@@ -678,7 +726,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -686,7 +737,7 @@ void main() {
       Future<void> tapContinue() async {
         final continueButton = find.widgetWithText(
           ElevatedButton,
-          'Continue →',
+          'Continue',
         );
         await tester.ensureVisible(continueButton);
         await tester.tap(continueButton);

@@ -61,7 +61,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
       final hasProfile = await ref.read(userProfileProvider.notifier).load();
       if (!mounted) return;
-      context.go(hasProfile ? '/gap-reveal' : '/discover');
+      context.go(hasProfile ? '/gap-reveal' : '/welcome');
     } on ServerApiException catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = _friendlyServerError(e));
@@ -128,11 +128,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final headline =
-        _isSignUp ? 'Enter your tax intelligence vault.' : 'Welcome back.';
+    final headline = _isSignUp ? 'Build your tax position.' : 'Welcome back.';
     final subhead = _isSignUp
-        ? 'Create a private ARTH account to sync your diagnostic and action plan.'
-        : 'Sign in to restore your saved profile, progress, and results.';
+        ? 'Create your ARTH account. We will map your income, deductions and next moves.'
+        : 'Sign in to continue your tax journey.';
 
     return ArthScaffold(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -165,12 +164,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       runSpacing: 8,
                       children: [
                         TrustBadge(
-                          icon: Icons.badge_outlined,
-                          label: 'PAN optional later',
+                          icon: Icons.route_outlined,
+                          label: '3-minute first map',
                         ),
                         TrustBadge(
-                          icon: Icons.receipt_long_outlined,
-                          label: 'No ITR upload',
+                          icon: Icons.edit_note_rounded,
+                          label: 'Start manually',
                           color: AppColors.teal,
                         ),
                       ],
@@ -275,7 +274,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Passwords are hashed. Synced profile data can be deleted from Settings.',
+                      'Your answers stay linked to this account so you can continue later.',
                       textAlign: TextAlign.center,
                       style:
                           AppTextStyles.micro(color: AppColors.textSecondary),
@@ -306,21 +305,11 @@ class _AuthHero extends StatelessWidget {
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
-            ),
-            child: const Center(
-              child: Text(
-                '₹',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.gold,
-                  height: 1,
-                ),
-              ),
+            clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(borderRadius: AppRadius.card),
+            child: Image.asset(
+              'assets/icon/icon_1024.png',
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(width: 16),
@@ -331,7 +320,7 @@ class _AuthHero extends StatelessWidget {
                 Text('ARTH', style: AppTextStyles.h3()),
                 const SizedBox(height: 4),
                 Text(
-                  'Private tax gap intelligence for salaried India.',
+                  'A clearer tax year for salaried India.',
                   style: AppTextStyles.caption(color: AppColors.textSecondary),
                 ),
               ],
@@ -355,7 +344,7 @@ class _ModeSwitch extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
+        color: AppColors.bgSurface,
         borderRadius: AppRadius.pill,
         border: Border.all(color: AppColors.glassStroke),
       ),
@@ -407,7 +396,7 @@ class _ModeButton extends StatelessWidget {
         child: Text(
           label,
           style: AppTextStyles.bodyMedium(
-            color: selected ? AppColors.ink : AppColors.textSecondary,
+            color: selected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
@@ -453,16 +442,16 @@ class _InputField extends StatelessWidget {
         labelStyle: AppTextStyles.caption(color: AppColors.textSecondary),
         hintStyle: AppTextStyles.body(color: AppColors.textMuted),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.22),
+        fillColor: AppColors.bgCard,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -505,7 +494,7 @@ class _AuthErrorText extends StatelessWidget {
               ),
               child: Text(
                 message!,
-                style: AppTextStyles.caption(color: const Color(0xFFFF8A8A)),
+                style: AppTextStyles.caption(color: AppColors.alert),
                 textAlign: TextAlign.center,
               ),
             ),

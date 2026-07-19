@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/tax_readiness.dart';
-import '../providers/account_profile_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
@@ -21,7 +20,6 @@ class TaxDossierScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final completeAsync = ref.watch(completedTaxProfileProvider);
     final checklist = ref.watch(documentChecklistProvider);
-    final account = ref.watch(accountProfileProvider).asData?.value;
     final readyDocs = completedDocumentCount(checklist);
     final docPercent = documentReadinessPercent(checklist);
 
@@ -63,7 +61,6 @@ class TaxDossierScreen extends ConsumerWidget {
                   ),
                   data: (result) {
                     final profile = ref.watch(userProfileProvider);
-                    final panPresent = account?.pan.present ?? false;
                     return SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
                       child: Column(
@@ -82,7 +79,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Private Tax Readiness Dossier',
+                                  'Tax Readiness Dossier',
                                   style: AppTextStyles.h1(),
                                 ),
                                 const SizedBox(height: 8),
@@ -171,11 +168,10 @@ class TaxDossierScreen extends ConsumerWidget {
                                   ),
                                   const Divider(color: AppColors.divider),
                                   _DossierRow(
-                                    icon: Icons.badge_outlined,
-                                    title: 'PAN status',
-                                    body: panPresent
-                                        ? 'Optional PAN vault is active with masked display only.'
-                                        : 'PAN is not required. Add it later from Profile if useful.',
+                                    icon: Icons.folder_copy_outlined,
+                                    title: 'Proof readiness',
+                                    body:
+                                        '$readyDocs documents ready · $docPercent% complete.',
                                   ),
                                   const Divider(color: AppColors.divider),
                                   _DossierRow(

@@ -58,7 +58,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     //    Also works correctly on fresh device installs.
     final hasProfile = await ref.read(userProfileProvider.notifier).load();
     if (!mounted) return;
-    context.go(hasProfile ? '/gap-reveal' : '/discover');
+    context.go(hasProfile ? '/gap-reveal' : '/welcome');
   }
 
   @override
@@ -76,24 +76,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Rupee symbol — animates grey → gold
             AnimatedBuilder(
               animation: _rupeePulse,
               builder: (_, __) {
                 final t = _rupeePulse.value;
-                final color = Color.lerp(
-                  const Color(0xFF616161),
-                  AppColors.gold,
-                  Curves.easeOut.transform(t),
-                )!;
-                return Text(
-                  '₹',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 80,
-                    fontWeight: FontWeight.w900,
-                    color: color,
-                    height: 1,
+                return Transform.scale(
+                  scale: 0.88 + (0.12 * t),
+                  child: Opacity(
+                    opacity: 0.55 + (0.45 * t),
+                    child: Image.asset(
+                      'assets/icon/icon_1024.png',
+                      width: 112,
+                      height: 112,
+                    ),
                   ),
                 );
               },
@@ -114,14 +109,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
             // Tagline
             Text(
-              'Tax intelligence. Private by default.',
+              'Know your tax position.',
               style: AppTextStyles.caption(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
             const SizedBox(height: 18),
             const TrustBadge(
-              icon: Icons.shield_outlined,
-              label: 'No PAN required to begin',
+              icon: Icons.auto_awesome_outlined,
+              label: 'Earn · Optimise · Prepare · File',
             ).animate(delay: 1050.ms).fadeIn(duration: 260.ms),
           ],
         ),

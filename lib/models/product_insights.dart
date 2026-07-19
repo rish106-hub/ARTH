@@ -23,7 +23,6 @@ class NextBestAction {
 NextBestAction buildNextBestAction({
   required bool diagnosticComplete,
   required int documentPercent,
-  required bool panPresent,
   TaxResult? result,
 }) {
   if (!diagnosticComplete) {
@@ -61,16 +60,6 @@ NextBestAction buildNextBestAction({
           'Highest visible deduction opportunity: ${formatRupeesCompact(result.gaps.first.gapAmount)}.',
       cta: 'Open actions',
       route: '/action-plan',
-    );
-  }
-  if (!panPresent) {
-    return const NextBestAction(
-      icon: Icons.badge_outlined,
-      title: 'Keep identity continuity optional',
-      body:
-          'PAN vault can help future document matching, but it is not required.',
-      cta: 'Review profile',
-      route: '/profile',
     );
   }
   return const NextBestAction(

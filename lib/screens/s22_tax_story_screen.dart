@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../models/product_insights.dart';
 import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
-import '../providers/account_profile_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
@@ -51,7 +50,7 @@ class TaxStoryScreen extends ConsumerWidget {
             child: completeAsync.when(
               loading: () => const ArthLoadingPanel(
                 title: 'Opening Tax Story',
-                insights: ['Preparing your private summary.'],
+                insights: ['Preparing your summary.'],
               ),
               error: (_, __) => RetryErrorState(
                 message: 'Could not check diagnostic status.',
@@ -63,7 +62,7 @@ class TaxStoryScreen extends ConsumerWidget {
                     icon: Icons.auto_stories_outlined,
                     title: 'Your story starts after diagnostic',
                     message:
-                        'Complete the diagnostic once to generate a private tax-readiness story.',
+                        'Complete the diagnostic once to generate your tax-readiness story.',
                     actionLabel: 'Start diagnostic',
                     onAction: () => context.go('/questions'),
                   );
@@ -88,17 +87,9 @@ class TaxStoryScreen extends ConsumerWidget {
                         DocumentVaultSummary.fromDocuments(documents);
                     final activeYear = ref.watch(activeTaxYearProvider);
                     final docPercent = documentReadinessPercent(checklist);
-                    final panPresent = ref
-                            .watch(accountProfileProvider)
-                            .asData
-                            ?.value
-                            ?.pan
-                            .present ??
-                        false;
                     final next = buildNextBestAction(
                       diagnosticComplete: true,
                       documentPercent: docPercent,
-                      panPresent: panPresent,
                       result: result,
                     );
                     return SingleChildScrollView(
@@ -111,7 +102,7 @@ class TaxStoryScreen extends ConsumerWidget {
                             title:
                                 '${profile.name.isEmpty ? 'Your' : '${profile.name.split(' ').first}’s'} tax story',
                             body:
-                                'A private narrative of income, regime insight, proof readiness, assumptions, and handoff next steps.',
+                                'A clear narrative of income, regime insight, proof readiness, assumptions, and next steps.',
                             icon: Icons.auto_stories_outlined,
                             trailing: TaxRuleBadge(result: result),
                           ),
@@ -208,11 +199,10 @@ class TaxStoryScreen extends ConsumerWidget {
                                   ),
                                   const Divider(color: AppColors.divider),
                                   _StoryLine(
-                                    icon: Icons.badge_outlined,
-                                    title: 'PAN vault',
-                                    body: panPresent
-                                        ? 'Optional PAN vault is active and masked.'
-                                        : 'PAN is optional and not required for this story.',
+                                    icon: Icons.folder_copy_outlined,
+                                    title: 'Proof readiness',
+                                    body:
+                                        '$docPercent% of your document checklist is ready.',
                                   ),
                                   const Divider(color: AppColors.divider),
                                   _StoryLine(

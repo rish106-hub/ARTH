@@ -25,6 +25,18 @@ class DocumentChecklistScreen extends ConsumerWidget {
     final summary = DocumentVaultSummary.fromDocuments(documents);
     final activeYear = ref.watch(activeTaxYearProvider);
     final percent = documentReadinessPercent(checklist);
+    final neededItems = taxDocumentItems
+        .where((item) => _documentsFor(item.id, documents).isEmpty)
+        .toList();
+    final remainingCount =
+        neededItems.where((item) => !(checklist[item.id] ?? false)).length;
+    final reviewDocuments =
+        documents.where((doc) => doc.active && doc.needsReview).toList();
+    final readyDocuments =
+        documents.where((doc) => doc.active && doc.reviewed).toList();
+    final uploadedDocuments = documents
+        .where((doc) => doc.active && !doc.reviewed && !doc.needsReview)
+        .toList();
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
@@ -59,76 +71,70 @@ class DocumentChecklistScreen extends ConsumerWidget {
                       summary: summary,
                       yearLabel: activeYear.fyLabel,
                     ),
-                    const SizedBox(height: 18),
-                    _VaultLane(
-                      title: 'Needs action',
-                      icon: Icons.inbox_outlined,
-                      child: Column(
-                        children: [
-                          for (final item in taxDocumentItems)
-                            if (_documentsFor(item.id, documents).isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _NeededDocumentCard(
-                                  item: item,
-                                  ready: checklist[item.id] ?? false,
-                                  busy: documentsAsync.isLoading,
-                                  onReady: (value) => ref
-                                      .read(documentChecklistProvider.notifier)
-                                      .setReady(item.id, value),
-                                  onUpload: () =>
-                                      _showUploadPreflight(context, ref, item),
-                                ),
-                              ),
-                        ],
+                    const SizedBox(height: 16),
+                    _DigiLockerRow(
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'DigiLocker connection is being prepared.',
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _DocumentLane(
-                      title: 'Review',
-                      empty: 'No documents need review.',
-                      documents: documents
-                          .where((doc) => doc.active && doc.needsReview)
-                          .toList(),
-                      onOpen: (doc) => _showDocumentDetail(context, ref, doc),
+                    const SizedBox(height: 24),
+                    _VaultSectionHeader(
+                      title: 'Needed documents',
+                      helper: '$remainingCount remaining',
                     ),
-                    const SizedBox(height: 16),
-                    _DocumentLane(
-                      title: 'Ready',
-                      empty: 'Confirmed documents will appear here.',
-                      documents: documents
-                          .where((doc) => doc.active && doc.reviewed)
-                          .toList(),
-                      onOpen: (doc) => _showDocumentDetail(context, ref, doc),
+                    const SizedBox(height: 10),
+                    _NeededDocumentsPanel(
+                      items: neededItems,
+                      checklist: checklist,
+                      busy: documentsAsync.isLoading,
+                      onReady: (item, value) => ref
+                          .read(documentChecklistProvider.notifier)
+                          .setReady(item.id, value),
+                      onUpload: (item) =>
+                          _showUploadPreflight(context, ref, item),
                     ),
-                    const SizedBox(height: 16),
-                    _DocumentLane(
-                      title: 'Uploaded',
-                      empty: 'Upload a proof to start building your vault.',
-                      documents: documents
-                          .where((doc) =>
-                              doc.active && !doc.reviewed && !doc.needsReview)
-                          .toList(),
-                      onOpen: (doc) => _showDocumentDetail(context, ref, doc),
-                    ),
+                    if (documents.isEmpty) ...[
+                      const SizedBox(height: 24),
+                      const _EmptyUploads(),
+                    ],
+                    if (reviewDocuments.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _DocumentLane(
+                        title: 'Needs review',
+                        documents: reviewDocuments,
+                        onOpen: (doc) => _showDocumentDetail(context, ref, doc),
+                      ),
+                    ],
+                    if (readyDocuments.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _DocumentLane(
+                        title: 'Ready to use',
+                        documents: readyDocuments,
+                        onOpen: (doc) => _showDocumentDetail(context, ref, doc),
+                      ),
+                    ],
+                    if (uploadedDocuments.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _DocumentLane(
+                        title: 'Processing',
+                        documents: uploadedDocuments,
+                        onOpen: (doc) => _showDocumentDetail(context, ref, doc),
+                      ),
+                    ],
                     if (summary.archived > 0) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       _DocumentLane(
                         title: 'Archived',
-                        empty: '',
                         documents:
                             documents.where((doc) => doc.archived).toList(),
                         onOpen: (doc) => _showDocumentDetail(context, ref, doc),
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    StoryPanel(
-                      icon: Icons.privacy_tip_outlined,
-                      title: 'Privacy posture',
-                      body:
-                          'Documents are encrypted on the server. ARTH stores metadata and confirmed fields separately, and never files ITR from this vault.',
-                      color: AppColors.teal,
-                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -153,52 +159,66 @@ class DocumentChecklistScreen extends ConsumerWidget {
     final accepted = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.graphite,
+      backgroundColor: AppColors.bgCard,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: AppRadius.pill,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
               Text('Upload ${item.title}', style: AppTextStyles.h2()),
               const SizedBox(height: 8),
               Text(
-                'PDF, JPG, or PNG up to 8 MB. Text PDFs can be parsed deterministically when supported. Scans and password files are stored for manual review.',
+                'Choose a PDF, JPG or PNG up to 8 MB. You can review extracted details before using them.',
                 style: AppTextStyles.caption(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              const Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              const Row(
                 children: [
-                  StatusPill(
-                    label: 'Encrypted storage',
-                    icon: Icons.lock_outline_rounded,
-                    color: AppColors.teal,
+                  Icon(
+                    Icons.description_outlined,
+                    color: AppColors.gold,
+                    size: 20,
                   ),
-                  StatusPill(
-                    label: 'No LLM parsing',
-                    icon: Icons.verified_user_outlined,
-                  ),
-                  StatusPill(
-                    label: 'Hard delete available',
-                    icon: Icons.delete_outline_rounded,
-                    color: AppColors.amber,
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'PDF · JPG · PNG   Maximum 8 MB',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              ActionDock(
-                primaryLabel: 'Choose file',
-                primaryIcon: Icons.upload_file_rounded,
-                onPrimary: () => Navigator.pop(sheetContext, true),
-                secondaryLabel: 'Cancel',
-                secondaryIcon: Icons.close_rounded,
-                onSecondary: () => Navigator.pop(sheetContext, false),
+              const SizedBox(height: 22),
+              ElevatedButton.icon(
+                style: AppButtons.primaryGold,
+                onPressed: () => Navigator.pop(sheetContext, true),
+                icon: const Icon(Icons.upload_file_rounded, size: 19),
+                label: const Text('Choose file'),
+              ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: () => Navigator.pop(sheetContext, false),
+                child: const Text('Cancel'),
               ),
             ],
           ),
@@ -291,9 +311,9 @@ class DocumentChecklistScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.graphite,
+      backgroundColor: AppColors.bgCard,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetContext) {
         var saving = false;
@@ -409,7 +429,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         controller: labelController,
                         maxLength: 80,
                         decoration: const InputDecoration(
-                          labelText: 'Vault label',
+                          labelText: 'Document label',
                           counterText: '',
                         ),
                       ),
@@ -427,7 +447,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         maxLines: 3,
                         maxLength: 1200,
                         decoration: const InputDecoration(
-                          labelText: 'Private note',
+                          labelText: 'Notes',
                           counterText: '',
                         ),
                       ),
@@ -456,8 +476,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         style: AppButtons.primaryGold,
                         onPressed: saving ? null : () => saveMetadata(),
                         icon: const Icon(Icons.save_outlined),
-                        label:
-                            Text(saving ? 'Saving...' : 'Save vault details'),
+                        label: Text(saving ? 'Saving...' : 'Save document'),
                       ),
                       if (document.needsConfirmation) ...[
                         const SizedBox(height: 8),
@@ -539,103 +558,231 @@ class VaultHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumHeader(
-      eyebrow: 'Encrypted readiness',
-      title: 'Your tax proof vault',
-      body:
-          '$yearLabel • ${summary.active} active document(s), ${summary.needsReview} needing review. Uploads stay optional and private.',
-      icon: Icons.folder_special_outlined,
-      trailing: SizedBox(
-        width: 74,
-        child: Column(
-          children: [
-            Text('$percent%', style: AppTextStyles.h2(color: AppColors.gold)),
-            const SizedBox(height: 3),
-            Text(
-              'ready',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.micro(color: AppColors.textSecondary),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: AppRadius.card,
+        border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: percent / 100,
+                  strokeWidth: 7,
+                  backgroundColor: AppColors.bgSurface,
+                  color: percent == 100 ? AppColors.success : AppColors.gold,
+                  strokeCap: StrokeCap.round,
+                ),
+                Text('$percent%', style: AppTextStyles.bodyMedium()),
+              ],
             ),
-          ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Proof readiness', style: AppTextStyles.h3()),
+                const SizedBox(height: 4),
+                Text(
+                  '$yearLabel · ${summary.active} uploaded · ${summary.needsReview} to review',
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  percent == 100
+                      ? 'Your document checklist is complete.'
+                      : 'Add proofs as you collect them.',
+                  style: AppTextStyles.micro(color: AppColors.gold)
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DigiLockerRow extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _DigiLockerRow({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.goldLight,
+      borderRadius: AppRadius.card,
+      child: InkWell(
+        borderRadius: AppRadius.card,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              const Icon(Icons.account_balance_outlined, color: AppColors.gold),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Fetch from DigiLocker',
+                      style: AppTextStyles.bodyMedium(),
+                    ),
+                    Text(
+                      'Coming soon',
+                      style:
+                          AppTextStyles.micro(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.gold),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _VaultLane extends StatelessWidget {
+class _VaultSectionHeader extends StatelessWidget {
   final String title;
-  final IconData icon;
-  final Widget child;
+  final String? helper;
 
-  const _VaultLane({
+  const _VaultSectionHeader({
     required this.title,
-    required this.icon,
-    required this.child,
+    this.helper,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ArthSection(
-      title: title,
-      child: PremiumGlassPanel(
-        padding: const EdgeInsets.all(14),
-        child: child,
-      ),
+    return Row(
+      children: [
+        Expanded(child: Text(title, style: AppTextStyles.h3())),
+        if (helper != null)
+          Text(
+            helper!,
+            style: AppTextStyles.micro(color: AppColors.textSecondary),
+          ),
+      ],
     );
   }
 }
 
 class _DocumentLane extends StatelessWidget {
   final String title;
-  final String empty;
   final List<TaxDocument> documents;
   final ValueChanged<TaxDocument> onOpen;
 
   const _DocumentLane({
     required this.title,
-    required this.empty,
     required this.documents,
     required this.onOpen,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _VaultLane(
-      title: title,
-      icon: Icons.folder_outlined,
-      child: documents.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                empty,
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
-              ),
-            )
-          : Column(
-              children: [
-                for (final document in documents)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: DocumentStatusCard(
-                      document: document,
-                      onTap: () => onOpen(document),
-                    ),
-                  ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _VaultSectionHeader(title: title, helper: '${documents.length}'),
+        const SizedBox(height: 10),
+        for (final document in documents) ...[
+          DocumentStatusCard(
+            document: document,
+            onTap: () => onOpen(document),
+          ),
+          if (document != documents.last) const SizedBox(height: 8),
+        ],
+      ],
     );
   }
 }
 
-class _NeededDocumentCard extends StatelessWidget {
+class _NeededDocumentsPanel extends StatelessWidget {
+  final List<TaxDocumentItem> items;
+  final Map<String, bool> checklist;
+  final bool busy;
+  final void Function(TaxDocumentItem item, bool value) onReady;
+  final ValueChanged<TaxDocumentItem> onUpload;
+
+  const _NeededDocumentsPanel({
+    required this.items,
+    required this.checklist,
+    required this.busy,
+    required this.onReady,
+    required this.onUpload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: AppColors.goldLight,
+          borderRadius: AppRadius.card,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: AppColors.success),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Every expected document has been added.',
+                style: AppTextStyles.bodyMedium(),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Material(
+      color: AppColors.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.card,
+        side: BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final entry in items.asMap().entries) ...[
+            _NeededDocumentRow(
+              item: entry.value,
+              ready: checklist[entry.value.id] ?? false,
+              busy: busy,
+              onReady: (value) => onReady(entry.value, value),
+              onUpload: () => onUpload(entry.value),
+            ),
+            if (entry.key != items.length - 1)
+              const Divider(height: 1, indent: 58),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NeededDocumentRow extends StatelessWidget {
   final TaxDocumentItem item;
   final bool ready;
   final bool busy;
   final ValueChanged<bool> onReady;
   final VoidCallback onUpload;
 
-  const _NeededDocumentCard({
+  const _NeededDocumentRow({
     required this.item,
     required this.ready,
     required this.busy,
@@ -645,52 +792,84 @@ class _NeededDocumentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard.withValues(alpha: 0.72),
-        borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Checkbox(
             value: ready,
             onChanged: (value) => onReady(value ?? false),
-            activeColor: AppColors.success,
-            checkColor: Colors.white,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.title, style: AppTextStyles.bodyMedium()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   item.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.caption(color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    StatusPill(
-                      label: ready ? 'Marked ready' : 'Needed',
-                      icon: ready
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      color: ready ? AppColors.success : AppColors.amber,
-                    ),
-                    OutlinedButton.icon(
-                      style: AppButtons.outlineGold,
-                      onPressed: busy ? null : onUpload,
-                      icon: const Icon(Icons.upload_file_rounded),
-                      label: const Text('Upload'),
-                    ),
-                  ],
+                if (ready) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'Marked ready',
+                    style: AppTextStyles.micro(color: AppColors.success),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Upload ${item.title}',
+            onPressed: busy ? null : onUpload,
+            icon: const Icon(Icons.upload_file_rounded),
+            color: AppColors.gold,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyUploads extends StatelessWidget {
+  const _EmptyUploads();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: AppRadius.card,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: AppColors.bgCard,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.folder_open_outlined,
+              color: AppColors.gold,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('No uploads yet', style: AppTextStyles.bodyMedium()),
+                const SizedBox(height: 2),
+                Text(
+                  'Use the upload icon beside any document to begin.',
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -713,59 +892,64 @@ class DocumentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppRadius.card,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard.withValues(alpha: 0.76),
-          borderRadius: AppRadius.card,
-          border:
-              Border.all(color: _statusColor(document).withValues(alpha: 0.32)),
+    return Material(
+      color: AppColors.bgCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.card,
+        side: BorderSide(
+          color: _statusColor(document).withValues(alpha: 0.32),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.lock_outline_rounded, color: _statusColor(document)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    document.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodyMedium(),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${formatFileSize(document.byteSize)} • ${document.originalFilename}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.micro(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _statusPill(document),
-                      for (final tag in document.tags.take(3))
-                        StatusPill(
-                          label: tag,
-                          icon: Icons.sell_outlined,
-                          color: AppColors.info,
-                        ),
-                    ],
-                  ),
-                ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.description_outlined, color: _statusColor(document)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      document.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyMedium(),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${formatFileSize(document.byteSize)} • ${document.originalFilename}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          AppTextStyles.micro(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _statusPill(document),
+                        for (final tag in document.tags.take(3))
+                          StatusPill(
+                            label: tag,
+                            icon: Icons.sell_outlined,
+                            color: AppColors.info,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-          ],
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted),
+            ],
+          ),
         ),
       ),
     );

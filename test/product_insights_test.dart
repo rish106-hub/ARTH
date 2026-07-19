@@ -10,7 +10,6 @@ void main() {
     final action = buildNextBestAction(
       diagnosticComplete: false,
       documentPercent: 0,
-      panPresent: false,
     );
 
     expect(action.route, '/questions');
@@ -21,7 +20,6 @@ void main() {
     final action = buildNextBestAction(
       diagnosticComplete: true,
       documentPercent: 0,
-      panPresent: false,
       result: _resultWithAssumption(),
     );
 

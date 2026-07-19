@@ -103,7 +103,7 @@ class ArthApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'ARTH — Tax Readiness Cockpit',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: _router,
     );
   }

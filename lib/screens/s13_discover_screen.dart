@@ -5,14 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../models/product_insights.dart';
 import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
-import '../providers/account_profile_provider.dart';
-import '../providers/entitlement_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -22,404 +21,237 @@ class DiscoverScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completeAsync = ref.watch(completedTaxProfileProvider);
-
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
-        onTap: (i) => goToArthTab(context, i),
+        onTap: (index) => goToArthTab(context, index),
       ),
-      child: Column(
-        children: [
-          ArthPremiumAppBar(
-            eyebrow: 'Home',
-            title: 'ARTH',
-            actions: [
-              IconButton(
-                tooltip: 'Help Center',
-                onPressed: () => context.push('/help'),
-                icon: const Icon(Icons.support_agent_rounded),
-                color: AppColors.textSecondary,
-              ),
-              IconButton(
-                tooltip: 'Profile',
-                onPressed: () => context.go('/profile'),
-                icon: const Icon(Icons.person_outline_rounded),
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-          Expanded(
-            child: completeAsync.when(
-              loading: () => const ArthLoadingPanel(
-                title: 'Opening Tax OS',
-                insights: ['Checking diagnostic and readiness state.'],
-              ),
-              error: (_, __) => const _TaxOsHome(complete: false),
-              data: (complete) => _TaxOsHome(complete: complete),
-            ),
-          ),
-        ],
+      child: completeAsync.when(
+        loading: () => const ArthLoadingPanel(
+          title: 'Opening ARTH',
+          insights: ['Preparing your tax position.'],
+        ),
+        error: (_, __) => const _ArthHome(complete: false),
+        data: (complete) => _ArthHome(complete: complete),
       ),
     );
   }
 }
 
-class _TaxOsHome extends ConsumerWidget {
+class _ArthHome extends ConsumerWidget {
   final bool complete;
 
-  const _TaxOsHome({required this.complete});
+  const _ArthHome({required this.complete});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider);
     final checklist = ref.watch(documentChecklistProvider);
-    final docPercent = documentReadinessPercent(checklist);
+    final documentPercent = documentReadinessPercent(checklist);
     final documents =
         ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
     final vaultSummary = DocumentVaultSummary.fromDocuments(documents);
-    final panPresent =
-        ref.watch(accountProfileProvider).asData?.value?.pan.present ?? false;
-    final entitlement = ref.watch(entitlementProvider);
-    final activeYear = ref.watch(activeTaxYearProvider);
+    final year = ref.watch(activeTaxYearProvider);
     final result = complete ? ref.watch(taxResultProvider).asData?.value : null;
     final readiness = _readinessScore(
       diagnosticComplete: complete,
-      docPercent: docPercent,
-      panPresent: panPresent,
+      documentPercent: documentPercent,
       confidenceScore: result?.confidenceScore,
     );
     final next = buildNextBestAction(
       diagnosticComplete: complete,
-      documentPercent: docPercent,
-      panPresent: panPresent,
+      documentPercent: documentPercent,
       result: result,
     );
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PremiumHeader(
-            eyebrow: 'Private Tax OS',
-            title: 'Readiness cockpit',
-            body: complete
-                ? 'Gaps, proof vault, assumptions, AIS checks, and CA-ready handoff in one calm view.'
-                : 'Explore first. Start the diagnostic when ready. PAN and document uploads stay optional.',
-            icon: Icons.home_work_outlined,
-            trailing: IconButton(
-              tooltip: 'Tax Story',
-              style: IconButton.styleFrom(
-                side: const BorderSide(color: AppColors.border),
-              ),
-              onPressed: () => context.push('/tax-story'),
-              icon: const Icon(Icons.auto_stories_outlined),
-            ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _HomeHeader(
+            name: profile.name,
+            onHelp: () => context.push('/help'),
+            onProfile: () => context.go('/profile'),
           ),
-          const SizedBox(height: 18),
-          Row(
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          sliver: SliverList.list(
             children: [
-              Expanded(
-                child: ArthMetricCard(
-                  label: 'Readiness',
-                  value: '$readiness%',
-                  helper: result?.confidenceLabel ??
-                      (complete ? 'diagnostic active' : 'diagnostic pending'),
-                  icon: Icons.speed_rounded,
+              _PositionSummary(
+                complete: complete,
+                readiness: readiness,
+                opportunity: result?.deductionOpportunity ?? 0,
+                yearLabel: year.fyLabel,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: AppButtons.primaryGold,
+                  onPressed: () => context.go(
+                    complete ? '/gap-reveal' : '/questions',
+                  ),
+                  icon: Icon(
+                    complete
+                        ? Icons.insights_rounded
+                        : Icons.arrow_forward_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    complete
+                        ? 'Open my tax position'
+                        : 'Start 3-minute tax check',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ArthMetricCard(
-                  label: 'Vault',
-                  value: '${vaultSummary.needsReview}',
-                  helper: 'needs review',
-                  icon: Icons.folder_special_outlined,
-                  color: vaultSummary.needsReview > 0
-                      ? AppColors.amber
-                      : AppColors.teal,
-                ),
+              const SizedBox(height: 16),
+              _JourneyProgress(
+                complete: complete,
+                documentPercent: documentPercent,
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle(title: 'Next move'),
+              const SizedBox(height: 10),
+              _NextMoveTile(
+                action: next,
+                onTap: () => context.push(next.route),
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle(
+                title: 'Bring in your tax data',
+                helper: '${vaultSummary.needsReview} need review',
+              ),
+              const SizedBox(height: 10),
+              _DataImportPanel(
+                onManual: () => context.push('/documents'),
+                onDigiLocker: () => _showDigiLockerStatus(context),
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle(title: 'Explore ARTH'),
+              const SizedBox(height: 4),
+              _ToolList(
+                tools: [
+                  _Tool(
+                    icon: Icons.folder_copy_outlined,
+                    title: 'Document Vault',
+                    body: 'Keep proofs and filing records together.',
+                    onTap: () => context.push('/documents'),
+                  ),
+                  _Tool(
+                    icon: Icons.auto_stories_outlined,
+                    title: 'My Tax Story',
+                    body: 'Your year explained in plain language.',
+                    onTap: () => context.push('/tax-story'),
+                  ),
+                  _Tool(
+                    icon: Icons.science_outlined,
+                    title: 'What-if simulator',
+                    body: 'Test 80C, NPS and 80D moves.',
+                    onTap: () => context.push(
+                      complete ? '/tax-simulator' : '/questions',
+                    ),
+                  ),
+                  _Tool(
+                    icon: Icons.assignment_outlined,
+                    title: 'Tax Dossier',
+                    body: 'Profile, opportunities and proof status.',
+                    onTap: () => context.push('/tax-dossier'),
+                  ),
+                  _Tool(
+                    icon: Icons.account_balance_outlined,
+                    title: 'AIS & 26AS guide',
+                    body: 'Check official income and tax credits.',
+                    onTap: () => context.push('/ais-guide'),
+                  ),
+                  _Tool(
+                    icon: Icons.calendar_month_outlined,
+                    title: 'Tax calendar',
+                    body: 'Proof, planning and filing dates.',
+                    onTap: () => context.push('/tax-calendar'),
+                  ),
+                  _Tool(
+                    icon: Icons.support_agent_outlined,
+                    title: 'Help Center',
+                    body: 'Get help with ARTH and your data.',
+                    onTap: () => context.push('/help'),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ActionDock(
-            primaryLabel: next.cta,
-            primaryIcon: next.icon,
-            onPrimary: () => context.go(next.route),
-            secondaryLabel: 'Open Vault',
-            secondaryIcon: Icons.folder_special_outlined,
-            onSecondary: () => context.push('/documents'),
-          ),
-          const SizedBox(height: 18),
-          _NextBestActionCard(action: next),
-          const SizedBox(height: 20),
-          _QuickActionStrip(complete: complete),
-          const SizedBox(height: 20),
-          ArthSection(
-            title: 'Seasonal calendar',
-            child: Column(
-              children: [
-                _CalendarTile(
-                  icon: Icons.event_note_outlined,
-                  title: 'Proof collection',
-                  date: activeYear.fyLabel,
-                  body:
-                      'Prepare salary, rent, insurance, loan, and 80C proofs.',
-                  onTap: () => context.push('/tax-calendar'),
-                ),
-                const SizedBox(height: 10),
-                _CalendarTile(
-                  icon: Icons.account_balance_outlined,
-                  title: 'AIS / 26AS review',
-                  date: 'Before filing',
-                  body: 'Check official tax credits and reported income.',
-                  onTap: () => context.push('/ais-guide'),
-                ),
-                const SizedBox(height: 10),
-                _CalendarTile(
-                  icon: Icons.task_alt_rounded,
-                  title: 'Filing handoff',
-                  date: 'By Jul 31',
-                  body: 'Use official portal, employer partner, or CA.',
-                  onTap: () => context.push('/filing-assistant'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          ArthSection(
-            title: 'Everything tax',
-            child: Column(
-              children: [
-                _ModuleTile(
-                  icon: Icons.auto_stories_outlined,
-                  title: 'My Tax Story',
-                  body: 'Premium summary of your tax readiness and next move.',
-                  onTap: () => context.push('/tax-story'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
-                  icon: Icons.science_outlined,
-                  title: 'What-if simulator',
-                  body: 'Try 80C, NPS, and 80D changes without mutating data.',
-                  onTap: () => context.push('/tax-simulator'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
-                  icon: Icons.folder_special_outlined,
-                  title: 'Document Vault',
-                  body:
-                      '$docPercent% proof readiness. ${vaultSummary.needsReview} item(s) need review.',
-                  onTap: () => context.push('/documents'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
-                  icon: Icons.account_balance_outlined,
-                  title: 'AIS & 26AS guide',
-                  body: 'Know what to verify in official tax records.',
-                  onTap: () => context.push('/ais-guide'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
-                  icon: Icons.assignment_outlined,
-                  title: 'Tax Dossier',
-                  body: 'In-app summary of profile, gaps, proofs, and handoff.',
-                  onTap: () => context.push('/tax-dossier'),
-                ),
-                const SizedBox(height: 10),
-                _PremiumModuleTile(
-                  icon: Icons.document_scanner_outlined,
-                  title: 'Document Intelligence',
-                  body: entitlement.isPremiumDemo
-                      ? 'Premium demo unlocked. Upload Form 16, AIS, or 26AS for deterministic parsing readiness.'
-                      : 'Premium demo. Form 16, AIS, and 26AS parsing plus mismatch checklist.',
-                  unlocked: entitlement.isPremiumDemo,
-                  onTap: () => context.push('/documents'),
-                ),
-                const SizedBox(height: 10),
-                _PremiumModuleTile(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'CA-ready Filing Pack',
-                  body: entitlement.isPremiumDemo
-                      ? 'Premium demo unlocked. Build a dossier and proof handoff checklist.'
-                      : 'Premium demo. Exportable dossier, proof bundle, and filing handoff checklist.',
-                  unlocked: entitlement.isPremiumDemo,
-                  onTap: () => context.push('/filing-assistant'),
-                ),
-                const SizedBox(height: 10),
-                _ModuleTile(
-                  icon: Icons.support_agent_rounded,
-                  title: 'Help Center',
-                  body: 'Report issues, ask questions, or get data help.',
-                  onTap: () => context.push('/help'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   int _readinessScore({
     required bool diagnosticComplete,
-    required int docPercent,
-    required bool panPresent,
+    required int documentPercent,
     int? confidenceScore,
   }) {
-    final diagnostic = diagnosticComplete ? 32 : 0;
-    final docs = (docPercent * 0.28).round();
-    final identity = panPresent ? 8 : 0;
+    if (!diagnosticComplete) return 0;
+    final diagnostic = 55;
+    final documents = (documentPercent * 0.30).round();
     final confidence = confidenceScore == null
         ? 0
-        : (confidenceScore.clamp(0, 100) * 0.25).round();
-    const guideBase = 12;
-    return (diagnostic + docs + identity + confidence + guideBase)
-        .clamp(0, 100)
-        .toInt();
+        : (confidenceScore.clamp(0, 100) * 0.15).round();
+    return (diagnostic + documents + confidence).clamp(0, 100).toInt();
+  }
+
+  void _showDigiLockerStatus(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('DigiLocker connection is being prepared.'),
+      ),
+    );
   }
 }
 
-class _PremiumModuleTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String body;
-  final bool unlocked;
-  final VoidCallback onTap;
+class _HomeHeader extends StatelessWidget {
+  final String name;
+  final VoidCallback onHelp;
+  final VoidCallback onProfile;
 
-  const _PremiumModuleTile({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.unlocked,
-    required this.onTap,
+  const _HomeHeader({
+    required this.name,
+    required this.onHelp,
+    required this.onProfile,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PremiumGlassPanel(
-      padding: const EdgeInsets.all(16),
-      tint: unlocked ? AppColors.gold : AppColors.textSecondary,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon,
-            color: unlocked ? AppColors.gold : AppColors.textSecondary),
-        title: Row(
-          children: [
-            Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
-            const SizedBox(width: 8),
-            TrustBadge(
-              icon: unlocked
-                  ? Icons.workspace_premium_outlined
-                  : Icons.lock_outline_rounded,
-              label: unlocked ? 'Premium demo' : 'Locked',
-              color: unlocked ? AppColors.gold : AppColors.textSecondary,
-            ),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            body,
-            style: AppTextStyles.caption(color: AppColors.textSecondary),
-          ),
-        ),
-        trailing: Icon(
-          unlocked ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
-        ),
-        onTap: unlocked ? onTap : null,
-      ),
-    );
-  }
-}
-
-class _NextBestActionCard extends StatelessWidget {
-  final NextBestAction action;
-
-  const _NextBestActionCard({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    return ArthSection(
-      title: 'Next best action',
-      child: PremiumGlassPanel(
-        tint: AppColors.teal,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(action.icon, color: AppColors.gold, size: 26),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const TrustBadge(
-                    icon: Icons.bolt_rounded,
-                    label: 'Guided',
-                    color: AppColors.teal,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(action.title, style: AppTextStyles.h3()),
-                  const SizedBox(height: 5),
-                  Text(
-                    action.body,
-                    style:
-                        AppTextStyles.caption(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    style: AppButtons.outlineGold,
-                    onPressed: () => context.push(action.route),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: Text(action.cta),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionStrip extends StatelessWidget {
-  final bool complete;
-
-  const _QuickActionStrip({required this.complete});
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumGlassPanel(
-      padding: const EdgeInsets.all(12),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        alignment: WrapAlignment.spaceBetween,
+    final trimmedName = name.trim();
+    final firstName = trimmedName.isEmpty ? null : trimmedName.split(' ').first;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+      child: Row(
         children: [
-          _MiniAction(
-            icon: Icons.tune_rounded,
-            label: 'Accuracy',
-            onTap: () => context.push(
-              complete ? '/accuracy-coach' : '/questions',
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  firstName == null || firstName.isEmpty
+                      ? 'YOUR TAX YEAR'
+                      : 'HELLO, ${firstName.toUpperCase()}',
+                  style: AppTextStyles.sectionLabel(color: AppColors.gold),
+                ),
+                const SizedBox(height: 3),
+                Text('ARTH', style: AppTextStyles.h2()),
+              ],
             ),
           ),
-          _MiniAction(
-            icon: Icons.science_outlined,
-            label: 'What-if',
-            onTap: () => context.push(
-              complete ? '/tax-simulator' : '/questions',
-            ),
+          IconButton(
+            tooltip: 'Help Center',
+            onPressed: onHelp,
+            icon: const Icon(Icons.help_outline_rounded),
           ),
-          _MiniAction(
-            icon: Icons.event_available_outlined,
-            label: 'Calendar',
-            onTap: () => context.push('/tax-calendar'),
-          ),
-          _MiniAction(
-            icon: Icons.support_agent_rounded,
-            label: 'Help',
-            onTap: () => context.push('/help'),
+          IconButton(
+            tooltip: 'Profile',
+            onPressed: onProfile,
+            icon: const Icon(Icons.person_outline_rounded),
           ),
         ],
       ),
@@ -427,105 +259,301 @@ class _QuickActionStrip extends StatelessWidget {
   }
 }
 
-class _MiniAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _PositionSummary extends StatelessWidget {
+  final bool complete;
+  final int readiness;
+  final int opportunity;
+  final String yearLabel;
 
-  const _MiniAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
+  const _PositionSummary({
+    required this.complete,
+    required this.readiness,
+    required this.opportunity,
+    required this.yearLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppRadius.pill,
-      onTap: onTap,
-      child: Container(
-        width: 72,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.pill,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.gold, size: 19),
-            const SizedBox(height: 4),
-            Text(label, style: AppTextStyles.micro()),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: const BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: AppRadius.card,
+        border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
       ),
-    );
-  }
-}
-
-class _CalendarTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String date;
-  final String body;
-  final VoidCallback onTap;
-
-  const _CalendarTile({
-    required this.icon,
-    required this.title,
-    required this.date,
-    required this.body,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppRadius.card,
-      onTap: onTap,
-      child: PremiumGlassPanel(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppColors.teal, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: Text(title, style: AppTextStyles.h3())),
-                      const SizedBox(width: 8),
-                      Text(date,
-                          style: AppTextStyles.micro(color: AppColors.gold)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    body,
-                    style:
-                        AppTextStyles.caption(color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: complete ? readiness / 100 : 0.06,
+                  strokeWidth: 7,
+                  backgroundColor: AppColors.bgSurface,
+                  color: complete ? AppColors.success : AppColors.amber,
+                  strokeCap: StrokeCap.round,
+                ),
+                Text(
+                  complete ? '$readiness' : '—',
+                  style: AppTextStyles.h3(),
+                ),
+              ],
             ),
-          ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Readiness cockpit', style: AppTextStyles.h3()),
+                const SizedBox(height: 5),
+                Text(
+                  complete
+                      ? '${formatRupeesCompact(opportunity)} in deduction opportunities mapped.'
+                      : 'Your tax position has not been mapped yet.',
+                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  yearLabel,
+                  style: AppTextStyles.micro(color: AppColors.gold)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JourneyProgress extends StatelessWidget {
+  final bool complete;
+  final int documentPercent;
+
+  const _JourneyProgress({
+    required this.complete,
+    required this.documentPercent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: AppColors.divider),
+        ),
+      ),
+      child: Row(
+        children: [
+          _ProgressItem(
+            label: 'Profile',
+            value: complete ? 'Ready' : 'Start',
+            done: complete,
+          ),
+          const _ProgressDivider(),
+          _ProgressItem(
+            label: 'Tax scan',
+            value: complete ? 'Mapped' : 'Pending',
+            done: complete,
+          ),
+          const _ProgressDivider(),
+          _ProgressItem(
+            label: 'Proofs',
+            value: '$documentPercent%',
+            done: documentPercent >= 80,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool done;
+
+  const _ProgressItem({
+    required this.label,
+    required this.value,
+    required this.done,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                color: done ? AppColors.success : AppColors.textMuted,
+                size: 14,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.micro(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: AppTextStyles.bodyMedium()),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressDivider extends StatelessWidget {
+  const _ProgressDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 34,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: AppColors.divider,
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final String? helper;
+
+  const _SectionTitle({required this.title, this.helper});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Text(title, style: AppTextStyles.h3())),
+        if (helper != null)
+          Text(
+            helper!,
+            style: AppTextStyles.micro(color: AppColors.textSecondary),
+          ),
+      ],
+    );
+  }
+}
+
+class _NextMoveTile extends StatelessWidget {
+  final NextBestAction action;
+  final VoidCallback onTap;
+
+  const _NextMoveTile({required this.action, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.goldLight,
+      borderRadius: AppRadius.card,
+      child: InkWell(
+        borderRadius: AppRadius.card,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: AppColors.bgCard,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(action.icon, color: AppColors.gold, size: 21),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(action.title, style: AppTextStyles.bodyMedium()),
+                    const SizedBox(height: 3),
+                    Text(
+                      action.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, color: AppColors.gold),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ModuleTile extends StatelessWidget {
+class _DataImportPanel extends StatelessWidget {
+  final VoidCallback onManual;
+  final VoidCallback onDigiLocker;
+
+  const _DataImportPanel({
+    required this.onManual,
+    required this.onDigiLocker,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.card,
+        side: BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          _ImportRow(
+            icon: Icons.edit_note_rounded,
+            title: 'Add documents manually',
+            body: 'Upload or mark proofs as ready.',
+            onTap: onManual,
+          ),
+          const Divider(height: 1, indent: 60),
+          _ImportRow(
+            icon: Icons.account_balance_outlined,
+            title: 'Fetch from DigiLocker',
+            body: 'Coming soon',
+            onTap: onDigiLocker,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImportRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String body;
   final VoidCallback onTap;
 
-  const _ModuleTile({
+  const _ImportRow({
     required this.icon,
     required this.title,
     required this.body,
@@ -534,19 +562,72 @@ class _ModuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumGlassPanel(
-      padding: const EdgeInsets.all(16),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.gold),
-        title: Text(title, style: AppTextStyles.bodyMedium()),
-        subtitle: Text(
-          body,
-          style: AppTextStyles.caption(color: AppColors.textSecondary),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Icon(icon, color: AppColors.gold),
+      title: Text(title, style: AppTextStyles.bodyMedium()),
+      subtitle: Text(
+        body,
+        style: AppTextStyles.caption(color: AppColors.textSecondary),
       ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+    );
+  }
+}
+
+class _Tool {
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+
+  const _Tool({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.onTap,
+  });
+}
+
+class _ToolList extends StatelessWidget {
+  final List<_Tool> tools;
+
+  const _ToolList({required this.tools});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: tools.asMap().entries.map((entry) {
+        final tool = entry.value;
+        return Column(
+          children: [
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(vertical: 3),
+              onTap: tool.onTap,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: AppColors.bgSurface,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(tool.icon, color: AppColors.gold, size: 19),
+              ),
+              title: Text(tool.title, style: AppTextStyles.bodyMedium()),
+              subtitle: Text(
+                tool.body,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+            ),
+            if (entry.key != tools.length - 1)
+              const Divider(height: 1, indent: 54),
+          ],
+        );
+      }).toList(),
     );
   }
 }

@@ -129,10 +129,10 @@ class _TaxCockpit extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                ArthSection(
+                const ArthSection(
                   title: 'Everything tax',
                   child: Column(
-                    children: const [
+                    children: [
                       _FutureModuleTile(
                         icon: Icons.notifications_active_outlined,
                         title: 'Tax reminders',
@@ -168,8 +168,8 @@ class _HeroCockpitCard extends StatelessWidget {
     final hasGap = result.totalGapAmount > 0;
     return PremiumGlassPanel(
       elevated: true,
-      borderRadius: BorderRadius.circular(30),
       padding: const EdgeInsets.all(22),
+      tint: AppColors.gold,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,6 +220,21 @@ class _HeroCockpitCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
+          Row(
+            children: [
+              Text(
+                'Action progress',
+                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              Text(
+                '${(progress * 100).round()}%',
+                style: AppTextStyles.micro(color: AppColors.success)
+                    .copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: AppRadius.pill,
             child: LinearProgressIndicator(
@@ -350,33 +365,26 @@ class _FutureModuleTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 22),
+          Icon(icon, color: AppColors.textSecondary, size: 21),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(title, style: AppTextStyles.h3())),
-                    const SizedBox(width: 8),
-                    const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: TrustBadge(
-                        icon: Icons.lock_clock_rounded,
-                        label: 'Soon',
-                        color: AppColors.info,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
+                Text(title, style: AppTextStyles.h3()),
+                const SizedBox(height: 3),
                 Text(
                   body,
                   style: AppTextStyles.caption(color: AppColors.textSecondary),
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.lock_clock_outlined,
+            color: AppColors.info,
+            size: 18,
           ),
         ],
       ),

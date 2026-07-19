@@ -155,39 +155,40 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                       ],
                     ),
                     const SizedBox(height: 14),
-                    PremiumGlassPanel(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(meta.icon, size: 18, color: meta.color),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  meta.title,
-                                  style: AppTextStyles.caption(
-                                    color: AppColors.textPrimary,
-                                  ).copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  meta.helper,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.micro(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: meta.color.withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
                           ),
-                        ],
-                      ),
+                          child: Icon(meta.icon, size: 17, color: meta.color),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                meta.title.toUpperCase(),
+                                style: AppTextStyles.sectionLabel(
+                                  color: meta.color,
+                                ).copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                meta.helper,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.micro(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -336,24 +337,24 @@ class _Q00NameState extends ConsumerState<_Q00Name> {
           hintText: 'Enter your name',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF333333)),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF333333)),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+            borderSide: const BorderSide(color: AppColors.gold, width: 2),
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
         style: const TextStyle(
-          color: Color(0xFFFFFFFF),
+          color: AppColors.textPrimary,
           fontSize: 16,
           fontFamily: 'Inter',
         ),
-        cursorColor: const Color(0xFFF5C842),
+        cursorColor: AppColors.gold,
       ),
       onNext: widget.onNext,
       canProceed: _textCtrl.text.trim().isNotEmpty,
@@ -409,24 +410,24 @@ class _Q00EmailState extends ConsumerState<_Q00Email> {
           hintText: 'your.email@domain.com',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF333333)),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF333333)),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFF5C842), width: 2),
+            borderSide: const BorderSide(color: AppColors.gold, width: 2),
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
         style: const TextStyle(
-          color: Color(0xFFFFFFFF),
+          color: AppColors.textPrimary,
           fontSize: 16,
           fontFamily: 'Inter',
         ),
-        cursorColor: const Color(0xFFF5C842),
+        cursorColor: AppColors.gold,
       ),
       onNext: widget.onNext,
       canProceed: _isValidEmail(_textCtrl.text.trim()),
@@ -449,7 +450,7 @@ class _QLayout extends StatelessWidget {
     required this.content,
     this.onNext,
     this.canProceed = true, // ignore: unused_element_parameter
-    this.nextLabel = 'Continue →', // ignore: unused_element_parameter
+    this.nextLabel = 'Continue', // ignore: unused_element_parameter
   });
 
   @override
@@ -460,12 +461,18 @@ class _QLayout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: AppTextStyles.h2()),
+          Text(
+            question,
+            style: AppTextStyles.h1().copyWith(fontSize: 28, height: 1.15),
+          ),
           if (microCopy != null) ...[
             const SizedBox(height: 8),
-            Text(microCopy!, style: AppTextStyles.micro()),
+            Text(
+              microCopy!,
+              style: AppTextStyles.caption(color: AppColors.textSecondary),
+            ),
           ],
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -487,13 +494,14 @@ class _QLayout extends StatelessWidget {
           if (onNext != null)
             SizedBox(
               width: double.infinity,
+              height: 52,
               child: ElevatedButton(
                 style: AppButtons.primaryGold,
                 onPressed: canProceed ? onNext : null,
                 child: Text(nextLabel),
               ),
             ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
         ],
       ),
     );

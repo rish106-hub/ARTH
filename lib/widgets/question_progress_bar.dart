@@ -21,12 +21,12 @@ class QuestionProgressBar extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Question ${current + 1} of $total',
+              'STEP ${current + 1} OF $total',
               style: AppTextStyles.micro(color: AppColors.textSecondary),
             ),
             const Spacer(),
             Text(
-              '${((progress) * 100).round()}%',
+              '${(progress * 100).round()}%',
               style: AppTextStyles.micro(color: AppColors.gold),
             ),
           ],
@@ -38,7 +38,7 @@ class QuestionProgressBar extends StatelessWidget {
             value: progress,
             backgroundColor: AppColors.bgSurface,
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
-            minHeight: 3,
+            minHeight: 4,
           ),
         ),
       ],

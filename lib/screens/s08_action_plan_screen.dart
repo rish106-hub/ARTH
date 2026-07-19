@@ -23,7 +23,7 @@ class ActionPlanScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: ArthAppBar(
-        title: 'Your Action Plan',
+        title: 'Action plan',
         actions: [
           IconButton(
             icon: const Icon(
@@ -243,19 +243,21 @@ class _ActionPlanHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: const BoxDecoration(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
         color: AppColors.bgCard,
-        border: Border(bottom: BorderSide(color: AppColors.divider)),
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'YOUR ARTH ACTION PLAN',
+            'Plan summary',
             style: AppTextStyles.sectionLabel(
               color: AppColors.textSecondary,
-            ).copyWith(letterSpacing: 1.2),
+            ).copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           Row(
@@ -265,7 +267,7 @@ class _ActionPlanHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total recoverable', style: AppTextStyles.micro()),
+                    Text('Recoverable', style: AppTextStyles.micro()),
                     Text(
                       formatRupeesCompact(totalGap),
                       maxLines: 1,
@@ -280,7 +282,7 @@ class _ActionPlanHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Still pending', style: AppTextStyles.micro()),
+                    Text('Still open', style: AppTextStyles.micro()),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
@@ -294,13 +296,9 @@ class _ActionPlanHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
             children: [
-              SizedBox(
-                width: 180,
+              Expanded(
                 child: ClipRRect(
                   borderRadius: AppRadius.pill,
                   child: LinearProgressIndicator(
@@ -313,6 +311,7 @@ class _ActionPlanHeader extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
               Text(
                 '$doneCount of $totalCount done',
                 style: AppTextStyles.caption(color: AppColors.textSecondary),

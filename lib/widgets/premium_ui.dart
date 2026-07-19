@@ -22,16 +22,11 @@ class ArthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink,
+      backgroundColor: AppColors.bgPrimary,
       bottomNavigationBar: bottomNavigationBar,
-      body: Stack(
-        children: [
-          if (showAmbientGlow) const _AmbientFinanceGlow(),
-          SafeArea(
-            bottom: bottomNavigationBar == null,
-            child: Padding(padding: padding, child: child),
-          ),
-        ],
+      body: SafeArea(
+        bottom: bottomNavigationBar == null,
+        child: Padding(padding: padding, child: child),
       ),
     );
   }
@@ -94,7 +89,7 @@ class ArthPremiumAppBar extends StatelessWidget {
                     eyebrow!.toUpperCase(),
                     style: AppTextStyles.micro(
                       color: AppColors.gold,
-                    ).copyWith(letterSpacing: 1.1, fontWeight: FontWeight.w700),
+                    ).copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 3),
                 ],
@@ -134,9 +129,8 @@ class PremiumHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumGlassPanel(
       elevated: true,
-      borderRadius: BorderRadius.circular(30),
       tint: AppColors.gold,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -145,7 +139,7 @@ class PremiumHeader extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: AppColors.gold.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: AppRadius.card,
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.26)),
             ),
             child: Icon(icon, color: AppColors.gold),
@@ -198,28 +192,19 @@ class PremiumGlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blur = SurfacePolicy.blur(context);
+    final borderColor =
+        tint == Colors.white ? AppColors.border : tint.withValues(alpha: 0.34);
 
-    return CheapBackdrop(
-      borderRadius: borderRadius,
-      blur: blur,
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              tint.withValues(alpha: blur <= 0 ? 0.075 : 0.10),
-              tint.withValues(alpha: blur <= 0 ? 0.025 : 0.035),
-            ],
-          ),
-          border: Border.all(color: AppColors.glassStroke),
-          boxShadow: SurfacePolicy.shadow(context, elevated: elevated),
-        ),
-        child: child,
+    return Material(
+      color: elevated ? AppColors.bgCardHover : AppColors.bgCard,
+      elevation: elevated ? 1 : 0,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      shape: RoundedRectangleBorder(
+        borderRadius: borderRadius,
+        side: BorderSide(color: borderColor),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -326,26 +311,41 @@ class ActionDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            style: AppButtons.primaryGold,
-            onPressed: onPrimary,
-            icon: Icon(primaryIcon),
-            label: Text(primaryLabel),
-          ),
-        ),
-        if (secondaryLabel != null && secondaryIcon != null) ...[
-          const SizedBox(width: 10),
-          OutlinedButton.icon(
-            style: AppButtons.outlineGold,
-            onPressed: onSecondary,
-            icon: Icon(secondaryIcon),
-            label: Text(secondaryLabel!),
-          ),
-        ],
-      ],
+    final secondary = secondaryLabel != null && secondaryIcon != null;
+    final primaryButton = ElevatedButton.icon(
+      style: AppButtons.primaryGold,
+      onPressed: onPrimary,
+      icon: Icon(primaryIcon, size: 18),
+      label: Text(primaryLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+    final secondaryButton = OutlinedButton.icon(
+      style: AppButtons.outlineGold,
+      onPressed: onSecondary,
+      icon: Icon(secondaryIcon, size: 18),
+      label: Text(
+        secondaryLabel ?? '',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!secondary) return SizedBox(width: double.infinity, child: primaryButton);
+        if (constraints.maxWidth < 420) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [primaryButton, const SizedBox(height: 10), secondaryButton],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: primaryButton),
+            const SizedBox(width: 10),
+            Expanded(child: secondaryButton),
+          ],
+        );
+      },
     );
   }
 }
@@ -481,7 +481,7 @@ class ArthSection extends StatelessWidget {
                 title.toUpperCase(),
                 style: AppTextStyles.sectionLabel(
                   color: AppColors.textSecondary,
-                ).copyWith(letterSpacing: 1.2),
+                ).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             if (actionLabel != null && onAction != null)
@@ -546,7 +546,7 @@ class _PremiumSkeletonState extends State<PremiumSkeleton>
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: alpha),
+        color: AppColors.textMuted.withValues(alpha: alpha + 0.08),
         borderRadius: widget.borderRadius,
       ),
     );
@@ -635,7 +635,7 @@ class ArthLoadingPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             PremiumGlassPanel(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: AppRadius.card,
               padding: const EdgeInsets.all(22),
               child: const Icon(
                 Icons.auto_awesome_rounded,
@@ -666,43 +666,6 @@ class ArthLoadingPanel extends StatelessWidget {
             const SizedBox(height: 22),
             const PremiumSkeleton(height: 8, width: 180),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AmbientFinanceGlow extends StatelessWidget {
-  const _AmbientFinanceGlow();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            top: -130,
-            right: -90,
-            child: _glow(AppColors.gold, 320, 0.08),
-          ),
-          Positioned(
-            bottom: -160,
-            left: -120,
-            child: _glow(AppColors.teal, 300, 0.05),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _glow(Color color, double size, double alpha) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withValues(alpha: alpha), Colors.transparent],
         ),
       ),
     );
