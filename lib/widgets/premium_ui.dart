@@ -331,11 +331,16 @@ class ActionDock extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (!secondary) return SizedBox(width: double.infinity, child: primaryButton);
+        if (!secondary)
+          return SizedBox(width: double.infinity, child: primaryButton);
         if (constraints.maxWidth < 420) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [primaryButton, const SizedBox(height: 10), secondaryButton],
+            children: [
+              primaryButton,
+              const SizedBox(height: 10),
+              secondaryButton
+            ],
           );
         }
         return Row(

@@ -87,7 +87,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     OutlinedButton.icon(
                       style: AppButtons.outlineGold,
                       onPressed: _showDigiLockerStatus,
-                      icon: const Icon(Icons.account_balance_outlined, size: 18),
+                      icon:
+                          const Icon(Icons.account_balance_outlined, size: 18),
                       label: const Text('Fetch from DigiLocker'),
                     ),
                     const SizedBox(height: 10),
