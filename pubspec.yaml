@@ -21,7 +21,7 @@ dependencies:
   flutter_secure_storage: ^10.3.1
 
   # Firebase Remote Config
-  firebase_core: ^4.11.0
+  firebase_core: ^4.12.1
   firebase_remote_config: ^6.5.3
   # Fonts
   google_fonts: ^8.1.0
