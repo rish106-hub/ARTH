@@ -31,15 +31,22 @@ class QuestionProgressBar extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: AppRadius.pill,
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: AppColors.bgSurface,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
-            minHeight: 4,
-          ),
+        const SizedBox(height: 7),
+        Row(
+          children: List.generate(total, (index) {
+            final completed = index <= current;
+            return Expanded(
+              child: AnimatedContainer(
+                duration: AppMotion.fast,
+                height: 4,
+                margin: EdgeInsets.only(right: index == total - 1 ? 0 : 3),
+                decoration: BoxDecoration(
+                  color: completed ? AppColors.gold : AppColors.bgSurface,
+                  borderRadius: AppRadius.pill,
+                ),
+              ),
+            );
+          }),
         ),
       ],
     );
@@ -65,54 +72,71 @@ class SelectChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: fullWidth ? double.infinity : null,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.gold.withValues(alpha: 0.12)
-              : AppColors.bgCard,
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: AppRadius.card,
-          border: Border.all(
-            color: selected ? AppColors.gold : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon!,
-                size: 20,
-                color: selected ? AppColors.gold : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 10),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMedium(
-                  color: selected ? AppColors.gold : AppColors.textPrimary,
-                ),
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            constraints: const BoxConstraints(minHeight: 52),
+            width: fullWidth ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.gold.withValues(alpha: 0.10)
+                  : AppColors.bgCard,
+              borderRadius: AppRadius.card,
+              border: Border.all(
+                color: selected ? AppColors.gold : AppColors.border,
+                width: selected ? 1.5 : 1,
               ),
             ),
-            if (selected) ...[
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.check_circle_rounded,
-                size: 16,
-                color: AppColors.gold,
-              ),
-            ],
-          ],
+            child: Row(
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.gold.withValues(alpha: 0.12)
+                          : AppColors.bgSurface,
+                      borderRadius: AppRadius.card,
+                    ),
+                    child: Icon(
+                      icon!,
+                      size: 18,
+                      color:
+                          selected ? AppColors.gold : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                ],
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: AppTextStyles.bodyMedium(
+                      color: selected ? AppColors.gold : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                  size: 19,
+                  color: selected ? AppColors.gold : AppColors.border,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -134,25 +158,48 @@ class MultiSelectChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.gold.withValues(alpha: 0.12)
-              : AppColors.bgCard,
-          borderRadius: AppRadius.pill,
-          border: Border.all(
-            color: selected ? AppColors.gold : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.caption(
-            color: selected ? AppColors.gold : AppColors.textPrimary,
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.card,
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.gold.withValues(alpha: 0.10)
+                  : AppColors.bgCard,
+              borderRadius: AppRadius.card,
+              border: Border.all(
+                color: selected ? AppColors.gold : AppColors.border,
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  selected
+                      ? Icons.check_box_rounded
+                      : Icons.check_box_outline_blank_rounded,
+                  size: 16,
+                  color: selected ? AppColors.gold : AppColors.textMuted,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: AppTextStyles.caption(
+                      color: selected ? AppColors.gold : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

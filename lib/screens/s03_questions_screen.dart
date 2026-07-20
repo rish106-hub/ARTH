@@ -9,6 +9,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/tax_journey_scene.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   const QuestionsScreen({super.key});
@@ -154,47 +155,24 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: meta.color.withValues(alpha: 0.10),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(meta.icon, size: 17, color: meta.color),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                meta.title.toUpperCase(),
-                                style: AppTextStyles.sectionLabel(
-                                  color: meta.color,
-                                ).copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              Text(
-                                meta.helper,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.micro(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TaxJourneyScene(
+                  step: _step,
+                  profile: profile,
+                  chapter: meta.title,
+                  helper: meta.helper,
+                  accent: meta.color,
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               // Question content — slides in
               Expanded(
@@ -249,13 +227,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 class _DiagnosticMeta {
   final String title;
   final String helper;
-  final IconData icon;
   final Color color;
 
   const _DiagnosticMeta({
     required this.title,
     required this.helper,
-    required this.icon,
     required this.color,
   });
 
@@ -264,7 +240,6 @@ class _DiagnosticMeta {
       return const _DiagnosticMeta(
         title: 'Income profile',
         helper: 'We use this to estimate your regime and deduction base.',
-        icon: Icons.account_balance_wallet_outlined,
         color: AppColors.gold,
       );
     }
@@ -272,7 +247,6 @@ class _DiagnosticMeta {
       return const _DiagnosticMeta(
         title: 'Housing and rent',
         helper: 'Rent, city, and HRA change the deductions you can claim.',
-        icon: Icons.home_work_outlined,
         color: AppColors.teal,
       );
     }
@@ -281,14 +255,12 @@ class _DiagnosticMeta {
         title: 'Deductions scan',
         helper:
             'ARTH checks high-impact savings across 80C, NPS, loans, and insurance.',
-        icon: Icons.fact_check_outlined,
         color: AppColors.info,
       );
     }
     return const _DiagnosticMeta(
       title: 'Final checks',
       helper: 'Education, donations, and age complete your tax cockpit.',
-      icon: Icons.flag_outlined,
       color: AppColors.amber,
     );
   }
@@ -457,13 +429,13 @@ class _QLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             question,
-            style: AppTextStyles.h1().copyWith(fontSize: 28, height: 1.15),
+            style: AppTextStyles.h1().copyWith(fontSize: 25, height: 1.16),
           ),
           if (microCopy != null) ...[
             const SizedBox(height: 8),
@@ -472,7 +444,7 @@ class _QLayout extends StatelessWidget {
               style: AppTextStyles.caption(color: AppColors.textSecondary),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -494,7 +466,7 @@ class _QLayout extends StatelessWidget {
           if (onNext != null)
             SizedBox(
               width: double.infinity,
-              height: 52,
+              height: 50,
               child: ElevatedButton(
                 style: AppButtons.primaryGold,
                 onPressed: canProceed ? onNext : null,
@@ -503,6 +475,28 @@ class _QLayout extends StatelessWidget {
             ),
           const SizedBox(height: 18),
         ],
+      ),
+    );
+  }
+}
+
+class _ResponsiveAmount extends StatelessWidget {
+  final String value;
+
+  const _ResponsiveAmount(this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          value,
+          maxLines: 1,
+          style: AppTextStyles.displaySmall(color: AppColors.gold),
+        ),
       ),
     );
   }
@@ -600,11 +594,7 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
           Center(
             child: Column(
               children: [
-                Text(
-                  displayText,
-                  style: AppTextStyles.displaySmall(color: AppColors.gold),
-                  textAlign: TextAlign.center,
-                ),
+                _ResponsiveAmount(displayText),
                 const SizedBox(height: 6),
                 Text(
                   'Gross Annual Salary (CTC)',
@@ -1030,11 +1020,8 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                   _rentTextCtrl.text.trim().replaceAll(RegExp(r'\.$'), ''),
                 );
                 final displayK = (rawR != null && rawR > 0) ? rawR : _rentK;
-                return Center(
-                  child: Text(
-                    '₹ ${NumberFormat('#,##,##0', 'en_IN').format((displayK * 1000).round())} / month',
-                    style: AppTextStyles.displaySmall(color: AppColors.gold),
-                  ),
+                return _ResponsiveAmount(
+                  '₹ ${NumberFormat('#,##,##0', 'en_IN').format((displayK * 1000).round())} / month',
                 );
               },
             ),
@@ -1503,11 +1490,8 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                 style: AppTextStyles.h3(),
               ),
               const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  '₹ ${(_interestL * 100000).round().toString().replaceAllMapped(RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'), (m) => '${m[1]},')}',
-                  style: AppTextStyles.displaySmall(color: AppColors.gold),
-                ),
+              _ResponsiveAmount(
+                '₹ ${(_interestL * 100000).round().toString().replaceAllMapped(RegExp(r'(\d{1,2})(?=(\d{2})+(?!\d))'), (m) => '${m[1]},')}',
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1701,12 +1685,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 style: AppTextStyles.micro(),
               ),
               const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  '₹ ${(_extraK * 1000).round()} extra',
-                  style: AppTextStyles.displaySmall(color: AppColors.gold),
-                ),
-              ),
+              _ResponsiveAmount('₹ ${(_extraK * 1000).round()} extra'),
               const SizedBox(height: 12),
               TextField(
                 controller: _npsTextCtrl,
@@ -2024,12 +2003,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 style: AppTextStyles.micro(color: AppColors.success),
               ),
               const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  '₹ ${(_interestK * 1000).round()} / year',
-                  style: AppTextStyles.displaySmall(color: AppColors.gold),
-                ),
-              ),
+              _ResponsiveAmount('₹ ${(_interestK * 1000).round()} / year'),
               const SizedBox(height: 12),
               TextField(
                 controller: _edLoanTextCtrl,
@@ -2168,12 +2142,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             const SizedBox(height: 24),
             Text('Approximate amount donated?', style: AppTextStyles.h3()),
             const SizedBox(height: 8),
-            Center(
-              child: Text(
-                '₹ ${(_amountK * 1000).round()}',
-                style: AppTextStyles.displaySmall(color: AppColors.gold),
-              ),
-            ),
+            _ResponsiveAmount('₹ ${(_amountK * 1000).round()}'),
             const SizedBox(height: 12),
             TextField(
               controller: _donationTextCtrl,

@@ -322,6 +322,20 @@ void main() {
     },
   );
 
+  testWidgets('tax journey scene explains why each answer matters', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const QuestionsScreen());
+
+    expect(find.image(const AssetImage('assets/images/tax_journey.png')),
+        findsOneWidget);
+    await tester.tap(find.byIcon(Icons.info_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Why Income profile matters'), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+  });
+
   testWidgets('profile clear-data action opens confirmation dialog', (
     tester,
   ) async {
