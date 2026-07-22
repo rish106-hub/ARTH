@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -287,6 +288,26 @@ class _InboxView extends ConsumerWidget {
 
   const _InboxView({required this.paycheck});
 
+  Future<void> _addEvidence(BuildContext context, WidgetRef ref) async {
+    const evidenceTypes = XTypeGroup(
+      label: 'Pay evidence',
+      extensions: ['pdf', 'png', 'jpg', 'jpeg'],
+    );
+    final file = await openFile(acceptedTypeGroups: const [evidenceTypes]);
+    if (file == null || !context.mounted) return;
+    ref.read(paycheckProvider.notifier).addEvidence(file.name);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${file.name} added for review')),
+    );
+  }
+
+  IconData _iconFor(PaycheckEvidenceKind kind) => switch (kind) {
+        PaycheckEvidenceKind.payslip => Icons.description_outlined,
+        PaycheckEvidenceKind.receipt => Icons.receipt_long_outlined,
+        PaycheckEvidenceKind.salaryAlert => Icons.sms_outlined,
+        PaycheckEvidenceKind.document => Icons.insert_drive_file_outlined,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _PageFrame(
@@ -319,6 +340,32 @@ class _InboxView extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const Key('add_paycheck_evidence'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+                backgroundColor: PaycheckColors.ink,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () => _addEvidence(context, ref),
+              icon: const Icon(Icons.document_scanner_outlined),
+              label: Text(
+                'Scan or upload evidence',
+                style: PaycheckType.bodyStrong(color: Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Offer letters, payslips, gym receipts, bills or salary alerts.',
+            style: PaycheckType.body(color: PaycheckColors.inkSoft),
+          ),
+          const SizedBox(height: 24),
           Text('Connected evidence', style: PaycheckType.heading()),
           const SizedBox(height: 10),
           ...paycheck.sources.map(
@@ -334,25 +381,14 @@ class _InboxView extends ConsumerWidget {
           const SizedBox(height: 26),
           Text('Found this month', style: PaycheckType.heading()),
           const SizedBox(height: 10),
-          const _DetectedDocument(
-            icon: Icons.description_outlined,
-            title: 'July payslip',
-            detail: '6 compensation lines extracted',
-            badge: 'MATCHED',
-          ),
-          const _DetectedDocument(
-            icon: Icons.wifi_rounded,
-            title: 'Broadband bill',
-            detail: 'Eligible for internet reimbursement',
-            badge: 'USE NOW',
-            attention: true,
-          ),
-          const _DetectedDocument(
-            icon: Icons.fitness_center_rounded,
-            title: 'Gym receipt',
-            detail: 'Eligible under wellness allowance',
-            badge: 'USE NOW',
-            attention: true,
+          ...paycheck.evidence.map(
+            (item) => _DetectedDocument(
+              icon: _iconFor(item.kind),
+              title: item.name,
+              detail: item.detail,
+              badge: item.statusLabel,
+              attention: item.needsAction,
+            ),
           ),
         ],
       ),
@@ -405,8 +441,9 @@ class _YouView extends StatelessWidget {
             color: PaycheckColors.paper,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
+              key: const Key('tax_plan_tool'),
               borderRadius: BorderRadius.circular(16),
-              onTap: () => context.push('/tax-simulator'),
+              onTap: () => context.push('/tax-plan'),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -428,11 +465,11 @@ class _YouView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tax estimate',
+                          Text('Plan your tax',
                               style: PaycheckType.bodyStrong()),
                           const SizedBox(height: 3),
                           Text(
-                            'Optional planning tool. Not the main product.',
+                            'Run the ARTH tax-gap diagnostic.',
                             style: PaycheckType.body(
                               color: PaycheckColors.inkSoft,
                             ),

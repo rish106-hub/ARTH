@@ -11,7 +11,9 @@ import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
-  const QuestionsScreen({super.key});
+  final bool paycheckMode;
+
+  const QuestionsScreen({super.key, this.paycheckMode = false});
 
   @override
   ConsumerState<QuestionsScreen> createState() => _QuestionsScreenState();
@@ -71,7 +73,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     final complete =
         await ref.read(userProfileProvider.notifier).isOnboardingComplete();
     if (!mounted) return;
-    context.go(complete ? '/profile' : '/discover');
+    if (widget.paycheckMode) {
+      context.go('/paycheck/you');
+    } else {
+      context.go(complete ? '/profile' : '/discover');
+    }
   }
 
   Future<void> _finish() async {
@@ -82,14 +88,16 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       ref.invalidate(taxResultProvider);
       await computeAndSyncCurrentTaxResult(ref);
       if (mounted) {
-        context.go('/gap-reveal');
+        context.go(
+          widget.paycheckMode ? '/tax-plan/results' : '/gap-reveal',
+        );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Could not build your tax cockpit. Please try again.',
+              'Could not build your tax plan. Please try again.',
             ),
           ),
         );

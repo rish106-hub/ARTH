@@ -1,5 +1,5 @@
 name: arth
-description: "ARTH - A tax-aware money planning app for salaried Indians."
+description: "ARTH - Paycheck reconciliation and tax-gap planning for salaried Indians."
 publish_to: 'none'
 version: 1.0.0+1
 

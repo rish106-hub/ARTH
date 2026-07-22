@@ -36,7 +36,7 @@ This is harder for a general chatbot to replace because the product value comes 
 - Quietly sending claims or emails on the user's behalf.
 - Generic finance chat.
 
-Tax remains a small optional calculator. It is not a primary tab, onboarding step, or headline promise.
+Tax remains a contained optional diagnostic. It preserves the original ARTH questions and tax-gap result, but it is not a primary tab, onboarding step, or headline promise.
 
 ## Information architecture
 
@@ -45,13 +45,15 @@ Tax remains a small optional calculator. It is not a primary tab, onboarding ste
 | Paycheck | One monthly answer: money ready to claim and reconciliation status |
 | Promise | The confirmed employment contract and compensation components |
 | Inbox | Source-backed events such as payslips, bills, and salary alerts |
-| You | Permissions, deletion, profile, and small tools such as tax estimate |
+| You | Permissions, deletion, profile, and small tools such as Plan your tax |
 
 ## Data model
 
 The core object is a `PayComponent` with an amount, cadence, source, status, and optional deadline. Evidence is stored separately and linked to a component. A reconciliation result must always show which source produced it and whether it is confirmed, inferred, or missing.
 
-AI can classify document sections and draft explanations. Deterministic rules calculate amounts, deadlines, differences, and status. The user must confirm uncertain extraction before it affects the dashboard.
+AI can classify document sections and draft explanations. Deterministic rules calculate amounts, deadlines, differences, reconciliation status, and tax. The user must confirm uncertain extraction before it affects the dashboard.
+
+The document-intelligence provider stays behind a vendor-neutral contract. Sarvam Doc AI is the preferred first candidate for Indian offer letters, payslips, invoices, and receipts because it exposes structured extraction and field confidence. Gemini 3.6 Flash is a possible fallback for difficult multimodal interpretation and plain-language explanations. Neither model can select tax inputs, change engine output, or submit a claim.
 
 ## Source rollout
 

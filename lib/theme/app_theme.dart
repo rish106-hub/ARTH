@@ -3,22 +3,22 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Warm, document-like base with one clear action color.
-  // Legacy aliases stay while secondary screens migrate to the new system.
-  static const Color canvas = Color(0xFFF4F3EE);
+  // Shared ARTH palette. Tax tools inherit the paycheck product skin so they
+  // feel like a contained capability, not a second application.
+  static const Color canvas = Color(0xFFF3F6FB);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFE9E8E2);
-  static const Color surfacePressed = Color(0xFFDDDDD6);
-  static const Color ink = Color(0xFF171814);
-  static const Color inkSecondary = Color(0xFF5B5C55);
-  static const Color inkMuted = Color(0xFF85867F);
-  static const Color primary = Color(0xFF176B45);
-  static const Color primarySoft = Color(0xFFDDECE2);
-  static const Color primaryDark = Color(0xFF0C4C31);
-  static const Color readiness = Color(0xFF176B45);
-  static const Color readinessSoft = Color(0xFFDDECE2);
-  static const Color risk = Color(0xFFD95C4F);
-  static const Color warning = Color(0xFFB36A19);
+  static const Color surfaceMuted = Color(0xFFE8EDF5);
+  static const Color surfacePressed = Color(0xFFDCE3ED);
+  static const Color ink = Color(0xFF14213D);
+  static const Color inkSecondary = Color(0xFF657087);
+  static const Color inkMuted = Color(0xFF8A94A7);
+  static const Color primary = Color(0xFF4A66F0);
+  static const Color primarySoft = Color(0xFFE4E9FF);
+  static const Color primaryDark = Color(0xFF3149C7);
+  static const Color readiness = Color(0xFF12A875);
+  static const Color readinessSoft = Color(0xFFDDF5EC);
+  static const Color risk = Color(0xFFFF6B4A);
+  static const Color warning = Color(0xFFF2B84B);
 
   static const Color bgPrimary = canvas;
   static const Color bgCard = surface;
@@ -40,8 +40,8 @@ class AppColors {
   static const Color textMuted = inkMuted;
   static const Color textGold = gold;
 
-  static const Color divider = Color(0xFFDCDCD5);
-  static const Color border = Color(0xFFD3D3CB);
+  static const Color divider = Color(0xFFDCE3ED);
+  static const Color border = Color(0xFFD3DCE9);
 
   // Gap card colors by size
   static const Color gapSmall = readiness;
@@ -55,7 +55,8 @@ class AppColors {
 
 class AppTextStyles {
   // Numbers remain neutral. Green is reserved for action and positive state.
-  static TextStyle display({Color color = AppColors.gold}) => GoogleFonts.inter(
+  static TextStyle display({Color color = AppColors.gold}) =>
+      GoogleFonts.spaceGrotesk(
         fontSize: 56,
         fontWeight: FontWeight.w900,
         color: color,
@@ -64,7 +65,7 @@ class AppTextStyles {
       );
 
   static TextStyle displaySmall({Color color = AppColors.gold}) =>
-      GoogleFonts.inter(
+      GoogleFonts.spaceGrotesk(
         fontSize: 40,
         fontWeight: FontWeight.w900,
         color: color,
@@ -74,7 +75,7 @@ class AppTextStyles {
 
   // Headings
   static TextStyle h1({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.newsreader(
+      GoogleFonts.spaceGrotesk(
         fontSize: 34,
         fontWeight: FontWeight.w600,
         color: color,
@@ -83,7 +84,7 @@ class AppTextStyles {
       );
 
   static TextStyle h2({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.newsreader(
+      GoogleFonts.spaceGrotesk(
         fontSize: 26,
         fontWeight: FontWeight.w600,
         color: color,
@@ -225,7 +226,7 @@ class AppTheme {
       ),
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.gold,
-        selectionColor: Color(0x33176B45),
+        selectionColor: Color(0x334A66F0),
         selectionHandleColor: AppColors.gold,
       ),
       inputDecorationTheme: InputDecorationTheme(

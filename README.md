@@ -1,94 +1,82 @@
 # ARTH
 
-ARTH is a tax-aware money planning app for salaried Indians whose compensation
-and responsibilities have become harder to reason about than a simple monthly
-budget.
+ARTH is a paycheck-reconciliation app for salaried Indians. It starts with the employment promise, matches later evidence, and shows money that has been received, is still pending, or can still be claimed.
 
-## Product Proposition
+Tax planning is a contained supporting tool. It does not control the main navigation or turn the product into a second finance dashboard.
 
-ARTH turns compensation, real take-home, fixed commitments, planned investing,
-liquid savings, and a primary goal into a working monthly money plan.
+## Product flow
 
-The product answers three questions:
+1. Add an offer letter or compensation annexure.
+2. Confirm the extracted compensation components.
+3. Add payslips, salary alerts, bills, and receipts.
+4. Review promised, received, pending, and claimable money.
+5. Prepare claim evidence only after explicit approval.
+6. Open **You → Small tools → Plan your tax** when a tax diagnostic is useful.
+7. Finish the tax result and return directly to the Paycheck profile.
 
-1. What money reaches me?
-2. What is already committed?
-3. What can I still assign, and what decision matters next?
+There is no budgeting, goal-planning, fixed-commitment, or “How are you getting paid?” flow in this branch.
 
-The initial user is a first-generation affluent salaried Indian earning roughly
-₹25–50 lakh, often with variable pay, equity compensation, loans, dependants, or
-major financial goals.
+## Main areas
 
-Tax is a supporting intelligence layer. It can improve the annual income view,
-compare regimes, identify possible deductions, and prepare supporting evidence.
-It is not the product's primary navigation or promise.
+- **Paycheck:** the current reconciliation and money requiring action
+- **Promise:** compensation components confirmed from the employment contract
+- **Inbox:** offer letters, payslips, receipts, bills, and other evidence
+- **You:** permissions, deletion, profile information, and small tools
 
-## Current Product
+## Tax planning
 
-The main application has four areas:
+The tax tool preserves the original ARTH diagnostic:
 
-- **Today:** usable monthly money and one prioritized decision
-- **Income:** fixed pay, variable pay, equity compensation, take-home, and tax
-- **Plan:** monthly allocation, liquid runway, primary goal, and scenarios
-- **You:** account, assumptions, privacy, support, and data controls
+- annual income and employment type
+- city, rent, and HRA
+- 80C investments
+- home-loan interest
+- NPS
+- health insurance
+- education-loan interest
+- donations and age group
+- old-versus-new-regime comparison
+- ranked deduction gaps and visible calculation assumptions
 
-The setup flow collects only explicit user inputs. ARTH does not derive monthly
-take-home from CTC or silently treat compensation as spendable cash.
+The tax calculation is deterministic and uses versioned rules. No LLM calculates tax, chooses a regime, or invents a deduction.
 
-The current decision engine prioritizes:
+## Document intelligence boundary
 
-1. Completing the money baseline
-2. Excessive fixed commitments
-3. Insufficient liquid runway
-4. An underfunded primary goal
-5. Tax mapping
-6. Routine plan review
+The current prototype allows users to select offer letters, receipts, payslips, and images. It marks new evidence for review and never pretends that a local file has already been verified.
 
-## Working Features
+The planned production boundary is:
 
-- Secure, user-scoped local money-plan persistence
-- Compensation split across fixed, variable, and equity pay
-- Monthly available-money calculation
-- Commitment and planned-investing allocation view
-- Liquid-savings runway calculation
-- Primary-goal progress
-- One-time purchase scenario
-- Existing tax regime and deduction engine as a supporting module
-- Document Vault for Form 16, AIS, and supporting proof
-- Account, optional PAN vault, privacy controls, and data deletion
+1. A document service extracts typed fields with confidence scores.
+2. The user confirms uncertain fields.
+3. Deterministic reconciliation and tax rules use only confirmed values.
+4. An optional language model can explain a result, but cannot change calculated numbers.
+
+Sarvam Doc AI is the preferred first extraction candidate for Indian documents and receipts. Gemini 3.6 Flash is a possible fallback for difficult multimodal interpretation and plain-language explanations. The client should depend on a vendor-neutral extraction contract.
 
 ## Guardrails
 
 ARTH does not:
 
-- File an ITR or submit data to the Income Tax Department
-- Guarantee a deduction, return, or financial outcome
-- Recommend individual securities or investment products
-- Move money or execute investments
-- Infer bank balances or spending that the user did not provide
-- Replace a CA, registered investment adviser, lawyer, or insurer
-
-Tax and money outputs are deterministic estimates based on explicit inputs and
-versioned rules. Assumptions must remain visible. Product-specific investment
-advice requires the appropriate regulated structure and is outside this build.
+- hold or move money
+- submit claims silently
+- execute investments or recommend securities
+- file an ITR or represent the user before a tax authority
+- guarantee a deduction, refund, or financial outcome
+- use an LLM as a tax calculator
 
 ## Architecture
 
 ```text
 lib/
-  engine/       Versioned tax and deduction calculations
-  models/       Money plan, tax result, account, and document models
+  engine/       Versioned tax and reconciliation rules
+  models/       Paycheck, evidence, tax-result, and account models
   providers/    Riverpod state and persistence boundaries
-  screens/      Product and supporting module screens
-  services/     Authentication, secure storage, sync, and document APIs
-  widgets/      Shared UI primitives
+  screens/      Paycheck shell and contained tax-planning flow
+  services/     Authentication, secure storage, sync, and future extraction APIs
+  widgets/      Shared ARTH UI primitives
 ```
 
-The money baseline is represented by `MoneyPlan`. `MoneySnapshot` performs the
-monthly allocation and runway calculations. `nextMoneyDecision` is a
-deterministic policy. No LLM chooses or ranks financial actions.
-
-## Run Locally
+## Run locally
 
 ```bash
 flutter pub get
@@ -97,17 +85,10 @@ flutter test
 flutter run
 ```
 
-Build an Android debug APK with:
+Build an Android debug APK:
 
 ```bash
 flutter build apk --debug
 ```
 
-## Security
-
-Local financial inputs use OS keychain or keystore-backed secure storage.
-Authentication tokens and user-scoped state are cleared on sign-out. The
-Profile screen can delete the money baseline and existing tax data.
-
-See [SECURITY.md](./SECURITY.md) for vulnerability reporting and backend
-security details.
+See [SECURITY.md](./SECURITY.md) for vulnerability reporting and backend security details.

@@ -15,7 +15,9 @@ import '../widgets/retry_error_state.dart';
 import '../widgets/tax_rule_badge.dart';
 
 class TaxSimulatorScreen extends ConsumerStatefulWidget {
-  const TaxSimulatorScreen({super.key});
+  final bool paycheckMode;
+
+  const TaxSimulatorScreen({super.key, this.paycheckMode = false});
 
   @override
   ConsumerState<TaxSimulatorScreen> createState() => _TaxSimulatorScreenState();
@@ -31,10 +33,12 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
   Widget build(BuildContext context) {
     final completeAsync = ref.watch(completedTaxProfileProvider);
     return ArthScaffold(
-      bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 2,
-        onTap: (i) => goToArthTab(context, i),
-      ),
+      bottomNavigationBar: widget.paycheckMode
+          ? null
+          : ArthBottomNav(
+              selectedIndex: 2,
+              onTap: (i) => goToArthTab(context, i),
+            ),
       child: Column(
         children: [
           ArthPremiumAppBar(
@@ -46,7 +50,9 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                 if (context.canPop()) {
                   context.pop();
                 } else {
-                  context.go('/discover');
+                  context.go(
+                    widget.paycheckMode ? '/tax-plan/results' : '/discover',
+                  );
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
@@ -71,7 +77,11 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                     message:
                         'Run the diagnostic once so simulator changes have a real baseline.',
                     actionLabel: 'Start diagnostic',
-                    onAction: () => context.go('/questions'),
+                    onAction: () => context.go(
+                      widget.paycheckMode
+                          ? '/tax-plan/questions'
+                          : '/questions',
+                    ),
                   );
                 }
                 final profile = ref.watch(userProfileProvider);

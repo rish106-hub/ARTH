@@ -32,6 +32,26 @@ class PaycheckSource {
   });
 }
 
+enum PaycheckEvidenceKind { payslip, receipt, salaryAlert, document }
+
+class PaycheckEvidence {
+  final String id;
+  final String name;
+  final String detail;
+  final String statusLabel;
+  final PaycheckEvidenceKind kind;
+  final bool needsAction;
+
+  const PaycheckEvidence({
+    required this.id,
+    required this.name,
+    required this.detail,
+    required this.statusLabel,
+    required this.kind,
+    this.needsAction = false,
+  });
+}
+
 class PaycheckState {
   final String employeeName;
   final String employer;
@@ -50,6 +70,7 @@ class PaycheckState {
   final Set<String> preparedClaims;
   final List<PaycheckItem> items;
   final List<PaycheckSource> sources;
+  final List<PaycheckEvidence> evidence;
 
   const PaycheckState({
     required this.employeeName,
@@ -69,6 +90,7 @@ class PaycheckState {
     required this.preparedClaims,
     required this.items,
     required this.sources,
+    required this.evidence,
   });
 
   int get matchedAmount => items
@@ -90,6 +112,7 @@ class PaycheckState {
     bool? inboxConnected,
     Set<String>? preparedClaims,
     List<PaycheckSource>? sources,
+    List<PaycheckEvidence>? evidence,
   }) {
     return PaycheckState(
       employeeName: employeeName,
@@ -109,6 +132,7 @@ class PaycheckState {
       preparedClaims: preparedClaims ?? this.preparedClaims,
       items: items,
       sources: sources ?? this.sources,
+      evidence: evidence ?? this.evidence,
     );
   }
 }
@@ -192,6 +216,31 @@ const demoPaycheck = PaycheckState(
       name: 'Salary SMS',
       detail: 'Net credit confirmation',
       connected: true,
+    ),
+  ],
+  evidence: [
+    PaycheckEvidence(
+      id: 'july-payslip',
+      name: 'July payslip',
+      detail: '6 compensation lines extracted',
+      statusLabel: 'MATCHED',
+      kind: PaycheckEvidenceKind.payslip,
+    ),
+    PaycheckEvidence(
+      id: 'broadband-bill',
+      name: 'Broadband bill',
+      detail: 'Eligible for internet reimbursement',
+      statusLabel: 'USE NOW',
+      kind: PaycheckEvidenceKind.receipt,
+      needsAction: true,
+    ),
+    PaycheckEvidence(
+      id: 'gym-receipt',
+      name: 'Gym receipt',
+      detail: 'Eligible under wellness allowance',
+      statusLabel: 'USE NOW',
+      kind: PaycheckEvidenceKind.receipt,
+      needsAction: true,
     ),
   ],
 );

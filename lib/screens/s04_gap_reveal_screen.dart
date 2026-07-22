@@ -13,7 +13,9 @@ import '../widgets/premium_ui.dart';
 import '../widgets/tax_rule_badge.dart';
 
 class GapRevealScreen extends ConsumerStatefulWidget {
-  const GapRevealScreen({super.key});
+  final bool paycheckMode;
+
+  const GapRevealScreen({super.key, this.paycheckMode = false});
 
   @override
   ConsumerState<GapRevealScreen> createState() => _GapRevealScreenState();
@@ -34,10 +36,12 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
     final doneMap = ref.watch(gapStateProvider);
 
     return ArthScaffold(
-      bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 2,
-        onTap: (i) => goToArthTab(context, i),
-      ),
+      bottomNavigationBar: widget.paycheckMode
+          ? null
+          : ArthBottomNav(
+              selectedIndex: 2,
+              onTap: (i) => goToArthTab(context, i),
+            ),
       child: resultAsync.when(
         loading: () => const ArthLoadingPanel(
           title: 'Building your tax cockpit',
@@ -56,7 +60,11 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
         ),
         data: (result) {
           _playRevealHaptic(result.totalGapAmount);
-          return _TaxCockpit(result: result, doneMap: doneMap);
+          return _TaxCockpit(
+            result: result,
+            doneMap: doneMap,
+            paycheckMode: widget.paycheckMode,
+          );
         },
       ),
     );
@@ -66,8 +74,13 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
 class _TaxCockpit extends StatelessWidget {
   final TaxResult result;
   final Map<String, bool> doneMap;
+  final bool paycheckMode;
 
-  const _TaxCockpit({required this.result, required this.doneMap});
+  const _TaxCockpit({
+    required this.result,
+    required this.doneMap,
+    required this.paycheckMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +95,17 @@ class _TaxCockpit extends StatelessWidget {
     return Column(
       children: [
         ArthPremiumAppBar(
-          eyebrow: 'Discover',
-          title: 'Tax Cockpit',
+          eyebrow: paycheckMode ? 'Small tool' : 'Discover',
+          title: paycheckMode ? 'Your tax plan' : 'Tax Cockpit',
+          leading: paycheckMode
+              ? IconButton(
+                  key: const Key('tax_result_back'),
+                  tooltip: 'Back to tax planning',
+                  onPressed: () => context.go('/tax-plan'),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: AppColors.textSecondary,
+                )
+              : null,
           actions: [
             IconButton(
               tooltip: 'Share',
@@ -91,6 +113,12 @@ class _TaxCockpit extends StatelessWidget {
               icon: const Icon(Icons.ios_share_rounded, size: 20),
               color: AppColors.textSecondary,
             ),
+            if (paycheckMode)
+              TextButton(
+                key: const Key('tax_result_done'),
+                onPressed: () => context.go('/paycheck/you'),
+                child: const Text('Done'),
+              ),
           ],
         ),
         Expanded(

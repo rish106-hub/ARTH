@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'screens/s00_auth_screen.dart';
 import 'screens/s01_splash_screen.dart';
-import 'screens/s02_welcome_screen.dart';
 import 'screens/s03_questions_screen.dart';
 import 'screens/s04_gap_reveal_screen.dart';
 import 'screens/s05_regime_comparison_screen.dart';
@@ -14,8 +13,6 @@ import 'screens/s08_action_plan_screen.dart';
 import 'screens/s09_progress_tracker_screen.dart';
 import 'screens/s10_share_card_screen.dart';
 import 'screens/s12_budget_alert_screen.dart';
-import 'screens/s13_discover_screen.dart';
-import 'screens/s14_profile_screen.dart';
 import 'screens/s15_document_checklist_screen.dart';
 import 'screens/s16_ais_guide_screen.dart';
 import 'screens/s17_help_center_screen.dart';
@@ -25,11 +22,9 @@ import 'screens/s20_accuracy_coach_screen.dart';
 import 'screens/s21_tax_simulator_screen.dart';
 import 'screens/s22_tax_story_screen.dart';
 import 'screens/s23_tax_calendar_screen.dart';
-import 'screens/s25_money_setup_screen.dart';
-import 'screens/s26_income_screen.dart';
-import 'screens/s27_money_plan_screen.dart';
 import 'screens/s28_paycheck_setup_screen.dart';
 import 'screens/s29_paycheck_shell_screen.dart';
+import 'screens/s30_tax_plan_entry_screen.dart';
 import 'models/gap_card.dart';
 
 String _initialLocation() {
@@ -51,17 +46,39 @@ final _router = GoRouter(
       path: '/paycheck',
       builder: (_, __) => const PaycheckShellScreen(),
     ),
-    GoRoute(path: '/discover', builder: (_, __) => const DiscoverScreen()),
-    GoRoute(path: '/today', redirect: (_, __) => '/discover'),
-    GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
     GoRoute(
-      path: '/money-setup',
-      builder: (_, __) => const MoneySetupScreen(),
+      path: '/paycheck/promise',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
     ),
-    GoRoute(path: '/income', builder: (_, __) => const IncomeScreen()),
-    GoRoute(path: '/plan', builder: (_, __) => const MoneyPlanScreen()),
-    GoRoute(path: '/questions', builder: (_, __) => const QuestionsScreen()),
-    GoRoute(path: '/gap-reveal', builder: (_, __) => const GapRevealScreen()),
+    GoRoute(
+      path: '/paycheck/inbox',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
+    ),
+    GoRoute(
+      path: '/paycheck/you',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 3),
+    ),
+    GoRoute(
+      path: '/tax-plan',
+      builder: (_, __) => const TaxPlanEntryScreen(),
+    ),
+    GoRoute(
+      path: '/tax-plan/questions',
+      builder: (_, __) => const QuestionsScreen(paycheckMode: true),
+    ),
+    GoRoute(
+      path: '/tax-plan/results',
+      builder: (_, __) => const GapRevealScreen(paycheckMode: true),
+    ),
+    GoRoute(
+      path: '/tax-plan/simulator',
+      builder: (_, __) => const TaxSimulatorScreen(paycheckMode: true),
+    ),
+    GoRoute(path: '/discover', redirect: (_, __) => '/paycheck'),
+    GoRoute(path: '/today', redirect: (_, __) => '/paycheck'),
+    GoRoute(path: '/welcome', redirect: (_, __) => '/paycheck-setup'),
+    GoRoute(path: '/questions', redirect: (_, __) => '/tax-plan/questions'),
+    GoRoute(path: '/gap-reveal', redirect: (_, __) => '/tax-plan/results'),
     GoRoute(
       path: '/regime-comparison',
       builder: (_, __) => const RegimeComparisonScreen(),
@@ -87,9 +104,9 @@ final _router = GoRouter(
       builder: (_, __) => const ProgressTrackerScreen(),
     ),
     GoRoute(path: '/share', builder: (_, __) => const ShareCardScreen()),
-    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-    GoRoute(path: '/you', redirect: (_, __) => '/profile'),
-    GoRoute(path: '/settings', redirect: (_, __) => '/profile'),
+    GoRoute(path: '/profile', redirect: (_, __) => '/paycheck/you'),
+    GoRoute(path: '/you', redirect: (_, __) => '/paycheck/you'),
+    GoRoute(path: '/settings', redirect: (_, __) => '/paycheck/you'),
     GoRoute(
         path: '/documents',
         builder: (_, __) => const DocumentChecklistScreen()),
@@ -101,10 +118,7 @@ final _router = GoRouter(
       path: '/accuracy-coach',
       builder: (_, __) => const AccuracyCoachScreen(),
     ),
-    GoRoute(
-      path: '/tax-simulator',
-      builder: (_, __) => const TaxSimulatorScreen(),
-    ),
+    GoRoute(path: '/tax-simulator', redirect: (_, __) => '/tax-plan/simulator'),
     GoRoute(path: '/tax-story', builder: (_, __) => const TaxStoryScreen()),
     GoRoute(
       path: '/tax-calendar',
@@ -118,10 +132,7 @@ final _router = GoRouter(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),
     ),
-    GoRoute(
-      path: '/control-room-demo',
-      redirect: (_, __) => '/discover',
-    ),
+    GoRoute(path: '/control-room-demo', redirect: (_, __) => '/paycheck'),
   ],
 );
 

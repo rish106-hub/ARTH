@@ -5,16 +5,16 @@ import '../theme/app_theme.dart';
 void goToArthTab(BuildContext context, int index) {
   switch (index) {
     case 0:
-      context.go('/discover');
+      context.go('/paycheck');
       break;
     case 1:
-      context.go('/income');
+      context.go('/paycheck/promise');
       break;
     case 2:
-      context.go('/plan');
+      context.go('/paycheck/inbox');
       break;
     case 3:
-      context.go('/profile');
+      context.go('/paycheck/you');
       break;
   }
 }
@@ -33,17 +33,17 @@ class ArthBottomNav extends StatelessWidget {
     _NavItem(
       icon: Icons.today_outlined,
       activeIcon: Icons.today_rounded,
-      label: 'Today',
+      label: 'Paycheck',
     ),
     _NavItem(
       icon: Icons.payments_outlined,
       activeIcon: Icons.payments_rounded,
-      label: 'Income',
+      label: 'Promise',
     ),
     _NavItem(
       icon: Icons.route_outlined,
       activeIcon: Icons.route_rounded,
-      label: 'Plan',
+      label: 'Inbox',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,

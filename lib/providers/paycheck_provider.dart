@@ -36,6 +36,34 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
   void markClaimPrepared(String id) {
     state = state.copyWith(preparedClaims: {...state.preparedClaims, id});
   }
+
+  void addEvidence(String fileName) {
+    final lower = fileName.toLowerCase();
+    final receiptLike = lower.contains('receipt') ||
+        lower.contains('bill') ||
+        lower.contains('gym') ||
+        lower.contains('invoice');
+    final payslipLike = lower.contains('payslip') || lower.contains('salary');
+    final kind = receiptLike
+        ? PaycheckEvidenceKind.receipt
+        : payslipLike
+            ? PaycheckEvidenceKind.payslip
+            : PaycheckEvidenceKind.document;
+
+    final evidence = PaycheckEvidence(
+      id: 'local-${DateTime.now().microsecondsSinceEpoch}',
+      name: fileName,
+      detail: 'Added manually. Review extracted fields before matching.',
+      statusLabel: 'REVIEW',
+      kind: kind,
+      needsAction: true,
+    );
+
+    state = state.copyWith(
+      usingSampleData: false,
+      evidence: [evidence, ...state.evidence],
+    );
+  }
 }
 
 final paycheckProvider = NotifierProvider<PaycheckNotifier, PaycheckState>(
