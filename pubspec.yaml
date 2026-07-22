@@ -24,7 +24,7 @@ dependencies:
   firebase_core: ^4.11.0
   firebase_remote_config: ^6.5.5
   # Fonts
-  google_fonts: ^8.1.0
+  google_fonts: ^8.2.0
 
   # Animations
   flutter_animate: ^4.5.0
