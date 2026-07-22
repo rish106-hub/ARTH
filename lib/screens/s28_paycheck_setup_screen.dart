@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
+import '../providers/user_profile_provider.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
+import '../widgets/job_duration_selector.dart';
 
 class PaycheckSetupScreen extends ConsumerStatefulWidget {
   const PaycheckSetupScreen({super.key});
@@ -106,6 +108,25 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
               Text(
                 'Add an offer letter. ARTH turns each pay component into a monthly checklist, then matches it against payslips and salary alerts.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 30),
+              Text('How long does this job run?',
+                  style: PaycheckType.bodyStrong()),
+              const SizedBox(height: 6),
+              Text(
+                'Not every job lasts the full year. We annualize your salary over these months for accurate tax.',
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 12),
+              JobDurationSelector(
+                selectedMonths: ref.watch(
+                  userProfileProvider
+                      .select((profile) => profile.jobDurationMonths),
+                ),
+                onChanged: (months) => ref
+                    .read(userProfileProvider.notifier)
+                    .updateField((profile) =>
+                        profile.copyWith(jobDurationMonths: months)),
               ),
               const SizedBox(height: 34),
               const _SetupStep(

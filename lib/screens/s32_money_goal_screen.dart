@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/money_goal.dart';
 import '../providers/money_goal_provider.dart';
 import '../providers/paycheck_provider.dart';
+import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
 
 class MoneyGoalScreen extends ConsumerStatefulWidget {
@@ -60,6 +62,17 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
 
   int _number(TextEditingController controller) =>
       int.tryParse(controller.text.replaceAll(',', '').trim()) ?? 0;
+
+  DateTime _monthsFromNow(int months) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + months, now.day);
+  }
+
+  bool _isHorizon(int months) {
+    final expected = _monthsFromNow(months);
+    return _targetDate.year == expected.year &&
+        _targetDate.month == expected.month;
+  }
 
   MoneyGoal _draft() => MoneyGoal(
         id: _loadedId ?? '',
@@ -180,6 +193,27 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                 ],
               ),
               const SizedBox(height: 14),
+              Text('Horizon', style: PaycheckType.utility()),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  for (final months in const [3, 6, 9, 12])
+                    Expanded(
+                      child: Padding(
+                        padding:
+                            EdgeInsets.only(right: months == 12 ? 0 : 8),
+                        child: _HorizonChip(
+                          months: months,
+                          selected: _isHorizon(months),
+                          onTap: () => setState(
+                            () => _targetDate = _monthsFromNow(months),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () async {
                   final date = await showDatePicker(
@@ -204,6 +238,12 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 14),
+              _SpendMapHint(
+                onUse: (detectedMonthly) {
+                  _essentials.text = detectedMonthly.toString();
+                  setState(() {});
+                },
+              ),
               _MoneyField(
                 controller: _essentials,
                 label: 'Rent, food, travel and bills',
@@ -366,3 +406,91 @@ class _MoneyField extends StatelessWidget {
 String _money(int amount) =>
     NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
         .format(amount);
+
+/// Bridges the SMS spend map into goal setup: offers detected monthly spend
+/// as the essentials figure, or a link to build the map when none exists.
+class _SpendMapHint extends ConsumerWidget {
+  const _SpendMapHint({required this.onUse});
+  final ValueChanged<int> onUse;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(spendMapProvider);
+    if (!state.hasData) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextButton.icon(
+          onPressed: () => context.push('/spend-map'),
+          icon: const Icon(Icons.insights_outlined, size: 18),
+          label: const Text('Estimate this from my SMS spend map'),
+        ),
+      );
+    }
+    final monthly = state.map!.monthlySpend;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: PaycheckColors.contractSoft,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.insights_outlined,
+              color: PaycheckColors.contract, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'SMS spend map: ${_money(monthly)}/mo detected',
+              style: PaycheckType.body(),
+            ),
+          ),
+          TextButton(
+            onPressed: () => onUse(monthly),
+            child: const Text('Use'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HorizonChip extends StatelessWidget {
+  const _HorizonChip({
+    required this.months,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int months;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? PaycheckColors.ink : PaycheckColors.paper,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          height: 46,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? PaycheckColors.ink : PaycheckColors.line,
+            ),
+          ),
+          child: Text(
+            '$months mo',
+            style: PaycheckType.bodyStrong(
+              color: selected ? Colors.white : PaycheckColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

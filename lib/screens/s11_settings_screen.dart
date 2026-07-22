@@ -163,6 +163,14 @@ class SettingsScreen extends ConsumerWidget {
                           subtitle: 'Generate a shareable summary',
                           onTap: () => context.push('/share'),
                         ),
+                        const SizedBox(height: 8),
+                        _ActionTile(
+                          icon: Icons.insights_rounded,
+                          label: 'Spend Map',
+                          subtitle: 'On-device SMS spend & savings insights',
+                          badge: 'NEW',
+                          onTap: () => context.push('/spend-map'),
+                        ),
 
                         const SizedBox(height: 24),
                         const _SectionHeader(label: 'ACCOUNT & SECURITY'),

@@ -44,8 +44,10 @@ class PayslipTaxPrefill {
 }
 
 PayslipTaxPrefill? payslipTaxPrefillFromDocuments(
-  List<TaxDocument> documents,
-) {
+  List<TaxDocument> documents, {
+  int monthsWorked = 12,
+}) {
+  final months = normalizeJobDurationMonths(monthsWorked);
   final confirmed = documents
       .where(
         (document) =>
@@ -71,10 +73,10 @@ PayslipTaxPrefill? payslipTaxPrefillFromDocuments(
     documentId: document.id,
     documentName: document.displayName,
     payPeriod: _text(fields['payPeriod']) ?? 'latest confirmed month',
-    annualGrossSalary: _annualize(gross),
-    annualBasicSalary: _annualize(basic),
-    annualHraReceived: _annualize(hra),
-    annualProfessionalTax: _annualize(professionalTax),
+    annualGrossSalary: _annualize(gross, months),
+    annualBasicSalary: _annualize(basic, months),
+    annualHraReceived: _annualize(hra, months),
+    annualProfessionalTax: _annualize(professionalTax, months),
     employerName: _text(fields['employerName']),
   );
   return prefill.hasSalaryValues ? prefill : null;
@@ -108,8 +110,8 @@ int? _sumClassified(List<Map<String, dynamic>> rows, String classification) {
   return _sum(matched);
 }
 
-int? _annualize(int? monthlyValue) =>
-    monthlyValue == null || monthlyValue <= 0 ? null : monthlyValue * 12;
+int? _annualize(int? monthlyValue, int months) =>
+    monthlyValue == null || monthlyValue <= 0 ? null : monthlyValue * months;
 
 int? _amount(Object? value) => value is num ? value.round() : null;
 

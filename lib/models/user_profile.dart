@@ -3,6 +3,24 @@ import 'package:flutter/foundation.dart';
 
 enum EmploymentType { salaried, selfEmployed }
 
+/// Allowed job/income durations within a financial year (months).
+const List<int> kJobDurationOptions = [3, 6, 9, 12];
+
+/// Snap any stored/legacy value to the nearest allowed option; default 12.
+int normalizeJobDurationMonths(int value) {
+  if (kJobDurationOptions.contains(value)) return value;
+  var best = 12;
+  var bestDiff = (value - best).abs();
+  for (final option in kJobDurationOptions) {
+    final diff = (value - option).abs();
+    if (diff < bestDiff) {
+      best = option;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
+
 enum AgeGroup { below30, age30to45, age45to60, above60, above80 }
 
 enum PropertyType { selfOccupied, letOut }
@@ -97,6 +115,11 @@ class UserProfile {
   final EmploymentType employmentType;
   final String employerName;
 
+  // Duration of this job/income engagement within the financial year.
+  // Not every job runs the full year — allowed values 3, 6, 9, 12 months.
+  // Drives salary annualization (monthly figure × jobDurationMonths).
+  final int jobDurationMonths;
+
   // Q03
   final String city;
   final bool isMetroCity;
@@ -167,6 +190,7 @@ class UserProfile {
     this.annualCTC = 1000000,
     this.employmentType = EmploymentType.salaried,
     this.employerName = '',
+    this.jobDurationMonths = 12,
     this.city = 'Bengaluru',
     this.isMetroCity = false,
     this.paysRent = false,
@@ -207,6 +231,7 @@ class UserProfile {
     int? annualCTC,
     EmploymentType? employmentType,
     String? employerName,
+    int? jobDurationMonths,
     String? city,
     bool? isMetroCity,
     bool? paysRent,
@@ -243,6 +268,7 @@ class UserProfile {
       annualCTC: annualCTC ?? this.annualCTC,
       employmentType: employmentType ?? this.employmentType,
       employerName: employerName ?? this.employerName,
+      jobDurationMonths: jobDurationMonths ?? this.jobDurationMonths,
       city: city ?? this.city,
       isMetroCity: isMetroCity ?? this.isMetroCity,
       paysRent: paysRent ?? this.paysRent,
@@ -306,6 +332,7 @@ class UserProfile {
         'annualCTC': annualCTC,
         'employmentType': employmentType.name,
         'employerName': employerName,
+        'jobDurationMonths': jobDurationMonths,
         'city': city,
         'isMetroCity': isMetroCity,
         'paysRent': paysRent,
@@ -348,6 +375,8 @@ class UserProfile {
       annualCTC: readInt('annualCTC', 1000000),
       employmentType: _employmentTypeFromJson(json['employmentType']),
       employerName: json['employerName']?.toString() ?? '',
+      jobDurationMonths:
+          normalizeJobDurationMonths(readInt('jobDurationMonths', 12)),
       city: json['city'] ?? 'Bengaluru',
       isMetroCity: json['isMetroCity'] ?? false,
       paysRent: json['paysRent'] ?? false,

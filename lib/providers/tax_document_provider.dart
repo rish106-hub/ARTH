@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tax_document.dart';
 import '../models/payslip_tax_prefill.dart';
 import '../services/tax_document_service.dart';
+import 'user_profile_provider.dart';
 
 final taxDocumentServiceProvider = Provider<TaxDocumentService>(
   (ref) => TaxDocumentService(),
@@ -88,5 +89,8 @@ final taxDocumentProvider =
 final payslipTaxPrefillProvider = Provider<PayslipTaxPrefill?>((ref) {
   final documents = ref.watch(taxDocumentProvider).asData?.value;
   if (documents == null) return null;
-  return payslipTaxPrefillFromDocuments(documents);
+  final monthsWorked = ref.watch(
+    userProfileProvider.select((profile) => profile.jobDurationMonths),
+  );
+  return payslipTaxPrefillFromDocuments(documents, monthsWorked: monthsWorked);
 });

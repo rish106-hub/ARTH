@@ -143,6 +143,49 @@ void main() {
     expect(profile.actualProfessionalTax, 2400);
   });
 
+  test('payslip annualizes over a partial-year job duration', () {
+    final doc = TaxDocument(
+      id: 'payslip-6mo',
+      fy: '2026-27',
+      documentType: 'payslip',
+      originalFilename: 'July payslip.jpg',
+      mimeType: 'image/jpeg',
+      byteSize: 1234,
+      parseStatus: 'parsed',
+      parseSummary: const {},
+      reviewStatus: 'reviewed',
+      confirmedFields: const {
+        'employerName': 'Example Employer',
+        'payPeriod': 'July 2026',
+        'earnings': [
+          {'label': 'Basic', 'amount': 20000, 'classification': 'basic_pay'},
+          {'label': 'HRA', 'amount': 8000, 'classification': 'hra'},
+        ],
+        'deductions': [
+          {
+            'label': 'Professional Tax',
+            'amount': 200,
+            'classification': 'professional_tax',
+          },
+        ],
+        'grossEarnings': 28000,
+      },
+      reviewedAt: DateTime(2026, 7, 22),
+    );
+
+    // Default 12 months → ×12.
+    final full = payslipTaxPrefillFromDocuments([doc]);
+    expect(full!.annualGrossSalary, 336000);
+    expect(full.annualBasicSalary, 240000);
+
+    // 6-month job → ×6, so annual figures halve.
+    final half = payslipTaxPrefillFromDocuments([doc], monthsWorked: 6);
+    expect(half!.annualGrossSalary, 168000);
+    expect(half.annualBasicSalary, 120000);
+    expect(half.annualHraReceived, 48000);
+    expect(half.annualProfessionalTax, 1200);
+  });
+
   test('legacy payslip stored as an offer letter still updates Home', () {
     const document = TaxDocument(
       id: 'legacy-payslip',
