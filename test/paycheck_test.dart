@@ -70,9 +70,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('PREPARED'), findsOneWidget);
   });
+
+  testWidgets('confirmed payslip replaces empty home copy on a small phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(ConfirmedPayslipNotifier.new),
+        ],
+        child: const MaterialApp(home: PaycheckShellScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('NET PAY THIS PERIOD'), findsOneWidget);
+    expect(find.textContaining('38,567'), findsWidgets);
+    expect(find.textContaining('38,767'), findsWidgets);
+    expect(find.textContaining('Two benefits'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class SamplePaycheckNotifier extends PaycheckNotifier {
   @override
   PaycheckState build() => demoPaycheck;
+}
+
+class ConfirmedPayslipNotifier extends PaycheckNotifier {
+  @override
+  PaycheckState build() => emptyPaycheck.copyWith(
+        employeeName: 'Rishav',
+        employer: 'Example Employer',
+        payPeriod: 'July 2026',
+        grossReceived: 38767,
+        netCredited: 38567,
+        otherDeductions: 200,
+      );
 }

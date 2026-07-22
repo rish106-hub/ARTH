@@ -19,11 +19,14 @@ class PaycheckSetupScreen extends ConsumerStatefulWidget {
 class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
   bool _openingFile = false;
 
-  Future<void> _chooseOfferLetter() async {
+  Future<void> _chooseDocument({
+    required String documentType,
+    required String pickerLabel,
+  }) async {
     setState(() => _openingFile = true);
     try {
       const typeGroup = XTypeGroup(
-        label: 'Offer letter',
+        label: 'Pay document',
         extensions: ['pdf', 'png', 'jpg', 'jpeg'],
       );
       final file = await openFile(acceptedTypeGroups: const [typeGroup]);
@@ -36,17 +39,19 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
         _ => 'application/octet-stream',
       };
       await ref.read(taxDocumentProvider.notifier).upload(
-            documentType: 'offerLetter',
+            documentType: documentType,
             filename: file.name,
             mimeType: mimeType,
             bytes: await file.readAsBytes(),
           );
       if (!mounted) return;
-      ref.read(paycheckProvider.notifier).markOfferLetterAdded();
+      if (documentType == 'offerLetter') {
+        ref.read(paycheckProvider.notifier).markOfferLetterAdded();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${file.name} added for review')),
+        SnackBar(content: Text('$pickerLabel added. Check the details next.')),
       );
-      context.go('/paycheck');
+      context.go('/paycheck/inbox');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,12 +142,26 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: _openingFile ? null : _chooseOfferLetter,
+                  onPressed: _openingFile
+                      ? null
+                      : () => _chooseDocument(
+                            documentType: 'offerLetter',
+                            pickerLabel: 'Offer letter',
+                          ),
                   child: Text(
                     _openingFile ? 'Opening files…' : 'Add offer letter',
                     style: PaycheckType.bodyStrong(color: Colors.white),
                   ),
                 ),
+              ),
+              TextButton(
+                onPressed: _openingFile
+                    ? null
+                    : () => _chooseDocument(
+                          documentType: 'payslip',
+                          pickerLabel: 'Payslip',
+                        ),
+                child: const Text('I only have a payslip'),
               ),
               const SizedBox(height: 8),
               Center(

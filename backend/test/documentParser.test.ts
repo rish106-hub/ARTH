@@ -78,6 +78,96 @@ describe('offer letter interpretation', () => {
       else delete process.env.GEMINI_API_KEY;
     }
   });
+
+  it('re-runs extraction as a payslip when the selected file type is wrong', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    let callCount = 0;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async () => {
+      callCount += 1;
+      const result = callCount === 1
+        ? {
+            employerName: null,
+            roleTitle: null,
+            currency: 'INR',
+            annualCtc: null,
+            fixedAnnualPay: null,
+            variableAnnualPay: null,
+            joiningBonus: null,
+            components: [
+              {
+                label: 'Basic',
+                annualAmount: null,
+                frequency: 'monthly',
+                classification: 'fixed_pay',
+                confidence: 'high',
+              },
+              {
+                label: 'HRA',
+                annualAmount: null,
+                frequency: 'monthly',
+                classification: 'allowance',
+                confidence: 'high',
+              },
+            ],
+            warnings: ['This document contains monthly payslip details.'],
+            questionsForUser: [],
+          }
+        : {
+            employerName: 'Example Employer',
+            employeeName: 'Example Employee',
+            payPeriod: 'July 2026',
+            paymentDate: null,
+            currency: 'INR',
+            attendance: {
+              actualPayableDays: 30,
+              totalWorkingDays: 29,
+              lossOfPayDays: 0,
+              daysPayable: 29,
+            },
+            earnings: [{
+              label: 'Basic',
+              amount: 19333.33,
+              classification: 'basic_pay',
+              confidence: 'high',
+            }],
+            deductions: [{
+              label: 'Professional Tax',
+              amount: 200,
+              classification: 'professional_tax',
+              confidence: 'high',
+            }],
+            grossEarnings: 19333.33,
+            totalDeductions: 200,
+            netSalary: 19133.33,
+            warnings: [],
+            questionsForUser: [],
+          };
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(result) }] } }],
+      }), { status: 200 });
+    };
+
+    try {
+      const parsed = await parseUploadedDocument({
+        documentType: 'offerLetter',
+        mimeType: 'image/jpeg',
+        bytes: Buffer.from('example payslip'),
+      });
+
+      assert.equal(callCount, 2);
+      assert.equal(parsed.status, 'needs_confirmation');
+      assert.equal(parsed.summary.parser, 'gemini-payslip-v1');
+      assert.equal(parsed.summary.detectedDocumentType, 'payslip');
+      const fields = parsed.summary.extractedFields as { netSalary: number };
+      assert.equal(fields.netSalary, 19133.33);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
 });
 
 describe('payslip interpretation', () => {

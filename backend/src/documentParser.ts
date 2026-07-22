@@ -135,6 +135,30 @@ export async function parseUploadedDocument(input: {
         },
       };
     }
+    if (looksLikePayslip(interpretation)) {
+      const payslip = await interpretPayslip({
+        bytes: input.bytes,
+        mimeType: input.mimeType,
+      });
+      if (payslip) {
+        const checked = withPayslipArithmeticChecks(payslip);
+        return {
+          status: 'needs_confirmation',
+          summary: {
+            ...base,
+            parser: 'gemini-payslip-v1',
+            model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+            llmUsed: true,
+            detectedDocumentType: 'payslip',
+            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+            insight: 'This file is a payslip, not an offer letter. Review the monthly pay details before ARTH uses them.',
+            extractedFields: checked,
+            confirmationStatus: 'pending',
+            reviewRequired: true,
+          },
+        };
+      }
+    }
     return {
       status: 'needs_confirmation',
       summary: {
@@ -205,6 +229,32 @@ export async function parseUploadedDocument(input: {
       : 'pdf_text_extraction_failed';
     return unsupportedTextPdf(base, reason);
   }
+}
+
+function looksLikePayslip(interpretation: {
+  annualCtc: number | null;
+  fixedAnnualPay: number | null;
+  variableAnnualPay: number | null;
+  components: Array<{ frequency: string; annualAmount: number | null }>;
+  warnings: string[];
+  questionsForUser: string[];
+}): boolean {
+  const hasAnnualValue = [
+    interpretation.annualCtc,
+    interpretation.fixedAnnualPay,
+    interpretation.variableAnnualPay,
+  ].some((value) => value != null);
+  if (hasAnnualValue) return false;
+
+  const monthlyRows = interpretation.components.filter(
+    (component) => component.frequency === 'monthly',
+  ).length;
+  const explanation = [
+    ...interpretation.warnings,
+    ...interpretation.questionsForUser,
+  ].join(' ').toLowerCase();
+  return explanation.includes('payslip') ||
+    (monthlyRows >= 2 && explanation.includes('monthly'));
 }
 
 function withPayslipArithmeticChecks(
