@@ -32,9 +32,9 @@ export type OfferLetterInterpretation = z.infer<typeof offerLetterInterpretation
 const responseSchema = {
   type: 'object',
   properties: {
-    employerName: { type: 'string', nullable: true },
-    roleTitle: { type: 'string', nullable: true },
-    currency: { type: 'string' },
+    employerName: { type: 'string', nullable: true, description: 'At most 160 characters.' },
+    roleTitle: { type: 'string', nullable: true, description: 'At most 160 characters.' },
+    currency: { type: 'string', description: 'Currency code or symbol, at most 8 characters.' },
     annualCtc: { type: 'number', nullable: true },
     fixedAnnualPay: { type: 'number', nullable: true },
     variableAnnualPay: { type: 'number', nullable: true },
@@ -44,7 +44,7 @@ const responseSchema = {
       items: {
         type: 'object',
         properties: {
-          label: { type: 'string' },
+          label: { type: 'string', description: 'At most 120 characters.' },
           annualAmount: { type: 'number', nullable: true },
           frequency: {
             type: 'string',
@@ -67,8 +67,14 @@ const responseSchema = {
         required: ['label', 'annualAmount', 'frequency', 'classification', 'confidence'],
       },
     },
-    warnings: { type: 'array', items: { type: 'string' } },
-    questionsForUser: { type: 'array', items: { type: 'string' } },
+    warnings: {
+      type: 'array',
+      items: { type: 'string', description: 'At most 240 characters.' },
+    },
+    questionsForUser: {
+      type: 'array',
+      items: { type: 'string', description: 'At most 240 characters.' },
+    },
   },
   required: [
     'employerName',
@@ -150,7 +156,19 @@ export async function interpretOfferLetter(input: {
       .join('')
       .trim();
     if (!text) return null;
-    return offerLetterInterpretationSchema.parse(JSON.parse(text));
+    const parsed = offerLetterInterpretationSchema.safeParse(
+      normalizeInterpretation(JSON.parse(text)),
+    );
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        code: issue.code,
+        message: issue.message,
+      }));
+      console.warn(`[Gemini] invalid offer-letter output: ${JSON.stringify(issues)}`);
+      return null;
+    }
+    return parsed.data;
   } catch (error) {
     const reason = error instanceof Error ? error.name : 'unknown_error';
     console.warn(`[Gemini] offer-letter interpretation failed: ${reason}`);
@@ -158,4 +176,32 @@ export async function interpretOfferLetter(input: {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function normalizeInterpretation(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const raw = value as Record<string, unknown>;
+  const clamp = (input: unknown, max: number) =>
+    typeof input === 'string' ? input.slice(0, max) : input;
+  const clampList = (input: unknown, maxItems: number, maxLength: number) =>
+    Array.isArray(input)
+      ? input.slice(0, maxItems).map((item) => clamp(item, maxLength))
+      : input;
+  const components = Array.isArray(raw.components)
+    ? raw.components.slice(0, 80).map((component) => {
+      if (!component || typeof component !== 'object') return component;
+      const fields = component as Record<string, unknown>;
+      return { ...fields, label: clamp(fields.label, 120) };
+    })
+    : raw.components;
+
+  return {
+    ...raw,
+    employerName: clamp(raw.employerName, 160),
+    roleTitle: clamp(raw.roleTitle, 160),
+    currency: clamp(raw.currency, 8),
+    components,
+    warnings: clampList(raw.warnings, 20, 240),
+    questionsForUser: clampList(raw.questionsForUser, 12, 240),
+  };
 }

@@ -43,7 +43,7 @@ describe('offer letter interpretation', () => {
                 joiningBonus: null,
                 components: [],
                 warnings: [],
-                questionsForUser: [],
+                questionsForUser: ['q'.repeat(300)],
               }),
             }],
           },
@@ -59,10 +59,8 @@ describe('offer letter interpretation', () => {
       });
 
       const properties = requestBody?.generationConfig?.responseSchema?.properties;
-      assert.deepEqual(properties?.employerName, {
-        type: 'string',
-        nullable: true,
-      });
+      assert.equal(properties?.employerName.type, 'string');
+      assert.equal(properties?.employerName.nullable, true);
       assert.deepEqual(properties?.annualCtc, {
         type: 'number',
         nullable: true,
@@ -70,6 +68,10 @@ describe('offer letter interpretation', () => {
       assert.equal(requestBody?.store, false);
       assert.equal(result.status, 'needs_confirmation');
       assert.equal(result.summary.llmUsed, true);
+      const fields = result.summary.extractedFields as {
+        questionsForUser: string[];
+      };
+      assert.equal(fields.questionsForUser[0].length, 240);
     } finally {
       globalThis.fetch = previousFetch;
       if (previousKey) process.env.GEMINI_API_KEY = previousKey;
