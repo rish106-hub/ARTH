@@ -258,6 +258,7 @@ class _CheckForUpdatesRow extends StatefulWidget {
 class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
   bool _checking = false;
   String? _status;
+  int? _installedBuild;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +268,9 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
       title: 'Check for updates',
       detail: _checking
           ? (_status ?? 'Checking for a newer build…')
-          : 'Get the latest ARTH build',
+          : _installedBuild == null
+              ? 'Get the latest ARTH build'
+              : 'Installed build $_installedBuild',
       onTap: _checking ? null : _check,
     );
   }
@@ -281,9 +284,14 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
       const service = AppUpdateService();
       final update = await service.checkForUpdates();
       if (!mounted) return;
+      setState(() => _installedBuild = update.currentVersionCode);
       if (!update.isAvailable) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ARTH is up to date.')),
+          SnackBar(
+            content: Text(
+              'ARTH is up to date. Installed build ${update.currentVersionCode}.',
+            ),
+          ),
         );
         return;
       }

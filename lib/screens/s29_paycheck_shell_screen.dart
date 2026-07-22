@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../models/paycheck.dart';
 import '../models/tax_document.dart';
+import '../providers/auth_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../services/server_api_service.dart';
@@ -548,6 +549,12 @@ class _InboxViewState extends ConsumerState<_InboxView> {
       }
     } catch (error) {
       if (!mounted) return;
+      if (error is StateError && error.message == 'not signed in') {
+        await ref.read(authProvider.notifier).signOut();
+        if (!mounted) return;
+        context.go('/auth?mode=sign-in');
+        return;
+      }
       setState(() {
         _uploadState = _InboxUploadState.failed;
         _uploadMessage = error is ServerApiException

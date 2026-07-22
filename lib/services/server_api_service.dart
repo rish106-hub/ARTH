@@ -23,6 +23,7 @@ class ServerApiService {
   static const String _defaultBaseUrl =
       'https://arth-backend-production.up.railway.app/v1';
   static const Duration _requestTimeout = Duration(seconds: 15);
+  static const Duration _documentUploadTimeout = Duration(seconds: 60);
 
   final HttpClient _client;
   final String _baseUrl;
@@ -112,42 +113,65 @@ class ServerApiService {
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
     final boundary = 'arth-${DateTime.now().microsecondsSinceEpoch}';
-    final request = await _client.openUrl('POST', uri).timeout(_requestTimeout);
-    request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-    request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $bearerToken');
-    request.headers.set(
-      HttpHeaders.contentTypeHeader,
-      'multipart/form-data; boundary=$boundary',
-    );
+    try {
+      final request =
+          await _client.openUrl('POST', uri).timeout(_documentUploadTimeout);
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers
+          .set(HttpHeaders.authorizationHeader, 'Bearer $bearerToken');
+      request.headers.set(
+        HttpHeaders.contentTypeHeader,
+        'multipart/form-data; boundary=$boundary',
+      );
 
-    void writeAscii(String value) => request.add(ascii.encode(value));
+      void writeAscii(String value) => request.add(ascii.encode(value));
 
-    for (final entry in fields.entries) {
+      for (final entry in fields.entries) {
+        writeAscii('--$boundary\r\n');
+        writeAscii(
+          'content-disposition: form-data; name="${entry.key}"\r\n\r\n',
+        );
+        writeAscii('${entry.value}\r\n');
+      }
+
       writeAscii('--$boundary\r\n');
       writeAscii(
-        'content-disposition: form-data; name="${entry.key}"\r\n\r\n',
+        'content-disposition: form-data; name="$fieldName"; filename="$filename"\r\n',
       );
-      writeAscii('${entry.value}\r\n');
-    }
+      writeAscii('content-type: $contentType\r\n\r\n');
+      request.add(bytes);
+      writeAscii('\r\n--$boundary--\r\n');
 
-    writeAscii('--$boundary\r\n');
-    writeAscii(
-      'content-disposition: form-data; name="$fieldName"; filename="$filename"\r\n',
-    );
-    writeAscii('content-type: $contentType\r\n\r\n');
-    request.add(bytes);
-    writeAscii('\r\n--$boundary--\r\n');
-
-    final response = await request.close().timeout(_requestTimeout);
-    final responseBody =
-        await response.transform(utf8.decoder).join().timeout(_requestTimeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ServerApiException(
-        response.statusCode,
-        _extractMessage(responseBody),
+      final response = await request.close().timeout(_documentUploadTimeout);
+      final responseBody = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(_documentUploadTimeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final details = _extractErrorDetails(responseBody);
+        throw ServerApiException(
+          response.statusCode,
+          details.message,
+          code: details.code,
+          retryable: details.retryable || response.statusCode >= 500,
+        );
+      }
+      return _decodeMap(responseBody);
+    } on TimeoutException {
+      throw const ServerApiException(
+        0,
+        'Document parsing took too long. Please try the upload again.',
+        code: 'document_upload_timeout',
+        retryable: true,
+      );
+    } on SocketException {
+      throw const ServerApiException(
+        0,
+        'Cannot reach ARTH. Please try again.',
+        code: 'network_unreachable',
+        retryable: true,
       );
     }
-    return _decodeMap(responseBody);
   }
 
   Future<String> _send(
@@ -248,8 +272,6 @@ class ServerApiService {
       return _ApiErrorDetails(message: raw);
     }
   }
-
-  String _extractMessage(String raw) => _extractErrorDetails(raw).message;
 }
 
 class _ApiErrorDetails {
