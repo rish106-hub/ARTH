@@ -5,10 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/money_goal.dart';
+import '../models/user_profile.dart';
 import '../providers/money_goal_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
+import '../utils/money_format.dart';
+import '../widgets/job_duration_selector.dart';
 
 class MoneyGoalScreen extends ConsumerStatefulWidget {
   const MoneyGoalScreen({super.key});
@@ -136,7 +139,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               const SizedBox(height: 8),
               Text(
                 netPay > 0
-                    ? 'The plan uses your confirmed net pay of ${_money(netPay)}.'
+                    ? 'The plan uses your confirmed net pay of ${money0(netPay)}.'
                     : 'Confirm a payslip first so ARTH can test this goal against real net pay.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
@@ -195,23 +198,11 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               const SizedBox(height: 14),
               Text('Horizon', style: PaycheckType.utility()),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (final months in const [3, 6, 9, 12])
-                    Expanded(
-                      child: Padding(
-                        padding:
-                            EdgeInsets.only(right: months == 12 ? 0 : 8),
-                        child: _HorizonChip(
-                          months: months,
-                          selected: _isHorizon(months),
-                          onTap: () => setState(
-                            () => _targetDate = _monthsFromNow(months),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              JobDurationSelector(
+                selectedMonths:
+                    kJobDurationOptions.firstWhere(_isHorizon, orElse: () => 0),
+                onChanged: (months) =>
+                    setState(() => _targetDate = _monthsFromNow(months)),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -315,7 +306,7 @@ class _ProjectionBand extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           Text(
-            _money(projection.requiredMonthly),
+            money0(projection.requiredMonthly),
             style: PaycheckType.display(color: Colors.white),
           ),
           Text(
@@ -325,7 +316,7 @@ class _ProjectionBand extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             hasPay
-                ? '${_money(projection.availableMonthly)} remains after the commitments entered below.'
+                ? '${money0(projection.availableMonthly)} remains after the commitments entered below.'
                 : 'Add a confirmed payslip to calculate available monthly money.',
             style: PaycheckType.body(color: Colors.white70),
           ),
@@ -346,8 +337,8 @@ class _PlanGuidance extends StatelessWidget {
     final bufferTarget = essentials * 3;
     final shortfall = -projection.monthlyHeadroom;
     final message = projection.isFeasible
-        ? 'Keep at least ${_money(bufferTarget)} as a three-month safety buffer. Then automate ${_money(projection.requiredMonthly)} monthly toward this goal.'
-        : 'The current target is short by ${_money(shortfall)} per month. Extend the date, lower the target, or reduce a flexible commitment before choosing an investment product.';
+        ? 'Keep at least ${money0(bufferTarget)} as a three-month safety buffer. Then automate ${money0(projection.requiredMonthly)} monthly toward this goal.'
+        : 'The current target is short by ${money0(shortfall)} per month. Extend the date, lower the target, or reduce a flexible commitment before choosing an investment product.';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -403,10 +394,6 @@ class _MoneyField extends StatelessWidget {
   }
 }
 
-String _money(int amount) =>
-    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
-        .format(amount);
-
 /// Bridges the SMS spend map into goal setup: offers detected monthly spend
 /// as the essentials figure, or a link to build the map when none exists.
 class _SpendMapHint extends ConsumerWidget {
@@ -441,7 +428,7 @@ class _SpendMapHint extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'SMS spend map: ${_money(monthly)}/mo detected',
+              'SMS spend map: ${money0(monthly)}/mo detected',
               style: PaycheckType.body(),
             ),
           ),
@@ -455,42 +442,3 @@ class _SpendMapHint extends ConsumerWidget {
   }
 }
 
-class _HorizonChip extends StatelessWidget {
-  const _HorizonChip({
-    required this.months,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final int months;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? PaycheckColors.ink : PaycheckColors.paper,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          height: 46,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? PaycheckColors.ink : PaycheckColors.line,
-            ),
-          ),
-          child: Text(
-            '$months mo',
-            style: PaycheckType.bodyStrong(
-              color: selected ? Colors.white : PaycheckColors.ink,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

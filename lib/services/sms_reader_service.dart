@@ -32,7 +32,9 @@ class SmsReaderService {
       final millis = message.date;
       if (body == null || body.isEmpty || millis == null) continue;
       final date = DateTime.fromMillisecondsSinceEpoch(millis);
-      if (since != null && date.isBefore(since)) continue;
+      // Inbox is sorted DATE DESC, so the first out-of-window message means
+      // every remaining one is older too.
+      if (since != null && date.isBefore(since)) break;
       result.add((
         sender: message.address ?? 'unknown',
         body: body,

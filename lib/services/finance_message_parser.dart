@@ -183,19 +183,14 @@ class FinanceMessageParser {
     final amount = _extractAmount(lower);
     if (amount == null || amount <= 0) return null;
 
-    // 3. Direction.
-    final isDebit = _debitWords.any(lower.contains);
-    final isCredit = _creditWords.any(lower.contains);
-    if (!isDebit && !isCredit) return null;
-    // If both appear, trust debit only when it's the leading verb.
-    final direction = isDebit && !isCredit
-        ? TxnDirection.debit
-        : (isCredit && !isDebit
-            ? TxnDirection.credit
-            : (_firstIndexOf(lower, _debitWords) <
-                    _firstIndexOf(lower, _creditWords)
-                ? TxnDirection.debit
-                : TxnDirection.credit));
+    // 3. Direction. Whichever verb appears first wins; _firstIndexOf returns a
+    // large sentinel when a list has no match, so a single comparison also
+    // handles the debit-only / credit-only cases.
+    final debitAt = _firstIndexOf(lower, _debitWords);
+    final creditAt = _firstIndexOf(lower, _creditWords);
+    if (debitAt == _noMatch && creditAt == _noMatch) return null;
+    final direction =
+        debitAt < creditAt ? TxnDirection.debit : TxnDirection.credit;
 
     // 4. Salary detection (only meaningful for credits).
     final isSalary =
@@ -258,8 +253,10 @@ class FinanceMessageParser {
     return asDouble?.round();
   }
 
+  static const _noMatch = 1 << 30;
+
   int _firstIndexOf(String body, List<String> words) {
-    var best = 1 << 30;
+    var best = _noMatch;
     for (final w in words) {
       final i = body.indexOf(w);
       if (i >= 0 && i < best) best = i;
@@ -267,14 +264,17 @@ class FinanceMessageParser {
     return best;
   }
 
+  // Merchant patterns: "at MERCHANT on", "to MERCHANT", "VPA merchant@bank".
+  static final RegExp _merchantRe = RegExp(
+    r'(?:\bat\b|\bto\b|\bfor\b)\s+([A-Za-z0-9&._ -]{2,40}?)(?:\s+on\b|\s+ref\b|\.|,|$)',
+    caseSensitive: false,
+  );
+  static final RegExp _vpaRe =
+      RegExp(r'([a-z0-9._-]+)@[a-z]+', caseSensitive: false);
+
   String? _extractMerchant(String body) {
-    // Common patterns: "at MERCHANT on", "to MERCHANT", "VPA merchant@bank".
-    final atMatch = RegExp(
-      r'(?:\bat\b|\bto\b|\bfor\b)\s+([A-Za-z0-9&._ -]{2,40}?)(?:\s+on\b|\s+ref\b|\.|,|$)',
-      caseSensitive: false,
-    ).firstMatch(body);
-    final vpaMatch =
-        RegExp(r'([a-z0-9._-]+)@[a-z]+', caseSensitive: false).firstMatch(body);
+    final atMatch = _merchantRe.firstMatch(body);
+    final vpaMatch = _vpaRe.firstMatch(body);
     final raw = atMatch?.group(1)?.trim() ?? vpaMatch?.group(1)?.trim();
     if (raw == null || raw.isEmpty) return null;
     return raw.length > 30 ? raw.substring(0, 30) : raw;

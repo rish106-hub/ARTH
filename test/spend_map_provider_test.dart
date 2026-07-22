@@ -28,7 +28,6 @@ class _NoopSync extends SpendMapService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final now = DateTime(2026, 7, 22);
   List<RawSms> sampleMessages() => [
         (
           sender: 'VMHDFCBK',

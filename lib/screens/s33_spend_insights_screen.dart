@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/spend_map.dart';
 import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
+import '../utils/money_format.dart';
 
 class SpendInsightsScreen extends ConsumerWidget {
   const SpendInsightsScreen({super.key});
@@ -178,7 +179,7 @@ class _Insights extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 label: 'Monthly income',
-                value: _money(map.monthlyIncome),
+                value: money0(map.monthlyIncome),
                 color: PaycheckColors.contract,
               ),
             ),
@@ -186,7 +187,7 @@ class _Insights extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 label: 'Monthly spend',
-                value: _money(map.monthlySpend),
+                value: money0(map.monthlySpend),
                 color: PaycheckColors.claim,
               ),
             ),
@@ -229,7 +230,7 @@ class _SavingsHero extends StatelessWidget {
           Text('REALISTIC MONTHLY SAVINGS',
               style: PaycheckType.utility(color: PaycheckColors.matched)),
           const SizedBox(height: 6),
-          Text(_money(savings),
+          Text(money0(savings),
               style: PaycheckType.display(color: PaycheckColors.ink)),
           if (map.monthlyIncome > 0)
             Text('$rate% of detected income',
@@ -273,7 +274,7 @@ class _CategoryBars extends StatelessWidget {
                             child: Text(SpendCategory.label(entry.key),
                                 style: PaycheckType.bodyStrong()),
                           ),
-                          Text(_money(entry.value),
+                          Text(money0(entry.value),
                               style: PaycheckType.bodyStrong()),
                         ],
                       ),
@@ -380,10 +381,10 @@ String _coachingLine(SpendMap map) {
   final topLine = top == null
       ? ''
       : ' Your biggest lever is ${SpendCategory.label(top.key).toLowerCase()} '
-          '(${_money(top.value)}).';
+          '(${money0(top.value)}).';
   if (rate >= 0.3) {
     return 'Strong — you keep ${(rate * 100).round()}% of income. '
-        'Automate ${_money(map.realisticMonthlySavings)} on payday toward your goal.$topLine';
+        'Automate ${money0(map.realisticMonthlySavings)} on payday toward your goal.$topLine';
   }
   if (rate > 0) {
     return 'You currently save ${(rate * 100).round()}%. Trimming one category could '
@@ -393,6 +394,3 @@ String _coachingLine(SpendMap map) {
       'categories before committing to a goal.$topLine';
 }
 
-String _money(int amount) =>
-    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
-        .format(amount);

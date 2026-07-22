@@ -115,11 +115,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         generatedAt: now,
       );
     }
-    final dates = txns.map((t) => t.date).toList()..sort();
+    var earliest = txns.first.date;
+    var latest = txns.first.date;
+    for (final t in txns) {
+      if (t.date.isBefore(earliest)) earliest = t.date;
+      if (t.date.isAfter(latest)) latest = t.date;
+    }
     return SpendMap(
       txns: txns,
-      windowStart: dates.first,
-      windowEnd: dates.last,
+      windowStart: earliest,
+      windowEnd: latest,
       generatedAt: now,
     );
   }
