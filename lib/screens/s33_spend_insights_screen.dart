@@ -44,12 +44,26 @@ class SpendInsightsScreen extends ConsumerWidget {
                 _EmptyCard(onScan: () => ref.read(spendMapProvider.notifier).scan())
               else
                 _Insights(map: state.map!),
-              if (state.hasData && !state.loading) ...[
+              if (!state.loading) ...[
                 const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  onPressed: () => ref.read(spendMapProvider.notifier).scan(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Rescan SMS'),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    if (state.hasData)
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            ref.read(spendMapProvider.notifier).scan(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Rescan SMS'),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(spendMapProvider.notifier).connectGmail(),
+                      icon: const Icon(Icons.mail_outline),
+                      label: const Text('Add email invoices'),
+                    ),
+                  ],
                 ),
               ],
             ],

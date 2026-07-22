@@ -218,6 +218,49 @@ class FinanceMessageParser {
     );
   }
 
+  /// Parse an invoice/receipt email into a spend [FinanceTxn]. Unlike SMS,
+  /// email invoices rarely contain a debit/credit verb, so any currency amount
+  /// in the subject/snippet is treated as a spend. Returns null when no amount
+  /// is found or the content looks like OTP/promo noise.
+  FinanceTxn? parseEmailInvoice({
+    required String from,
+    required String subject,
+    required String snippet,
+    required DateTime date,
+  }) {
+    final text = '$subject $snippet'.toLowerCase();
+    for (final skip in _skipWords) {
+      if (text.contains(skip)) return null;
+    }
+    final amount = _extractAmount(text);
+    if (amount == null || amount <= 0) return null;
+
+    final merchant = _senderName(from);
+    final category = _categorize(text, merchant ?? from.toLowerCase());
+    return FinanceTxn(
+      amount: amount,
+      direction: TxnDirection.debit,
+      date: date,
+      category: category,
+      isSalary: false,
+      merchant: merchant,
+      sender: from,
+      source: 'email',
+    );
+  }
+
+  /// Extracts a human name from an email "From" header
+  /// (`Amazon <no-reply@amazon.in>` → `Amazon`).
+  String? _senderName(String from) {
+    final match = RegExp(r'^\s*"?([^"<]+?)"?\s*<').firstMatch(from);
+    final name = match?.group(1)?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    final domain = RegExp(r'@([a-z0-9.-]+)', caseSensitive: false)
+        .firstMatch(from)
+        ?.group(1);
+    return domain;
+  }
+
   /// Parse a batch, dropping non-transactions.
   List<FinanceTxn> parseAll(
     Iterable<({String sender, String body, DateTime date})> messages,

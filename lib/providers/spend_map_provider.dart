@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/spend_map.dart';
+import '../services/auth_service.dart';
 import '../services/finance_message_parser.dart';
+import '../services/gmail_service.dart';
 import '../services/secure_storage_service.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
@@ -49,14 +51,20 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   final _parser = const FinanceMessageParser();
   SmsReaderService _reader = SmsReaderService();
   SpendMapService _sync = SpendMapService();
+  GmailService _gmail = GmailService();
+  AuthService _auth = AuthService();
 
   // Test seams.
   void debugInjectDependencies({
     SmsReaderService? reader,
     SpendMapService? sync,
+    GmailService? gmail,
+    AuthService? auth,
   }) {
     if (reader != null) _reader = reader;
     if (sync != null) _sync = sync;
+    if (gmail != null) _gmail = gmail;
+    if (auth != null) _auth = auth;
   }
 
   @override
@@ -103,6 +111,66 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     } catch (error) {
       state = state.copyWith(loading: false, error: error.toString());
     }
+  }
+
+  /// Authorizes Gmail (readonly), fetches invoice/receipt emails, parses them
+  /// on-device and merges the spends into the existing map (deduped against
+  /// SMS). Requires the gmail.readonly scope to be configured for the app.
+  Future<void> connectGmail() async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final token = await _auth.authorizeGmailReadonly();
+      if (token == null || token.isEmpty) {
+        state = state.copyWith(
+          loading: false,
+          error: 'Gmail authorization was cancelled or failed.',
+        );
+        return;
+      }
+
+      final emails = await _gmail.fetchInvoices(accessToken: token);
+      final emailTxns = <FinanceTxn>[];
+      for (final e in emails) {
+        final txn = _parser.parseEmailInvoice(
+          from: e.from,
+          subject: e.subject,
+          snippet: e.snippet,
+          date: e.date,
+        );
+        if (txn != null) emailTxns.add(txn);
+      }
+
+      final existing = state.map?.txns ?? const <FinanceTxn>[];
+      final merged = _mergeDedupe(existing, emailTxns);
+      final since = DateTime.now().subtract(kSpendScanWindow);
+      final map = _buildMap(merged, since);
+
+      await _storage.write(_spendMapKey(_uid()), map.toJsonString());
+      state = state.copyWith(map: map, loading: false);
+
+      try {
+        await _sync.push(map);
+      } catch (_) {}
+    } catch (error) {
+      state = state.copyWith(loading: false, error: error.toString());
+    }
+  }
+
+  /// Adds email txns that don't duplicate an existing spend (same rounded
+  /// amount within 2 days).
+  List<FinanceTxn> _mergeDedupe(
+    List<FinanceTxn> existing,
+    List<FinanceTxn> incoming,
+  ) {
+    final result = List<FinanceTxn>.from(existing);
+    for (final txn in incoming) {
+      final duplicate = existing.any((e) =>
+          e.amount == txn.amount &&
+          e.direction == txn.direction &&
+          e.date.difference(txn.date).inDays.abs() <= 2);
+      if (!duplicate) result.add(txn);
+    }
+    return result;
   }
 
   SpendMap _buildMap(List<FinanceTxn> txns, DateTime since) {

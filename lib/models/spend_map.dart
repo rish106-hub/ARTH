@@ -70,6 +70,7 @@ class FinanceTxn {
     required this.isSalary,
     this.merchant,
     this.sender,
+    this.source = 'sms',
   });
 
   final int amount; // rupees, positive
@@ -79,6 +80,7 @@ class FinanceTxn {
   final bool isSalary;
   final String? merchant;
   final String? sender;
+  final String source; // 'sms' | 'email'
 
   Map<String, dynamic> toJson() => {
         'amount': amount,
@@ -86,6 +88,7 @@ class FinanceTxn {
         'date': date.toIso8601String(),
         'category': category,
         'isSalary': isSalary,
+        'source': source,
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
       };
@@ -101,6 +104,7 @@ class FinanceTxn {
         isSalary: json['isSalary'] == true,
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
+        source: json['source']?.toString() ?? 'sms',
       );
 }
 

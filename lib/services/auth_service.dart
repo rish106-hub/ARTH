@@ -70,6 +70,33 @@ class AuthService {
     return _persistAuthResponse(response);
   }
 
+  /// Read-only Gmail scope for on-device invoice extraction.
+  static const gmailReadonlyScope =
+      'https://www.googleapis.com/auth/gmail.readonly';
+
+  /// Requests (or reuses) authorization for the Gmail readonly scope and
+  /// returns an OAuth access token usable against the Gmail REST API.
+  /// Prompts the Google account chooser / consent when needed.
+  Future<String?> authorizeGmailReadonly() async {
+    final google = GoogleSignIn.instance;
+    if (!_googleInitialized) {
+      await google.initialize(serverClientId: _googleServerClientId);
+      _googleInitialized = true;
+    }
+
+    // Prefer a silent session; fall back to interactive sign-in.
+    GoogleSignInAccount? account;
+    final lightweight = google.attemptLightweightAuthentication();
+    if (lightweight != null) {
+      account = await lightweight;
+    }
+    account ??= await google.authenticate();
+
+    const scopes = [gmailReadonlyScope];
+    final authz = await account.authorizationClient.authorizeScopes(scopes);
+    return authz.accessToken;
+  }
+
   Future<void> saveAccount(UserAccount account) async {
     await _storage.write(_accountKey, account.toJsonString());
   }

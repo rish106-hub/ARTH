@@ -78,6 +78,51 @@ void main() {
     });
   });
 
+  group('email invoices', () {
+    FinanceTxn? invoice(String from, String subject, String snippet) =>
+        parser.parseEmailInvoice(
+          from: from,
+          subject: subject,
+          snippet: snippet,
+          date: date,
+        );
+
+    test('amazon invoice → shopping spend from email', () {
+      final txn = invoice(
+        'Amazon.in <no-reply@amazon.in>',
+        'Your invoice for order 402-123',
+        'Order total: Rs 1,299. Thank you for shopping.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.debit);
+      expect(txn.category, SpendCategory.shopping);
+      expect(txn.amount, 1299);
+      expect(txn.source, 'email');
+      expect(txn.merchant, 'Amazon.in');
+    });
+
+    test('swiggy receipt → food', () {
+      final txn = invoice(
+        'Swiggy <orders@swiggy.in>',
+        'Your Swiggy receipt',
+        'You paid ₹450 for your order.',
+      );
+      expect(txn!.category, SpendCategory.food);
+      expect(txn.amount, 450);
+    });
+
+    test('no amount → null', () {
+      expect(invoice('X <a@b.com>', 'Order confirmation', 'Thanks!'), isNull);
+    });
+
+    test('OTP email skipped', () {
+      expect(
+        invoice('Bank <a@b.com>', 'OTP', 'Your OTP is 111 for Rs 999. Do not share.'),
+        isNull,
+      );
+    });
+  });
+
   group('SpendMap aggregation', () {
     test('computes monthly spend, income and realistic savings', () {
       final txns = [
