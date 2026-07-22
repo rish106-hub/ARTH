@@ -97,7 +97,7 @@ jobs:
           storePassword=$STORE_PASS
           keyPassword=$KEY_PASS
           keyAlias=$KEY_ALIAS
-          storeFile=app/arth-release.jks
+          storeFile=arth-release.jks
           EOF
 
       # ── Version from git tag ─────────────────────────────────────────────

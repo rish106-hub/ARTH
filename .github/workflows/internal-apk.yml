@@ -73,7 +73,7 @@ jobs:
           storePassword=$STORE_PASSWORD
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
-          storeFile=app/arth-release.jks
+          storeFile=arth-release.jks
           EOF
 
       - name: Build internal APK
