@@ -78,8 +78,3 @@ android {
 flutter {
     source = "../.."
 }
-
-dependencies {
-    implementation("com.google.firebase:firebase-appdistribution-api:16.0.0-beta20")
-    add("internalImplementation", "com.google.firebase:firebase-appdistribution:16.0.0-beta20")
-}

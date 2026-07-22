@@ -238,6 +238,7 @@ class _CheckForUpdatesRow extends StatefulWidget {
 
 class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
   bool _checking = false;
+  String? _status;
 
   @override
   Widget build(BuildContext context) {
@@ -246,30 +247,79 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
       icon: Icons.system_update_alt_rounded,
       title: 'Check for updates',
       detail: _checking
-          ? 'Checking for a newer build…'
+          ? (_status ?? 'Checking for a newer build…')
           : 'Get the latest ARTH build',
       onTap: _checking ? null : _check,
     );
   }
 
   Future<void> _check() async {
-    setState(() => _checking = true);
+    setState(() {
+      _checking = true;
+      _status = 'Checking for a newer build…';
+    });
     try {
-      await const AppUpdateService().checkForUpdates();
+      const service = AppUpdateService();
+      final update = await service.checkForUpdates();
+      if (!mounted) return;
+      if (!update.isAvailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ARTH is up to date.')),
+        );
+        return;
+      }
+
+      final shouldInstall = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('ARTH ${update.versionName} is available'),
+          content: Text(
+            update.releaseNotes.trim().isEmpty
+                ? 'Download and install this update? Your saved data will remain on this device.'
+                : '${update.releaseNotes.trim()}\n\nYour saved data will remain on this device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Later'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              icon: const Icon(Icons.download_rounded),
+              label: const Text('Update now'),
+            ),
+          ],
+        ),
+      );
+      if (shouldInstall != true || !mounted) return;
+
+      setState(() => _status = 'Downloading and verifying update…');
+      await service.downloadAndInstall(update);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update check finished.')),
+        const SnackBar(
+          content: Text('Update verified. Confirm installation to finish.'),
+        ),
       );
     } on AppUpdateException catch (error) {
       if (!mounted) return;
-      final message = error.code == 'UPDATES_UNAVAILABLE'
-          ? 'This build receives updates from its app store.'
-          : error.message;
+      final message = switch (error.code) {
+        'UPDATES_UNAVAILABLE' =>
+          'This build receives updates from its app store.',
+        'INSTALL_PERMISSION_REQUIRED' =>
+          'Allow ARTH to install updates, then check again.',
+        _ => error.message,
+      };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
     } finally {
-      if (mounted) setState(() => _checking = false);
+      if (mounted) {
+        setState(() {
+          _checking = false;
+          _status = null;
+        });
+      }
     }
   }
 }
