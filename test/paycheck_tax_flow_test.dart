@@ -1,6 +1,8 @@
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/models/tax_document.dart';
+import 'package:arth/models/payslip_tax_prefill.dart';
+import 'package:arth/models/user_profile.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:arth/screens/s30_tax_plan_entry_screen.dart';
 import 'package:arth/theme/app_theme.dart';
@@ -80,6 +82,65 @@ void main() {
     expect(paycheck.otherDeductions, 200);
     expect(paycheck.items, hasLength(3));
     expect(paycheck.evidence.single.statusLabel, 'CONFIRMED');
+  });
+
+  test('confirmed payslip prefills annual tax inputs without guessing', () {
+    final prefill = payslipTaxPrefillFromDocuments([
+      TaxDocument(
+        id: 'payslip-prefill',
+        fy: '2026-27',
+        documentType: 'payslip',
+        originalFilename: 'July payslip.jpg',
+        mimeType: 'image/jpeg',
+        byteSize: 1234,
+        parseStatus: 'parsed',
+        parseSummary: const {},
+        reviewStatus: 'reviewed',
+        confirmedFields: const {
+          'employerName': 'Example Employer',
+          'payPeriod': 'July 2026',
+          'earnings': [
+            {
+              'label': 'Basic',
+              'amount': 19333.33,
+              'classification': 'basic_pay',
+            },
+            {
+              'label': 'HRA',
+              'amount': 7733.33,
+              'classification': 'hra',
+            },
+            {
+              'label': 'Special allowance',
+              'amount': 6122.30,
+              'classification': 'allowance',
+            },
+          ],
+          'deductions': [
+            {
+              'label': 'Professional Tax',
+              'amount': 200,
+              'classification': 'professional_tax',
+            },
+          ],
+          'grossEarnings': 38766.66,
+        },
+        reviewedAt: DateTime(2026, 7, 22),
+      ),
+    ]);
+
+    expect(prefill, isNotNull);
+    expect(prefill!.annualGrossSalary, 465204);
+    expect(prefill.annualBasicSalary, 231996);
+    expect(prefill.annualHraReceived, 92796);
+    expect(prefill.annualProfessionalTax, 2400);
+
+    final profile = prefill.applyTo(const UserProfile(city: 'Durgapur'));
+    expect(profile.employerName, 'Example Employer');
+    expect(profile.hasHRA, isTrue);
+    expect(profile.actualBasicSalary, 231996);
+    expect(profile.actualHraReceived, 92796);
+    expect(profile.actualProfessionalTax, 2400);
   });
 
   test('legacy payslip stored as an offer letter still updates Home', () {

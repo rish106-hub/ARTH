@@ -27,6 +27,7 @@ import 'screens/s28_paycheck_setup_screen.dart';
 import 'screens/s29_paycheck_shell_screen.dart';
 import 'screens/s30_tax_plan_entry_screen.dart';
 import 'screens/s31_profile_screens.dart';
+import 'screens/s32_money_goal_screen.dart';
 import 'models/gap_card.dart';
 
 String _initialLocation() {
@@ -162,6 +163,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),
+    ),
+    GoRoute(
+      path: '/money-goal',
+      builder: (_, __) => const MoneyGoalScreen(),
     ),
     GoRoute(path: '/control-room-demo', redirect: (_, __) => '/paycheck'),
   ],

@@ -56,6 +56,8 @@ class FakeDb {
   private doneGaps = new Map<string, Set<string>>();
   private identities = new Map<string, Row>();
   private documents = new Map<string, Row>();
+  private moneyGoals = new Map<string, Row>();
+  private employers = new Map<string, Row>();
   private events: Row[] = [];
   private ids = 0;
   private transientEmailLookupFailures = 0;
@@ -68,6 +70,8 @@ class FakeDb {
     this.doneGaps.clear();
     this.identities.clear();
     this.documents.clear();
+    this.moneyGoals.clear();
+    this.employers.clear();
     this.events = [];
     this.ids = 0;
     this.transientEmailLookupFailures = 0;
@@ -437,6 +441,94 @@ class FakeDb {
       return rows();
     }
 
+    if (normalized.startsWith('select * from money_goals')) {
+      const goals = [...this.moneyGoals.values()]
+        .filter((goal) => goal.user_id === params[0])
+        .sort((left, right) =>
+          (right.updated_at as Date).getTime() - (left.updated_at as Date).getTime());
+      return rows(goals);
+    }
+
+    if (normalized.startsWith('insert into money_goals')) {
+      const now = new Date();
+      const goal = {
+        id: this.nextId('goal'),
+        user_id: params[0],
+        name: params[1],
+        category: params[2],
+        target_amount: params[3],
+        current_amount: params[4],
+        target_date: params[5],
+        monthly_essentials: params[6],
+        monthly_family_support: params[7],
+        created_at: now,
+        updated_at: now,
+      };
+      this.moneyGoals.set(goal.id, goal);
+      return rows([goal]);
+    }
+
+    if (normalized.startsWith('update money_goals set')) {
+      const goal = this.moneyGoals.get(params[0] as string);
+      if (!goal || goal.user_id !== params[1]) return rows();
+      Object.assign(goal, {
+        name: params[2],
+        category: params[3],
+        target_amount: params[4],
+        current_amount: params[5],
+        target_date: params[6],
+        monthly_essentials: params[7],
+        monthly_family_support: params[8],
+        updated_at: new Date(),
+      });
+      return rows([goal]);
+    }
+
+    if (normalized.startsWith('delete from money_goals where id = $1')) {
+      const goal = this.moneyGoals.get(params[0] as string);
+      if (goal?.user_id === params[1]) this.moneyGoals.delete(params[0] as string);
+      return rows();
+    }
+
+    if (normalized.startsWith('delete from money_goals where user_id = $1')) {
+      for (const [goalId, goal] of this.moneyGoals.entries()) {
+        if (goal.user_id === params[0]) this.moneyGoals.delete(goalId);
+      }
+      return rows();
+    }
+
+    if (normalized.startsWith('select display_name from employer_catalog')) {
+      const query = (params[0] as string).toLowerCase();
+      const employers = [...this.employers.values()]
+        .filter((employer) =>
+          (!query || (employer.display_name as string).toLowerCase().includes(query))
+          && (employer.approved === true || (employer.usage_count as number) >= 2))
+        .map((employer) => ({ display_name: employer.display_name }));
+      return rows(employers);
+    }
+
+    if (normalized.startsWith('insert into employer_catalog')) {
+      const normalizedName = params[0] as string;
+      const existing = this.employers.get(normalizedName);
+      if (existing) {
+        existing.usage_count = (existing.usage_count as number) + 1;
+        existing.updated_at = new Date();
+        return rows([{ display_name: existing.display_name }]);
+      }
+      const employer = {
+        normalized_name: normalizedName,
+        display_name: params[1],
+        source: 'user',
+        submitted_by: params[2],
+        usage_count: 1,
+        approved: false,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+      this.employers.set(normalizedName, employer);
+      return rows([{ display_name: employer.display_name }]);
+    }
+
     if (normalized.startsWith('select gap_id from done_gaps where user_id = $1 and fy = $2')) {
       const ids = [...(this.doneGaps.get(key(params[0], params[1])) ?? new Set())].sort();
       return rows(ids.map((gap_id) => ({ gap_id })));
@@ -505,7 +597,7 @@ class FakeDb {
 
   private nextId(prefix: string) {
     this.ids += 1;
-    if (prefix === 'doc') {
+    if (prefix === 'doc' || prefix === 'goal') {
       return `00000000-0000-4000-8000-${String(this.ids).padStart(12, '0')}`;
     }
     return `${prefix}-${this.ids}`;
@@ -883,6 +975,66 @@ describe('backend security harness', () => {
     });
     assert.equal(account.statusCode, 200);
     assert.equal(account.json().pan.status, 'missing');
+
+    await app.close();
+  });
+
+  it('stores owner-scoped money goals and learns repeated custom employers', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const goalPayload = {
+      name: 'Support my parents',
+      category: 'family',
+      targetAmount: 240000,
+      currentAmount: 60000,
+      targetDate: '2027-07-01',
+      monthlyEssentials: 18000,
+      monthlyFamilySupport: 5000,
+    };
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/money-goals',
+      headers: bearer(alice.accessToken),
+      payload: goalPayload,
+    });
+    assert.equal(created.statusCode, 201);
+    assert.equal(created.json().goal.name, goalPayload.name);
+    const goalId = created.json().goal.id as string;
+
+    const aliceGoals = await app.inject({
+      method: 'GET',
+      url: '/v1/money-goals',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(aliceGoals.statusCode, 200);
+    assert.equal(aliceGoals.json().goals.length, 1);
+
+    const bobUpdate = await app.inject({
+      method: 'PUT',
+      url: `/v1/money-goals/${goalId}`,
+      headers: bearer(bob.accessToken),
+      payload: { ...goalPayload, name: 'Not Bob\'s goal' },
+    });
+    assert.equal(bobUpdate.statusCode, 404);
+
+    for (const session of [alice, bob]) {
+      const customEmployer = await app.inject({
+        method: 'POST',
+        url: '/v1/employers',
+        headers: bearer(session.accessToken),
+        payload: { name: 'Durgapur Product Works' },
+      });
+      assert.equal(customEmployer.statusCode, 201);
+    }
+
+    const search = await app.inject({
+      method: 'GET',
+      url: '/v1/employers?q=Durgapur',
+    });
+    assert.equal(search.statusCode, 200);
+    assert.deepEqual(search.json().employers, ['Durgapur Product Works']);
 
     await app.close();
   });

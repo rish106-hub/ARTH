@@ -1,7 +1,7 @@
 name: arth
 description: "ARTH - Paycheck reconciliation and tax-gap planning for salaried Indians."
 publish_to: 'none'
-version: 1.0.7+10007
+version: 1.0.8+10008
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

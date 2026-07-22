@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/tax_document.dart';
+import '../models/payslip_tax_prefill.dart';
 import '../services/tax_document_service.dart';
 
 final taxDocumentServiceProvider = Provider<TaxDocumentService>(
@@ -83,3 +84,9 @@ final taxDocumentProvider =
     AsyncNotifierProvider<TaxDocumentNotifier, List<TaxDocument>>(
   TaxDocumentNotifier.new,
 );
+
+final payslipTaxPrefillProvider = Provider<PayslipTaxPrefill?>((ref) {
+  final documents = ref.watch(taxDocumentProvider).asData?.value;
+  if (documents == null) return null;
+  return payslipTaxPrefillFromDocuments(documents);
+});

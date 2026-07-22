@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/paycheck.dart';
+import '../models/money_goal.dart';
 import '../models/tax_document.dart';
 import '../providers/auth_provider.dart';
+import '../providers/money_goal_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../services/server_api_service.dart';
@@ -192,6 +194,8 @@ class _PaycheckHome extends ConsumerWidget {
         .where((item) => item.status == PaycheckItemStatus.claimable)
         .toList(growable: false);
     final hasPayslip = paycheck.grossReceived > 0 || paycheck.netCredited > 0;
+    final goals = ref.watch(moneyGoalProvider).asData?.value ?? const [];
+    final activeGoal = goals.isEmpty ? null : goals.first;
     final headline = claimItems.isNotEmpty
         ? 'READY TO CLAIM'
         : hasPayslip
@@ -215,7 +219,7 @@ class _PaycheckHome extends ConsumerWidget {
               period: paycheck.payPeriod,
               sample: paycheck.usingSampleData,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
             Text(headline, style: PaycheckType.utility()),
             const SizedBox(height: 7),
             if (hasPayslip || claimItems.isNotEmpty)
@@ -239,9 +243,15 @@ class _PaycheckHome extends ConsumerWidget {
               summary,
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 16),
             _ReconciliationCard(paycheck: paycheck),
-            const SizedBox(height: 26),
+            const SizedBox(height: 14),
+            _MoneyPlanCard(
+              paycheck: paycheck,
+              goal: activeGoal,
+              onTap: () => context.push('/money-goal'),
+            ),
+            const SizedBox(height: 22),
             if (claimItems.isNotEmpty) ...[
               Row(
                 children: [
@@ -341,6 +351,98 @@ class _PaycheckHome extends ConsumerWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoneyPlanCard extends StatelessWidget {
+  const _MoneyPlanCard({
+    required this.paycheck,
+    required this.goal,
+    required this.onTap,
+  });
+
+  final PaycheckState paycheck;
+  final MoneyGoal? goal;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentGoal = goal;
+    final projection = currentGoal == null
+        ? null
+        : projectGoal(
+            goal: currentGoal,
+            monthlyNetPay: paycheck.netCredited,
+          );
+    return Material(
+      color: PaycheckColors.paper,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        key: const Key('money_goal_card'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: PaycheckColors.line),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(
+                  color: PaycheckColors.contractSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.flag_outlined,
+                  color: PaycheckColors.contract,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentGoal?.name ?? 'Give this paycheck a job',
+                      style: PaycheckType.bodyStrong(),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      projection == null
+                          ? 'Set a target, family contribution and monthly safety limit.'
+                          : '${_money(projection.requiredMonthly)} per month to reach ${_money(currentGoal!.targetAmount)}.',
+                      style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                    ),
+                    if (projection != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        projection.isFeasible
+                            ? '${_money(projection.monthlyHeadroom)} monthly room after the plan'
+                            : '${_money(-projection.monthlyHeadroom)} monthly shortfall to resolve',
+                        style: PaycheckType.utility(
+                          color: projection.isFeasible
+                              ? PaycheckColors.matched
+                              : PaycheckColors.claim,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, size: 20),
             ],
           ),
         ),

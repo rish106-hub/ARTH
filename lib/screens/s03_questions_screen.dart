@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
+import '../models/payslip_tax_prefill.dart';
+import '../providers/tax_document_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
+import '../services/city_image_service.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/tax_journey_scene.dart';
@@ -28,6 +31,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   late UserProfile _entryProfile;
   int _step = 0; // 0–11 tax questions only
   bool _finishing = false;
+  String? _appliedPayslipId;
 
   @override
   void initState() {
@@ -115,6 +119,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(userProfileProvider);
+    final payslipPrefill = ref.watch(payslipTaxPrefillProvider);
+    if (payslipPrefill != null &&
+        _appliedPayslipId != payslipPrefill.documentId) {
+      _appliedPayslipId = payslipPrefill.documentId;
+      Future<void>.microtask(() {
+        if (!mounted) return;
+        ref
+            .read(userProfileProvider.notifier)
+            .applyPayslipPrefill(payslipPrefill);
+      });
+    }
 
     if (_finishing) {
       return const _BuildingPlanScreen();
@@ -193,15 +208,27 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   Widget _buildStep(BuildContext context, UserProfile p, int step) {
     switch (step) {
       case 0:
-        return _Q01CTC(profile: p, onNext: _next);
+        return _Q01CTC(
+          profile: p,
+          payslipPrefill: ref.read(payslipTaxPrefillProvider),
+          onNext: _next,
+        );
       case 1:
-        return _Q02Employment(profile: p, onNext: _next);
+        return _Q02Employment(
+          profile: p,
+          payslipPrefill: ref.read(payslipTaxPrefillProvider),
+          onNext: _next,
+        );
       case 2:
         return _Q03City(profile: p, onNext: _next);
       case 3:
         return _Q04Rent(profile: p, onNext: _next);
       case 4:
-        return _Q05HRA(profile: p, onNext: _next);
+        return _Q05HRA(
+          profile: p,
+          payslipPrefill: ref.read(payslipTaxPrefillProvider),
+          onNext: _next,
+        );
       case 5:
         return _Q06EightyC(profile: p, onNext: _next);
       case 6:
@@ -692,11 +719,60 @@ class _ResponsiveAmount extends StatelessWidget {
   }
 }
 
+class _PayslipSourceNote extends StatelessWidget {
+  const _PayslipSourceNote({required this.title, required this.detail});
+
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.08),
+        borderRadius: AppRadius.card,
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.verified_outlined,
+            color: AppColors.success,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.bodyMedium()),
+                const SizedBox(height: 3),
+                Text(
+                  detail,
+                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Q01: Annual CTC ──────────────────────────────────────────────────────────
 class _Q01CTC extends ConsumerStatefulWidget {
   final UserProfile profile;
+  final PayslipTaxPrefill? payslipPrefill;
   final VoidCallback onNext;
-  const _Q01CTC({required this.profile, required this.onNext});
+  const _Q01CTC({
+    required this.profile,
+    required this.payslipPrefill,
+    required this.onNext,
+  });
 
   @override
   ConsumerState<_Q01CTC> createState() => _Q01CTCState();
@@ -717,6 +793,16 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
   void dispose() {
     _textCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Q01CTC oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.annualCTC != widget.profile.annualCTC &&
+        widget.payslipPrefill?.annualGrossSalary != null) {
+      _value = (widget.profile.annualCTC / 100000).clamp(1.0, 60.0);
+      _textCtrl.text = _value.toStringAsFixed(1);
+    }
   }
 
   /// Called on every keystroke. Accepts lakhs (e.g. user types "15" = ₹15L).
@@ -780,6 +866,14 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
       onNext: widget.onNext,
       content: Column(
         children: [
+          if (widget.payslipPrefill?.annualGrossSalary != null) ...[
+            _PayslipSourceNote(
+              title: 'Annual salary prefilled',
+              detail:
+                  'Based on ${widget.payslipPrefill!.payPeriod}. This is monthly gross x 12, so adjust it if your CTC includes bonuses or employer benefits.',
+            ),
+            const SizedBox(height: 18),
+          ],
           // Live display — updates on every setState
           Center(
             child: Column(
@@ -910,8 +1004,13 @@ class _SlabIndicator extends StatelessWidget {
 // ─── Q02: Employment Type ─────────────────────────────────────────────────────
 class _Q02Employment extends ConsumerWidget {
   final UserProfile profile;
+  final PayslipTaxPrefill? payslipPrefill;
   final VoidCallback onNext;
-  const _Q02Employment({required this.profile, required this.onNext});
+  const _Q02Employment({
+    required this.profile,
+    required this.payslipPrefill,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -920,6 +1019,13 @@ class _Q02Employment extends ConsumerWidget {
       onNext: onNext,
       content: Column(
         children: [
+          if (payslipPrefill?.employerName != null) ...[
+            _PayslipSourceNote(
+              title: 'Employer found in your payslip',
+              detail: payslipPrefill!.employerName!,
+            ),
+            const SizedBox(height: 14),
+          ],
           SelectChip(
             label: 'Salaried Employee',
             icon: Icons.work_outline_rounded,
@@ -1009,7 +1115,14 @@ class _Q03CityState extends ConsumerState<_Q03City> {
     'Coimbatore',
     'Visakhapatnam',
     'Vadodara',
-    'Other',
+    'Patna',
+    'Bhubaneswar',
+    'Gurugram',
+    'Noida',
+    'Ranchi',
+    'Guwahati',
+    'Dehradun',
+    'Mysuru',
   ];
 
   List<String> get _filtered => _cities
@@ -1054,8 +1167,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
           ),
           const SizedBox(height: 12),
           _CityLandmark(city: widget.profile.city),
-          if (_CityLandmark.assetFor(widget.profile.city) != null)
-            const SizedBox(height: 12),
+          const SizedBox(height: 12),
           ListView.builder(
             itemCount: _filtered.length,
             shrinkWrap: true,
@@ -1119,6 +1231,26 @@ class _Q03CityState extends ConsumerState<_Q03City> {
               );
             },
           ),
+          if (_query.trim().length >= 2 &&
+              !_cities.any(
+                (city) => city.toLowerCase() == _query.trim().toLowerCase(),
+              ))
+            ListTile(
+              key: const Key('use_custom_city'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(Icons.add_location_alt_outlined),
+              title: Text('Use “${_query.trim()}”'),
+              subtitle: const Text('Save a city not listed above'),
+              onTap: () {
+                final city = _query.trim();
+                ref.read(userProfileProvider.notifier).updateField(
+                      (profile) => profile.copyWith(
+                        city: city,
+                        isMetroCity: false,
+                      ),
+                    );
+              },
+            ),
         ],
       ),
     );
@@ -1146,6 +1278,8 @@ class _CityLandmark extends StatefulWidget {
 class _CityLandmarkState extends State<_CityLandmark>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  final _service = CityImageService();
+  Future<CityImageResult?>? _remoteImage;
 
   @override
   void initState() {
@@ -1154,6 +1288,21 @@ class _CityLandmarkState extends State<_CityLandmark>
       vsync: this,
       duration: const Duration(seconds: 9),
     )..repeat(reverse: true);
+    _loadRemoteIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CityLandmark oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.city != widget.city) _loadRemoteIfNeeded();
+  }
+
+  void _loadRemoteIfNeeded() {
+    setState(() {
+      _remoteImage = _CityLandmark.assetFor(widget.city) == null
+          ? _service.find(widget.city)
+          : null;
+    });
   }
 
   @override
@@ -1165,7 +1314,25 @@ class _CityLandmarkState extends State<_CityLandmark>
   @override
   Widget build(BuildContext context) {
     final asset = _CityLandmark.assetFor(widget.city);
-    if (asset == null) return const SizedBox.shrink();
+    if (asset == null) {
+      final future = _remoteImage;
+      if (future == null) return const SizedBox.shrink();
+      return FutureBuilder<CityImageResult?>(
+        future: future,
+        builder: (context, snapshot) {
+          final image = snapshot.data;
+          if (image == null) {
+            return snapshot.connectionState == ConnectionState.waiting
+                ? const SizedBox(
+                    height: 118,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : const SizedBox.shrink();
+          }
+          return _RemoteCityImage(city: widget.city, image: image);
+        },
+      );
+    }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       child: ClipRRect(
@@ -1182,6 +1349,51 @@ class _CityLandmarkState extends State<_CityLandmark>
             ),
             child: Image.asset(asset, fit: BoxFit.cover),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RemoteCityImage extends StatelessWidget {
+  const _RemoteCityImage({required this.city, required this.image});
+
+  final String city;
+  final CityImageResult image;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: AppRadius.card,
+      child: SizedBox(
+        height: 158,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              image.imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const ColoredBox(
+                color: AppColors.surfaceMuted,
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                color: Colors.black.withValues(alpha: 0.68),
+                child: Text(
+                  '$city · ${image.artist} · ${image.license}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.micro(color: Colors.white),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1377,8 +1589,13 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
 // ─── Q05: HRA ────────────────────────────────────────────────────────────────
 class _Q05HRA extends ConsumerWidget {
   final UserProfile profile;
+  final PayslipTaxPrefill? payslipPrefill;
   final VoidCallback onNext;
-  const _Q05HRA({required this.profile, required this.onNext});
+  const _Q05HRA({
+    required this.profile,
+    required this.payslipPrefill,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1388,6 +1605,14 @@ class _Q05HRA extends ConsumerWidget {
       onNext: onNext,
       content: Column(
         children: [
+          if (payslipPrefill?.annualHraReceived != null) ...[
+            _PayslipSourceNote(
+              title: 'HRA already confirmed',
+              detail:
+                  '${NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(payslipPrefill!.annualHraReceived)} per year from ${payslipPrefill!.payPeriod}.',
+            ),
+            const SizedBox(height: 14),
+          ],
           SelectChip(
             label: 'Yes, HRA is in my salary',
             selected: profile.hasHRA,

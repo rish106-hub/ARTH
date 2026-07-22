@@ -106,6 +106,24 @@ const eventSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+const moneyGoalSchema = z.object({
+  name: z.string().trim().min(3).max(80),
+  category: z.enum(['safety', 'family', 'education', 'home', 'travel', 'other']),
+  targetAmount: z.number().int().min(1).max(1_000_000_000),
+  currentAmount: z.number().int().min(0).max(1_000_000_000),
+  targetDate: z.string().date(),
+  monthlyEssentials: z.number().int().min(0).max(100_000_000),
+  monthlyFamilySupport: z.number().int().min(0).max(100_000_000),
+});
+
+const employerSubmissionSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+});
+
+const employerSearchSchema = z.object({
+  q: z.string().trim().max(80).default(''),
+});
+
 const documentPatchSchema = z.object({
   userLabel: z.string().trim().max(80).nullable().optional(),
   notes: z.string().trim().max(1200).nullable().optional(),
@@ -326,6 +344,27 @@ function documentSummary(rows: Record<string, unknown>[]) {
     needsReview,
     ready,
     unsupported,
+  };
+}
+
+function moneyGoalResponse(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    targetAmount: row.target_amount,
+    currentAmount: row.current_amount,
+    targetDate: row.target_date instanceof Date
+      ? row.target_date.toISOString().slice(0, 10)
+      : String(row.target_date).slice(0, 10),
+    monthlyEssentials: row.monthly_essentials,
+    monthlyFamilySupport: row.monthly_family_support,
+    createdAt: row.created_at instanceof Date
+      ? row.created_at.toISOString()
+      : row.created_at,
+    updatedAt: row.updated_at instanceof Date
+      ? row.updated_at.toISOString()
+      : row.updated_at,
   };
 }
 
@@ -1325,6 +1364,127 @@ export async function registerRoutes(app: FastifyInstance) {
     },
   );
 
+  app.get('/money-goals', readRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const result = await db.query(
+      `select * from money_goals
+       where user_id = $1
+       order by updated_at desc
+       limit 10`,
+      [auth.userId],
+    );
+    return { goals: result.rows.map(moneyGoalResponse) };
+  });
+
+  app.post('/money-goals', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const goal = moneyGoalSchema.parse(request.body);
+    const result = await db.query(
+      `insert into money_goals (
+         user_id, name, category, target_amount, current_amount, target_date,
+         monthly_essentials, monthly_family_support
+       ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning *`,
+      [
+        auth.userId,
+        goal.name,
+        goal.category,
+        goal.targetAmount,
+        goal.currentAmount,
+        goal.targetDate,
+        goal.monthlyEssentials,
+        goal.monthlyFamilySupport,
+      ],
+    );
+    return reply.code(201).send({ goal: moneyGoalResponse(result.rows[0]) });
+  });
+
+  app.put('/money-goals/:id', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const goal = moneyGoalSchema.parse(request.body);
+    const result = await db.query(
+      `update money_goals set
+         name = $3,
+         category = $4,
+         target_amount = $5,
+         current_amount = $6,
+         target_date = $7,
+         monthly_essentials = $8,
+         monthly_family_support = $9,
+         updated_at = now()
+       where id = $1 and user_id = $2
+       returning *`,
+      [
+        id,
+        auth.userId,
+        goal.name,
+        goal.category,
+        goal.targetAmount,
+        goal.currentAmount,
+        goal.targetDate,
+        goal.monthlyEssentials,
+        goal.monthlyFamilySupport,
+      ],
+    );
+    if (!result.rowCount) {
+      return reply.code(404).send({
+        code: 'goal_not_found',
+        message: 'Goal not found',
+        retryable: false,
+      });
+    }
+    return { goal: moneyGoalResponse(result.rows[0]) };
+  });
+
+  app.delete('/money-goals/:id', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    await db.query(
+      'delete from money_goals where id = $1 and user_id = $2',
+      [id, auth.userId],
+    );
+    return reply.code(204).send();
+  });
+
+  app.get('/employers', readRateLimit, async (request) => {
+    const { q } = employerSearchSchema.parse(request.query);
+    const result = await db.query(
+      `select display_name from employer_catalog
+       where ($1 = '' or display_name ilike '%' || $1 || '%')
+         and (approved = true or usage_count >= 2)
+       order by
+         case when lower(display_name) = lower($1) then 0 else 1 end,
+         usage_count desc,
+         display_name asc
+       limit 50`,
+      [q],
+    );
+    return { employers: result.rows.map((row) => row.display_name) };
+  });
+
+  app.post('/employers', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { name } = employerSubmissionSchema.parse(request.body);
+    const normalized = name.toLocaleLowerCase('en-IN').replace(/\s+/g, ' ').trim();
+    const result = await db.query(
+      `insert into employer_catalog (
+         normalized_name, display_name, source, submitted_by
+       ) values ($1, $2, 'user', $3)
+       on conflict (normalized_name) do update set
+         usage_count = employer_catalog.usage_count + 1,
+         updated_at = now()
+       returning display_name`,
+      [normalized, name, auth.userId],
+    );
+    return reply.code(201).send({ employer: result.rows[0].display_name });
+  });
+
   app.get(
     '/done-gaps/current',
     readRateLimit,
@@ -1386,6 +1546,7 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
         await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
+        await client.query('delete from money_goals where user_id = $1', [auth.userId]);
         await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
         await client.query(
           `update user_private_identity
