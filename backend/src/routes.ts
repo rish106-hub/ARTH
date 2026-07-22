@@ -871,6 +871,11 @@ export async function registerRoutes(app: FastifyInstance) {
       bytes: buffer,
       panVaultSuffix,
     });
+    const detectedDocumentType = parsed.summary.detectedDocumentType;
+    const storedDocumentType = documentType === 'offerLetter'
+      && detectedDocumentType === 'payslip'
+      ? 'payslip'
+      : documentType;
     const inserted = await db.query(
       `insert into tax_documents (
          user_id, fy, document_type, original_filename, mime_type, byte_size,
@@ -897,7 +902,7 @@ export async function registerRoutes(app: FastifyInstance) {
       [
         auth.userId,
         env.CURRENT_FY,
-        documentType,
+        storedDocumentType,
         safeFilename(part.filename),
         part.mimetype,
         buffer.length,
@@ -911,13 +916,19 @@ export async function registerRoutes(app: FastifyInstance) {
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'document_uploaded', JSON.stringify({ documentType })],
+      [auth.userId, 'document_uploaded', JSON.stringify({
+        documentType: storedDocumentType,
+        selectedDocumentType: documentType,
+      })],
     );
     await recordDocumentEvent({
       userId: auth.userId,
       documentId: inserted.rows[0].id as string,
       eventType: 'upload',
-      metadata: { documentType },
+      metadata: {
+        documentType: storedDocumentType,
+        selectedDocumentType: documentType,
+      },
     });
     return { document: documentResponse(inserted.rows[0]) };
   });

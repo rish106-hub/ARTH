@@ -185,6 +185,19 @@ class _PaycheckHome extends ConsumerWidget {
     final claimItems = paycheck.items
         .where((item) => item.status == PaycheckItemStatus.claimable)
         .toList(growable: false);
+    final hasPayslip = paycheck.grossReceived > 0 || paycheck.netCredited > 0;
+    final headline = claimItems.isNotEmpty
+        ? 'READY TO CLAIM'
+        : hasPayslip
+            ? 'NET PAY THIS PERIOD'
+            : 'NO PAYSLIP CONFIRMED';
+    final headlineValue =
+        claimItems.isNotEmpty ? paycheck.claimableNow : paycheck.netCredited;
+    final summary = claimItems.isNotEmpty
+        ? '${claimItems.length} ${claimItems.length == 1 ? 'benefit has' : 'benefits have'} matching proof. Review before the payroll deadline.'
+        : hasPayslip
+            ? 'Your confirmed payslip shows ${_money(paycheck.grossReceived)} in earnings and ${_money(paycheck.taxWithheld + paycheck.otherDeductions)} in deductions.'
+            : 'Add a payslip in Inbox, check the extracted numbers, then confirm them here.';
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -197,47 +210,60 @@ class _PaycheckHome extends ConsumerWidget {
               sample: paycheck.usingSampleData,
             ),
             const SizedBox(height: 28),
-            Text('READY TO CLAIM', style: PaycheckType.utility()),
+            Text(headline, style: PaycheckType.utility()),
             const SizedBox(height: 7),
-            Text(
-              _money(paycheck.claimableNow),
-              key: const Key('paycheck_claimable_amount'),
-              style: PaycheckType.display(color: PaycheckColors.claim),
-            ),
+            if (hasPayslip || claimItems.isNotEmpty)
+              Text(
+                _money(headlineValue),
+                key: const Key('paycheck_claimable_amount'),
+                style: PaycheckType.display(
+                  color: claimItems.isNotEmpty
+                      ? PaycheckColors.claim
+                      : PaycheckColors.matched,
+                ),
+              )
+            else
+              Text(
+                'Add your first payslip',
+                key: const Key('paycheck_claimable_amount'),
+                style: PaycheckType.title(),
+              ),
             const SizedBox(height: 8),
             Text(
-              'Two benefits have matching bills. Prepare both before the July payroll closes.',
+              summary,
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
             const SizedBox(height: 22),
             _ReconciliationCard(paycheck: paycheck),
             const SizedBox(height: 26),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Money needing action',
-                    style: PaycheckType.heading(),
+            if (claimItems.isNotEmpty) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Money needing action',
+                      style: PaycheckType.heading(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('${claimItems.length} ITEMS',
+                      style: PaycheckType.utility()),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...claimItems.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ClaimCard(
+                    item: item,
+                    prepared: paycheck.preparedClaims.contains(item.id),
+                    onTap: () => _openClaimSheet(context, ref, item),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Text('${claimItems.length} ITEMS',
-                    style: PaycheckType.utility()),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...claimItems.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ClaimCard(
-                  item: item,
-                  prepared: paycheck.preparedClaims.contains(item.id),
-                  onTap: () => _openClaimSheet(context, ref, item),
-                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _PayPeriodStrip(paycheck: paycheck),
+              const SizedBox(height: 16),
+            ],
+            if (hasPayslip) _PayPeriodStrip(paycheck: paycheck),
           ],
         ),
       ),
@@ -510,6 +536,11 @@ class _InboxView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final documents =
+        ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
+    final documentsById = {
+      for (final document in documents) document.id: document
+    };
     return _PageFrame(
       eyebrow: 'READ-ONLY SOURCES',
       title: 'Proof, without\npayment access.',
@@ -582,13 +613,32 @@ class _InboxView extends ConsumerWidget {
           Text('Found this month', style: PaycheckType.heading()),
           const SizedBox(height: 10),
           ...paycheck.evidence.map(
-            (item) => _DetectedDocument(
-              icon: _iconFor(item.kind),
-              title: item.name,
-              detail: item.detail,
-              badge: item.statusLabel,
-              attention: item.needsAction,
-            ),
+            (item) {
+              final document = documentsById[item.id];
+              final reviewDocument = document != null &&
+                      document.documentType == 'payslip' &&
+                      document.needsConfirmation &&
+                      document.extractedFields.isNotEmpty
+                  ? document
+                  : null;
+              return _DetectedDocument(
+                icon: _iconFor(item.kind),
+                title: item.name,
+                detail: item.detail,
+                badge: item.statusLabel,
+                attention: item.needsAction,
+                onTap: reviewDocument != null
+                    ? () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          showDragHandle: true,
+                          builder: (_) => _PayslipReviewSheet(
+                            document: reviewDocument,
+                          ),
+                        )
+                    : null,
+              );
+            },
           ),
         ],
       ),
@@ -668,10 +718,15 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
       _error = null;
     });
     try {
+      final messenger = ScaffoldMessenger.of(context);
       await ref
           .read(taxDocumentProvider.notifier)
           .confirmParsedFields(widget.document.id);
-      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payslip confirmed. Home is updated.')),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -689,6 +744,10 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
     final warnings = (_fields['warnings'] as List<dynamic>? ?? const [])
         .map((item) => item.toString())
         .toList(growable: false);
+    final questions =
+        (_fields['questionsForUser'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList(growable: false);
 
     return SafeArea(
       child: DraggableScrollableSheet(
@@ -707,6 +766,11 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                   const SizedBox(height: 6),
                   Text(
                     '${_fields['payPeriod'] ?? 'Pay period not found'} · ${_fields['employerName'] ?? 'Employer not found'}',
+                    style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Check these numbers against your payslip. Confirm only if they match.',
                     style: PaycheckType.body(color: PaycheckColors.inkSoft),
                   ),
                   const SizedBox(height: 24),
@@ -788,6 +852,35 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                       ),
                     ),
                   ],
+                  if (questions.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: PaycheckColors.contractSoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Details ARTH could not confirm',
+                              style: PaycheckType.bodyStrong()),
+                          const SizedBox(height: 6),
+                          ...questions.map(
+                            (question) => Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '• $question',
+                                style: PaycheckType.body(
+                                  color: PaycheckColors.inkSoft,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     Text(_error!,
@@ -811,7 +904,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                   ),
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: Text(
-                    _confirming ? 'Confirming...' : 'Confirm extracted fields',
+                    _confirming ? 'Saving...' : 'Use these payslip details',
                     style: PaycheckType.bodyStrong(color: Colors.white),
                   ),
                 ),
@@ -968,6 +1061,10 @@ class _ReconciliationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canCompare = paycheck.promisedMonthly > 0;
+    final period = paycheck.payPeriod == 'No payslip confirmed'
+        ? 'PAYCHECK'
+        : paycheck.payPeriod.toUpperCase();
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
@@ -982,45 +1079,58 @@ class _ReconciliationCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'JULY RECONCILIATION',
+                  canCompare ? '$period RECONCILIATION' : '$period PAYSLIP',
                   style: PaycheckType.utility(),
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: PaycheckColors.matchedSoft,
-                  borderRadius: BorderRadius.circular(99),
+              if (canCompare)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: PaycheckColors.matchedSoft,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    '${paycheck.reconciliationPercent}% MATCHED',
+                    style: PaycheckType.utility(color: PaycheckColors.matched),
+                  ),
                 ),
-                child: Text(
-                  '${paycheck.reconciliationPercent}% MATCHED',
-                  style: PaycheckType.utility(color: PaycheckColors.matched),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 18),
-          _RailRow(
-            color: PaycheckColors.contract,
-            label: 'Promised',
-            value: _money(paycheck.promisedMonthly),
-            detail: 'Offer letter',
-            isFirst: true,
-          ),
+          if (canCompare)
+            _RailRow(
+              color: PaycheckColors.contract,
+              label: 'Promised',
+              value: _money(paycheck.promisedMonthly),
+              detail: 'Confirmed offer letter',
+              isFirst: true,
+            ),
           _RailRow(
             color: PaycheckColors.matched,
-            label: 'Gross received',
+            label: 'Gross earnings',
             value: _money(paycheck.grossReceived),
-            detail: 'July payslip',
+            detail: 'Confirmed payslip',
+            isFirst: !canCompare,
           ),
-          _RailRow(
-            color: PaycheckColors.claim,
-            label: 'Still claimable',
-            value: _money(paycheck.claimableNow),
-            detail: '2 eligible benefits',
-            isLast: true,
-          ),
+          if (paycheck.claimableNow > 0)
+            _RailRow(
+              color: PaycheckColors.claim,
+              label: 'Still claimable',
+              value: _money(paycheck.claimableNow),
+              detail: 'Benefits with matching proof',
+              isLast: true,
+            )
+          else
+            _RailRow(
+              color: PaycheckColors.inkSoft,
+              label: 'Net pay',
+              value: _money(paycheck.netCredited),
+              detail: 'After payslip deductions',
+              isLast: true,
+            ),
         ],
       ),
     );
@@ -1201,13 +1311,13 @@ class _PayPeriodStrip extends StatelessWidget {
               children: [
                 Text('Next payroll check', style: PaycheckType.bodyStrong()),
                 Text(
-                  '31 July · after net salary credit',
+                  'After your next salary credit',
                   style: PaycheckType.body(color: PaycheckColors.inkSoft),
                 ),
               ],
             ),
           ),
-          Text('9 DAYS', style: PaycheckType.utility()),
+          Text('NEXT MONTH', style: PaycheckType.utility()),
         ],
       ),
     );
@@ -1384,6 +1494,7 @@ class _DetectedDocument extends StatelessWidget {
   final String detail;
   final String badge;
   final bool attention;
+  final VoidCallback? onTap;
 
   const _DetectedDocument({
     required this.icon,
@@ -1391,40 +1502,57 @@ class _DetectedDocument extends StatelessWidget {
     required this.detail,
     required this.badge,
     this.attention = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
         color: PaycheckColors.paper,
         borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: PaycheckColors.inkSoft),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               children: [
-                Text(title, style: PaycheckType.bodyStrong()),
-                Text(
-                  detail,
-                  style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                Icon(icon, color: PaycheckColors.inkSoft),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: PaycheckType.bodyStrong()),
+                      Text(
+                        detail,
+                        style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                      ),
+                    ],
+                  ),
                 ),
+                Text(
+                  badge,
+                  style: PaycheckType.utility(
+                    color: attention
+                        ? PaycheckColors.claim
+                        : PaycheckColors.matched,
+                  ),
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: PaycheckColors.inkSoft,
+                  ),
+                ],
               ],
             ),
           ),
-          Text(
-            badge,
-            style: PaycheckType.utility(
-              color: attention ? PaycheckColors.claim : PaycheckColors.matched,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

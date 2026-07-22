@@ -253,7 +253,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
     }
 
     try {
-      await ref.read(taxDocumentProvider.notifier).upload(
+      final uploaded = await ref.read(taxDocumentProvider.notifier).upload(
             documentType: item.id,
             filename: file.name,
             mimeType: mimeType,
@@ -266,6 +266,9 @@ class DocumentChecklistScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${item.title} uploaded securely.')),
         );
+        if (uploaded.needsConfirmation) {
+          _showDocumentDetail(context, ref, uploaded);
+        }
       }
     } catch (error) {
       final message = error is ServerApiException
@@ -351,7 +354,17 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 await ref
                     .read(taxDocumentProvider.notifier)
                     .confirmParsedFields(document.id);
-                if (sheetContext.mounted) Navigator.pop(sheetContext);
+                if (!sheetContext.mounted) return;
+                Navigator.pop(sheetContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      document.documentType == 'payslip'
+                          ? 'Payslip confirmed. Home is updated.'
+                          : 'Document details confirmed.',
+                    ),
+                  ),
+                );
               } catch (caught) {
                 if (!sheetContext.mounted) return;
                 setSheetState(() {
@@ -443,13 +456,22 @@ class DocumentChecklistScreen extends ConsumerWidget {
                       _ParserTimeline(document: document),
                       if (document.extractedFields.isNotEmpty) ...[
                         const SizedBox(height: 16),
-                        Text('Extracted fields', style: AppTextStyles.h3()),
+                        Text(
+                          document.documentType == 'payslip'
+                              ? 'Check your payslip details'
+                              : 'Check extracted details',
+                          style: AppTextStyles.h3(),
+                        ),
                         const SizedBox(height: 8),
-                        ...document.extractedFields.entries.map(
-                          (entry) => _ParsedFieldRow(
-                            label: _fieldLabel(entry.key),
-                            value: _fieldValue(entry.value),
+                        Text(
+                          'Confirm only if these details match the document.',
+                          style: AppTextStyles.caption(
+                            color: AppColors.textSecondary,
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        _FriendlyExtractedFields(
+                          fields: document.extractedFields,
                         ),
                       ],
                       if (error != null) ...[
@@ -464,7 +486,9 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         style: AppButtons.primaryGold,
                         onPressed: saving ? null : () => saveMetadata(),
                         icon: const Icon(Icons.save_outlined),
-                        label: Text(saving ? 'Saving...' : 'Save document'),
+                        label: Text(
+                          saving ? 'Saving...' : 'Save label and notes',
+                        ),
                       ),
                       if (document.needsConfirmation) ...[
                         const SizedBox(height: 8),
@@ -472,7 +496,11 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           style: AppButtons.outlineGold,
                           onPressed: saving ? null : confirmFields,
                           icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('Confirm extracted fields'),
+                          label: Text(
+                            document.documentType == 'payslip'
+                                ? 'Use these payslip details'
+                                : 'Confirm these details',
+                          ),
                         ),
                       ],
                       const SizedBox(height: 8),
@@ -505,30 +533,168 @@ class DocumentChecklistScreen extends ConsumerWidget {
       },
     );
   }
+}
 
-  String _fieldLabel(String key) {
-    const labels = {
-      'employerName': 'Employer',
-      'employerTan': 'Employer TAN',
-      'financialYear': 'Financial year',
-      'assessmentYear': 'Assessment year',
-      'grossSalary': 'Gross salary',
-      'standardDeduction': 'Standard deduction',
-      'chapterViaDeductions': 'Chapter VI-A deductions',
-      'taxDeductedAtSource': 'TDS',
-      'taxableIncome': 'Taxable income',
-      'panMatchStatus': 'PAN match',
-    };
-    return labels[key] ?? key;
+class _FriendlyExtractedFields extends StatelessWidget {
+  const _FriendlyExtractedFields({required this.fields});
+
+  final Map<String, dynamic> fields;
+
+  static const _labels = <String, String>{
+    'employerName': 'Employer',
+    'employeeName': 'Employee',
+    'roleTitle': 'Role',
+    'payPeriod': 'Pay period',
+    'paymentDate': 'Payment date',
+    'currency': 'Currency',
+    'annualCtc': 'Annual CTC',
+    'fixedAnnualPay': 'Fixed annual pay',
+    'variableAnnualPay': 'Variable annual pay',
+    'joiningBonus': 'Joining bonus',
+    'grossEarnings': 'Gross earnings',
+    'totalDeductions': 'Total deductions',
+    'netSalary': 'Net salary',
+    'actualPayableDays': 'Actual payable days',
+    'totalWorkingDays': 'Total working days',
+    'lossOfPayDays': 'Loss of pay days',
+    'daysPayable': 'Days payable',
+  };
+
+  static const _moneyKeys = <String>{
+    'annualCtc',
+    'fixedAnnualPay',
+    'variableAnnualPay',
+    'joiningBonus',
+    'grossEarnings',
+    'totalDeductions',
+    'netSalary',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final scalars = fields.entries.where(
+      (entry) => entry.value is! List && entry.value is! Map,
+    );
+    final attendance = _map('attendance');
+    final earnings = _rows('earnings');
+    final deductions = _rows('deductions');
+    final components = _rows('components');
+    final warnings = _strings('warnings');
+    final questions = _strings('questionsForUser');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final entry in scalars)
+          if (entry.key != 'warnings' && entry.key != 'questionsForUser')
+            _ParsedFieldRow(
+              label: _label(entry.key),
+              value: _value(entry.key, entry.value),
+            ),
+        if (attendance.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text('Attendance', style: AppTextStyles.bodyMedium()),
+          const SizedBox(height: 6),
+          for (final entry in attendance.entries)
+            _ParsedFieldRow(
+              label: _label(entry.key),
+              value: entry.value?.toString() ?? 'Not found',
+            ),
+        ],
+        if (earnings.isNotEmpty) _amountSection('Earnings', earnings, 'amount'),
+        if (deductions.isNotEmpty)
+          _amountSection('Deductions', deductions, 'amount'),
+        if (components.isNotEmpty)
+          _amountSection('Pay components', components, 'annualAmount'),
+        if (warnings.isNotEmpty)
+          _messageSection(
+            'Check before confirming',
+            warnings,
+            AppColors.amber.withValues(alpha: 0.12),
+          ),
+        if (questions.isNotEmpty)
+          _messageSection(
+            'Details ARTH could not confirm',
+            questions,
+            AppColors.info.withValues(alpha: 0.10),
+          ),
+      ],
+    );
   }
 
-  String _fieldValue(Object? value) {
-    if (value is num) return formatRupeesCompact(value.round());
-    if (value == 'matches_vault') return 'Matches PAN vault';
-    if (value == 'differs_from_vault') return 'Differs from PAN vault';
-    if (value == 'not_checked') return 'PAN vault not added';
-    if (value == 'not_found') return 'Not found in text';
-    return value?.toString() ?? '-';
+  Widget _amountSection(
+    String title,
+    List<Map<String, dynamic>> rows,
+    String amountKey,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: AppTextStyles.bodyMedium()),
+          const SizedBox(height: 6),
+          for (final row in rows)
+            _ParsedFieldRow(
+              label: row['label']?.toString() ?? 'Item',
+              value: row[amountKey] is num
+                  ? formatRupeesCompact((row[amountKey] as num).round())
+                  : 'Amount not found',
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _messageSection(String title, List<String> messages, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: color, borderRadius: AppRadius.card),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.bodyMedium()),
+          const SizedBox(height: 4),
+          for (final message in messages)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '• $message',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, dynamic> _map(String key) =>
+      fields[key] as Map<String, dynamic>? ?? const {};
+
+  List<Map<String, dynamic>> _rows(String key) =>
+      (fields[key] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+
+  List<String> _strings(String key) =>
+      (fields[key] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(growable: false);
+
+  String _label(String key) =>
+      _labels[key] ??
+      key.replaceAllMapped(
+        RegExp(r'([a-z])([A-Z])'),
+        (match) => '${match.group(1)} ${match.group(2)!.toLowerCase()}',
+      );
+
+  String _value(String key, Object? value) {
+    if (value == null) return 'Not found';
+    if (_moneyKeys.contains(key) && value is num) {
+      return formatRupeesCompact(value.round());
+    }
+    return value.toString();
   }
 }
 
