@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { parseUploadedDocument } from '../src/documentParser.js';
+import { parsePayslipText, parseUploadedDocument } from '../src/documentParser.js';
 
 describe('offer letter interpretation', () => {
   it('stores the document for manual review when Gemini is not configured', async () => {
@@ -171,6 +171,43 @@ describe('offer letter interpretation', () => {
 });
 
 describe('payslip interpretation', () => {
+  it('parses text payslip sections without Gemini', () => {
+    const parsed = parsePayslipText(`
+      SALARY DETAILS
+      ACTUAL PAYABLE DAYS 30
+      TOTAL WORKING DAYS 29
+      LOSS OF PAY DAYS 0
+      DAYS PAYABLE 29
+
+      EARNINGS
+      Basic 19,333.33
+      HRA 7,733.33
+      Special Allowance 6,122.30
+      Professional Development Allowance 966.67
+      Travel Reimbursement (LTA) 1,611.03
+      Phone & Internet Allowance 3,000.00
+      Total Earnings (A) 38,766.66
+
+      TAXES & DEDUCTIONS
+      Professional Tax 200.00
+      Total Taxes & Deductions (B) 200.00
+
+      Net Salary Payable ( A - B ) 38,567.00
+    `);
+
+    assert.ok(parsed);
+    assert.equal(parsed.attendance.actualPayableDays, 30);
+    assert.equal(parsed.attendance.daysPayable, 29);
+    assert.equal(parsed.earnings.length, 6);
+    assert.equal(parsed.earnings[0].classification, 'basic_pay');
+    assert.equal(parsed.earnings[1].classification, 'hra');
+    assert.equal(parsed.deductions.length, 1);
+    assert.equal(parsed.deductions[0].classification, 'professional_tax');
+    assert.equal(parsed.grossEarnings, 38766.66);
+    assert.equal(parsed.totalDeductions, 200);
+    assert.equal(parsed.netSalary, 38567);
+  });
+
   it('keeps a payslip for manual review when Gemini is not configured', async () => {
     const previousKey = process.env.GEMINI_API_KEY;
     delete process.env.GEMINI_API_KEY;

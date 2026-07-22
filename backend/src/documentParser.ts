@@ -84,6 +84,31 @@ export async function parseUploadedDocument(input: {
 }): Promise<DocumentParseResult> {
   if (input.documentType === 'payslip') {
     const base = metadataSummary(input.documentType, input.mimeType);
+    if (input.mimeType === 'application/pdf') {
+      try {
+        const text = await extractPdfText(input.bytes);
+        const parsed = parsePayslipText(text);
+        if (parsed) {
+          const checked = withPayslipArithmeticChecks(parsed);
+          return {
+            status: 'needs_confirmation',
+            summary: {
+              ...base,
+              parser: 'deterministic-payslip-v1',
+              llmUsed: false,
+              confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+              insight:
+                'Payslip text parsed. Confirm attendance, earnings, deductions, and net salary before reconciliation.',
+              extractedFields: checked,
+              confirmationStatus: 'pending',
+              reviewRequired: true,
+            },
+          };
+        }
+      } catch {
+        // Fall through to Gemini/manual review. Scanned or locked PDFs may not expose text.
+      }
+    }
     const interpretation = await interpretPayslip({
       bytes: input.bytes,
       mimeType: input.mimeType,
@@ -329,6 +354,63 @@ export function parseForm16Text(text: string, panVaultSuffix: PanVaultSuffix): P
   });
 }
 
+export function parsePayslipText(text: string): PayslipInterpretation | null {
+  const normalized = normalizeText(text);
+  if (normalized.replace(/\s/g, '').length < 40) return null;
+
+  const earnings = extractPayslipRows(
+    normalized,
+    'earnings',
+  ) as PayslipInterpretation['earnings'];
+  const deductions = extractPayslipRows(
+    normalized,
+    'deductions',
+  ) as PayslipInterpretation['deductions'];
+  const grossEarnings = findMoneyDecimal(normalized, [
+    /total earnings(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    /gross earnings\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+  ]);
+  const totalDeductions = findMoneyDecimal(normalized, [
+    /total taxes\s*&\s*deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    /total deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+  ]);
+  const netSalary = findMoneyDecimal(normalized, [
+    /net salary payable(?:\s*\([^)]+\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    /net salary\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    /net pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+  ]);
+
+  const signalCount = earnings.length + deductions.length +
+    (grossEarnings == null ? 0 : 1) +
+    (totalDeductions == null ? 0 : 1) +
+    (netSalary == null ? 0 : 1);
+  if (signalCount < 3) return null;
+
+  return {
+    employerName: extractPayslipEmployer(normalized) ?? null,
+    employeeName: extractPayslipEmployee(normalized) ?? null,
+    payPeriod: extractPayPeriod(normalized) ?? null,
+    paymentDate: extractPaymentDate(normalized) ?? null,
+    currency: 'INR',
+    attendance: {
+      actualPayableDays: findNumberAfterLabel(normalized, /actual payable days/i),
+      totalWorkingDays: findNumberAfterLabel(normalized, /total working days/i),
+      lossOfPayDays: findNumberAfterLabel(normalized, /loss of pay days/i),
+      daysPayable: findNumberAfterLabel(normalized, /days payable/i),
+    },
+    earnings,
+    deductions,
+    grossEarnings: grossEarnings ?? null,
+    totalDeductions: totalDeductions ?? null,
+    netSalary: netSalary ?? null,
+    warnings: [],
+    questionsForUser: [
+      ...(earnings.length === 0 ? ['Confirm earning line items manually.'] : []),
+      ...(deductions.length === 0 ? ['Confirm deduction line items manually.'] : []),
+    ],
+  };
+}
+
 function unsupportedTextPdf(
   base: Record<string, unknown>,
   reason: string,
@@ -388,6 +470,15 @@ function findMoney(text: string, patterns: RegExp[]): number | undefined {
   return undefined;
 }
 
+function findMoneyDecimal(text: string, patterns: RegExp[]): number | null {
+  for (const pattern of patterns) {
+    const value = findFirst(text, pattern);
+    const parsed = value ? Number.parseFloat(value.replace(/,/g, '')) : Number.NaN;
+    if (Number.isFinite(parsed)) return Number(parsed.toFixed(2));
+  }
+  return null;
+}
+
 function findFirst(text: string, pattern: RegExp): string | undefined {
   return cleanText(pattern.exec(text)?.[1]);
 }
@@ -407,6 +498,103 @@ function extractEmployeePan(text: string): string | undefined {
 function cleanText(value: string | undefined): string | undefined {
   const cleaned = value?.replace(/\s+/g, ' ').trim();
   return cleaned && cleaned.length <= 120 ? cleaned : undefined;
+}
+
+function extractPayslipRows(
+  text: string,
+  section: 'earnings' | 'deductions',
+): Array<{
+  label: string;
+  amount: number;
+  classification: string;
+  confidence: 'high' | 'medium' | 'low';
+}> {
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  const rows: Array<{
+    label: string;
+    amount: number;
+    classification: string;
+    confidence: 'high' | 'medium' | 'low';
+  }> = [];
+  let active = false;
+  for (const line of lines) {
+    if (/^earnings\b/i.test(line)) {
+      active = section === 'earnings';
+      continue;
+    }
+    if (/^(taxes\s*&\s*deductions|deductions)\b/i.test(line)) {
+      active = section === 'deductions';
+      continue;
+    }
+    if (/^(net salary|net pay|salary in words)\b/i.test(line)) active = false;
+    if (!active) continue;
+
+    const match = /^([A-Za-z][A-Za-z &/().-]{1,90}?)\s+(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$/i.exec(line);
+    if (!match) continue;
+    const label = cleanText(match[1]);
+    const amount = Number.parseFloat(match[2].replace(/,/g, ''));
+    if (!label || !Number.isFinite(amount) || /^total\b/i.test(label)) continue;
+    rows.push({
+      label,
+      amount: Number(amount.toFixed(2)),
+      classification: section === 'earnings'
+        ? classifyEarning(label)
+        : classifyDeduction(label),
+      confidence: 'medium',
+    });
+  }
+  return rows.slice(0, 80);
+}
+
+function classifyEarning(label: string): PayslipInterpretation['earnings'][number]['classification'] {
+  const lower = label.toLowerCase();
+  if (lower.includes('basic')) return 'basic_pay';
+  if (lower.includes('hra') || lower.includes('house rent')) return 'hra';
+  if (lower.includes('reimbursement') || lower.includes('lta') || lower.includes('travel')) {
+    return 'reimbursement';
+  }
+  if (lower.includes('bonus') || lower.includes('incentive')) return 'bonus';
+  if (lower.includes('variable')) return 'variable_pay';
+  if (lower.includes('allowance')) return 'allowance';
+  return 'other';
+}
+
+function classifyDeduction(label: string): PayslipInterpretation['deductions'][number]['classification'] {
+  const lower = label.toLowerCase();
+  if (lower.includes('professional tax')) return 'professional_tax';
+  if (lower.includes('income tax') || lower.includes('tds')) return 'income_tax';
+  if (lower.includes('pf') || lower.includes('provident')) return 'employee_pf';
+  if (lower.includes('esi')) return 'employee_esi';
+  if (lower.includes('loan')) return 'loan';
+  return 'other';
+}
+
+function findNumberAfterLabel(text: string, label: RegExp): number | null {
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (!label.test(line)) continue;
+    const match = /([0-9]+(?:\.[0-9]+)?)(?!.*[0-9])/.exec(line);
+    if (!match) return null;
+    const parsed = Number.parseFloat(match[1]);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function extractPayslipEmployer(text: string): string | undefined {
+  return findFirst(text, /(?:employer|company|organisation|organization)\s*(?:name)?\s*[:\-]?\s*([^\n]+)/i);
+}
+
+function extractPayslipEmployee(text: string): string | undefined {
+  return findFirst(text, /(?:employee|associate)\s*(?:name)?\s*[:\-]?\s*([^\n]+)/i);
+}
+
+function extractPayPeriod(text: string): string | undefined {
+  return findFirst(text, /(?:pay period|salary month|payroll month|month)\s*[:\-]?\s*([A-Za-z]+\s+[0-9]{4}|[0-9]{2}[-/][0-9]{4})/i);
+}
+
+function extractPaymentDate(text: string): string | undefined {
+  return findFirst(text, /(?:payment date|paid on|salary date)\s*[:\-]?\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})/i);
 }
 
 function panMatchStatus(
