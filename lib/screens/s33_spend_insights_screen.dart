@@ -35,14 +35,16 @@ class SpendInsightsScreen extends ConsumerWidget {
               if (state.loading)
                 const _Loading()
               else if (state.permissionDenied)
-                _PermissionCard(onRetry: () => ref.read(spendMapProvider.notifier).scan())
+                _PermissionCard(
+                    onRetry: () => ref.read(spendMapProvider.notifier).scan())
               else if (state.error != null)
                 _ErrorCard(
                   message: state.error!,
                   onRetry: () => ref.read(spendMapProvider.notifier).scan(),
                 )
               else if (!state.hasData)
-                _EmptyCard(onScan: () => ref.read(spendMapProvider.notifier).scan())
+                _EmptyCard(
+                    onScan: () => ref.read(spendMapProvider.notifier).scan())
               else
                 _Insights(map: state.map!),
               if (state.hasData && !state.loading) ...[
@@ -154,7 +156,8 @@ class _ErrorCard extends StatelessWidget {
         children: [
           Text('Could not scan', style: PaycheckType.title()),
           const SizedBox(height: 8),
-          Text(message, style: PaycheckType.body(color: PaycheckColors.inkSoft)),
+          Text(message,
+              style: PaycheckType.body(color: PaycheckColors.inkSoft)),
           const SizedBox(height: 16),
           FilledButton(onPressed: onRetry, child: const Text('Retry')),
         ],
@@ -222,7 +225,8 @@ class _SavingsHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaycheckColors.matchedSoft,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: PaycheckColors.matched.withValues(alpha: 0.4)),
+        border:
+            Border.all(color: PaycheckColors.matched.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,8 +237,7 @@ class _SavingsHero extends StatelessWidget {
           Text(money0(savings),
               style: PaycheckType.display(color: PaycheckColors.ink)),
           if (map.monthlyIncome > 0)
-            Text('$rate% of detected income',
-                style: PaycheckType.utility()),
+            Text('$rate% of detected income', style: PaycheckType.utility()),
           const SizedBox(height: 10),
           Text(coaching, style: PaycheckType.body()),
         ],
@@ -315,8 +318,7 @@ class _StatTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(),
-              style: PaycheckType.utility(color: color)),
+          Text(label.toUpperCase(), style: PaycheckType.utility(color: color)),
           const SizedBox(height: 6),
           Text(value, style: PaycheckType.title()),
         ],
@@ -393,4 +395,3 @@ String _coachingLine(SpendMap map) {
   return 'Spending matches or exceeds detected income. Review your largest '
       'categories before committing to a goal.$topLine';
 }
-

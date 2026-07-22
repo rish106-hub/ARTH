@@ -62,7 +62,8 @@ void main() {
 
   group('noise rejection', () {
     test('OTP is ignored', () {
-      expect(parse('123456 is your OTP for Rs 5000 txn. Do not share.'), isNull);
+      expect(
+          parse('123456 is your OTP for Rs 5000 txn. Do not share.'), isNull);
     });
 
     test('future/reminder debit is ignored', () {

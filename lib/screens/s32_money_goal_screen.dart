@@ -441,4 +441,3 @@ class _SpendMapHint extends ConsumerWidget {
     );
   }
 }
-
