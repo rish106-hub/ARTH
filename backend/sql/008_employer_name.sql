@@ -1,0 +1,2 @@
+ALTER TABLE tax_profiles
+  ADD COLUMN IF NOT EXISTS employer_name TEXT NOT NULL DEFAULT '';

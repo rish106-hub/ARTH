@@ -10,6 +10,7 @@ import '../providers/user_profile_provider.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/tax_journey_scene.dart';
+import '../widgets/employer_picker.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   final bool paycheckMode;
@@ -930,6 +931,29 @@ class _Q02Employment extends ConsumerWidget {
                   );
             },
           ),
+          if (profile.employmentType == EmploymentType.salaried) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              key: const Key('select_employer'),
+              style: AppButtons.outlineGold,
+              onPressed: () async {
+                final employer = await showEmployerPicker(
+                  context,
+                  currentValue: profile.employerName,
+                );
+                if (employer == null) return;
+                ref.read(userProfileProvider.notifier).updateField(
+                      (p) => p.copyWith(employerName: employer),
+                    );
+              },
+              icon: const Icon(Icons.business_outlined),
+              label: Text(
+                profile.employerName.isEmpty
+                    ? 'Add your employer'
+                    : profile.employerName,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           SelectChip(
             label: 'Self-Employed / Freelancer',
@@ -975,6 +999,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
     'Ahmedabad',
     'Jaipur',
     'Lucknow',
+    'Durgapur',
     'Indore',
     'Bhopal',
     'Chandigarh',
@@ -1028,6 +1053,9 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 12),
+          _CityLandmark(city: widget.profile.city),
+          if (_CityLandmark.assetFor(widget.profile.city) != null)
+            const SizedBox(height: 12),
           ListView.builder(
             itemCount: _filtered.length,
             shrinkWrap: true,
@@ -1092,6 +1120,69 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CityLandmark extends StatefulWidget {
+  const _CityLandmark({required this.city});
+
+  final String city;
+
+  static String? assetFor(String city) => switch (city) {
+        'Delhi' => 'assets/images/city_delhi.webp',
+        'Mumbai' => 'assets/images/city_mumbai.webp',
+        'Kolkata' => 'assets/images/city_kolkata.webp',
+        'Lucknow' => 'assets/images/city_lucknow.webp',
+        'Durgapur' => 'assets/images/city_durgapur.webp',
+        _ => null,
+      };
+
+  @override
+  State<_CityLandmark> createState() => _CityLandmarkState();
+}
+
+class _CityLandmarkState extends State<_CityLandmark>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 9),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _CityLandmark.assetFor(widget.city);
+    if (asset == null) return const SizedBox.shrink();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: ClipRRect(
+        key: ValueKey(asset),
+        borderRadius: AppRadius.card,
+        child: SizedBox(
+          width: double.infinity,
+          height: 158,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) => Transform.scale(
+              scale: 1 + (_controller.value * 0.035),
+              child: child,
+            ),
+            child: Image.asset(asset, fit: BoxFit.cover),
+          ),
+        ),
       ),
     );
   }

@@ -69,6 +69,20 @@ class TaxDocument {
   bool get needsReview =>
       needsConfirmation || reviewStatus == 'needs_review' || unsupported;
 
+  bool get isPayslip {
+    if (documentType == 'payslip' ||
+        parseSummary['detectedDocumentType'] == 'payslip' ||
+        parseSummary['parser'] == 'gemini-payslip-v1') {
+      return true;
+    }
+    final fields =
+        confirmedFields.isNotEmpty ? confirmedFields : extractedFields;
+    return fields['earnings'] is List &&
+        fields['deductions'] is List &&
+        (fields.containsKey('netSalary') ||
+            fields.containsKey('grossEarnings'));
+  }
+
   String get displayName => userLabel?.trim().isNotEmpty == true
       ? userLabel!.trim()
       : originalFilename;

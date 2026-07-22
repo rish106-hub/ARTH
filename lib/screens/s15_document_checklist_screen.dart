@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/tax_document.dart';
 import '../models/tax_readiness.dart';
+import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_year_provider.dart';
@@ -351,15 +352,18 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 error = null;
               });
               try {
-                await ref
+                final confirmed = await ref
                     .read(taxDocumentProvider.notifier)
                     .confirmParsedFields(document.id);
+                final documents = ref.read(taxDocumentProvider).asData?.value ??
+                    <TaxDocument>[confirmed];
+                ref.read(paycheckProvider.notifier).syncDocuments(documents);
                 if (!sheetContext.mounted) return;
                 Navigator.pop(sheetContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      document.documentType == 'payslip'
+                      document.isPayslip
                           ? 'Payslip confirmed. Home is updated.'
                           : 'Document details confirmed.',
                     ),
@@ -377,17 +381,47 @@ class DocumentChecklistScreen extends ConsumerWidget {
             }
 
             Future<void> deleteDocument() async {
+              final shouldDelete = await showDialog<bool>(
+                    context: sheetContext,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Delete this file permanently?'),
+                      content: Text(
+                        '${document.displayName} and its extracted details will be removed. This cannot be undone.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  ) ??
+                  false;
+              if (!shouldDelete || !sheetContext.mounted) return;
               setSheetState(() => saving = true);
               try {
                 await ref
                     .read(taxDocumentProvider.notifier)
                     .delete(document.id);
-                if (sheetContext.mounted) Navigator.pop(sheetContext);
-              } catch (_) {
+                final documents =
+                    ref.read(taxDocumentProvider).asData?.value ?? const [];
+                ref.read(paycheckProvider.notifier).syncDocuments(documents);
+                if (!sheetContext.mounted) return;
+                Navigator.pop(sheetContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('File deleted permanently.')),
+                );
+              } catch (caught) {
                 if (!sheetContext.mounted) return;
                 setSheetState(() {
                   saving = false;
-                  error = 'Could not delete document.';
+                  error = caught is ServerApiException
+                      ? caught.message
+                      : 'Could not delete document.';
                 });
               }
             }
@@ -457,7 +491,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                       if (document.extractedFields.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Text(
-                          document.documentType == 'payslip'
+                          document.isPayslip
                               ? 'Check your payslip details'
                               : 'Check extracted details',
                           style: AppTextStyles.h3(),
@@ -497,7 +531,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           onPressed: saving ? null : confirmFields,
                           icon: const Icon(Icons.fact_check_outlined),
                           label: Text(
-                            document.documentType == 'payslip'
+                            document.isPayslip
                                 ? 'Use these payslip details'
                                 : 'Confirm these details',
                           ),

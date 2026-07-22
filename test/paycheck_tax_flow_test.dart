@@ -82,6 +82,47 @@ void main() {
     expect(paycheck.evidence.single.statusLabel, 'CONFIRMED');
   });
 
+  test('legacy payslip stored as an offer letter still updates Home', () {
+    const document = TaxDocument(
+      id: 'legacy-payslip',
+      fy: '2026-27',
+      documentType: 'offerLetter',
+      originalFilename: 'salary-july.jpg',
+      mimeType: 'image/jpeg',
+      byteSize: 1234,
+      parseStatus: 'parsed',
+      parseSummary: {
+        'parser': 'gemini-payslip-v1',
+        'detectedDocumentType': 'payslip',
+      },
+      reviewStatus: 'reviewed',
+      confirmedFields: {
+        'employerName': 'Legacy Employer',
+        'payPeriod': 'July 2026',
+        'earnings': [
+          {'label': 'Basic', 'amount': 20000},
+        ],
+        'deductions': [
+          {'label': 'Professional Tax', 'amount': 200},
+        ],
+        'grossEarnings': 20000,
+        'totalDeductions': 200,
+        'netSalary': 19800,
+      },
+    );
+    expect(document.isPayslip, isTrue);
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(paycheckProvider.notifier).syncDocuments([document]);
+
+    final paycheck = container.read(paycheckProvider);
+    expect(paycheck.employer, 'Legacy Employer');
+    expect(paycheck.netCredited, 19800);
+    expect(paycheck.offerLetterAdded, isFalse);
+    expect(paycheck.evidence.single.statusLabel, 'CONFIRMED');
+  });
+
   testWidgets('tax planning opens as a contained tool from You',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);

@@ -95,6 +95,7 @@ class UserProfile {
 
   // Q02
   final EmploymentType employmentType;
+  final String employerName;
 
   // Q03
   final String city;
@@ -165,6 +166,7 @@ class UserProfile {
     this.email = '',
     this.annualCTC = 1000000,
     this.employmentType = EmploymentType.salaried,
+    this.employerName = '',
     this.city = 'Bengaluru',
     this.isMetroCity = false,
     this.paysRent = false,
@@ -204,6 +206,7 @@ class UserProfile {
     String? email,
     int? annualCTC,
     EmploymentType? employmentType,
+    String? employerName,
     String? city,
     bool? isMetroCity,
     bool? paysRent,
@@ -239,6 +242,7 @@ class UserProfile {
       email: email ?? this.email,
       annualCTC: annualCTC ?? this.annualCTC,
       employmentType: employmentType ?? this.employmentType,
+      employerName: employerName ?? this.employerName,
       city: city ?? this.city,
       isMetroCity: isMetroCity ?? this.isMetroCity,
       paysRent: paysRent ?? this.paysRent,
@@ -301,6 +305,7 @@ class UserProfile {
         'email': email,
         'annualCTC': annualCTC,
         'employmentType': employmentType.name,
+        'employerName': employerName,
         'city': city,
         'isMetroCity': isMetroCity,
         'paysRent': paysRent,
@@ -342,6 +347,7 @@ class UserProfile {
       email: json['email'] ?? '',
       annualCTC: readInt('annualCTC', 1000000),
       employmentType: _employmentTypeFromJson(json['employmentType']),
+      employerName: json['employerName']?.toString() ?? '',
       city: json['city'] ?? 'Bengaluru',
       isMetroCity: json['isMetroCity'] ?? false,
       paysRent: json['paysRent'] ?? false,

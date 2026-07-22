@@ -58,13 +58,13 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   /// Persists the completed profile to server (source of truth) and caches locally.
   /// This is the only method that syncs to the server — draft changes are kept
   /// local-only via _scheduleDraftSync to avoid false "onboarding complete" routing.
-  Future<void> save() async {
+  Future<bool> save() async {
     final uid = _currentUid();
     if (uid != null) {
       await _storage.write(_profileKey(uid), state.toJsonString());
       await _storage.write(_onboardingKey(uid), true.toString());
     }
-    await _syncCompletedProfile();
+    return _syncCompletedProfile();
   }
 
   /// Loads this user's profile — server is source of truth.
@@ -151,9 +151,10 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 
   /// Called after onboarding is fully complete to sync the completed profile
   /// and fire an analytics event. Separated from draft sync intentionally.
-  Future<void> _syncCompletedProfile() async {
+  Future<bool> _syncCompletedProfile() async {
     try {
-      await BackendSyncService().syncProfile(state);
+      final synced = await BackendSyncService().syncProfile(state);
+      if (!synced) return false;
       await BackendSyncService().trackEvent(
         name: 'profile_updated',
         metadata: {
@@ -163,7 +164,10 @@ class UserProfileNotifier extends Notifier<UserProfile> {
           'ageGroup': state.ageGroup.name,
         },
       );
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
 

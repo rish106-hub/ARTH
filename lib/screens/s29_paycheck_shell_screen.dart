@@ -8,6 +8,7 @@ import '../models/paycheck.dart';
 import '../models/tax_document.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
+import '../services/server_api_service.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 import 's31_profile_screens.dart';
@@ -59,7 +60,11 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
     final pages = [
       _PaycheckHome(paycheck: paycheck),
       _PromiseView(paycheck: paycheck),
-      _InboxView(paycheck: paycheck, exploreMode: widget.exploreMode),
+      _InboxView(
+        paycheck: paycheck,
+        exploreMode: widget.exploreMode,
+        onPayslipApplied: () => setState(() => _index = 0),
+      ),
       widget.exploreMode
           ? const _ExploreYouView()
           : _YouView(paycheck: paycheck),
@@ -432,14 +437,29 @@ class _PromiseView extends StatelessWidget {
   }
 }
 
-class _InboxView extends ConsumerWidget {
+enum _InboxUploadState { idle, parsing, complete, failed }
+
+class _InboxView extends ConsumerStatefulWidget {
   final PaycheckState paycheck;
   final bool exploreMode;
+  final VoidCallback onPayslipApplied;
 
-  const _InboxView({required this.paycheck, required this.exploreMode});
+  const _InboxView({
+    required this.paycheck,
+    required this.exploreMode,
+    required this.onPayslipApplied,
+  });
 
-  Future<void> _addEvidence(BuildContext context, WidgetRef ref) async {
-    if (exploreMode) {
+  @override
+  ConsumerState<_InboxView> createState() => _InboxViewState();
+}
+
+class _InboxViewState extends ConsumerState<_InboxView> {
+  _InboxUploadState _uploadState = _InboxUploadState.idle;
+  String? _uploadMessage;
+
+  Future<void> _addEvidence() async {
+    if (widget.exploreMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Sign up to upload your own documents.'),
@@ -488,7 +508,7 @@ class _InboxView extends ConsumerWidget {
       extensions: ['pdf', 'png', 'jpg', 'jpeg'],
     );
     final file = await openFile(acceptedTypeGroups: const [evidenceTypes]);
-    if (file == null || !context.mounted) return;
+    if (file == null || !mounted) return;
     final lower = file.name.toLowerCase();
     final mimeType = lower.endsWith('.pdf')
         ? 'application/pdf'
@@ -496,35 +516,146 @@ class _InboxView extends ConsumerWidget {
             ? 'image/png'
             : 'image/jpeg';
     try {
+      setState(() {
+        _uploadState = _InboxUploadState.parsing;
+        _uploadMessage = 'Uploading and reading ${file.name}';
+      });
       final uploaded = await ref.read(taxDocumentProvider.notifier).upload(
             documentType: uploadType.documentType,
             filename: file.name,
             mimeType: mimeType,
             bytes: await file.readAsBytes(),
           );
-      if (!context.mounted) return;
-      ref.read(paycheckProvider.notifier).addEvidence(file.name);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${file.name} added for review')),
-      );
-      if (uploadType == _EvidenceUploadType.payslip &&
+      if (!mounted) return;
+      setState(() {
+        _uploadState = _InboxUploadState.complete;
+        _uploadMessage = uploaded.needsConfirmation
+            ? 'Parsing complete. Check the extracted details.'
+            : 'File saved. No structured details were found.';
+      });
+      if (uploaded.isPayslip &&
           uploaded.extractedFields.isNotEmpty &&
-          context.mounted) {
+          mounted) {
         await showModalBottomSheet<void>(
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
-          builder: (_) => _PayslipReviewSheet(document: uploaded),
+          builder: (_) => _PayslipReviewSheet(
+            document: uploaded,
+            onApplied: widget.onPayslipApplied,
+          ),
         );
       }
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Upload failed. Check your connection and try again.'),
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _uploadState = _InboxUploadState.failed;
+        _uploadMessage = error is ServerApiException
+            ? error.message
+            : 'Upload failed. Check your connection and try again.';
+      });
+    }
+  }
+
+  Future<bool> _confirmPermanentDelete(TaxDocument document) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete this file permanently?'),
+            content: Text(
+              '${document.displayName} and its extracted details will be removed. This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _openDocument(TaxDocument document) async {
+    if (document.isPayslip && document.extractedFields.isNotEmpty) {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (_) => _PayslipReviewSheet(
+          document: document,
+          onApplied: widget.onPayslipApplied,
         ),
       );
+      return;
     }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(document.displayName, style: PaycheckType.heading()),
+              const SizedBox(height: 6),
+              Text(
+                document.parseStatusLabel,
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await ref.read(taxDocumentProvider.notifier).updateMetadata(
+                        document.id,
+                        vaultStatus: document.archived ? 'active' : 'archived',
+                      );
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                },
+                icon: Icon(document.archived
+                    ? Icons.unarchive_outlined
+                    : Icons.archive_outlined),
+                label: Text(document.archived ? 'Restore' : 'Archive'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  if (!await _confirmPermanentDelete(document)) return;
+                  try {
+                    await ref
+                        .read(taxDocumentProvider.notifier)
+                        .delete(document.id);
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('File deleted permanently.')),
+                      );
+                    }
+                  } catch (error) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(error is ServerApiException
+                            ? error.message
+                            : 'Could not delete this file.'),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Delete permanently'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   IconData _iconFor(PaycheckEvidenceKind kind) => switch (kind) {
@@ -535,7 +666,7 @@ class _InboxView extends ConsumerWidget {
       };
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final documents =
         ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
     final documentsById = {
@@ -543,12 +674,12 @@ class _InboxView extends ConsumerWidget {
     };
     return _PageFrame(
       eyebrow: 'READ-ONLY SOURCES',
-      title: 'Proof, without\npayment access.',
+      title: 'Your pay evidence.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: PaycheckColors.matchedSoft,
               borderRadius: BorderRadius.circular(14),
@@ -563,14 +694,14 @@ class _InboxView extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'ARTH reads compensation evidence. It cannot send email, move money or approve a claim.',
-                    style: PaycheckType.bodyStrong(),
+                    'Read-only. ARTH cannot move money or send email.',
+                    style: PaycheckType.body(),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -583,63 +714,117 @@ class _InboxView extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              onPressed: () => _addEvidence(context, ref),
-              icon: const Icon(Icons.document_scanner_outlined),
+              onPressed: _uploadState == _InboxUploadState.parsing
+                  ? null
+                  : _addEvidence,
+              icon: _uploadState == _InboxUploadState.parsing
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.document_scanner_outlined),
               label: Text(
-                'Scan or upload evidence',
+                _uploadState == _InboxUploadState.parsing
+                    ? 'Uploading and parsing'
+                    : 'Scan or upload evidence',
                 style: PaycheckType.bodyStrong(color: Colors.white),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Offer letters, payslips, gym receipts, bills or salary alerts.',
-            style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-          const SizedBox(height: 24),
-          Text('Connected evidence', style: PaycheckType.heading()),
-          const SizedBox(height: 10),
-          ...paycheck.sources.map(
-            (source) => _SourceRow(
-              source: source,
-              onToggle: source.name == 'Gmail receipts'
-                  ? (value) => ref
-                      .read(paycheckProvider.notifier)
-                      .setInboxConnected(value)
-                  : null,
+          if (_uploadMessage != null) ...[
+            const SizedBox(height: 10),
+            _InboxStatus(
+              state: _uploadState,
+              message: _uploadMessage!,
             ),
+          ],
+          if (widget.paycheck.sources.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text('Connected evidence', style: PaycheckType.heading()),
+            const SizedBox(height: 8),
+            ...widget.paycheck.sources.map(
+              (source) => _SourceRow(
+                source: source,
+                onToggle: source.name == 'Gmail receipts'
+                    ? (value) => ref
+                        .read(paycheckProvider.notifier)
+                        .setInboxConnected(value)
+                    : null,
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                  child: Text('Your files', style: PaycheckType.heading())),
+              Text('${widget.paycheck.evidence.length}',
+                  style: PaycheckType.utility()),
+            ],
           ),
-          const SizedBox(height: 26),
-          Text('Found this month', style: PaycheckType.heading()),
-          const SizedBox(height: 10),
-          ...paycheck.evidence.map(
+          const SizedBox(height: 8),
+          if (widget.paycheck.evidence.isEmpty)
+            Text(
+              'No files yet. Add a payslip to start.',
+              style: PaycheckType.body(color: PaycheckColors.inkSoft),
+            ),
+          ...widget.paycheck.evidence.map(
             (item) {
               final document = documentsById[item.id];
-              final reviewDocument = document != null &&
-                      document.documentType == 'payslip' &&
-                      document.needsConfirmation &&
-                      document.extractedFields.isNotEmpty
-                  ? document
-                  : null;
               return _DetectedDocument(
                 icon: _iconFor(item.kind),
                 title: item.name,
                 detail: item.detail,
                 badge: item.statusLabel,
                 attention: item.needsAction,
-                onTap: reviewDocument != null
-                    ? () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          showDragHandle: true,
-                          builder: (_) => _PayslipReviewSheet(
-                            document: reviewDocument,
-                          ),
-                        )
-                    : null,
+                onTap: document == null ? null : () => _openDocument(document),
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InboxStatus extends StatelessWidget {
+  const _InboxStatus({required this.state, required this.message});
+
+  final _InboxUploadState state;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final failed = state == _InboxUploadState.failed;
+    final complete = state == _InboxUploadState.complete;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: failed
+            ? PaycheckColors.claimSoft
+            : complete
+                ? PaycheckColors.matchedSoft
+                : PaycheckColors.contractSoft,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          if (state == _InboxUploadState.parsing)
+            const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(
+              failed
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              size: 19,
+              color: failed ? PaycheckColors.claim : PaycheckColors.matched,
+            ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message, style: PaycheckType.body())),
         ],
       ),
     );
@@ -680,9 +865,13 @@ enum _EvidenceUploadType {
 }
 
 class _PayslipReviewSheet extends ConsumerStatefulWidget {
-  const _PayslipReviewSheet({required this.document});
+  const _PayslipReviewSheet({
+    required this.document,
+    required this.onApplied,
+  });
 
   final TaxDocument document;
+  final VoidCallback onApplied;
 
   @override
   ConsumerState<_PayslipReviewSheet> createState() =>
@@ -693,7 +882,9 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
   bool _confirming = false;
   String? _error;
 
-  Map<String, dynamic> get _fields => widget.document.extractedFields;
+  Map<String, dynamic> get _fields => widget.document.confirmedFields.isNotEmpty
+      ? widget.document.confirmedFields
+      : widget.document.extractedFields;
 
   Map<String, dynamic> _map(String key) =>
       _fields[key] as Map<String, dynamic>? ?? const {};
@@ -719,19 +910,72 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
     });
     try {
       final messenger = ScaffoldMessenger.of(context);
-      await ref
+      final confirmed = await ref
           .read(taxDocumentProvider.notifier)
           .confirmParsedFields(widget.document.id);
+      final documents = ref.read(taxDocumentProvider).asData?.value ??
+          <TaxDocument>[confirmed];
+      ref.read(paycheckProvider.notifier).syncDocuments(documents);
       if (!mounted) return;
       Navigator.pop(context);
+      widget.onApplied();
       messenger.showSnackBar(
         const SnackBar(content: Text('Payslip confirmed. Home is updated.')),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _confirming = false;
-        _error = 'Could not confirm these fields. Try again.';
+        _error = error is ServerApiException
+            ? error.message
+            : 'Could not confirm these fields. Try again.';
+      });
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete this payslip permanently?'),
+            content: Text(
+              '${widget.document.displayName} and all extracted salary details will be removed. This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _confirming = true;
+      _error = null;
+    });
+    try {
+      final messenger = ScaffoldMessenger.of(context);
+      await ref.read(taxDocumentProvider.notifier).delete(widget.document.id);
+      final documents = ref.read(taxDocumentProvider).asData?.value ?? const [];
+      ref.read(paycheckProvider.notifier).syncDocuments(documents);
+      if (!mounted) return;
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payslip deleted permanently.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _confirming = false;
+        _error = error is ServerApiException
+            ? error.message
+            : 'Could not delete this payslip.';
       });
     }
   }
@@ -762,7 +1006,12 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
                 children: [
-                  Text('Review payslip', style: PaycheckType.title()),
+                  Text(
+                    widget.document.needsConfirmation
+                        ? 'Review payslip'
+                        : 'Payslip details',
+                    style: PaycheckType.title(),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     '${_fields['payPeriod'] ?? 'Pay period not found'} · ${_fields['employerName'] ?? 'Employer not found'}',
@@ -891,23 +1140,41 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: _confirming ? null : _confirm,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: PaycheckColors.ink,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Delete permanently',
+                    onPressed: _confirming ? null : _delete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 54,
+                      child: FilledButton.icon(
+                        onPressed:
+                            _confirming || !widget.document.needsConfirmation
+                                ? null
+                                : _confirm,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: PaycheckColors.ink,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.check_circle_outline_rounded),
+                        label: Text(
+                          _confirming
+                              ? 'Saving...'
+                              : widget.document.needsConfirmation
+                                  ? 'Use these payslip details'
+                                  : 'Already used in Home',
+                          style: PaycheckType.bodyStrong(color: Colors.white),
+                        ),
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: Text(
-                    _confirming ? 'Saving...' : 'Use these payslip details',
-                    style: PaycheckType.bodyStrong(color: Colors.white),
-                  ),
-                ),
+                ],
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/paycheck.dart';
 import '../models/tax_document.dart';
 import 'tax_document_provider.dart';
+import 'user_profile_provider.dart';
 
 class PaycheckNotifier extends Notifier<PaycheckState> {
   PaycheckState? _realState;
@@ -14,6 +15,15 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       (_, next) => next.whenData(
         (documents) => Future<void>.microtask(() => syncDocuments(documents)),
       ),
+      fireImmediately: true,
+    );
+    ref.listen(
+      userProfileProvider,
+      (_, profile) => Future<void>.microtask(() {
+        if (!state.usingSampleData && profile.employerName.trim().isNotEmpty) {
+          state = state.copyWith(employer: profile.employerName.trim());
+        }
+      }),
       fireImmediately: true,
     );
     return emptyPaycheck;
@@ -65,8 +75,9 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
 
     state = emptyPaycheck.copyWith(
       employeeName: _text(pay['employeeName']) ?? state.employeeName,
-      employer:
-          _text(pay['employerName']) ?? _text(offer['employerName']) ?? '',
+      employer: _text(pay['employerName']) ??
+          _text(offer['employerName']) ??
+          ref.read(userProfileProvider).employerName.trim(),
       role: _text(offer['roleTitle']) ??
           (offerLetter == null
               ? 'Add an offer letter to compare pay'
@@ -80,7 +91,8 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       otherDeductions:
           (totalDeductions - incomeTax).clamp(0, totalDeductions).toInt(),
       offerLetterAdded: offerLetter != null ||
-          active.any((document) => document.documentType == 'offerLetter'),
+          active.any((document) =>
+              document.documentType == 'offerLetter' && !document.isPayslip),
       items: items,
       sources: [
         if (offerLetter != null)
@@ -176,7 +188,10 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
     String documentType,
   ) {
     for (final document in documents) {
-      if (document.documentType == documentType &&
+      final typeMatches = documentType == 'payslip'
+          ? document.isPayslip
+          : document.documentType == documentType && !document.isPayslip;
+      if (typeMatches &&
           document.parsed &&
           document.confirmedFields.isNotEmpty) {
         return document;
@@ -189,10 +204,9 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       document.reviewedAt ?? document.createdAt ?? DateTime(1970);
 
   PaycheckEvidence _evidenceFromDocument(TaxDocument document) {
-    final kind = switch (document.documentType) {
-      'payslip' => PaycheckEvidenceKind.payslip,
-      _ => PaycheckEvidenceKind.document,
-    };
+    final kind = document.isPayslip
+        ? PaycheckEvidenceKind.payslip
+        : PaycheckEvidenceKind.document;
     final count = document.confirmedFields['earnings'] is List
         ? (document.confirmedFields['earnings'] as List).length
         : document.confirmedFields.length;

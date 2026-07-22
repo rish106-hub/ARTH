@@ -64,6 +64,7 @@ const profileSchema = z.object({
   email: z.string().email(),
   annualCTC: z.number().int().min(0).max(100_000_000),
   employmentType: z.enum(['salaried', 'selfEmployed']),
+  employerName: z.string().trim().max(120).default(''),
   city: z.string().trim().min(1).max(80),
   isMetroCity: z.boolean(),
   paysRent: z.boolean(),
@@ -968,11 +969,18 @@ export async function registerRoutes(app: FastifyInstance) {
       confirmedAt: new Date().toISOString(),
       confirmedFieldKeys: Object.keys(extractedFields),
     };
+    const payslipFields = Array.isArray(extractedFields.earnings)
+      && Array.isArray(extractedFields.deductions)
+      && ('netSalary' in extractedFields || 'grossEarnings' in extractedFields);
+    const confirmedDocumentType = row.document_type === 'offerLetter' && payslipFields
+      ? 'payslip'
+      : row.document_type;
     const updated = await db.query(
       `update tax_documents
        set parse_status = 'parsed',
            parse_summary = $3::jsonb,
            confirmed_fields = $4::jsonb,
+           document_type = $5,
            review_status = 'reviewed',
            reviewed_at = now(),
            updated_at = now()
@@ -986,6 +994,7 @@ export async function registerRoutes(app: FastifyInstance) {
         auth.userId,
         JSON.stringify(confirmedSummary),
         JSON.stringify(extractedFields),
+        confirmedDocumentType,
       ],
     );
     await db.query(
@@ -1142,6 +1151,7 @@ export async function registerRoutes(app: FastifyInstance) {
         email: row.email,
         annualCTC: row.annual_ctc,
         employmentType: row.employment_type,
+        employerName: row.employer_name ?? '',
         city: row.city,
         isMetroCity: row.is_metro_city,
         paysRent: row.pays_rent,
@@ -1185,7 +1195,7 @@ export async function registerRoutes(app: FastifyInstance) {
       const profile = profileSchema.parse(request.body);
       await db.query(
         `insert into tax_profiles (
-           user_id, fy, name, email, annual_ctc, employment_type, city, is_metro_city,
+           user_id, fy, name, email, annual_ctc, employment_type, employer_name, city, is_metro_city,
            pays_rent, monthly_rent, has_hra, invested_80c, has_home_loan, property_type,
            home_loan_interest, has_nps, nps_extra_contribution, has_health_insurance_self,
            has_health_insurance_parents, parents_above_60, has_education_loan,
@@ -1197,13 +1207,14 @@ export async function registerRoutes(app: FastifyInstance) {
          ) values (
            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
            $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
-           $29, $30, $31, $32, $33, $34, $35, now()
+           $29, $30, $31, $32, $33, $34, $35, $36, now()
          )
          on conflict (user_id, fy) do update set
            name = excluded.name,
            email = excluded.email,
            annual_ctc = excluded.annual_ctc,
            employment_type = excluded.employment_type,
+           employer_name = excluded.employer_name,
            city = excluded.city,
            is_metro_city = excluded.is_metro_city,
            pays_rent = excluded.pays_rent,
@@ -1241,6 +1252,7 @@ export async function registerRoutes(app: FastifyInstance) {
           profile.email,
           profile.annualCTC,
           profile.employmentType,
+          profile.employerName,
           profile.city,
           profile.isMetroCity,
           profile.paysRent,

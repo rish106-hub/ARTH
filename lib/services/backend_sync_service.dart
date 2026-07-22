@@ -42,12 +42,14 @@ class BackendSyncService {
     }
   }
 
-  Future<void> syncProfile(UserProfile profile) async {
+  Future<bool> syncProfile(UserProfile profile) async {
     try {
       await _putProfile(profile);
+      return true;
     } catch (error) {
-      if (!_shouldQueue(error)) return;
+      if (!_shouldQueue(error)) return false;
       await _queue.enqueue('profile', profile.toJson());
+      return false;
     }
   }
 

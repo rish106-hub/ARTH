@@ -185,7 +185,6 @@ class ServerApiService {
     try {
       request = await _client.openUrl(method, uri).timeout(_requestTimeout);
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
       if (bearerToken != null && bearerToken.isNotEmpty) {
         request.headers.set(
           HttpHeaders.authorizationHeader,
@@ -193,6 +192,7 @@ class ServerApiService {
         );
       }
       if (body != null) {
+        request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
         request.write(jsonEncode(body));
       }
 

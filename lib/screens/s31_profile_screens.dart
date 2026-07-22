@@ -14,6 +14,7 @@ import '../services/app_update_service.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/session_cleanup.dart';
 import '../widgets/arth_brand_mark.dart';
+import '../widgets/employer_picker.dart';
 
 class ProfessionalProfileView extends ConsumerWidget {
   final PaycheckState paycheck;
@@ -235,9 +236,11 @@ class ProfessionalProfileView extends ConsumerWidget {
   }
 
   String _employmentDetail(UserProfile profile, PaycheckState paycheck) {
-    final employer = paycheck.employer.trim().isEmpty
-        ? 'Employer not confirmed'
-        : paycheck.employer;
+    final employer = paycheck.employer.trim().isNotEmpty
+        ? paycheck.employer
+        : profile.employerName.trim().isNotEmpty
+            ? profile.employerName
+            : 'Employer not added';
     final ctc = profile.annualCTC > 0
         ? '₹${(profile.annualCTC / 100000).toStringAsFixed(1)}L CTC'
         : 'CTC not added';
@@ -358,13 +361,15 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   late final TextEditingController _hra;
   late final TextEditingController _professionalTax;
   EmploymentType _employment = EmploymentType.salaried;
+  String _employerName = '';
   AgeGroup _ageGroup = AgeGroup.below30;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    final account = ref.read(authProvider);
+    final account = ref.read(accountProfileProvider).asData?.value?.user ??
+        ref.read(authProvider);
     final profile = ref.read(userProfileProvider);
     _name = TextEditingController(text: account?.name ?? profile.name);
     _phone = TextEditingController(text: account?.phoneNumber ?? '');
@@ -377,6 +382,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       text: _amountText(profile.actualProfessionalTax),
     );
     _employment = profile.employmentType;
+    _employerName = profile.employerName;
     _ageGroup = profile.ageGroup;
   }
 
@@ -394,7 +400,13 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final account = ref.watch(authProvider);
+    final auth = ref.watch(authProvider);
+    final remoteAccount = ref.watch(accountProfileProvider).asData?.value?.user;
+    final account = remoteAccount ?? auth;
+    if (_phone.text.trim().isEmpty &&
+        remoteAccount?.phoneNumber?.trim().isNotEmpty == true) {
+      _phone.text = remoteAccount!.phoneNumber!;
+    }
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
       appBar: const _ProfileAppBar(title: 'Personal details'),
@@ -462,6 +474,28 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                 if (value != null) setState(() => _employment = value);
               },
             ),
+            if (_employment == EmploymentType.salaried) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                key: const Key('profile_select_employer'),
+                onPressed: () async {
+                  final employer = await showEmployerPicker(
+                    context,
+                    currentValue: _employerName,
+                  );
+                  if (employer != null && mounted) {
+                    setState(() => _employerName = employer);
+                  }
+                },
+                icon: const Icon(Icons.business_outlined),
+                label: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _employerName.isEmpty ? 'Add your employer' : _employerName,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             _ProfileTextField(
               controller: _ctc,
@@ -569,20 +603,21 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               city: _city.text.trim(),
               annualCTC: _amount(_ctc.text) ?? current.annualCTC,
               employmentType: _employment,
+              employerName: _employerName,
               ageGroup: _ageGroup,
               actualBasicSalary: _amount(_basic.text),
               actualHraReceived: _amount(_hra.text),
               actualProfessionalTax: _amount(_professionalTax.text),
             ),
           );
-      await ref.read(userProfileProvider.notifier).save();
+      final profileSynced = await ref.read(userProfileProvider.notifier).save();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            accountSynced
+            accountSynced && profileSynced
                 ? 'Profile updated.'
-                : 'Saved on this device. Account sync is pending.',
+                : 'Saved on this device. Server sync is pending.',
           ),
         ),
       );
