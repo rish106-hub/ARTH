@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:arth/models/user_profile.dart';
+import 'package:arth/models/user_account.dart';
+import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/services/backend_sync_service.dart';
 import 'package:arth/services/secure_storage_service.dart';
@@ -47,6 +49,33 @@ void main() {
 
     expect(token, fresh);
     expect(api.postCalls, contains('/auth/refresh'));
+  });
+
+  test('first 1.0.3 launch removes the obsolete local account and caches',
+      () async {
+    final storage = const SecureStorageService();
+    final account = UserAccount(
+      uid: 'old-user',
+      name: 'Old User',
+      email: 'old@example.com',
+      createdAt: DateTime(2026, 1, 1),
+    );
+    await storage.write('arth_user_account', account.toJsonString());
+    await storage.write('arth_access_token', 'old-access');
+    await storage.write('arth_refresh_token', 'old-refresh');
+    await storage.write('arth_profile_old-user', '{"name":"Old User"}');
+    await storage.write('arth_account_profile_old-user', '{"old":true}');
+    await storage.write('arth_sync_queue', '[{"old":true}]');
+
+    final loaded = await AuthService(storage: storage).loadAccount();
+
+    expect(loaded, isNull);
+    expect(await storage.read('arth_user_account'), isNull);
+    expect(await storage.read('arth_access_token'), isNull);
+    expect(await storage.read('arth_refresh_token'), isNull);
+    expect(await storage.read('arth_profile_old-user'), isNull);
+    expect(await storage.read('arth_account_profile_old-user'), isNull);
+    expect(await storage.read('arth_sync_queue'), isNull);
   });
 
   test('sign-up retries transient server failures like sign-in', () async {
@@ -134,6 +163,32 @@ void main() {
     await sync.syncProfile(_sampleProfile());
 
     expect(queue.enqueuedTypes, isEmpty);
+  });
+
+  test('account transition removes the previous in-memory profile', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(userProfileProvider.notifier);
+
+    notifier.update(_sampleProfile());
+    notifier.resetForAccount(
+      UserAccount(
+        uid: 'user-2',
+        name: 'Second User',
+        email: 'second@example.com',
+        createdAt: DateTime(2026, 7, 22),
+      ),
+    );
+
+    final profile = container.read(userProfileProvider);
+    expect(profile.name, 'Second User');
+    expect(profile.email, 'second@example.com');
+    expect(profile.annualCTC, 0);
+    expect(profile.city, isEmpty);
+    expect(profile.paysRent, isFalse);
+    expect(profile.monthlyRent, 0);
+    expect(profile.invested80C, 0);
+    expect(profile.hasHomeLoan, isFalse);
   });
 }
 

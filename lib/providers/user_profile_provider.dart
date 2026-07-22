@@ -42,6 +42,19 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     state = state.copyWith(name: account.name, email: account.email);
   }
 
+  /// Starts from a clean profile whenever the authenticated account changes.
+  /// This prevents fields from the previous in-memory profile being shown while
+  /// the new account's server data is loading or when it has no saved profile.
+  void resetForAccount(UserAccount account) {
+    _syncDebounce?.cancel();
+    state = UserProfile(
+      name: account.name,
+      email: account.email,
+      annualCTC: 0,
+      city: '',
+    );
+  }
+
   /// Persists the completed profile to server (source of truth) and caches locally.
   /// This is the only method that syncs to the server — draft changes are kept
   /// local-only via _scheduleDraftSync to avoid false "onboarding complete" routing.
@@ -58,6 +71,12 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   /// Falls back to local cache only when the server is unreachable (offline).
   Future<bool> load() async {
     final uid = _currentUid();
+    final account = ref.read(authProvider);
+    if (account != null) {
+      resetForAccount(account);
+    } else {
+      state = const UserProfile();
+    }
 
     // 0. Replay any ops that failed in a previous session before fetching,
     //    so the server state is up-to-date when we read it back.

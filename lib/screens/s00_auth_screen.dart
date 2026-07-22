@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../providers/auth_provider.dart';
-import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/session_cleanup.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/arth_brand_mark.dart';
 import '../widgets/auth_motion_scene.dart';
@@ -51,6 +51,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final email = _emailCtrl.text.trim().toLowerCase();
       final password = _passwordCtrl.text;
 
+      await prepareForAuthentication(ref);
+
       final account = _isSignUp
           ? await ref.read(authProvider.notifier).signUp(
                 name: _nameCtrl.text.trim(),
@@ -61,8 +63,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               .read(authProvider.notifier)
               .signIn(email: email, password: password);
 
-      ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
-      await ref.read(userProfileProvider.notifier).load();
+      await hydrateAuthenticatedAccount(ref, account);
       if (!mounted) return;
       context.go(_isSignUp ? '/paycheck-setup' : '/paycheck');
     } on ServerApiException catch (e) {
@@ -82,9 +83,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _googleErrorMessage = null;
     });
     try {
+      await prepareForAuthentication(ref);
       final account = await ref.read(authProvider.notifier).signInWithGoogle();
-      ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
-      await ref.read(userProfileProvider.notifier).load();
+      await hydrateAuthenticatedAccount(ref, account);
       if (!mounted) return;
       context.go('/paycheck');
     } on ServerApiException catch (error) {

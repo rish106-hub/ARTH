@@ -162,6 +162,22 @@ class ProfessionalProfileView extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 28),
+                const _SectionTitle('Session'),
+                _ProfileGroup(
+                  children: [
+                    _ProfileRow(
+                      key: const Key('profile_sign_out'),
+                      icon: Icons.logout_rounded,
+                      title: 'Sign out',
+                      detail:
+                          'Remove this account and its cached data from this device',
+                      status: ProfileStatus.danger,
+                      onTap: () => _confirmProfileSignOut(context, ref),
+                      isLast: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
                 const _SectionTitle('Preview'),
                 _ProfileGroup(
                   children: [
@@ -881,7 +897,7 @@ class ProfilePrivacyScreen extends ConsumerWidget {
                 icon: Icons.logout_rounded,
                 title: 'Sign out on this device',
                 detail: 'Server data stays in your account',
-                onTap: () => _confirmSignOut(context, ref),
+                onTap: () => _confirmProfileSignOut(context, ref),
                 isLast: true,
               ),
             ],
@@ -899,29 +915,6 @@ class ProfilePrivacyScreen extends ConsumerWidget {
                 isLast: true,
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmSignOut(BuildContext context, WidgetRef ref) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text('Your synced data will remain in your account.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await signOutDeviceAndRouteToAuth(context, ref);
-            },
-            child: const Text('Sign out'),
           ),
         ],
       ),
@@ -959,6 +952,32 @@ class ProfilePrivacyScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _confirmProfileSignOut(BuildContext context, WidgetRef ref) {
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Sign out?'),
+      content: const Text(
+        'This removes the account and its cached data from this device.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: () async {
+            Navigator.pop(dialogContext);
+            await signOutDeviceAndRouteToAuth(context, ref);
+          },
+          icon: const Icon(Icons.logout_rounded),
+          label: const Text('Sign out'),
+        ),
+      ],
+    ),
+  );
 }
 
 enum ProfileStatus { complete, action, optional, unavailable, danger }

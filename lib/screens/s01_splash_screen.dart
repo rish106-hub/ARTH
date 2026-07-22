@@ -4,8 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
-import '../providers/user_profile_provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/session_cleanup.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/arth_brand_mark.dart';
 
@@ -52,12 +52,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       return;
     }
 
-    ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
+    await ref.read(authProvider.notifier).saveAccount(account);
 
     // 2. Server is source of truth — load fetches this user's unique profile.
     //    Returns true if a saved profile exists (onboarding done).
     //    Also works correctly on fresh device installs.
-    await ref.read(userProfileProvider.notifier).load();
+    await hydrateAuthenticatedAccount(ref, account);
     if (!mounted) return;
     context.go('/paycheck');
   }

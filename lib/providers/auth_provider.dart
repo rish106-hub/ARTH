@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 class AuthNotifier extends Notifier<UserAccount?> {
   final AuthService? _overrideService;
   AuthService? _service;
+  int _operationId = 0;
 
   AuthNotifier([this._overrideService]);
 
@@ -24,12 +25,14 @@ class AuthNotifier extends Notifier<UserAccount?> {
   }
 
   Future<void> _load() async {
+    final operationId = _operationId;
     final account = await _resolvedService.loadAccount();
-    if (!ref.mounted) return;
+    if (!ref.mounted || operationId != _operationId) return;
     state = account;
   }
 
   Future<void> saveAccount(UserAccount account) async {
+    ++_operationId;
     await _resolvedService.saveAccount(account);
     if (!ref.mounted) return;
     state = account;
@@ -40,12 +43,13 @@ class AuthNotifier extends Notifier<UserAccount?> {
     required String email,
     required String password,
   }) async {
+    final operationId = ++_operationId;
     final account = await _resolvedService.signUp(
       name: name,
       email: email,
       password: password,
     );
-    if (ref.mounted) state = account;
+    if (ref.mounted && operationId == _operationId) state = account;
     return account;
   }
 
@@ -53,19 +57,22 @@ class AuthNotifier extends Notifier<UserAccount?> {
     required String email,
     required String password,
   }) async {
+    final operationId = ++_operationId;
     final account =
         await _resolvedService.signIn(email: email, password: password);
-    if (ref.mounted) state = account;
+    if (ref.mounted && operationId == _operationId) state = account;
     return account;
   }
 
   Future<UserAccount> signInWithGoogle() async {
+    final operationId = ++_operationId;
     final account = await _resolvedService.signInWithGoogle();
-    if (ref.mounted) state = account;
+    if (ref.mounted && operationId == _operationId) state = account;
     return account;
   }
 
   Future<void> signOut() async {
+    ++_operationId;
     await _resolvedService.clearAccount();
     if (!ref.mounted) return;
     state = null;

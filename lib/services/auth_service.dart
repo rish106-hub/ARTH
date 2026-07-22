@@ -9,6 +9,8 @@ class AuthService {
   static const _accountKey = 'arth_user_account';
   static const _accessTokenKey = 'arth_access_token';
   static const _refreshTokenKey = 'arth_refresh_token';
+  static const _requiredResetKey = 'arth_required_session_reset';
+  static const _requiredResetVersion = '2026-07-clean-start-v1';
 
   final ServerApiService _api;
   final SecureStorageService _storage;
@@ -75,6 +77,18 @@ class AuthService {
   Future<UserAccount?> loadAccount() async {
     try {
       final raw = await _storage.read(_accountKey, migrateFromPrefs: true);
+      final resetVersion = await _storage.read(_requiredResetKey);
+      if (resetVersion != _requiredResetVersion) {
+        String? uid;
+        if (raw != null && raw.isNotEmpty) {
+          try {
+            uid = UserAccount.fromJsonString(raw).uid;
+          } catch (_) {}
+        }
+        await _clearObsoleteLocalSession(uid);
+        await _storage.write(_requiredResetKey, _requiredResetVersion);
+        return null;
+      }
       if (raw == null || raw.isEmpty) return null;
       return UserAccount.fromJsonString(raw);
     } catch (e) {
@@ -160,10 +174,30 @@ class AuthService {
     final accessToken = response['accessToken'] as String? ?? '';
     final refreshToken = response['refreshToken'] as String? ?? '';
 
+    await _storage.write(_requiredResetKey, _requiredResetVersion);
     await _storage.write(_accountKey, account.toJsonString());
     await _storage.write(_accessTokenKey, accessToken);
     await _storage.write(_refreshTokenKey, refreshToken);
     return account;
+  }
+
+  Future<void> _clearObsoleteLocalSession(String? uid) async {
+    final keys = <String>{
+      _accountKey,
+      _accessTokenKey,
+      _refreshTokenKey,
+      'arth_sync_queue',
+      'arth_user_profile',
+    };
+    if (uid != null && uid.isNotEmpty) {
+      keys.addAll({
+        'arth_profile_$uid',
+        'arth_onboarding_$uid',
+        'arth_account_profile_$uid',
+        'arth_document_checklist_$uid',
+      });
+    }
+    await Future.wait(keys.map(_storage.delete), eagerError: false);
   }
 
   bool _isExpired(String jwt) {
