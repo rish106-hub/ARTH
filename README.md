@@ -91,4 +91,8 @@ Build an Android debug APK:
 flutter build apk --debug
 ```
 
+Beta users receive signed builds through public GitHub Releases. See
+[Direct APK releases](./docs/direct-apk-releases.md) for the release and update
+steps.
+
 See [SECURITY.md](./SECURITY.md) for vulnerability reporting and backend security details.
