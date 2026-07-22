@@ -13,7 +13,7 @@ class AisGuideScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 1,
+        selectedIndex: 2,
         onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
@@ -83,10 +83,10 @@ class AisGuideScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ArthSection(
+                  const ArthSection(
                     title: 'What to check',
                     child: Column(
-                      children: const [
+                      children: [
                         _GuideStep(
                           number: '01',
                           title: 'TDS and salary entries',
@@ -115,11 +115,11 @@ class AisGuideScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ArthSection(
+                  const ArthSection(
                     title: 'Risk signals',
                     child: PremiumGlassPanel(
                       child: Column(
-                        children: const [
+                        children: [
                           _RiskRow('Employer TDS lower than salary tax due'),
                           Divider(color: AppColors.divider),
                           _RiskRow(

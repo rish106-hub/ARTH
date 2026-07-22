@@ -35,7 +35,7 @@ class _GapRevealScreenState extends ConsumerState<GapRevealScreen> {
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 0,
+        selectedIndex: 2,
         onTap: (i) => goToArthTab(context, i),
       ),
       child: resultAsync.when(
@@ -117,7 +117,7 @@ class _TaxCockpit extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: ArthMetricCard(
                         label: 'Sync',
                         value: 'Cloud',

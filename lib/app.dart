@@ -25,15 +25,31 @@ import 'screens/s20_accuracy_coach_screen.dart';
 import 'screens/s21_tax_simulator_screen.dart';
 import 'screens/s22_tax_story_screen.dart';
 import 'screens/s23_tax_calendar_screen.dart';
+import 'screens/s25_money_setup_screen.dart';
+import 'screens/s26_income_screen.dart';
+import 'screens/s27_money_plan_screen.dart';
 import 'models/gap_card.dart';
 
+String _initialLocation() {
+  final platformRoute =
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+  return platformRoute.startsWith('/') ? platformRoute : '/';
+}
+
 final _router = GoRouter(
-  initialLocation: '/',
+  initialLocation: _initialLocation(),
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
     GoRoute(path: '/discover', builder: (_, __) => const DiscoverScreen()),
+    GoRoute(path: '/today', redirect: (_, __) => '/discover'),
     GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
+    GoRoute(
+      path: '/money-setup',
+      builder: (_, __) => const MoneySetupScreen(),
+    ),
+    GoRoute(path: '/income', builder: (_, __) => const IncomeScreen()),
+    GoRoute(path: '/plan', builder: (_, __) => const MoneyPlanScreen()),
     GoRoute(path: '/questions', builder: (_, __) => const QuestionsScreen()),
     GoRoute(path: '/gap-reveal', builder: (_, __) => const GapRevealScreen()),
     GoRoute(
@@ -55,19 +71,19 @@ final _router = GoRouter(
       },
     ),
     GoRoute(path: '/action-plan', builder: (_, __) => const ActionPlanScreen()),
-    GoRoute(path: '/coach', builder: (_, __) => const ActionPlanScreen()),
+    GoRoute(path: '/coach', redirect: (_, __) => '/action-plan'),
     GoRoute(
       path: '/progress',
       builder: (_, __) => const ProgressTrackerScreen(),
     ),
     GoRoute(path: '/share', builder: (_, __) => const ShareCardScreen()),
     GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-    GoRoute(path: '/settings', builder: (_, __) => const ProfileScreen()),
+    GoRoute(path: '/you', redirect: (_, __) => '/profile'),
+    GoRoute(path: '/settings', redirect: (_, __) => '/profile'),
     GoRoute(
         path: '/documents',
         builder: (_, __) => const DocumentChecklistScreen()),
-    GoRoute(
-        path: '/vault', builder: (_, __) => const DocumentChecklistScreen()),
+    GoRoute(path: '/vault', redirect: (_, __) => '/documents'),
     GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
     GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
     GoRoute(path: '/tax-dossier', builder: (_, __) => const TaxDossierScreen()),
@@ -92,6 +108,10 @@ final _router = GoRouter(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),
     ),
+    GoRoute(
+      path: '/control-room-demo',
+      redirect: (_, __) => '/discover',
+    ),
   ],
 );
 
@@ -101,7 +121,7 @@ class ArthApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'ARTH — Tax Readiness Cockpit',
+      title: 'ARTH - Money control room',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: _router,

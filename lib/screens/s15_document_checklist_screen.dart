@@ -40,14 +40,14 @@ class DocumentChecklistScreen extends ConsumerWidget {
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 1,
+        selectedIndex: 2,
         onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
         children: [
           ArthPremiumAppBar(
-            eyebrow: 'Vault',
-            title: 'Document Vault',
+            eyebrow: activeYear.fyLabel,
+            title: 'Vault',
             actions: [
               IconButton(
                 tooltip: 'AIS guide',
@@ -66,20 +66,10 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    VaultHero(
+                    _VaultSummary(
                       percent: percent,
                       summary: summary,
-                      yearLabel: activeYear.fyLabel,
-                    ),
-                    const SizedBox(height: 16),
-                    _DigiLockerRow(
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'DigiLocker connection is being prepared.',
-                          ),
-                        ),
-                      ),
+                      remaining: remainingCount,
                     ),
                     const SizedBox(height: 24),
                     _VaultSectionHeader(
@@ -544,6 +534,49 @@ class DocumentChecklistScreen extends ConsumerWidget {
   }
 }
 
+class _VaultSummary extends StatelessWidget {
+  final int percent;
+  final DocumentVaultSummary summary;
+  final int remaining;
+
+  const _VaultSummary({
+    required this.percent,
+    required this.summary,
+    required this.remaining,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final message = remaining == 0
+        ? 'Your proof checklist is complete.'
+        : '$remaining proof ${remaining == 1 ? 'item' : 'items'} still need attention.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          message,
+          style: AppTextStyles.h1().copyWith(fontSize: 32, height: 1.08),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          '${summary.active} uploaded · ${summary.needsReview} need review',
+          style: AppTextStyles.caption(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 18),
+        ClipRRect(
+          borderRadius: AppRadius.pill,
+          child: LinearProgressIndicator(
+            value: percent / 100,
+            minHeight: 4,
+            backgroundColor: AppColors.surfaceMuted,
+            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class VaultHero extends StatelessWidget {
   final int percent;
   final DocumentVaultSummary summary;
@@ -607,50 +640,6 @@ class VaultHero extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DigiLockerRow extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _DigiLockerRow({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.goldLight,
-      borderRadius: AppRadius.card,
-      child: InkWell(
-        borderRadius: AppRadius.card,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          child: Row(
-            children: [
-              const Icon(Icons.account_balance_outlined, color: AppColors.gold),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Fetch from DigiLocker',
-                      style: AppTextStyles.bodyMedium(),
-                    ),
-                    Text(
-                      'Coming soon',
-                      style:
-                          AppTextStyles.micro(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.gold),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -973,7 +962,7 @@ class _ParserTimeline extends StatelessWidget {
         children: [
           Text('Parser timeline', style: AppTextStyles.h3()),
           const SizedBox(height: 10),
-          _TimelineRow(
+          const _TimelineRow(
             done: true,
             title: 'Stored encrypted',
             body: 'File encrypted and stored in ARTH vault.',

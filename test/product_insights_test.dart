@@ -28,7 +28,7 @@ void main() {
   });
 
   test('accuracy tasks are derived from existing profile gaps', () {
-    final profile = UserProfile(
+    final profile = const UserProfile(
       annualCTC: 1800000,
       employmentType: EmploymentType.salaried,
       paysRent: true,
@@ -55,7 +55,7 @@ void main() {
 }
 
 TaxResult _resultWithAssumption() {
-  return TaxResult(
+  return const TaxResult(
     ruleSetId: 'fy_2026_27',
     ruleSetLabel: 'FY2026-27 Planning',
     assessmentYear: 'AY 2027-28',
@@ -67,7 +67,7 @@ TaxResult _resultWithAssumption() {
     totalDeductionsOld: 125000,
     betterRegime: TaxRegime.newRegime,
     regimeSavings: 40000,
-    gaps: const [
+    gaps: [
       GapCard(
         id: 'T01_80C_gap',
         section: '80C',
@@ -85,7 +85,7 @@ TaxResult _resultWithAssumption() {
     totalGapAmount: 50000,
     estimatedTaxBenefit: 15000,
     gapCount: 1,
-    assumptions: const [
+    assumptions: [
       TaxAssumption(
         code: 'hra_estimated',
         title: 'HRA estimated',

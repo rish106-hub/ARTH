@@ -331,8 +331,9 @@ class ActionDock extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (!secondary)
+        if (!secondary) {
           return SizedBox(width: double.infinity, child: primaryButton);
+        }
         if (constraints.maxWidth < 420) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -639,10 +640,10 @@ class ArthLoadingPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            PremiumGlassPanel(
+            const PremiumGlassPanel(
               borderRadius: AppRadius.card,
-              padding: const EdgeInsets.all(22),
-              child: const Icon(
+              padding: EdgeInsets.all(22),
+              child: Icon(
                 Icons.auto_awesome_rounded,
                 color: AppColors.gold,
                 size: 34,

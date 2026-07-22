@@ -8,10 +8,10 @@ void goToArthTab(BuildContext context, int index) {
       context.go('/discover');
       break;
     case 1:
-      context.go('/documents');
+      context.go('/income');
       break;
     case 2:
-      context.go('/action-plan');
+      context.go('/plan');
       break;
     case 3:
       context.go('/profile');
@@ -31,24 +31,24 @@ class ArthBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-      icon: Icons.space_dashboard_outlined,
-      activeIcon: Icons.space_dashboard_rounded,
-      label: 'Home',
+      icon: Icons.today_outlined,
+      activeIcon: Icons.today_rounded,
+      label: 'Today',
     ),
     _NavItem(
-      icon: Icons.folder_special_outlined,
-      activeIcon: Icons.folder_special_rounded,
-      label: 'Vault',
+      icon: Icons.payments_outlined,
+      activeIcon: Icons.payments_rounded,
+      label: 'Income',
     ),
     _NavItem(
-      icon: Icons.checklist_outlined,
-      activeIcon: Icons.checklist_rounded,
-      label: 'Coach',
+      icon: Icons.route_outlined,
+      activeIcon: Icons.route_rounded,
+      label: 'Plan',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
-      label: 'Profile',
+      label: 'You',
     ),
   ];
 
@@ -58,15 +58,8 @@ class ArthBottomNav extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(10, 7, 10, bottomPad + 7),
       decoration: const BoxDecoration(
-        color: AppColors.bgCard,
+        color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.divider)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 12,
-            offset: Offset(0, -3),
-          ),
-        ],
       ),
       child: Row(
         children: List.generate(_items.length, (i) {
@@ -78,29 +71,40 @@ class ArthBottomNav extends StatelessWidget {
               button: true,
               label: item.label,
               child: InkWell(
-                borderRadius: AppRadius.card,
+                borderRadius: BorderRadius.circular(8),
                 onTap: () => onTap(i),
                 child: SizedBox(
-                  height: 52,
+                  height: 56,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        selected ? item.activeIcon : item.icon,
-                        color:
-                            selected ? AppColors.gold : AppColors.textSecondary,
-                        size: 21,
+                      AnimatedContainer(
+                        duration: AppMotion.fast,
+                        curve: AppMotion.standard,
+                        width: 32,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.ink : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          selected ? item.activeIcon : item.icon,
+                          color: selected
+                              ? AppColors.surface
+                              : AppColors.textSecondary,
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 10,
+                          fontSize: 11,
                           color: selected
-                              ? AppColors.gold
+                              ? AppColors.ink
                               : AppColors.textSecondary,
                           letterSpacing: 0,
                           fontWeight:

@@ -22,7 +22,7 @@ class RegimeComparisonScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
-      appBar: ArthAppBar(title: 'Old vs New Regime'),
+      appBar: const ArthAppBar(title: 'Old vs New Regime'),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
           title: 'Comparing regimes',
@@ -196,7 +196,7 @@ class _RegimeContent extends StatelessWidget {
               const SizedBox(height: 24),
               Text('General Guidance by Income', style: AppTextStyles.h3()),
               const SizedBox(height: 12),
-              _IncomeGuidance(),
+              const _IncomeGuidance(),
               const SizedBox(height: 24),
               Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
               const SizedBox(height: 12),
@@ -526,7 +526,7 @@ class _DeductionBreakdown extends StatelessWidget {
     if (items.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.bgCard,
           borderRadius: AppRadius.card,
         ),
@@ -549,7 +549,7 @@ class _DeductionBreakdown extends StatelessWidget {
               (item) => Column(
                 children: [
                   item,
-                  Divider(height: 1, color: AppColors.divider),
+                  const Divider(height: 1, color: AppColors.divider),
                 ],
               ),
             )

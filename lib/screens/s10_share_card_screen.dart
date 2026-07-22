@@ -29,11 +29,14 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
       final image = await _screenshotCtrl.capture(pixelRatio: 3.0);
       if (image == null) return;
 
-      // share_plus v10+ API: Share.shareXFiles
-      await Share.shareXFiles(
-        [XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png')],
-        text:
-            'I just found ₹${_fmt(totalGap)} in deduction opportunities with ARTH.\n\nBuild your tax readiness cockpit → https://arth-website.vercel.app/',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png'),
+          ],
+          text:
+              'I just found ₹${_fmt(totalGap)} in deduction opportunities with ARTH.\n\nBuild your tax readiness cockpit → https://arth-website.vercel.app/',
+        ),
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -183,9 +186,9 @@ class _ShareCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(
+                const Text(
                   'ARTH',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 20,
                     fontWeight: FontWeight.w900,

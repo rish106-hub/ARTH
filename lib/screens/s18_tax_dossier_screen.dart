@@ -25,7 +25,7 @@ class TaxDossierScreen extends ConsumerWidget {
 
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 0,
+        selectedIndex: 2,
         onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(
@@ -174,7 +174,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                         '$readyDocs documents ready · $docPercent% complete.',
                                   ),
                                   const Divider(color: AppColors.divider),
-                                  _DossierRow(
+                                  const _DossierRow(
                                     icon: Icons.verified_outlined,
                                     title: 'Filing handoff',
                                     body:
