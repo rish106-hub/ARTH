@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "101289118169-rcq9hderfqo9ntls0o6ah38avqac2vmo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arth.taxgap",
+            "certificate_hash": "fe38f1b857d010c47a034c6061a634951498428a"
+          }
+        },
+        {
           "client_id": "101289118169-j0io6jjcdf947ss7bdfpjovk4dacfr4d.apps.googleusercontent.com",
           "client_type": 3
         }
