@@ -134,7 +134,7 @@ class TaxEngine {
 
     // 80GG (rent but no HRA)
     if (p.paysRentNoHRA) {
-      deductions += _80GG(p);
+      deductions += _calculate80GG(p);
     }
 
     // Section 24(b) — home loan interest (self-occupied, max 2L)
@@ -254,7 +254,7 @@ class TaxEngine {
   }
 
   // ─── 80GG ─────────────────────────────────────────────────────────────────
-  static double _80GG(UserProfile p) {
+  static double _calculate80GG(UserProfile p) {
     double ati = p.annualCTC.toDouble() * 0.85; // approximation
     double annualRent = p.monthlyRent * 12.0;
 

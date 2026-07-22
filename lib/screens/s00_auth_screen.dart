@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -59,9 +58,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               .signIn(email: email, password: password);
 
       ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
-      final hasProfile = await ref.read(userProfileProvider.notifier).load();
+      await ref.read(userProfileProvider.notifier).load();
       if (!mounted) return;
-      context.go(hasProfile ? '/gap-reveal' : '/welcome');
+      context.go(_isSignUp ? '/paycheck-setup' : '/paycheck');
     } on ServerApiException catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = _friendlyServerError(e));
@@ -127,14 +126,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final headline = _isSignUp ? 'Build your tax position.' : 'Welcome back.';
+    final headline = _isSignUp ? 'Give your income a job.' : 'Welcome back.';
     final subhead = _isSignUp
-        ? 'Create your ARTH account. We will map your income, deductions and next moves.'
-        : 'Sign in to continue your tax journey.';
+        ? 'Create an account to turn compensation, commitments and goals into one working plan.'
+        : 'Sign in to continue from your last money decision.';
 
     return ArthScaffold(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      showAmbientGlow: false,
+      padding: const EdgeInsets.symmetric(horizontal: 22),
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: LayoutBuilder(
@@ -146,135 +145,123 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 28),
-                    const _AuthHero()
-                        .animate(target: reduceMotion ? 0 : 1)
-                        .fadeIn(duration: 360.ms)
-                        .slideY(begin: 0.08, end: 0),
-                    const SizedBox(height: 24),
-                    Text(headline, style: AppTextStyles.h1()),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 20),
+                    const _AuthHero(),
+                    const SizedBox(height: 46),
+                    Text(
+                      headline,
+                      style: AppTextStyles.h1().copyWith(
+                        fontSize: 40,
+                        height: 1.04,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       subhead,
                       style: AppTextStyles.body(color: AppColors.textSecondary),
                     ),
-                    const SizedBox(height: 18),
-                    const Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        TrustBadge(
-                          icon: Icons.route_outlined,
-                          label: '3-minute first map',
-                        ),
-                        TrustBadge(
-                          icon: Icons.edit_note_rounded,
-                          label: 'Start manually',
-                          color: AppColors.teal,
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    Text(
+                      'A first plan takes about 3 minutes.',
+                      style: AppTextStyles.caption(color: AppColors.primary),
                     ),
-                    const SizedBox(height: 22),
-                    PremiumGlassPanel(
-                      elevated: true,
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _ModeSwitch(
-                              isSignUp: _isSignUp,
-                              onChanged: (value) {
-                                if (_loading) return;
-                                setState(() {
-                                  _isSignUp = value;
-                                  _errorMessage = null;
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 18),
-                            if (_isSignUp) ...[
-                              _InputField(
-                                controller: _nameCtrl,
-                                label: 'Full name',
-                                hint: 'Your name',
-                                keyboardType: TextInputType.name,
-                                textCapitalization: TextCapitalization.words,
-                                validator: (v) {
-                                  if (v == null || v.trim().length < 2) {
-                                    return 'Enter at least 2 characters';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                            ],
+                    const SizedBox(height: 30),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ModeSwitch(
+                            isSignUp: _isSignUp,
+                            onChanged: (value) {
+                              if (_loading) return;
+                              setState(() {
+                                _isSignUp = value;
+                                _errorMessage = null;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 22),
+                          if (_isSignUp) ...[
                             _InputField(
-                              controller: _emailCtrl,
-                              label: 'Email address',
-                              hint: 'you@example.com',
-                              keyboardType: TextInputType.emailAddress,
+                              controller: _nameCtrl,
+                              label: 'Full name',
+                              hint: 'Your name',
+                              keyboardType: TextInputType.name,
+                              textCapitalization: TextCapitalization.words,
                               validator: (v) {
-                                if (v == null ||
-                                    !_emailRegex.hasMatch(v.trim())) {
-                                  return 'Enter a valid email';
+                                if (v == null || v.trim().length < 2) {
+                                  return 'Enter at least 2 characters';
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 14),
-                            _InputField(
-                              controller: _passwordCtrl,
-                              label: 'Password',
-                              hint: _isSignUp
-                                  ? '12+ chars, Aa, 0-9'
-                                  : 'Enter your password',
-                              obscureText: _obscurePassword,
-                              suffixIcon: IconButton(
-                                tooltip: _obscurePassword
-                                    ? 'Show password'
-                                    : 'Hide password',
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_rounded
-                                      : Icons.visibility_rounded,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              validator: (v) {
-                                final value = v ?? '';
-                                if (!_isSignUp && value.length < 8) {
-                                  return 'Password must be at least 8 characters';
-                                }
-                                if (_isSignUp &&
-                                    !RegExp(
-                                      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$',
-                                    ).hasMatch(value)) {
-                                  return 'Use 12+ chars with Aa and 0-9';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            _AuthErrorText(message: _errorMessage),
-                            const SizedBox(height: 14),
-                            _SubmitButton(
-                              loading: _loading,
-                              label: _isSignUp
-                                  ? 'Create secure account'
-                                  : 'Sign in',
-                              onPressed: _submit,
-                            ),
                           ],
-                        ),
+                          _InputField(
+                            controller: _emailCtrl,
+                            label: 'Email address',
+                            hint: 'you@example.com',
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (v) {
+                              if (v == null ||
+                                  !_emailRegex.hasMatch(v.trim())) {
+                                return 'Enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          _InputField(
+                            controller: _passwordCtrl,
+                            label: 'Password',
+                            hint: _isSignUp
+                                ? '12+ chars, Aa, 0-9'
+                                : 'Enter your password',
+                            obscureText: _obscurePassword,
+                            suffixIcon: IconButton(
+                              tooltip: _obscurePassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            validator: (v) {
+                              final value = v ?? '';
+                              if (!_isSignUp && value.length < 8) {
+                                return 'Password must be at least 8 characters';
+                              }
+                              if (_isSignUp &&
+                                  !RegExp(
+                                    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$',
+                                  ).hasMatch(value)) {
+                                return 'Use 12+ chars with Aa and 0-9';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _AuthErrorText(message: _errorMessage),
+                          const SizedBox(height: 14),
+                          _SubmitButton(
+                            loading: _loading,
+                            label:
+                                _isSignUp ? 'Create secure account' : 'Sign in',
+                            onPressed: _submit,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Text(
-                      'Your answers stay linked to this account so you can continue later.',
+                      'ARTH stores your answers so you can continue later.',
                       textAlign: TextAlign.center,
                       style:
                           AppTextStyles.micro(color: AppColors.textSecondary),
@@ -296,38 +283,21 @@ class _AuthHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumGlassPanel(
-      borderRadius: BorderRadius.circular(28),
-      padding: const EdgeInsets.all(22),
-      elevated: true,
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            clipBehavior: Clip.antiAlias,
-            decoration: const BoxDecoration(borderRadius: AppRadius.card),
-            child: Image.asset(
-              'assets/icon/icon_1024.png',
-              fit: BoxFit.cover,
-            ),
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+          child: Image.asset(
+            'assets/icon/icon_1024.png',
+            fit: BoxFit.cover,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ARTH', style: AppTextStyles.h3()),
-                const SizedBox(height: 4),
-                Text(
-                  'A clearer tax year for salaried India.',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 12),
+        Text('ARTH', style: AppTextStyles.h3()),
+      ],
     );
   }
 }
@@ -344,9 +314,8 @@ class _ModeSwitch extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: AppRadius.pill,
-        border: Border.all(color: AppColors.glassStroke),
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
@@ -391,7 +360,7 @@ class _ModeButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? AppColors.gold : Colors.transparent,
-          borderRadius: AppRadius.pill,
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
@@ -446,23 +415,23 @@ class _InputField extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.gold, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.alert),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.alert, width: 1.4),
         ),
         errorStyle: AppTextStyles.micro(color: AppColors.alert),
@@ -488,7 +457,7 @@ class _AuthErrorText extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.alert.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 border:
                     Border.all(color: AppColors.alert.withValues(alpha: 0.24)),
               ),
@@ -521,10 +490,9 @@ class _SubmitButton extends StatelessWidget {
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.gold,
-          foregroundColor: AppColors.ink,
+          foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.42),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         child: loading
@@ -536,7 +504,7 @@ class _SubmitButton extends StatelessWidget {
                   color: AppColors.ink,
                 ),
               )
-            : Text(label, style: AppTextStyles.button(color: AppColors.ink)),
+            : Text(label, style: AppTextStyles.button(color: Colors.white)),
       ),
     );
   }

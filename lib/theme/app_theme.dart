@@ -3,42 +3,58 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Clear Finance OS. Legacy color names remain to keep all screens stable.
-  static const Color bgPrimary = Color(0xFFF7F8F5);
-  static const Color bgCard = Color(0xFFFFFFFF);
-  static const Color bgCardHover = Color(0xFFF1F4EF);
-  static const Color bgSurface = Color(0xFFE9EEE8);
+  // Warm, document-like base with one clear action color.
+  // Legacy aliases stay while secondary screens migrate to the new system.
+  static const Color canvas = Color(0xFFF4F3EE);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceMuted = Color(0xFFE9E8E2);
+  static const Color surfacePressed = Color(0xFFDDDDD6);
+  static const Color ink = Color(0xFF171814);
+  static const Color inkSecondary = Color(0xFF5B5C55);
+  static const Color inkMuted = Color(0xFF85867F);
+  static const Color primary = Color(0xFF176B45);
+  static const Color primarySoft = Color(0xFFDDECE2);
+  static const Color primaryDark = Color(0xFF0C4C31);
+  static const Color readiness = Color(0xFF176B45);
+  static const Color readinessSoft = Color(0xFFDDECE2);
+  static const Color risk = Color(0xFFD95C4F);
+  static const Color warning = Color(0xFFB36A19);
 
-  static const Color gold = Color(0xFF176B45);
-  static const Color goldLight = Color(0xFFDDEDE4);
-  static const Color goldDim = Color(0xFF0D4E31);
+  static const Color bgPrimary = canvas;
+  static const Color bgCard = surface;
+  static const Color bgCardHover = surfaceMuted;
+  static const Color bgSurface = surfaceMuted;
 
-  static const Color success = Color(0xFF238653);
-  static const Color alert = Color(0xFFC84C3A);
-  static const Color amber = Color(0xFFE6A936);
-  static const Color teal = Color(0xFF2C7180);
+  static const Color gold = primary;
+  static const Color goldLight = primarySoft;
+  static const Color goldDim = primaryDark;
 
-  static const Color textPrimary = Color(0xFF151815);
-  static const Color textSecondary = Color(0xFF5F685F);
-  static const Color textMuted = Color(0xFF8A938A);
+  static const Color success = readiness;
+  static const Color alert = risk;
+  static const Color amber = warning;
+  static const Color teal = readiness;
+  static const Color digiLocker = Color(0xFF355AA8);
+
+  static const Color textPrimary = ink;
+  static const Color textSecondary = inkSecondary;
+  static const Color textMuted = inkMuted;
   static const Color textGold = gold;
 
-  static const Color divider = Color(0xFFE2E7E1);
-  static const Color border = Color(0xFFD7DED6);
+  static const Color divider = Color(0xFFDCDCD5);
+  static const Color border = Color(0xFFD3D3CB);
 
   // Gap card colors by size
-  static const Color gapSmall = Color(0xFF2C7180);
-  static const Color gapMedium = Color(0xFFE6A936);
-  static const Color gapLarge = Color(0xFF176B45);
+  static const Color gapSmall = readiness;
+  static const Color gapMedium = warning;
+  static const Color gapLarge = risk;
 
-  static const Color ink = bgPrimary;
-  static const Color graphite = Color(0xFFEDF1EC);
+  static const Color graphite = surfaceMuted;
   static const Color glassStroke = border;
-  static const Color info = Color(0xFF4267B2);
+  static const Color info = primary;
 }
 
 class AppTextStyles {
-  // Display — gap numbers
+  // Numbers remain neutral. Green is reserved for action and positive state.
   static TextStyle display({Color color = AppColors.gold}) => GoogleFonts.inter(
         fontSize: 56,
         fontWeight: FontWeight.w900,
@@ -58,27 +74,27 @@ class AppTextStyles {
 
   // Headings
   static TextStyle h1({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.manrope(
-        fontSize: 30,
-        fontWeight: FontWeight.w700,
+      GoogleFonts.newsreader(
+        fontSize: 34,
+        fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
         height: 1.2,
       );
 
   static TextStyle h2({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.manrope(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
+      GoogleFonts.newsreader(
+        fontSize: 26,
+        fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
         height: 1.3,
       );
 
   static TextStyle h3({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.manrope(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
+      GoogleFonts.inter(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
         color: color,
         height: 1.3,
       );
@@ -100,13 +116,13 @@ class AppTextStyles {
         height: 1.5,
       );
 
-  // Section labels (80C, 80D etc.) — uses Space Grotesk via google_fonts
+  // Section labels are functional, not decorative.
   static TextStyle sectionLabel({Color color = AppColors.gold}) =>
-      GoogleFonts.spaceGrotesk(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
+      GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
         color: color,
-        letterSpacing: 0.5,
+        letterSpacing: 0,
       );
 
   // Micro-copy
@@ -142,8 +158,8 @@ class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bgPrimary,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.gold,
-        secondary: AppColors.goldLight,
+        primary: AppColors.primary,
+        secondary: AppColors.readiness,
         surface: AppColors.bgCard,
         error: AppColors.alert,
         onPrimary: Colors.white,
@@ -185,7 +201,28 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
       dividerColor: AppColors.divider,
+      dividerTheme: const DividerThemeData(
+        color: AppColors.divider,
+        thickness: 1,
+        space: 1,
+      ),
       cardColor: AppColors.bgCard,
+      navigationBarTheme: NavigationBarThemeData(
+        height: 68,
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.primarySoft,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.textSecondary,
+          );
+        }),
+      ),
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.gold,
         selectionColor: Color(0x33176B45),
@@ -234,7 +271,7 @@ class AppButtons {
     textStyle: GoogleFonts.inter(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      letterSpacing: 0.2,
+      letterSpacing: 0,
     ),
   );
 
@@ -262,10 +299,10 @@ class Spacing {
 // Border radius
 class AppRadius {
   static const double sm = 8;
-  static const double md = 8;
-  static const double lg = 8;
-  static const double xl = 8;
-  static const BorderRadius card = BorderRadius.all(Radius.circular(8));
+  static const double md = 10;
+  static const double lg = 12;
+  static const double xl = 16;
+  static const BorderRadius card = BorderRadius.all(Radius.circular(12));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
 }
 

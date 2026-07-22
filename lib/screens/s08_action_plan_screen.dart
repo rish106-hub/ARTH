@@ -23,7 +23,7 @@ class ActionPlanScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: ArthAppBar(
-        title: 'Action plan',
+        title: 'Tax plan',
         actions: [
           IconButton(
             icon: const Icon(
@@ -84,10 +84,21 @@ class ActionPlanScreen extends ConsumerWidget {
                     children: [
                       const SizedBox(height: 16),
                       _ActionShortcut(
-                        icon: Icons.folder_special_outlined,
-                        title: 'Document checklist',
-                        body:
-                            'Prepare Form 16, rent, 80C, 80D, loan, education, donation, and AIS proof readiness.',
+                        icon: Icons.compare_arrows_rounded,
+                        title: 'Compare regimes',
+                        body: 'See the tax estimate behind this plan.',
+                        onTap: () => context.push('/regime-comparison'),
+                      ),
+                      _ActionShortcut(
+                        icon: Icons.tune_rounded,
+                        title: 'Try a scenario',
+                        body: 'Change an input without replacing your plan.',
+                        onTap: () => context.push('/tax-simulator'),
+                      ),
+                      _ActionShortcut(
+                        icon: Icons.folder_outlined,
+                        title: 'Prepare proof',
+                        body: 'Move supporting documents into the Vault.',
                         onTap: () => context.push('/documents'),
                       ),
                       if (pending.isNotEmpty) ...[
@@ -206,18 +217,28 @@ class _ActionShortcut extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: PremiumGlassPanel(
-        padding: const EdgeInsets.all(16),
-        tint: AppColors.teal,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.divider)),
+        ),
         child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(icon, color: AppColors.teal),
+          minTileHeight: 72,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+          leading: Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: AppColors.primarySoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
           title: Text(title, style: AppTextStyles.bodyMedium()),
           subtitle: Text(
             body,
             style: AppTextStyles.caption(color: AppColors.textSecondary),
           ),
-          trailing: const Icon(Icons.chevron_right_rounded),
+          trailing: const Icon(Icons.arrow_forward_rounded, size: 18),
           onTap: onTap,
         ),
       ),
@@ -243,20 +264,19 @@ class _ActionPlanHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Plan summary',
+            'YOUR OPEN PLAN',
             style: AppTextStyles.sectionLabel(
-              color: AppColors.textSecondary,
+              color: Colors.white60,
             ).copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
@@ -267,12 +287,15 @@ class _ActionPlanHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Recoverable', style: AppTextStyles.micro()),
+                    Text(
+                      'Possible deductions',
+                      style: AppTextStyles.micro(color: Colors.white60),
+                    ),
                     Text(
                       formatRupeesCompact(totalGap),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h2(color: AppColors.gold),
+                      style: AppTextStyles.h2(color: Colors.white),
                     ),
                   ],
                 ),
@@ -282,13 +305,16 @@ class _ActionPlanHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Still open', style: AppTextStyles.micro()),
+                    Text(
+                      'Still to review',
+                      style: AppTextStyles.micro(color: Colors.white60),
+                    ),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
-                      style: AppTextStyles.h2(color: AppColors.amber),
+                      style: AppTextStyles.h2(color: Colors.white),
                     ),
                   ],
                 ),
@@ -304,7 +330,7 @@ class _ActionPlanHeader extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
-                    backgroundColor: AppColors.bgSurface,
+                    backgroundColor: Colors.white24,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AppColors.success,
                     ),
@@ -314,7 +340,7 @@ class _ActionPlanHeader extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '$doneCount of $totalCount done',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: AppTextStyles.caption(color: Colors.white70),
               ),
             ],
           ),

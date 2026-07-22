@@ -404,7 +404,7 @@ class _ActionButton extends StatelessWidget {
             backgroundColor: accentColor.withValues(alpha: 0.12),
             foregroundColor: accentColor,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: AppRadius.card),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.card),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),

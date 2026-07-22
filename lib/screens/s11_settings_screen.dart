@@ -82,7 +82,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 24),
-                        _SectionHeader(label: 'TAX PROFILE'),
+                        const _SectionHeader(label: 'TAX PROFILE'),
                         const SizedBox(height: 10),
 
                         // Tax profile card
@@ -139,7 +139,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 24),
-                        _SectionHeader(label: 'PROGRESS'),
+                        const _SectionHeader(label: 'PROGRESS'),
                         const SizedBox(height: 10),
 
                         _ActionTile(
@@ -164,7 +164,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 24),
-                        _SectionHeader(label: 'ACCOUNT & SECURITY'),
+                        const _SectionHeader(label: 'ACCOUNT & SECURITY'),
                         const SizedBox(height: 10),
 
                         if (account != null) ...[
@@ -173,10 +173,10 @@ class SettingsScreen extends ConsumerWidget {
                         ],
 
                         const SizedBox(height: 24),
-                        _SectionHeader(label: 'DATA & PRIVACY'),
+                        const _SectionHeader(label: 'DATA & PRIVACY'),
                         const SizedBox(height: 10),
 
-                        _GlassSection(
+                        const _GlassSection(
                           children: [
                             _PrivacyRow(
                               icon: Icons.cloud_done_rounded,
@@ -298,7 +298,7 @@ class _SettingsHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
-            child: Text(
+            child: const Text(
               'FY2025-26 Filing',
               style: TextStyle(
                 fontFamily: 'Inter',
@@ -371,8 +371,8 @@ class _AccountHeroCard extends StatelessWidget {
                   Container(
                     width: 52,
                     height: 52,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [AppColors.gold, Color(0xFFD4A017)],
@@ -432,7 +432,7 @@ class _AccountHeroCard extends StatelessWidget {
                         color: AppColors.teal.withValues(alpha: 0.4),
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
@@ -440,7 +440,7 @@ class _AccountHeroCard extends StatelessWidget {
                           size: 11,
                           color: AppColors.teal,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           'Synced',
                           style: TextStyle(
@@ -736,7 +736,7 @@ class _AccountSecurityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _GlassSection(
+    return const _GlassSection(
       children: [
         _PrivacyRow(
           icon: Icons.lock_outline_rounded,
@@ -816,7 +816,7 @@ class _ProfileDetailRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          Divider(
+          const Divider(
             indent: 42,
             endIndent: 0,
             color: AppColors.divider,
@@ -881,7 +881,7 @@ class _PrivacyRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          Divider(
+          const Divider(
             indent: 64,
             endIndent: 0,
             color: AppColors.divider,
@@ -968,7 +968,7 @@ class _ActionTile extends StatelessWidget {
                             ),
                             child: Text(
                               badge!,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -989,7 +989,7 @@ class _ActionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.chevron_right_rounded,
                 color: AppColors.textMuted,
                 size: 18,
@@ -1011,7 +1011,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: TextStyle(
+      style: const TextStyle(
         fontFamily: 'Inter',
         fontSize: 10,
         fontWeight: FontWeight.w600,
@@ -1054,7 +1054,7 @@ class _AppFooter extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
+              const Text(
                 'ARTH',
                 style: TextStyle(
                   fontFamily: 'SpaceGrotesk',
@@ -1088,7 +1088,7 @@ class _AppFooter extends StatelessWidget {
           spacing: 5,
           runSpacing: 4,
           children: [
-            Icon(Icons.shield_outlined, size: 11, color: AppColors.teal),
+            const Icon(Icons.shield_outlined, size: 11, color: AppColors.teal),
             Text(
               'Secured on ARTH Cloud  |  AES-256 Encrypted',
               style: AppTextStyles.micro(color: AppColors.textMuted),
@@ -1161,7 +1161,7 @@ class _ArthDialog extends StatelessWidget {
       backgroundColor: AppColors.bgCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: AppColors.border),
+        side: const BorderSide(color: AppColors.border),
       ),
       title: Text(title, style: AppTextStyles.h3()),
       content: Text(

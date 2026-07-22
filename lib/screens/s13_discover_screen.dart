@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/product_insights.dart';
-import '../models/tax_document.dart';
-import '../models/tax_readiness.dart';
-import '../providers/tax_document_provider.dart';
-import '../providers/tax_readiness_provider.dart';
-import '../providers/tax_result_provider.dart';
-import '../providers/tax_year_provider.dart';
+import '../models/money_plan.dart';
+import '../providers/money_plan_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animated_number.dart';
@@ -20,486 +15,202 @@ class DiscoverScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final completeAsync = ref.watch(completedTaxProfileProvider);
+    final planAsync = ref.watch(moneyPlanProvider);
     return ArthScaffold(
+      showAmbientGlow: false,
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 0,
         onTap: (index) => goToArthTab(context, index),
       ),
-      child: completeAsync.when(
+      child: planAsync.when(
         loading: () => const ArthLoadingPanel(
-          title: 'Opening ARTH',
-          insights: ['Preparing your tax position.'],
+          title: 'Opening Today',
+          insights: ['Reading your money baseline.'],
         ),
-        error: (_, __) => const _ArthHome(complete: false),
-        data: (complete) => _ArthHome(complete: complete),
+        error: (_, __) => ArthStatePanel(
+          icon: Icons.sync_problem_rounded,
+          title: 'Today is unavailable',
+          message: 'Your saved money plan could not be read.',
+          actionLabel: 'Retry',
+          onAction: () => ref.invalidate(moneyPlanProvider),
+        ),
+        data: (plan) => _TodayView(plan: plan),
       ),
     );
   }
 }
 
-class _ArthHome extends ConsumerWidget {
-  final bool complete;
+class _TodayView extends ConsumerWidget {
+  final MoneyPlan plan;
 
-  const _ArthHome({required this.complete});
+  const _TodayView({required this.plan});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(userProfileProvider);
-    final checklist = ref.watch(documentChecklistProvider);
-    final documentPercent = documentReadinessPercent(checklist);
-    final documents =
-        ref.watch(taxDocumentProvider).asData?.value ?? const <TaxDocument>[];
-    final vaultSummary = DocumentVaultSummary.fromDocuments(documents);
-    final year = ref.watch(activeTaxYearProvider);
-    final result = complete ? ref.watch(taxResultProvider).asData?.value : null;
-    final readiness = _readinessScore(
-      diagnosticComplete: complete,
-      documentPercent: documentPercent,
-      confidenceScore: result?.confidenceScore,
+    final taxComplete =
+        ref.watch(completedTaxProfileProvider).asData?.value ?? false;
+    final decision = nextMoneyDecision(
+      plan,
+      taxProfileComplete: taxComplete,
     );
-    final next = buildNextBestAction(
-      diagnosticComplete: complete,
-      documentPercent: documentPercent,
-      result: result,
-    );
+    final snapshot = MoneySnapshot(plan);
+    final firstName = profile.name.trim().split(' ').firstOrNull;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: _HomeHeader(
-            name: profile.name,
-            onHelp: () => context.push('/help'),
-            onProfile: () => context.go('/profile'),
+    final headline = plan.isComplete
+        ? '${formatRupeesCompact(snapshot.availableThisMonth)} is still unassigned this month.'
+        : 'Your money has no working plan yet.';
+    final contextLine = plan.isComplete
+        ? 'After ${formatRupeesCompact(plan.monthlyCommitments)} in fixed commitments and ${formatRupeesCompact(plan.monthlyInvesting)} in planned investing.'
+        : 'Start with what reaches your bank, what is already committed, and what you have in reserve.';
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.sizeOf(context).height -
+                MediaQuery.paddingOf(context).vertical -
+                112,
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-          sliver: SliverList.list(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PositionSummary(
-                complete: complete,
-                readiness: readiness,
-                opportunity: result?.deductionOpportunity ?? 0,
-                yearLabel: year.fyLabel,
+              _TodayHeader(
+                name: firstName,
+                onProfile: () => context.go('/profile'),
+              ),
+              const SizedBox(height: 54),
+              Text('TODAY', style: AppTextStyles.sectionLabel()),
+              const SizedBox(height: 12),
+              Text(
+                headline,
+                style: AppTextStyles.h1().copyWith(fontSize: 40, height: 1.05),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: AppButtons.primaryGold,
-                  onPressed: () => context.go(
-                    complete ? '/gap-reveal' : '/questions',
-                  ),
-                  icon: Icon(
-                    complete
-                        ? Icons.insights_rounded
-                        : Icons.arrow_forward_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
-                    complete
-                        ? 'Open my tax position'
-                        : 'Start 3-minute tax check',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              Text(
+                contextLine,
+                style: AppTextStyles.body(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 16),
-              _JourneyProgress(
-                complete: complete,
-                documentPercent: documentPercent,
+              const SizedBox(height: 36),
+              _DecisionCard(
+                decision: decision,
+                onTap: () => context.push(decision.route),
               ),
-              const SizedBox(height: 24),
-              _SectionTitle(title: 'Next move'),
-              const SizedBox(height: 10),
-              _NextMoveTile(
-                action: next,
-                onTap: () => context.push(next.route),
-              ),
-              const SizedBox(height: 24),
-              _SectionTitle(
-                title: 'Bring in your tax data',
-                helper: '${vaultSummary.needsReview} need review',
-              ),
-              const SizedBox(height: 10),
-              _DataImportPanel(
-                onManual: () => context.push('/documents'),
-                onDigiLocker: () => _showDigiLockerStatus(context),
-              ),
-              const SizedBox(height: 24),
-              _SectionTitle(title: 'Explore ARTH'),
-              const SizedBox(height: 4),
-              _ToolList(
-                tools: [
-                  _Tool(
-                    icon: Icons.folder_copy_outlined,
-                    title: 'Document Vault',
-                    body: 'Keep proofs and filing records together.',
-                    onTap: () => context.push('/documents'),
-                  ),
-                  _Tool(
-                    icon: Icons.auto_stories_outlined,
-                    title: 'My Tax Story',
-                    body: 'Your year explained in plain language.',
-                    onTap: () => context.push('/tax-story'),
-                  ),
-                  _Tool(
-                    icon: Icons.science_outlined,
-                    title: 'What-if simulator',
-                    body: 'Test 80C, NPS and 80D moves.',
-                    onTap: () => context.push(
-                      complete ? '/tax-simulator' : '/questions',
-                    ),
-                  ),
-                  _Tool(
-                    icon: Icons.assignment_outlined,
-                    title: 'Tax Dossier',
-                    body: 'Profile, opportunities and proof status.',
-                    onTap: () => context.push('/tax-dossier'),
-                  ),
-                  _Tool(
-                    icon: Icons.account_balance_outlined,
-                    title: 'AIS & 26AS guide',
-                    body: 'Check official income and tax credits.',
-                    onTap: () => context.push('/ais-guide'),
-                  ),
-                  _Tool(
-                    icon: Icons.calendar_month_outlined,
-                    title: 'Tax calendar',
-                    body: 'Proof, planning and filing dates.',
-                    onTap: () => context.push('/tax-calendar'),
-                  ),
-                  _Tool(
-                    icon: Icons.support_agent_outlined,
-                    title: 'Help Center',
-                    body: 'Get help with ARTH and your data.',
-                    onTap: () => context.push('/help'),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 42),
+              if (plan.isComplete)
+                _MonthFlow(plan: plan, snapshot: snapshot)
+              else
+                const _BaselinePreview(),
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  int _readinessScore({
-    required bool diagnosticComplete,
-    required int documentPercent,
-    int? confidenceScore,
-  }) {
-    if (!diagnosticComplete) return 0;
-    final diagnostic = 55;
-    final documents = (documentPercent * 0.30).round();
-    final confidence = confidenceScore == null
-        ? 0
-        : (confidenceScore.clamp(0, 100) * 0.15).round();
-    return (diagnostic + documents + confidence).clamp(0, 100).toInt();
-  }
-
-  void _showDigiLockerStatus(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('DigiLocker connection is being prepared.'),
       ),
     );
   }
 }
 
-class _HomeHeader extends StatelessWidget {
-  final String name;
-  final VoidCallback onHelp;
+class _TodayHeader extends StatelessWidget {
+  final String? name;
   final VoidCallback onProfile;
 
-  const _HomeHeader({
-    required this.name,
-    required this.onHelp,
-    required this.onProfile,
-  });
+  const _TodayHeader({required this.name, required this.onProfile});
 
   @override
   Widget build(BuildContext context) {
-    final trimmedName = name.trim();
-    final firstName = trimmedName.isEmpty ? null : trimmedName.split(' ').first;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  firstName == null || firstName.isEmpty
-                      ? 'YOUR TAX YEAR'
-                      : 'HELLO, ${firstName.toUpperCase()}',
-                  style: AppTextStyles.sectionLabel(color: AppColors.gold),
-                ),
-                const SizedBox(height: 3),
-                Text('ARTH', style: AppTextStyles.h2()),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Help Center',
-            onPressed: onHelp,
-            icon: const Icon(Icons.help_outline_rounded),
-          ),
-          IconButton(
-            tooltip: 'Profile',
-            onPressed: onProfile,
-            icon: const Icon(Icons.person_outline_rounded),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PositionSummary extends StatelessWidget {
-  final bool complete;
-  final int readiness;
-  final int opportunity;
-  final String yearLabel;
-
-  const _PositionSummary({
-    required this.complete,
-    required this.readiness,
-    required this.opportunity,
-    required this.yearLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: AppRadius.card,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 70,
-            height: 70,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: complete ? readiness / 100 : 0.06,
-                  strokeWidth: 7,
-                  backgroundColor: AppColors.bgSurface,
-                  color: complete ? AppColors.success : AppColors.amber,
-                  strokeCap: StrokeCap.round,
-                ),
-                Text(
-                  complete ? '$readiness' : '—',
-                  style: AppTextStyles.h3(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Readiness cockpit', style: AppTextStyles.h3()),
-                const SizedBox(height: 5),
-                Text(
-                  complete
-                      ? '${formatRupeesCompact(opportunity)} in deduction opportunities mapped.'
-                      : 'Your tax position has not been mapped yet.',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  yearLabel,
-                  style: AppTextStyles.micro(color: AppColors.gold)
-                      .copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _JourneyProgress extends StatelessWidget {
-  final bool complete;
-  final int documentPercent;
-
-  const _JourneyProgress({
-    required this.complete,
-    required this.documentPercent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border.symmetric(
-          horizontal: BorderSide(color: AppColors.divider),
-        ),
-      ),
-      child: Row(
-        children: [
-          _ProgressItem(
-            label: 'Profile',
-            value: complete ? 'Ready' : 'Start',
-            done: complete,
-          ),
-          const _ProgressDivider(),
-          _ProgressItem(
-            label: 'Tax scan',
-            value: complete ? 'Mapped' : 'Pending',
-            done: complete,
-          ),
-          const _ProgressDivider(),
-          _ProgressItem(
-            label: 'Proofs',
-            value: '$documentPercent%',
-            done: documentPercent >= 80,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool done;
-
-  const _ProgressItem({
-    required this.label,
-    required this.value,
-    required this.done,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                done ? Icons.check_circle_rounded : Icons.circle_outlined,
-                color: done ? AppColors.success : AppColors.textMuted,
-                size: 14,
-              ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(value, style: AppTextStyles.bodyMedium()),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressDivider extends StatelessWidget {
-  const _ProgressDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 34,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      color: AppColors.divider,
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final String? helper;
-
-  const _SectionTitle({required this.title, this.helper});
-
-  @override
-  Widget build(BuildContext context) {
+    final validName = name != null && name!.trim().isNotEmpty;
     return Row(
       children: [
-        Expanded(child: Text(title, style: AppTextStyles.h3())),
-        if (helper != null)
-          Text(
-            helper!,
-            style: AppTextStyles.micro(color: AppColors.textSecondary),
+        Text('ARTH', style: AppTextStyles.h3()),
+        const Spacer(),
+        IconButton(
+          tooltip: 'Account and privacy',
+          onPressed: onProfile,
+          icon: CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.ink,
+            child: Text(
+              validName ? name!.substring(0, 1).toUpperCase() : 'A',
+              style: AppTextStyles.caption(color: AppColors.surface),
+            ),
           ),
+        ),
       ],
     );
   }
 }
 
-class _NextMoveTile extends StatelessWidget {
-  final NextBestAction action;
+class _DecisionCard extends StatelessWidget {
+  final MoneyDecision decision;
   final VoidCallback onTap;
 
-  const _NextMoveTile({required this.action, required this.onTap});
+  const _DecisionCard({required this.decision, required this.onTap});
+
+  IconData get _icon => switch (decision.kind) {
+        MoneyDecisionKind.setup => Icons.tune_rounded,
+        MoneyDecisionKind.cashBuffer => Icons.shield_outlined,
+        MoneyDecisionKind.commitments => Icons.balance_outlined,
+        MoneyDecisionKind.goal => Icons.flag_outlined,
+        MoneyDecisionKind.taxCheck => Icons.calculate_outlined,
+        MoneyDecisionKind.review => Icons.task_alt_rounded,
+      };
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.goldLight,
-      borderRadius: AppRadius.card,
+      color: AppColors.ink,
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        borderRadius: AppRadius.card,
         onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 decoration: const BoxDecoration(
-                  color: AppColors.bgCard,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(action.icon, color: AppColors.gold, size: 21),
+                child: Icon(_icon, color: Colors.white, size: 21),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(action.title, style: AppTextStyles.bodyMedium()),
-                    const SizedBox(height: 3),
                     Text(
-                      action.body,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(
-                        color: AppColors.textSecondary,
-                      ),
+                      decision.title,
+                      style: AppTextStyles.h3(color: Colors.white),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      decision.body,
+                      style: AppTextStyles.caption(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            decision.actionLabel,
+                            style: AppTextStyles.button(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_rounded, color: AppColors.gold),
             ],
           ),
         ),
@@ -508,126 +219,128 @@ class _NextMoveTile extends StatelessWidget {
   }
 }
 
-class _DataImportPanel extends StatelessWidget {
-  final VoidCallback onManual;
-  final VoidCallback onDigiLocker;
+class _MonthFlow extends StatelessWidget {
+  final MoneyPlan plan;
+  final MoneySnapshot snapshot;
 
-  const _DataImportPanel({
-    required this.onManual,
-    required this.onDigiLocker,
-  });
+  const _MonthFlow({required this.plan, required this.snapshot});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.bgCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppRadius.card,
-        side: BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'THIS MONTH',
+              style: AppTextStyles.sectionLabel(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              formatRupeesCompact(plan.monthlyTakeHome),
+              style: AppTextStyles.caption(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 12,
+            child: Row(
+              children: [
+                if (plan.monthlyCommitments > 0)
+                  Expanded(
+                    flex: plan.monthlyCommitments,
+                    child: Container(color: AppColors.ink),
+                  ),
+                if (plan.monthlyInvesting > 0)
+                  Expanded(
+                    flex: plan.monthlyInvesting,
+                    child: Container(color: AppColors.warning),
+                  ),
+                if (snapshot.availableThisMonth > 0)
+                  Expanded(
+                    flex: snapshot.availableThisMonth,
+                    child: Container(color: AppColors.primary),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('COMMITTED', style: AppTextStyles.micro()),
+            Text(
+              'INVESTING',
+              style: AppTextStyles.micro(color: AppColors.warning),
+            ),
+            Text(
+              'FREE',
+              style: AppTextStyles.micro(color: AppColors.primary),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _BaselinePreview extends StatelessWidget {
+  const _BaselinePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'YOUR FIRST BASELINE',
+          style: AppTextStyles.sectionLabel(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const _PreviewRow(label: 'What reaches you', icon: Icons.south_rounded),
+        const _PreviewRow(
+          label: 'What is already committed',
+          icon: Icons.lock_outline_rounded,
+        ),
+        const _PreviewRow(
+          label: 'What remains available',
+          icon: Icons.call_split_rounded,
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewRow extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _PreviewRow({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
         children: [
-          _ImportRow(
-            icon: Icons.edit_note_rounded,
-            title: 'Add documents manually',
-            body: 'Upload or mark proofs as ready.',
-            onTap: onManual,
-          ),
-          const Divider(height: 1, indent: 60),
-          _ImportRow(
-            icon: Icons.account_balance_outlined,
-            title: 'Fetch from DigiLocker',
-            body: 'Coming soon',
-            onTap: onDigiLocker,
-          ),
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: AppTextStyles.body())),
         ],
       ),
     );
   }
 }
 
-class _ImportRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String body;
-  final VoidCallback onTap;
-
-  const _ImportRow({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Icon(icon, color: AppColors.gold),
-      title: Text(title, style: AppTextStyles.bodyMedium()),
-      subtitle: Text(
-        body,
-        style: AppTextStyles.caption(color: AppColors.textSecondary),
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded),
-    );
-  }
-}
-
-class _Tool {
-  final IconData icon;
-  final String title;
-  final String body;
-  final VoidCallback onTap;
-
-  const _Tool({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.onTap,
-  });
-}
-
-class _ToolList extends StatelessWidget {
-  final List<_Tool> tools;
-
-  const _ToolList({required this.tools});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: tools.asMap().entries.map((entry) {
-        final tool = entry.value;
-        return Column(
-          children: [
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(vertical: 3),
-              onTap: tool.onTap,
-              leading: Container(
-                width: 38,
-                height: 38,
-                decoration: const BoxDecoration(
-                  color: AppColors.bgSurface,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(tool.icon, color: AppColors.gold, size: 19),
-              ),
-              title: Text(tool.title, style: AppTextStyles.bodyMedium()),
-              subtitle: Text(
-                tool.body,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-            ),
-            if (entry.key != tools.length - 1)
-              const Divider(height: 1, indent: 54),
-          ],
-        );
-      }).toList(),
-    );
-  }
+extension _FirstOrNull on List<String> {
+  String? get firstOrNull => isEmpty ? null : first;
 }

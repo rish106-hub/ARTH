@@ -25,7 +25,7 @@ class TaxStoryScreen extends ConsumerWidget {
     final completeAsync = ref.watch(completedTaxProfileProvider);
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
-        selectedIndex: 0,
+        selectedIndex: 2,
         onTap: (i) => goToArthTab(context, i),
       ),
       child: Column(

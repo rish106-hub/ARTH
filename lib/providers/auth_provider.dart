@@ -4,23 +4,34 @@ import '../services/auth_service.dart';
 
 class AuthNotifier extends Notifier<UserAccount?> {
   final AuthService? _overrideService;
-  late final AuthService _service;
+  AuthService? _service;
 
   AuthNotifier([this._overrideService]);
 
   @override
   UserAccount? build() {
-    _service = _overrideService ?? ref.read(authServiceProvider);
     _load();
     return null;
   }
 
+  AuthService get _resolvedService {
+    final existing = _service;
+    if (existing != null) return existing;
+    final AuthService resolved =
+        _overrideService ?? ref.read(authServiceProvider);
+    _service = resolved;
+    return resolved;
+  }
+
   Future<void> _load() async {
-    state = await _service.loadAccount();
+    final account = await _resolvedService.loadAccount();
+    if (!ref.mounted) return;
+    state = account;
   }
 
   Future<void> saveAccount(UserAccount account) async {
-    await _service.saveAccount(account);
+    await _resolvedService.saveAccount(account);
+    if (!ref.mounted) return;
     state = account;
   }
 
@@ -29,12 +40,12 @@ class AuthNotifier extends Notifier<UserAccount?> {
     required String email,
     required String password,
   }) async {
-    final account = await _service.signUp(
+    final account = await _resolvedService.signUp(
       name: name,
       email: email,
       password: password,
     );
-    state = account;
+    if (ref.mounted) state = account;
     return account;
   }
 
@@ -42,13 +53,15 @@ class AuthNotifier extends Notifier<UserAccount?> {
     required String email,
     required String password,
   }) async {
-    final account = await _service.signIn(email: email, password: password);
-    state = account;
+    final account =
+        await _resolvedService.signIn(email: email, password: password);
+    if (ref.mounted) state = account;
     return account;
   }
 
   Future<void> signOut() async {
-    await _service.clearAccount();
+    await _resolvedService.clearAccount();
+    if (!ref.mounted) return;
     state = null;
   }
 

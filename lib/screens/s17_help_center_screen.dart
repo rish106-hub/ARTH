@@ -89,11 +89,11 @@ class HelpCenterScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ArthSection(
+                  const ArthSection(
                     title: 'Contact',
                     child: PremiumGlassPanel(
                       child: Column(
-                        children: const [
+                        children: [
                           _ContactRow(
                             icon: Icons.person_outline_rounded,
                             label: 'Contact person',
@@ -169,12 +169,12 @@ class HelpCenterScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ArthSection(
+                  const ArthSection(
                     title: 'FAQ',
                     child: PremiumGlassPanel(
                       padding: EdgeInsets.zero,
                       child: Column(
-                        children: const [
+                        children: [
                           _FaqTile(
                             question: 'Does ARTH file ITR?',
                             answer:

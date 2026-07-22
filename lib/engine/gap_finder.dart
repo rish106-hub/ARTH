@@ -32,8 +32,9 @@ class GapFinder {
 
       case 'T02_80CCD1B_nps':
         if (p.npsExtraContribution == 0) return 50000;
-        if (p.npsExtraContribution < 50000)
+        if (p.npsExtraContribution < 50000) {
           return 50000 - p.npsExtraContribution;
+        }
         return null;
 
       case 'T03_80D_self':

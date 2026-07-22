@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/account_profile_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/money_plan_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
@@ -16,18 +17,21 @@ Future<void> signOutDeviceAndRouteToAuth(
   final userProfile = ref.read(userProfileProvider.notifier);
   final documentChecklist = ref.read(documentChecklistProvider.notifier);
   final accountProfile = ref.read(accountProfileProvider.notifier);
+  final moneyPlan = ref.read(moneyPlanProvider.notifier);
 
   // These providers use the current uid for their storage keys, so clear them
   // before auth is removed.
   await userProfile.clearLocalOnly();
   await documentChecklist.clear();
   await accountProfile.clearLocalOnly();
+  await moneyPlan.clear();
   await const SyncQueueService().clear();
 
   ref.invalidate(gapStateProvider);
   ref.invalidate(taxResultProvider);
   ref.invalidate(completedTaxProfileProvider);
   ref.invalidate(documentReadinessPercentProvider);
+  ref.invalidate(moneyPlanProvider);
 
   await ref.read(authProvider.notifier).signOut();
 

@@ -1,5 +1,5 @@
 name: arth
-description: "ARTH - India's First Tax Gap Intelligence App. Not a rupee less. Not a rupee more."
+description: "ARTH - A tax-aware money planning app for salaried Indians."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -54,19 +54,19 @@ flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/icon_1024.png"
-  adaptive_icon_background: "#176B45"
-  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icon/icon_1024.png"
   min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#F7F8F5"
+  color: "#F7F8FA"
   image: assets/icon/icon_1024.png
-  color_dark: "#F7F8F5"
+  color_dark: "#F7F8FA"
   image_dark: assets/icon/icon_1024.png
   android_12:
-    image: assets/icon/icon_foreground.png
-    color: "#F7F8F5"
-    icon_background_color: "#176B45"
+    image: assets/icon/icon_1024.png
+    color: "#F7F8FA"
+    icon_background_color: "#F7F8FA"
   web: false
   ios: false
 

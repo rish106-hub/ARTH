@@ -10,6 +10,7 @@ import '../models/user_profile.dart';
 import '../providers/account_profile_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/entitlement_provider.dart';
+import '../providers/money_plan_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
@@ -45,8 +46,8 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         children: [
           ArthPremiumAppBar(
-            eyebrow: 'Profile',
-            title: 'Account and privacy',
+            eyebrow: 'ACCOUNT AND PRIVACY',
+            title: 'You',
             actions: [
               IconButton(
                 tooltip: 'Refresh',
@@ -210,9 +211,9 @@ class ProfileScreen extends ConsumerWidget {
                   TextField(
                     controller: controller,
                     textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Name',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -445,7 +446,7 @@ class ProfileScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Clear all data?'),
         content: const Text(
-          'This wipes tax profile, calculations, progress, and PAN vault data from ARTH servers.',
+          'This clears your money baseline, tax profile, calculations, progress, and PAN vault data.',
         ),
         actions: [
           TextButton(
@@ -453,6 +454,7 @@ class ProfileScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              await ref.read(moneyPlanProvider.notifier).clear();
               await ref.read(userProfileProvider.notifier).clearAll();
               ref.invalidate(completedTaxProfileProvider);
               ref.invalidate(taxResultProvider);
@@ -961,11 +963,11 @@ class _SupportAndDossierCard extends StatelessWidget {
 class _PrivacyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ArthSection(
+    return const ArthSection(
       title: 'Data and privacy',
       child: PremiumGlassPanel(
         child: Column(
-          children: const [
+          children: [
             _PrivacyRow(
               icon: Icons.cloud_done_rounded,
               title: 'Cloud sync',

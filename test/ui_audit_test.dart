@@ -1,4 +1,5 @@
 import 'package:arth/models/gap_card.dart';
+import 'package:arth/models/money_plan.dart';
 import 'package:arth/models/account_profile.dart';
 import 'package:arth/models/tax_document.dart';
 import 'package:arth/models/tax_readiness.dart';
@@ -7,6 +8,7 @@ import 'package:arth/models/user_account.dart';
 import 'package:arth/models/user_profile.dart';
 import 'package:arth/providers/account_profile_provider.dart';
 import 'package:arth/providers/auth_provider.dart';
+import 'package:arth/providers/money_plan_provider.dart';
 import 'package:arth/providers/tax_document_provider.dart';
 import 'package:arth/providers/tax_readiness_provider.dart';
 import 'package:arth/providers/tax_result_provider.dart';
@@ -32,6 +34,10 @@ import 'package:arth/screens/s20_accuracy_coach_screen.dart';
 import 'package:arth/screens/s21_tax_simulator_screen.dart';
 import 'package:arth/screens/s22_tax_story_screen.dart';
 import 'package:arth/screens/s23_tax_calendar_screen.dart';
+import 'package:arth/screens/s24_control_room_demo_screen.dart';
+import 'package:arth/screens/s25_money_setup_screen.dart';
+import 'package:arth/screens/s26_income_screen.dart';
+import 'package:arth/screens/s27_money_plan_screen.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/services/backend_sync_service.dart';
 import 'package:arth/theme/app_theme.dart';
@@ -46,7 +52,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   FlutterSecureStorage.setMockInitialValues({});
 
-  final sampleProfile = UserProfile(
+  final sampleProfile = const UserProfile(
     name: 'Audit User',
     email: 'audit@example.com',
     annualCTC: 1800000,
@@ -135,7 +141,7 @@ void main() {
     colorHex: '26A69A',
   );
 
-  final sampleResult = TaxResult(
+  final sampleResult = const TaxResult(
     oldRegimeTax: 272220,
     newRegimeTax: 169000,
     oldRegimeTaxableIncome: 1697500,
@@ -143,7 +149,7 @@ void main() {
     totalDeductionsOld: 102500,
     betterRegime: TaxRegime.newRegime,
     regimeSavings: 103220,
-    gaps: const [sampleGap1, sampleGap2, sampleGap3],
+    gaps: [sampleGap1, sampleGap2, sampleGap3],
     totalGapAmount: 340000,
     gapCount: 3,
   );
@@ -178,6 +184,19 @@ void main() {
     tags: ['salary'],
   );
 
+  const sampleMoneyPlan = MoneyPlan(
+    annualFixedPay: 3000000,
+    annualVariablePay: 300000,
+    annualEquityPay: 600000,
+    monthlyTakeHome: 180000,
+    monthlyCommitments: 70000,
+    monthlyInvesting: 40000,
+    liquidSavings: 500000,
+    primaryGoalName: 'Home deposit',
+    primaryGoalTarget: 2000000,
+    primaryGoalSaved: 500000,
+  );
+
   final overrides = [
     userProfileProvider.overrideWith(
       () => _FixedUserProfileNotifier(sampleProfile),
@@ -196,6 +215,9 @@ void main() {
     taxResultProvider.overrideWith((ref) async => sampleResult),
     authProvider.overrideWith(
       () => _FixedAuthNotifier(_FixedAuthService(account)),
+    ),
+    moneyPlanProvider.overrideWith(
+      () => _FixedMoneyPlanNotifier(sampleMoneyPlan),
     ),
   ];
 
@@ -217,6 +239,9 @@ void main() {
         taxResultProvider.overrideWith((ref) async => sampleResult),
         authProvider.overrideWith(
           () => _FixedAuthNotifier(_FixedAuthService(account)),
+        ),
+        moneyPlanProvider.overrideWith(
+          () => _FixedMoneyPlanNotifier(sampleMoneyPlan),
         ),
       ];
 
@@ -296,6 +321,9 @@ void main() {
         const AuthScreen(),
         const DiscoverScreen(),
         const WelcomeScreen(),
+        const MoneySetupScreen(),
+        const IncomeScreen(),
+        const MoneyPlanScreen(),
         const QuestionsScreen(),
         const GapRevealScreen(),
         const RegimeComparisonScreen(),
@@ -314,6 +342,7 @@ void main() {
         const TaxStoryScreen(),
         const TaxCalendarScreen(),
         const BudgetAlertScreen(),
+        const ControlRoomDemoScreen(),
       ];
 
       for (final screen in screens) {
@@ -322,18 +351,17 @@ void main() {
     },
   );
 
-  testWidgets('tax journey scene explains why each answer matters', (
+  testWidgets('diagnostic keeps one question and one chapter in focus', (
     tester,
   ) async {
     await pumpAuditedScreen(tester, const QuestionsScreen());
 
     expect(find.image(const AssetImage('assets/images/tax_journey.png')),
-        findsOneWidget);
-    await tester.tap(find.byIcon(Icons.info_outline_rounded));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Why Income profile matters'), findsOneWidget);
-    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+        findsNothing);
+    expect(find.text('Income profile'), findsOneWidget);
+    expect(find.text('First, the shape of your income.'), findsOneWidget);
+    expect(find.text('1 of 12'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
 
   testWidgets('profile clear-data action opens confirmation dialog', (
@@ -352,7 +380,7 @@ void main() {
     expect(find.text('Clear all data?'), findsOneWidget);
     expect(
       find.text(
-          'This wipes tax profile, calculations, progress, and PAN vault data from ARTH servers.'),
+          'This clears your money baseline, tax profile, calculations, progress, and PAN vault data.'),
       findsOneWidget,
     );
     expect(find.text('Clear data'), findsOneWidget);
@@ -364,8 +392,8 @@ void main() {
   ) async {
     await pumpAuditedScreen(tester, const AuthScreen());
 
-    expect(find.text('Build your tax position.'), findsOneWidget);
-    expect(find.text('3-minute first map'), findsOneWidget);
+    expect(find.text('Give your income a job.'), findsOneWidget);
+    expect(find.text('A first plan takes about 3 minutes.'), findsOneWidget);
 
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
@@ -374,23 +402,17 @@ void main() {
     expect(find.text('Sign in'), findsWidgets);
   });
 
-  testWidgets('welcome presents the tax journey and input choices', (
+  testWidgets('welcome explains the product and starts the plan directly', (
     tester,
   ) async {
     await pumpAuditedScreen(tester, const WelcomeScreen());
 
-    expect(find.text('You earned it.\nKeep more of it.'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.text('Your tax year has a shape.'), findsOneWidget);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.text('Start with what you know.'), findsOneWidget);
-    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
-    expect(find.text('Begin my tax journey'), findsOneWidget);
+    expect(find.text('Know what your\nmoney needs next.'), findsOneWidget);
+    expect(find.text('Income'), findsOneWidget);
+    expect(find.text('Commit'), findsOneWidget);
+    expect(find.text('Decide'), findsOneWidget);
+    expect(find.text('Build my money baseline'), findsOneWidget);
+    expect(find.textContaining('DigiLocker'), findsNothing);
   });
 
   testWidgets('tax cockpit shows next action and future modules', (
@@ -457,6 +479,9 @@ void main() {
       authProvider.overrideWith(
         () => _FixedAuthNotifier(_FixedAuthService(account)),
       ),
+      moneyPlanProvider.overrideWith(
+        () => _FixedMoneyPlanNotifier(const MoneyPlan()),
+      ),
     ];
 
     await pumpAuditedScreen(
@@ -465,50 +490,62 @@ void main() {
       customOverrides: browseOverrides,
     );
 
-    expect(find.text('Start 3-minute tax check'), findsOneWidget);
-    expect(find.text('Readiness cockpit'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Document Vault'),
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Document Vault'), findsOneWidget);
-    expect(find.text('AIS & 26AS guide'), findsOneWidget);
+    expect(find.text('Your money has no working plan yet.'), findsOneWidget);
+    expect(find.text('Build your money baseline'), findsOneWidget);
+    expect(find.text('Set up my plan'), findsOneWidget);
+    expect(find.text('Explore ARTH'), findsNothing);
+    expect(find.text('Tax Dossier'), findsNothing);
   });
 
-  testWidgets('Tax OS home renders readiness cockpit on 320px', (
+  testWidgets('Today stays focused on one status and one next move', (
     tester,
   ) async {
     await pumpAuditedScreen(tester, const DiscoverScreen());
+    await tester.pumpAndSettle();
 
     expect(find.text('ARTH'), findsOneWidget);
-    expect(find.text('Readiness cockpit'), findsOneWidget);
-    expect(find.text('Open my tax position'), findsOneWidget);
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(
+        find.textContaining('is still unassigned this month.'), findsOneWidget);
+    expect(find.text('Move your primary goal forward'), findsOneWidget);
+    expect(find.text('THIS MONTH'), findsOneWidget);
+    expect(find.text('FREE'), findsOneWidget);
+    expect(find.text('Quick actions'), findsNothing);
+    expect(find.text('Explore ARTH'), findsNothing);
+  });
 
+  testWidgets('Income and Plan share one money baseline', (tester) async {
+    await pumpAuditedScreen(tester, const IncomeScreen());
+    expect(find.text('₹ 39 L'), findsOneWidget);
+    expect(find.textContaining('₹ 1.8 L reaches you'), findsOneWidget);
+    expect(find.text('Fixed pay'), findsOneWidget);
+    expect(find.text('Variable pay'), findsOneWidget);
+    expect(find.text('Equity compensation'), findsOneWidget);
+
+    await pumpAuditedScreen(tester, const MoneyPlanScreen());
+    expect(find.text('₹ 70K'), findsOneWidget);
+    expect(find.text('Move your primary goal forward'), findsOneWidget);
+  });
+
+  testWidgets('purchase scenario shows the effect on liquid runway', (
+    tester,
+  ) async {
+    await pumpAuditedScreen(tester, const MoneyPlanScreen());
     await tester.scrollUntilVisible(
-      find.text('Bring in your tax data'),
-      350,
+      find.text('Test a one-time purchase'),
+      300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Bring in your tax data'), findsOneWidget);
-    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
+    await tester.tap(find.text('Test a one-time purchase'));
+    await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('Explore ARTH'),
-      500,
-      scrollable: find.byType(Scrollable).first,
+    expect(find.text('Test a purchase'), findsOneWidget);
+    expect(find.text('Savings left'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
+    expect(
+      find.textContaining('This does not judge the purchase'),
+      findsOneWidget,
     );
-    expect(find.text('My Tax Story'), findsOneWidget);
-    expect(find.text('What-if simulator'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Help Center'),
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Tax Dossier'), findsOneWidget);
-    expect(find.text('Help Center'), findsOneWidget);
   });
 
   testWidgets('Help Center shows contact actions and support details', (
@@ -532,8 +569,9 @@ void main() {
       const DocumentChecklistScreen(),
       customOverrides: overridesWithChecklist({}),
     );
-    expect(find.text('Proof readiness'), findsOneWidget);
-    expect(find.text('Fetch from DigiLocker'), findsOneWidget);
+    expect(find.textContaining('proof items still need attention.'),
+        findsOneWidget);
+    expect(find.textContaining('DigiLocker'), findsNothing);
     expect(find.text('Form 16'), findsOneWidget);
 
     await pumpAuditedScreen(
@@ -544,7 +582,14 @@ void main() {
         taxDocumentItems[1].id: true,
       }),
     );
-    expect(find.textContaining('25%'), findsAtLeastNWidgets(1));
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator).first,
+          )
+          .value,
+      0.25,
+    );
 
     await pumpAuditedScreen(
       tester,
@@ -553,7 +598,15 @@ void main() {
         for (final item in taxDocumentItems) item.id: true,
       }),
     );
-    expect(find.textContaining('100%'), findsAtLeastNWidgets(1));
+    expect(find.text('Your proof checklist is complete.'), findsOneWidget);
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator).first,
+          )
+          .value,
+      1,
+    );
   });
 
   testWidgets('Document Vault upload sheet stays compact on 320px', (
@@ -673,7 +726,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account and privacy'), findsOneWidget);
+    expect(find.text('You'), findsWidgets);
     expect(find.text('Skip story and answer questions'), findsNothing);
   });
 
@@ -855,15 +908,73 @@ void main() {
     expect(label.overflow, isNot(TextOverflow.ellipsis));
   });
 
+  testWidgets('Today decision and primary navigation open the right routes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    Widget target(String label) => Scaffold(body: Center(child: Text(label)));
+    final router = GoRouter(
+      initialLocation: '/discover',
+      routes: [
+        GoRoute(path: '/discover', builder: (_, __) => const DiscoverScreen()),
+        GoRoute(path: '/income', builder: (_, __) => target('income')),
+        GoRoute(path: '/plan', builder: (_, __) => target('plan')),
+        GoRoute(path: '/profile', builder: (_, __) => target('profile')),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: overrides,
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Open goal plan'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Open goal plan'));
+    await tester.pumpAndSettle();
+    expect(find.text('plan'), findsOneWidget);
+    router.go('/discover');
+    await tester.pumpAndSettle();
+
+    final navigationCases = <IconData, String>{
+      Icons.payments_outlined: 'income',
+      Icons.route_outlined: 'plan',
+      Icons.person_outline_rounded: 'profile',
+    };
+    for (final entry in navigationCases.entries) {
+      await tester.tap(find.byIcon(entry.key));
+      await tester.pumpAndSettle();
+      expect(find.text(entry.value), findsOneWidget);
+      router.go('/discover');
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('reduced-motion mode keeps navigation calm on narrow phone', (
     tester,
   ) async {
     await pumpReducedMotionScreen(tester, const ProgressTrackerScreen());
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Vault'), findsOneWidget);
-    expect(find.text('Coach'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Income'), findsOneWidget);
+    expect(find.text('Plan'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
   });
 }
 
@@ -964,6 +1075,25 @@ class _FixedAuthService extends AuthService {
 
   @override
   Future<void> clearAccount() async {}
+}
+
+class _FixedMoneyPlanNotifier extends MoneyPlanNotifier {
+  final MoneyPlan _plan;
+
+  _FixedMoneyPlanNotifier(this._plan);
+
+  @override
+  Future<MoneyPlan> build() async => _plan;
+
+  @override
+  Future<void> save(MoneyPlan plan) async {
+    state = AsyncData(plan);
+  }
+
+  @override
+  Future<void> clear() async {
+    state = const AsyncData(MoneyPlan());
+  }
 }
 
 class _NoopBackendSyncService extends BackendSyncService {

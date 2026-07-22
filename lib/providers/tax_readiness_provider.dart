@@ -9,14 +9,13 @@ import 'auth_provider.dart';
 String _documentChecklistKey(String uid) => 'arth_document_checklist_$uid';
 
 class DocumentChecklistNotifier extends Notifier<Map<String, bool>> {
-  final SecureStorageService? _overrideStorage;
-  late final SecureStorageService _storage;
+  final SecureStorageService _storage;
 
-  DocumentChecklistNotifier([this._overrideStorage]);
+  DocumentChecklistNotifier([SecureStorageService? storage])
+      : _storage = storage ?? const SecureStorageService();
 
   @override
   Map<String, bool> build() {
-    _storage = _overrideStorage ?? const SecureStorageService();
     _load();
     return const {};
   }
@@ -33,6 +32,7 @@ class DocumentChecklistNotifier extends Notifier<Map<String, bool>> {
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final knownIds = taxDocumentItems.map((item) => item.id).toSet();
+      if (!ref.mounted) return;
       state = {
         for (final entry in decoded.entries)
           if (knownIds.contains(entry.key)) entry.key: entry.value == true,

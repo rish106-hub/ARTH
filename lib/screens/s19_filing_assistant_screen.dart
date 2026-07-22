@@ -146,7 +146,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                                         ready: confirmedDocs > 0,
                                       ),
                                       const Divider(color: AppColors.divider),
-                                      _ReadinessRow(
+                                      const _ReadinessRow(
                                         icon: Icons.account_balance_outlined,
                                         title: 'AIS / 26AS review',
                                         body:

@@ -56,9 +56,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // 2. Server is source of truth — load fetches this user's unique profile.
     //    Returns true if a saved profile exists (onboarding done).
     //    Also works correctly on fresh device installs.
-    final hasProfile = await ref.read(userProfileProvider.notifier).load();
+    await ref.read(userProfileProvider.notifier).load();
     if (!mounted) return;
-    context.go(hasProfile ? '/gap-reveal' : '/welcome');
+    context.go('/paycheck');
   }
 
   @override
@@ -109,14 +109,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
             // Tagline
             Text(
-              'Know your tax position.',
+              'Know what your paycheck still owes you.',
               style: AppTextStyles.caption(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
             const SizedBox(height: 18),
             const TrustBadge(
               icon: Icons.auto_awesome_outlined,
-              label: 'Earn · Optimise · Prepare · File',
+              label: 'Promised · Received · Claimable',
             ).animate(delay: 1050.ms).fadeIn(duration: 260.ms),
           ],
         ),

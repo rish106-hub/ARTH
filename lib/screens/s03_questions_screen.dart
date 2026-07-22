@@ -9,7 +9,6 @@ import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
-import '../widgets/tax_journey_scene.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   const QuestionsScreen({super.key});
@@ -107,16 +106,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     final profile = ref.watch(userProfileProvider);
 
     if (_finishing) {
-      return const ArthScaffold(
-        child: ArthLoadingPanel(
-          title: 'Building your tax cockpit',
-          insights: [
-            'Checking deduction gaps.',
-            'Comparing regimes.',
-            'Preparing next best action.',
-          ],
-        ),
-      );
+      return const _BuildingPlanScreen();
     }
 
     final meta = _DiagnosticMeta.forStep(_step);
@@ -159,27 +149,19 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                 ),
               ),
 
-              const SizedBox(height: 12),
-
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TaxJourneyScene(
-                  step: _step,
-                  profile: profile,
-                  chapter: meta.title,
-                  helper: meta.helper,
-                  accent: meta.color,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                child: _ChapterMarker(meta: meta, step: _step),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 22),
 
               // Question content — slides in
               Expanded(
                 child: AnimatedBuilder(
                   animation: _slideAnim,
                   builder: (_, child) => Transform.translate(
-                    offset: Offset(30 * (1 - _slideAnim.value), 0),
+                    offset: Offset(0, 16 * (1 - _slideAnim.value)),
                     child: Opacity(opacity: _slideAnim.value, child: child),
                   ),
                   child: _buildStep(context, profile, _step),
@@ -205,7 +187,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       case 4:
         return _Q05HRA(profile: p, onNext: _next);
       case 5:
-        return _Q06_80C(profile: p, onNext: _next);
+        return _Q06EightyC(profile: p, onNext: _next);
       case 6:
         return _Q07HomeLoan(profile: p, onNext: _next);
       case 7:
@@ -239,29 +221,178 @@ class _DiagnosticMeta {
     if (step <= 2) {
       return const _DiagnosticMeta(
         title: 'Income profile',
-        helper: 'We use this to estimate your regime and deduction base.',
+        helper: 'First, the shape of your income.',
         color: AppColors.gold,
       );
     }
     if (step <= 4) {
       return const _DiagnosticMeta(
         title: 'Housing and rent',
-        helper: 'Rent, city, and HRA change the deductions you can claim.',
+        helper: 'Next, where and how you live.',
         color: AppColors.teal,
       );
     }
     if (step <= 8) {
       return const _DiagnosticMeta(
         title: 'Deductions scan',
-        helper:
-            'ARTH checks high-impact savings across 80C, NPS, loans, and insurance.',
+        helper: 'Now we check the deductions that apply to you.',
         color: AppColors.info,
       );
     }
     return const _DiagnosticMeta(
       title: 'Final checks',
-      helper: 'Education, donations, and age complete your tax cockpit.',
+      helper: 'A few final details before the result.',
       color: AppColors.amber,
+    );
+  }
+}
+
+class _ChapterMarker extends StatelessWidget {
+  final _DiagnosticMeta meta;
+  final int step;
+
+  const _ChapterMarker({required this.meta, required this.step});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedContainer(
+          duration: AppMotion.medium,
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: 4),
+          decoration: BoxDecoration(color: meta.color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(meta.title,
+                  style: AppTextStyles.sectionLabel(
+                    color: AppColors.textPrimary,
+                  )),
+              const SizedBox(height: 4),
+              AnimatedSwitcher(
+                duration: AppMotion.medium,
+                child: Text(
+                  meta.helper,
+                  key: ValueKey(step ~/ 3),
+                  style: AppTextStyles.caption(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BuildingPlanScreen extends StatefulWidget {
+  const _BuildingPlanScreen();
+
+  @override
+  State<_BuildingPlanScreen> createState() => _BuildingPlanScreenState();
+}
+
+class _BuildingPlanScreenState extends State<_BuildingPlanScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return ArthScaffold(
+      showAmbientGlow: false,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final value = reduceMotion ? 1.0 : _controller.value;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(),
+                  Text(
+                    'Building your first plan.',
+                    style: AppTextStyles.h1().copyWith(fontSize: 40),
+                  ),
+                  const SizedBox(height: 34),
+                  _BuildStep(
+                    label: 'Compare tax regimes',
+                    complete: value > 0.25,
+                  ),
+                  _BuildStep(
+                    label: 'Check deduction gaps',
+                    complete: value > 0.55,
+                  ),
+                  _BuildStep(
+                    label: 'Choose the next action',
+                    complete: value > 0.82,
+                  ),
+                  const Spacer(flex: 2),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BuildStep extends StatelessWidget {
+  final String label;
+  final bool complete;
+
+  const _BuildStep({required this.label, required this.complete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: AppMotion.fast,
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: complete ? AppColors.primary : AppColors.surfaceMuted,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              complete ? Icons.check_rounded : Icons.more_horiz_rounded,
+              size: 17,
+              color: complete ? Colors.white : AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(label, style: AppTextStyles.bodyMedium()),
+        ],
+      ),
     );
   }
 }
@@ -435,7 +566,7 @@ class _QLayout extends StatelessWidget {
         children: [
           Text(
             question,
-            style: AppTextStyles.h1().copyWith(fontSize: 25, height: 1.16),
+            style: AppTextStyles.h1().copyWith(fontSize: 32, height: 1.08),
           ),
           if (microCopy != null) ...[
             const SizedBox(height: 8),
@@ -444,7 +575,7 @@ class _QLayout extends StatelessWidget {
               style: AppTextStyles.caption(color: AppColors.textSecondary),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 24),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -466,7 +597,7 @@ class _QLayout extends StatelessWidget {
           if (onNext != null)
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 52,
               child: ElevatedButton(
                 style: AppButtons.primaryGold,
                 onPressed: canProceed ? onNext : null,
@@ -823,17 +954,17 @@ class _Q03CityState extends ConsumerState<_Q03City> {
               ),
               filled: true,
               fillColor: AppColors.bgCard,
-              border: OutlineInputBorder(
+              border: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.border),
               ),
-              enabledBorder: OutlineInputBorder(
+              enabledBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.border),
               ),
-              focusedBorder: OutlineInputBorder(
+              focusedBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: BorderSide(color: AppColors.gold, width: 1.5),
               ),
             ),
             onChanged: (v) => setState(() => _query = v),
@@ -1152,16 +1283,16 @@ class _Q05HRA extends ConsumerWidget {
 }
 
 // ─── Q06: 80C ────────────────────────────────────────────────────────────────
-class _Q06_80C extends ConsumerStatefulWidget {
+class _Q06EightyC extends ConsumerStatefulWidget {
   final UserProfile profile;
   final VoidCallback onNext;
-  const _Q06_80C({required this.profile, required this.onNext});
+  const _Q06EightyC({required this.profile, required this.onNext});
 
   @override
-  ConsumerState<_Q06_80C> createState() => _Q06_80CState();
+  ConsumerState<_Q06EightyC> createState() => _Q06EightyCState();
 }
 
-class _Q06_80CState extends ConsumerState<_Q06_80C> {
+class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
   late double
       _value; // slider 0.0–15.0 (represents 0–₹1,50,000 in steps of ₹10K)
   late TextEditingController _textCtrl;
@@ -1309,16 +1440,16 @@ class _Q06_80CState extends ConsumerState<_Q06_80C> {
           const SizedBox(height: 16),
 
           // 80C utilisation bar
-          _80CBar(invested: _invested),
+          _EightyCBar(invested: _invested),
         ],
       ),
     );
   }
 }
 
-class _80CBar extends StatelessWidget {
+class _EightyCBar extends StatelessWidget {
   final int invested;
-  const _80CBar({required this.invested});
+  const _EightyCBar({required this.invested});
 
   @override
   Widget build(BuildContext context) {

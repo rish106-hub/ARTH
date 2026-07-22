@@ -172,7 +172,7 @@ class GapCardWidget extends StatelessWidget {
                     // Deadline
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.calendar_today_outlined,
                           size: 12,
                           color: AppColors.textSecondary,
@@ -249,7 +249,7 @@ class ActionListItem extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: AppColors.divider)),
         ),
         child: Row(
@@ -308,7 +308,7 @@ class ActionListItem extends StatelessWidget {
                     color: isDone ? AppColors.success : gap.accentColor,
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
                   color: AppColors.textSecondary,
