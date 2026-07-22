@@ -29,6 +29,147 @@ const offerLetterInterpretationSchema = z.object({
 
 export type OfferLetterInterpretation = z.infer<typeof offerLetterInterpretationSchema>;
 
+const payslipInterpretationSchema = z.object({
+  employerName: z.string().max(160).nullable(),
+  employeeName: z.string().max(160).nullable(),
+  payPeriod: z.string().max(80).nullable(),
+  paymentDate: z.string().max(40).nullable(),
+  currency: z.string().max(8),
+  attendance: z.object({
+    actualPayableDays: z.number().nonnegative().nullable(),
+    totalWorkingDays: z.number().nonnegative().nullable(),
+    lossOfPayDays: z.number().nonnegative().nullable(),
+    daysPayable: z.number().nonnegative().nullable(),
+  }),
+  earnings: z.array(z.object({
+    label: z.string().max(120),
+    amount: z.number().nonnegative(),
+    classification: z.enum([
+      'basic_pay',
+      'hra',
+      'allowance',
+      'reimbursement',
+      'bonus',
+      'variable_pay',
+      'other',
+    ]),
+    confidence: z.enum(['high', 'medium', 'low']),
+  })).max(80),
+  deductions: z.array(z.object({
+    label: z.string().max(120),
+    amount: z.number().nonnegative(),
+    classification: z.enum([
+      'income_tax',
+      'professional_tax',
+      'employee_pf',
+      'employee_esi',
+      'loan',
+      'other',
+    ]),
+    confidence: z.enum(['high', 'medium', 'low']),
+  })).max(80),
+  grossEarnings: z.number().nonnegative().nullable(),
+  totalDeductions: z.number().nonnegative().nullable(),
+  netSalary: z.number().nonnegative().nullable(),
+  warnings: z.array(z.string().max(240)).max(20),
+  questionsForUser: z.array(z.string().max(240)).max(12),
+});
+
+export type PayslipInterpretation = z.infer<typeof payslipInterpretationSchema>;
+
+const payslipResponseSchema = {
+  type: 'object',
+  properties: {
+    employerName: { type: 'string', nullable: true },
+    employeeName: { type: 'string', nullable: true },
+    payPeriod: { type: 'string', nullable: true },
+    paymentDate: { type: 'string', nullable: true },
+    currency: { type: 'string' },
+    attendance: {
+      type: 'object',
+      properties: {
+        actualPayableDays: { type: 'number', nullable: true },
+        totalWorkingDays: { type: 'number', nullable: true },
+        lossOfPayDays: { type: 'number', nullable: true },
+        daysPayable: { type: 'number', nullable: true },
+      },
+      required: [
+        'actualPayableDays',
+        'totalWorkingDays',
+        'lossOfPayDays',
+        'daysPayable',
+      ],
+    },
+    earnings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          amount: { type: 'number' },
+          classification: {
+            type: 'string',
+            enum: [
+              'basic_pay',
+              'hra',
+              'allowance',
+              'reimbursement',
+              'bonus',
+              'variable_pay',
+              'other',
+            ],
+          },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['label', 'amount', 'classification', 'confidence'],
+      },
+    },
+    deductions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          amount: { type: 'number' },
+          classification: {
+            type: 'string',
+            enum: [
+              'income_tax',
+              'professional_tax',
+              'employee_pf',
+              'employee_esi',
+              'loan',
+              'other',
+            ],
+          },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['label', 'amount', 'classification', 'confidence'],
+      },
+    },
+    grossEarnings: { type: 'number', nullable: true },
+    totalDeductions: { type: 'number', nullable: true },
+    netSalary: { type: 'number', nullable: true },
+    warnings: { type: 'array', items: { type: 'string' } },
+    questionsForUser: { type: 'array', items: { type: 'string' } },
+  },
+  required: [
+    'employerName',
+    'employeeName',
+    'payPeriod',
+    'paymentDate',
+    'currency',
+    'attendance',
+    'earnings',
+    'deductions',
+    'grossEarnings',
+    'totalDeductions',
+    'netSalary',
+    'warnings',
+    'questionsForUser',
+  ],
+};
+
 const responseSchema = {
   type: 'object',
   properties: {
@@ -178,6 +319,96 @@ export async function interpretOfferLetter(input: {
   }
 }
 
+export async function interpretPayslip(input: {
+  bytes: Buffer;
+  mimeType: string;
+}): Promise<PayslipInterpretation | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+  const configuredTimeout = Number.parseInt(
+    process.env.GEMINI_TIMEOUT_MS || '25000',
+    10,
+  );
+  const timeoutMs = Number.isFinite(configuredTimeout)
+    ? Math.min(Math.max(configuredTimeout, 1_000), 60_000)
+    : 25_000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        store: false,
+        systemInstruction: {
+          parts: [{
+            text: 'Interpret Indian payslips. Extract only values visible in the document. Keep earnings and deductions separate. Never calculate tax, invent values, or treat an annual CTC value as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
+          }],
+        },
+        contents: [{
+          role: 'user',
+          parts: [
+            {
+              text: 'Extract pay period, attendance, every earning, every deduction, gross earnings, total deductions, and net salary for user review. Preserve the printed currency units.',
+            },
+            {
+              inlineData: {
+                mimeType: input.mimeType,
+                data: input.bytes.toString('base64'),
+              },
+            },
+          ],
+        }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: payslipResponseSchema,
+        },
+      }),
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.warn(
+        `[Gemini] payslip interpretation failed (${response.status}): ${errorBody.slice(0, 500)}`,
+      );
+      return null;
+    }
+    const payload = await response.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const text = payload.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text ?? '')
+      .join('')
+      .trim();
+    if (!text) return null;
+    const parsed = payslipInterpretationSchema.safeParse(
+      normalizePayslipInterpretation(JSON.parse(text)),
+    );
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        code: issue.code,
+        message: issue.message,
+      }));
+      console.warn(`[Gemini] invalid payslip output: ${JSON.stringify(issues)}`);
+      return null;
+    }
+    return parsed.data;
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : 'unknown_error';
+    console.warn(`[Gemini] payslip interpretation failed: ${reason}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function normalizeInterpretation(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const raw = value as Record<string, unknown>;
@@ -201,6 +432,37 @@ function normalizeInterpretation(value: unknown): unknown {
     roleTitle: clamp(raw.roleTitle, 160),
     currency: clamp(raw.currency, 8),
     components,
+    warnings: clampList(raw.warnings, 20, 240),
+    questionsForUser: clampList(raw.questionsForUser, 12, 240),
+  };
+}
+
+function normalizePayslipInterpretation(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const raw = value as Record<string, unknown>;
+  const clamp = (input: unknown, max: number) =>
+    typeof input === 'string' ? input.slice(0, max) : input;
+  const clampRows = (input: unknown) => Array.isArray(input)
+    ? input.slice(0, 80).map((row) => {
+      if (!row || typeof row !== 'object') return row;
+      const fields = row as Record<string, unknown>;
+      return { ...fields, label: clamp(fields.label, 120) };
+    })
+    : input;
+  const clampList = (input: unknown, maxItems: number, maxLength: number) =>
+    Array.isArray(input)
+      ? input.slice(0, maxItems).map((item) => clamp(item, maxLength))
+      : input;
+
+  return {
+    ...raw,
+    employerName: clamp(raw.employerName, 160),
+    employeeName: clamp(raw.employeeName, 160),
+    payPeriod: clamp(raw.payPeriod, 80),
+    paymentDate: clamp(raw.paymentDate, 40),
+    currency: clamp(raw.currency, 8),
+    earnings: clampRows(raw.earnings),
+    deductions: clampRows(raw.deductions),
     warnings: clampList(raw.warnings, 20, 240),
     questionsForUser: clampList(raw.questionsForUser, 12, 240),
   };

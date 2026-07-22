@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class PaycheckColors {
   static const canvas = Color(0xFFF3F6FB);
@@ -17,8 +16,8 @@ class PaycheckColors {
 }
 
 class PaycheckType {
-  static TextStyle display({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle display({Color color = PaycheckColors.ink}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 46,
         height: 0.98,
         letterSpacing: 0,
@@ -26,8 +25,8 @@ class PaycheckType {
         color: color,
       );
 
-  static TextStyle title({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle title({Color color = PaycheckColors.ink}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 28,
         height: 1.08,
         letterSpacing: 0,
@@ -35,32 +34,32 @@ class PaycheckType {
         color: color,
       );
 
-  static TextStyle heading({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle heading({Color color = PaycheckColors.ink}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 18,
         height: 1.2,
         fontWeight: FontWeight.w700,
         color: color,
       );
 
-  static TextStyle body({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle body({Color color = PaycheckColors.ink}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         height: 1.45,
         fontWeight: FontWeight.w400,
         color: color,
       );
 
-  static TextStyle bodyStrong({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle bodyStrong({Color color = PaycheckColors.ink}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         height: 1.35,
         fontWeight: FontWeight.w700,
         color: color,
       );
 
-  static TextStyle utility({Color color = PaycheckColors.inkSoft}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle utility({Color color = PaycheckColors.inkSoft}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 11,
         height: 1.3,
         letterSpacing: 0,

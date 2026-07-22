@@ -1,10 +1,13 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/paycheck.dart';
+import '../models/tax_document.dart';
 import '../providers/paycheck_provider.dart';
+import '../providers/tax_document_provider.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 import 's31_profile_screens.dart';
@@ -15,8 +18,13 @@ String _money(int amount) =>
 
 class PaycheckShellScreen extends ConsumerStatefulWidget {
   final int initialIndex;
+  final bool exploreMode;
 
-  const PaycheckShellScreen({super.key, this.initialIndex = 0});
+  const PaycheckShellScreen({
+    super.key,
+    this.initialIndex = 0,
+    this.exploreMode = false,
+  });
 
   @override
   ConsumerState<PaycheckShellScreen> createState() =>
@@ -30,6 +38,19 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
   void initState() {
     super.initState();
     _index = widget.initialIndex.clamp(0, 3);
+    if (widget.exploreMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(paycheckProvider.notifier).useSampleData();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.exploreMode) {
+      ref.read(paycheckProvider.notifier).closeSampleData();
+    }
+    super.dispose();
   }
 
   @override
@@ -38,16 +59,117 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
     final pages = [
       _PaycheckHome(paycheck: paycheck),
       _PromiseView(paycheck: paycheck),
-      _InboxView(paycheck: paycheck),
-      _YouView(paycheck: paycheck),
+      _InboxView(paycheck: paycheck, exploreMode: widget.exploreMode),
+      widget.exploreMode
+          ? const _ExploreYouView()
+          : _YouView(paycheck: paycheck),
     ];
 
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: _PaycheckNav(
-        selectedIndex: _index,
-        onSelected: (value) => setState(() => _index = value),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.exploreMode)
+            Material(
+              color: PaycheckColors.contractSoft,
+              child: InkWell(
+                onTap: () => context.go('/auth'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.visibility_outlined,
+                        size: 18,
+                        color: PaycheckColors.contract,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'You are exploring sample data',
+                          style: PaycheckType.utility(
+                            color: PaycheckColors.contract,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'SIGN UP',
+                        style: PaycheckType.utility(
+                          color: PaycheckColors.contract,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          _PaycheckNav(
+            selectedIndex: _index,
+            onSelected: (value) => setState(() => _index = value),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExploreYouView extends StatelessWidget {
+  const _ExploreYouView();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ArthBrandMark(size: 30),
+            const Spacer(),
+            const Icon(
+              Icons.account_circle_outlined,
+              size: 58,
+              color: PaycheckColors.contract,
+            ),
+            const SizedBox(height: 20),
+            Text('Make this workspace yours.', style: PaycheckType.title()),
+            const SizedBox(height: 12),
+            Text(
+              'Sign up to add your offer letter, save evidence and keep every account separate.',
+              style: PaycheckType.body(color: PaycheckColors.inkSoft),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: () => context.go('/auth'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: PaycheckColors.ink,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.person_add_alt_1_rounded),
+                label: Text(
+                  'Sign up',
+                  style: PaycheckType.bodyStrong(color: Colors.white),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.go('/auth?mode=sign-in'),
+              child: Text('Already have an account? Sign in',
+                  style: PaycheckType.bodyStrong()),
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }
@@ -286,20 +408,97 @@ class _PromiseView extends StatelessWidget {
 
 class _InboxView extends ConsumerWidget {
   final PaycheckState paycheck;
+  final bool exploreMode;
 
-  const _InboxView({required this.paycheck});
+  const _InboxView({required this.paycheck, required this.exploreMode});
 
   Future<void> _addEvidence(BuildContext context, WidgetRef ref) async {
+    if (exploreMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Sign up to upload your own documents.'),
+          action: SnackBarAction(
+            label: 'SIGN UP',
+            onPressed: () => context.go('/auth'),
+          ),
+        ),
+      );
+      return;
+    }
+    final uploadType = await showModalBottomSheet<_EvidenceUploadType>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('What are you adding?', style: PaycheckType.heading()),
+              const SizedBox(height: 12),
+              ..._EvidenceUploadType.values.map(
+                (type) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(type.icon, color: PaycheckColors.contract),
+                  title: Text(type.label, style: PaycheckType.bodyStrong()),
+                  subtitle: Text(
+                    type.detail,
+                    style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.pop(sheetContext, type),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (uploadType == null || !context.mounted) return;
+
     const evidenceTypes = XTypeGroup(
       label: 'Pay evidence',
       extensions: ['pdf', 'png', 'jpg', 'jpeg'],
     );
     final file = await openFile(acceptedTypeGroups: const [evidenceTypes]);
     if (file == null || !context.mounted) return;
-    ref.read(paycheckProvider.notifier).addEvidence(file.name);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${file.name} added for review')),
-    );
+    final lower = file.name.toLowerCase();
+    final mimeType = lower.endsWith('.pdf')
+        ? 'application/pdf'
+        : lower.endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg';
+    try {
+      final uploaded = await ref.read(taxDocumentProvider.notifier).upload(
+            documentType: uploadType.documentType,
+            filename: file.name,
+            mimeType: mimeType,
+            bytes: await file.readAsBytes(),
+          );
+      if (!context.mounted) return;
+      ref.read(paycheckProvider.notifier).addEvidence(file.name);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${file.name} added for review')),
+      );
+      if (uploadType == _EvidenceUploadType.payslip &&
+          uploaded.extractedFields.isNotEmpty &&
+          context.mounted) {
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (_) => _PayslipReviewSheet(document: uploaded),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload failed. Check your connection and try again.'),
+        ),
+      );
+    }
   }
 
   IconData _iconFor(PaycheckEvidenceKind kind) => switch (kind) {
@@ -395,6 +594,321 @@ class _InboxView extends ConsumerWidget {
       ),
     );
   }
+}
+
+enum _EvidenceUploadType {
+  payslip(
+    documentType: 'payslip',
+    label: 'Payslip',
+    detail: 'Extract earnings, deductions, payable days and net salary.',
+    icon: Icons.payments_outlined,
+  ),
+  offerLetter(
+    documentType: 'offerLetter',
+    label: 'Offer letter',
+    detail: 'Extract the compensation promised by your employer.',
+    icon: Icons.description_outlined,
+  ),
+  other(
+    documentType: 'otherTaxDocument',
+    label: 'Receipt or other proof',
+    detail: 'Store evidence for manual review and later matching.',
+    icon: Icons.receipt_long_outlined,
+  );
+
+  const _EvidenceUploadType({
+    required this.documentType,
+    required this.label,
+    required this.detail,
+    required this.icon,
+  });
+
+  final String documentType;
+  final String label;
+  final String detail;
+  final IconData icon;
+}
+
+class _PayslipReviewSheet extends ConsumerStatefulWidget {
+  const _PayslipReviewSheet({required this.document});
+
+  final TaxDocument document;
+
+  @override
+  ConsumerState<_PayslipReviewSheet> createState() =>
+      _PayslipReviewSheetState();
+}
+
+class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
+  bool _confirming = false;
+  String? _error;
+
+  Map<String, dynamic> get _fields => widget.document.extractedFields;
+
+  Map<String, dynamic> _map(String key) =>
+      _fields[key] as Map<String, dynamic>? ?? const {};
+
+  List<Map<String, dynamic>> _rows(String key) =>
+      (_fields[key] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+
+  String _amount(dynamic value) {
+    if (value is! num) return 'Not found';
+    return NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: value % 1 == 0 ? 0 : 2,
+    ).format(value);
+  }
+
+  Future<void> _confirm() async {
+    setState(() {
+      _confirming = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(taxDocumentProvider.notifier)
+          .confirmParsedFields(widget.document.id);
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _confirming = false;
+        _error = 'Could not confirm these fields. Try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final attendance = _map('attendance');
+    final earnings = _rows('earnings');
+    final deductions = _rows('deductions');
+    final warnings = (_fields['warnings'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList(growable: false);
+
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.9,
+        minChildSize: 0.58,
+        maxChildSize: 0.96,
+        builder: (context, scrollController) => Column(
+          children: [
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+                children: [
+                  Text('Review payslip', style: PaycheckType.title()),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${_fields['payPeriod'] ?? 'Pay period not found'} · ${_fields['employerName'] ?? 'Employer not found'}',
+                    style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                  ),
+                  const SizedBox(height: 24),
+                  const _PayslipSectionTitle('Attendance'),
+                  _PayslipGrid(
+                    values: [
+                      ('Actual payable', attendance['actualPayableDays']),
+                      ('Working days', attendance['totalWorkingDays']),
+                      ('Loss of pay', attendance['lossOfPayDays']),
+                      ('Days payable', attendance['daysPayable']),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const _PayslipSectionTitle('Earnings'),
+                  ...earnings.map(
+                    (row) => _PayslipAmountRow(
+                      label: row['label']?.toString() ?? 'Earning',
+                      amount: _amount(row['amount']),
+                    ),
+                  ),
+                  _PayslipAmountRow(
+                    label: 'Gross earnings',
+                    amount: _amount(_fields['grossEarnings']),
+                    strong: true,
+                  ),
+                  const SizedBox(height: 24),
+                  const _PayslipSectionTitle('Deductions'),
+                  ...deductions.map(
+                    (row) => _PayslipAmountRow(
+                      label: row['label']?.toString() ?? 'Deduction',
+                      amount: _amount(row['amount']),
+                    ),
+                  ),
+                  _PayslipAmountRow(
+                    label: 'Total deductions',
+                    amount: _amount(_fields['totalDeductions']),
+                    strong: true,
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: PaycheckColors.matchedSoft,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _PayslipAmountRow(
+                      label: 'Net salary',
+                      amount: _amount(_fields['netSalary']),
+                      strong: true,
+                      border: false,
+                    ),
+                  ),
+                  if (warnings.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: PaycheckColors.claimSoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Check before confirming',
+                              style: PaycheckType.bodyStrong()),
+                          const SizedBox(height: 6),
+                          ...warnings.map(
+                            (warning) => Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                warning,
+                                style: PaycheckType.body(
+                                  color: PaycheckColors.inkSoft,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!,
+                        style: PaycheckType.body(color: PaycheckColors.claim)),
+                  ],
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: _confirming ? null : _confirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: PaycheckColors.ink,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: Text(
+                    _confirming ? 'Confirming...' : 'Confirm extracted fields',
+                    style: PaycheckType.bodyStrong(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayslipSectionTitle extends StatelessWidget {
+  const _PayslipSectionTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(title.toUpperCase(), style: PaycheckType.utility()),
+      );
+}
+
+class _PayslipGrid extends StatelessWidget {
+  const _PayslipGrid({required this.values});
+
+  final List<(String, dynamic)> values;
+
+  @override
+  Widget build(BuildContext context) => GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 2.25,
+        children: values
+            .map(
+              (item) => Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: PaycheckColors.canvas,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.$1, style: PaycheckType.utility()),
+                    const Spacer(),
+                    Text('${item.$2 ?? 'Not found'}',
+                        style: PaycheckType.bodyStrong()),
+                  ],
+                ),
+              ),
+            )
+            .toList(growable: false),
+      );
+}
+
+class _PayslipAmountRow extends StatelessWidget {
+  const _PayslipAmountRow({
+    required this.label,
+    required this.amount,
+    this.strong = false,
+    this.border = true,
+  });
+
+  final String label;
+  final String amount;
+  final bool strong;
+  final bool border;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: border
+              ? const Border(bottom: BorderSide(color: PaycheckColors.line))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: strong ? PaycheckType.bodyStrong() : PaycheckType.body(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              amount,
+              style: strong ? PaycheckType.bodyStrong() : PaycheckType.body(),
+            ),
+          ],
+        ),
+      );
 }
 
 class _YouView extends ConsumerWidget {

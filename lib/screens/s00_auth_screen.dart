@@ -12,7 +12,9 @@ import '../widgets/arth_brand_mark.dart';
 import '../widgets/auth_motion_scene.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  final bool initialSignUp;
+
+  const AuthScreen({super.key, this.initialSignUp = true});
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -24,13 +26,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isSignUp = true;
+  late bool _isSignUp;
   bool _loading = false;
   bool _obscurePassword = true;
   String? _emailErrorMessage;
   String? _googleErrorMessage;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  @override
+  void initState() {
+    super.initState();
+    _isSignUp = widget.initialSignUp;
+  }
 
   @override
   void dispose() {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Shared ARTH palette. Tax tools inherit the paycheck product skin so they
@@ -55,8 +54,8 @@ class AppColors {
 
 class AppTextStyles {
   // Numbers remain neutral. Green is reserved for action and positive state.
-  static TextStyle display({Color color = AppColors.gold}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle display({Color color = AppColors.gold}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 56,
         fontWeight: FontWeight.w900,
         color: color,
@@ -64,8 +63,8 @@ class AppTextStyles {
         height: 1.0,
       );
 
-  static TextStyle displaySmall({Color color = AppColors.gold}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle displaySmall({Color color = AppColors.gold}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 40,
         fontWeight: FontWeight.w900,
         color: color,
@@ -74,8 +73,8 @@ class AppTextStyles {
       );
 
   // Headings
-  static TextStyle h1({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle h1({Color color = AppColors.textPrimary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 34,
         fontWeight: FontWeight.w600,
         color: color,
@@ -83,8 +82,8 @@ class AppTextStyles {
         height: 1.2,
       );
 
-  static TextStyle h2({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle h2({Color color = AppColors.textPrimary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 26,
         fontWeight: FontWeight.w600,
         color: color,
@@ -92,8 +91,8 @@ class AppTextStyles {
         height: 1.3,
       );
 
-  static TextStyle h3({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle h3({Color color = AppColors.textPrimary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -101,8 +100,8 @@ class AppTextStyles {
       );
 
   // Body
-  static TextStyle body({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle body({Color color = AppColors.textPrimary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
@@ -110,7 +109,8 @@ class AppTextStyles {
       );
 
   static TextStyle bodyMedium({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+      TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: color,
@@ -118,7 +118,8 @@ class AppTextStyles {
       );
 
   static TextStyle bodyStrong({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+      TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w700,
         color: color,
@@ -126,8 +127,8 @@ class AppTextStyles {
       );
 
   // Section labels are functional, not decorative.
-  static TextStyle sectionLabel({Color color = AppColors.gold}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle sectionLabel({Color color = AppColors.gold}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 12,
         fontWeight: FontWeight.w700,
         color: color,
@@ -135,8 +136,8 @@ class AppTextStyles {
       );
 
   // Micro-copy
-  static TextStyle micro({Color color = AppColors.textSecondary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle micro({Color color = AppColors.textSecondary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 12,
         fontWeight: FontWeight.w300,
         color: color,
@@ -144,7 +145,8 @@ class AppTextStyles {
       );
 
   static TextStyle caption({Color color = AppColors.textSecondary}) =>
-      GoogleFonts.plusJakartaSans(
+      TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color,
@@ -152,8 +154,8 @@ class AppTextStyles {
       );
 
   // Button
-  static TextStyle button({Color color = AppColors.bgPrimary}) =>
-      GoogleFonts.plusJakartaSans(
+  static TextStyle button({Color color = AppColors.bgPrimary}) => TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: color,
@@ -164,7 +166,7 @@ class AppTextStyles {
 class AppTheme {
   static ThemeData get light {
     final baseTextTheme =
-        GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme);
+        ThemeData.light().textTheme.apply(fontFamily: 'PlusJakartaSans');
 
     return ThemeData(
       brightness: Brightness.light,
@@ -200,7 +202,8 @@ class AppTheme {
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
         trackHeight: 4,
         valueIndicatorColor: AppColors.gold,
-        valueIndicatorTextStyle: GoogleFonts.plusJakartaSans(
+        valueIndicatorTextStyle: const TextStyle(
+          fontFamily: 'PlusJakartaSans',
           color: Colors.white,
           fontWeight: FontWeight.w700,
           fontSize: 13,
@@ -228,7 +231,8 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         indicatorColor: AppColors.primarySoft,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          return GoogleFonts.plusJakartaSans(
+          return TextStyle(
+            fontFamily: 'PlusJakartaSans',
             fontSize: 11,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -244,28 +248,29 @@ class AppTheme {
         selectionColor: Color(0x334A66F0),
         selectionHandleColor: AppColors.gold,
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.bgCard,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted),
-        border: const OutlineInputBorder(
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        hintStyle: TextStyle(
+            fontFamily: 'PlusJakartaSans', color: AppColors.textMuted),
+        border: OutlineInputBorder(
           borderRadius: AppRadius.card,
           borderSide: BorderSide(color: AppColors.border),
         ),
-        enabledBorder: const OutlineInputBorder(
+        enabledBorder: OutlineInputBorder(
           borderRadius: AppRadius.card,
           borderSide: BorderSide(color: AppColors.border),
         ),
-        focusedBorder: const OutlineInputBorder(
+        focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.card,
           borderSide: BorderSide(color: AppColors.gold, width: 1.5),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimary,
-        contentTextStyle: GoogleFonts.plusJakartaSans(color: Colors.white),
+        contentTextStyle:
+            const TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -284,7 +289,8 @@ class AppButtons {
     maximumSize: const Size(double.infinity, 52),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
-    textStyle: GoogleFonts.plusJakartaSans(
+    textStyle: const TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 16,
       fontWeight: FontWeight.w700,
       letterSpacing: 0,
@@ -298,8 +304,10 @@ class AppButtons {
     maximumSize: const Size(double.infinity, 52),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
-    textStyle:
-        GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
+    textStyle: const TextStyle(
+        fontFamily: 'PlusJakartaSans',
+        fontSize: 15,
+        fontWeight: FontWeight.w600),
   );
 }
 

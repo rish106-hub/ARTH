@@ -21,7 +21,7 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     state = await AsyncValue.guard(_service.fetchDocuments);
   }
 
-  Future<void> upload({
+  Future<TaxDocument> upload({
     required String documentType,
     required String filename,
     required String mimeType,
@@ -38,6 +38,7 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
       uploaded,
       ...previous.where((doc) => doc.id != uploaded.id),
     ]);
+    return uploaded;
   }
 
   Future<void> delete(String id) async {

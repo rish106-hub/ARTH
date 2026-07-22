@@ -1,7 +1,7 @@
 name: arth
 description: "ARTH - Paycheck reconciliation and tax-gap planning for salaried Indians."
 publish_to: 'none'
-version: 1.0.3+10003
+version: 1.0.4+10004
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -82,4 +82,9 @@ flutter:
     - assets/images/
     - assets/fonts/
 
-  # Plus Jakarta Sans is bundled so first launch never falls back to a system font.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans[wght].ttf
+        - asset: assets/fonts/PlusJakartaSans-Italic[wght].ttf
+          style: italic

@@ -115,6 +115,7 @@ const documentPatchSchema = z.object({
 
 const documentTypeSchema = z.enum([
   'offerLetter',
+  'payslip',
   'form16',
   'rentReceipts',
   'investment80c',

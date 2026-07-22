@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'screens/s00_auth_screen.dart';
+import 'screens/s00_product_onboarding_screen.dart';
 import 'screens/s01_splash_screen.dart';
 import 'screens/s03_questions_screen.dart';
 import 'screens/s04_gap_reveal_screen.dart';
@@ -38,7 +39,20 @@ final _router = GoRouter(
   initialLocation: _initialLocation(),
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
-    GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+    GoRoute(
+      path: '/onboarding',
+      builder: (_, __) => const ProductOnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/auth',
+      builder: (_, state) => AuthScreen(
+        initialSignUp: state.uri.queryParameters['mode'] != 'sign-in',
+      ),
+    ),
+    GoRoute(
+      path: '/explore',
+      builder: (_, __) => const PaycheckShellScreen(exploreMode: true),
+    ),
     GoRoute(
       path: '/paycheck-setup',
       builder: (_, __) => const PaycheckSetupScreen(),

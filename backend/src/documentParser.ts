@@ -1,5 +1,9 @@
 import { PasswordException, PDFParse } from 'pdf-parse';
-import { interpretOfferLetter } from './geminiInterpreter.js';
+import {
+  interpretOfferLetter,
+  interpretPayslip,
+  type PayslipInterpretation,
+} from './geminiInterpreter.js';
 
 export type PanVaultSuffix = {
   last4: string;
@@ -33,6 +37,10 @@ const expectedSignalsByType: Record<string, { signals: string[]; insight: string
     signals: ['employer TAN', 'gross salary', 'taxable income', 'TDS'],
     insight:
       'Form 16 stored. ARTH will ask for confirmation before using parsed values.',
+  },
+  payslip: {
+    signals: ['pay period', 'payable days', 'earnings', 'deductions', 'net salary'],
+    insight: 'Payslip stored. Review each extracted salary line before reconciliation.',
   },
   rentReceipts: {
     signals: ['rent amount', 'landlord details', 'rental period'],
@@ -74,6 +82,41 @@ export async function parseUploadedDocument(input: {
   bytes: Buffer;
   panVaultSuffix?: PanVaultSuffix;
 }): Promise<DocumentParseResult> {
+  if (input.documentType === 'payslip') {
+    const base = metadataSummary(input.documentType, input.mimeType);
+    const interpretation = await interpretPayslip({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+    });
+    if (!interpretation) {
+      return {
+        status: 'metadata_ready',
+        summary: {
+          ...base,
+          parser: 'gemini-payslip-v1',
+          model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+          insight: 'Payslip stored securely. AI extraction is unavailable, so manual review is required.',
+          reviewRequired: true,
+        },
+      };
+    }
+    const checked = withPayslipArithmeticChecks(interpretation);
+    return {
+      status: 'needs_confirmation',
+      summary: {
+        ...base,
+        parser: 'gemini-payslip-v1',
+        model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+        llmUsed: true,
+        confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+        insight: 'Payslip extracted. Confirm attendance, earnings, deductions, and net salary before reconciliation.',
+        extractedFields: checked,
+        confirmationStatus: 'pending',
+        reviewRequired: true,
+      },
+    };
+  }
+
   if (input.documentType === 'offerLetter') {
     const base = metadataSummary(input.documentType, input.mimeType);
     const interpretation = await interpretOfferLetter({
@@ -162,6 +205,34 @@ export async function parseUploadedDocument(input: {
       : 'pdf_text_extraction_failed';
     return unsupportedTextPdf(base, reason);
   }
+}
+
+function withPayslipArithmeticChecks(
+  payslip: PayslipInterpretation,
+): PayslipInterpretation {
+  const warnings = [...payslip.warnings];
+  const earningsSum = payslip.earnings.reduce((sum, row) => sum + row.amount, 0);
+  const deductionsSum = payslip.deductions.reduce((sum, row) => sum + row.amount, 0);
+  const tolerance = 1;
+
+  if (payslip.grossEarnings != null &&
+      Math.abs(earningsSum - payslip.grossEarnings) > tolerance) {
+    warnings.push('Earning line items do not match the printed gross earnings.');
+  }
+  if (payslip.totalDeductions != null &&
+      Math.abs(deductionsSum - payslip.totalDeductions) > tolerance) {
+    warnings.push('Deduction line items do not match the printed total deductions.');
+  }
+  if (payslip.grossEarnings != null &&
+      payslip.totalDeductions != null &&
+      payslip.netSalary != null &&
+      Math.abs(
+        payslip.grossEarnings - payslip.totalDeductions - payslip.netSalary,
+      ) > tolerance) {
+    warnings.push('Gross earnings minus deductions does not match the printed net salary.');
+  }
+
+  return { ...payslip, warnings: warnings.slice(0, 20) };
 }
 
 export function metadataSummary(documentType: string, mimeType: string) {
