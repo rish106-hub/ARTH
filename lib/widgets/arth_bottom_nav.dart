@@ -100,16 +100,13 @@ class ArthBottomNav extends StatelessWidget {
                         item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
+                        style: AppTextStyles.micro(
                           color: selected
                               ? AppColors.ink
                               : AppColors.textSecondary,
-                          letterSpacing: 0,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                        ),
+                        ).copyWith(
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500),
                       ),
                     ],
                   ),

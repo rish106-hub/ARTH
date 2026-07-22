@@ -243,15 +243,11 @@ class _HeroBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          AnimatedRupeeNumber(
+            AnimatedRupeeNumber(
             value: gap.gapAmount,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 52,
-              fontWeight: FontWeight.w900,
+            style: AppTextStyles.display(
               color: isDone ? AppColors.success : gap.accentColor,
-              height: 1,
-            ),
+              ).copyWith(fontSize: 52, height: 1),
             duration: const Duration(milliseconds: 1200),
           ),
           const SizedBox(height: 8),

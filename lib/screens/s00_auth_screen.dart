@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/arth_brand_mark.dart';
+import '../widgets/auth_motion_scene.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -24,7 +27,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isSignUp = true;
   bool _loading = false;
   bool _obscurePassword = true;
-  String? _errorMessage;
+  String? _emailErrorMessage;
+  String? _googleErrorMessage;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -40,7 +44,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _loading = true;
-      _errorMessage = null;
+      _emailErrorMessage = null;
     });
 
     try {
@@ -63,13 +67,62 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       context.go(_isSignUp ? '/paycheck-setup' : '/paycheck');
     } on ServerApiException catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = _friendlyServerError(e));
+      setState(() => _emailErrorMessage = _friendlyServerError(e));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = _friendlyError(e.toString()));
+      setState(() => _emailErrorMessage = _friendlyError(e.toString()));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _submitGoogle() async {
+    setState(() {
+      _loading = true;
+      _googleErrorMessage = null;
+    });
+    try {
+      final account = await ref.read(authProvider.notifier).signInWithGoogle();
+      ref.read(userProfileProvider.notifier).applyAccountIdentity(account);
+      await ref.read(userProfileProvider.notifier).load();
+      if (!mounted) return;
+      context.go('/paycheck');
+    } on ServerApiException catch (error) {
+      if (mounted) {
+        setState(() => _googleErrorMessage = _friendlyServerError(error));
+      }
+    } on GoogleSignInException catch (error) {
+      debugPrint(
+        '[GoogleSignIn] ${error.code}: ${error.description ?? 'no description'}',
+      );
+      if (mounted) {
+        setState(() => _googleErrorMessage = _googleSignInError(error));
+      }
+    } catch (error) {
+      debugPrint('[GoogleSignIn] unexpected error: $error');
+      if (mounted) {
+        setState(() => _googleErrorMessage =
+            'Google sign-in failed before reaching ARTH. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _googleSignInError(GoogleSignInException error) {
+    return switch (error.code) {
+      GoogleSignInExceptionCode.canceled =>
+        'Google did not complete sign-in. If you selected an account, this build may still need an updated OAuth client.',
+      GoogleSignInExceptionCode.clientConfigurationError =>
+        'Google sign-in is not configured for this Android build.',
+      GoogleSignInExceptionCode.providerConfigurationError =>
+        'Google Play Services could not complete sign-in on this device.',
+      GoogleSignInExceptionCode.interrupted =>
+        'Google sign-in was interrupted. Please try again.',
+      GoogleSignInExceptionCode.uiUnavailable =>
+        'Google sign-in cannot open on this device right now.',
+      _ => 'Google sign-in failed before reaching ARTH. Please try again.',
+    };
   }
 
   String _friendlyServerError(ServerApiException error) {
@@ -146,8 +199,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
-                    const _AuthHero(),
-                    const SizedBox(height: 46),
+                    _AuthHero(isSignUp: _isSignUp),
+                    const SizedBox(height: 28),
                     Text(
                       headline,
                       style: AppTextStyles.h1().copyWith(
@@ -177,11 +230,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               if (_loading) return;
                               setState(() {
                                 _isSignUp = value;
-                                _errorMessage = null;
+                                _emailErrorMessage = null;
+                                _googleErrorMessage = null;
                               });
                             },
                           ),
                           const SizedBox(height: 22),
+                          _GoogleButton(
+                            loading: _loading,
+                            onPressed: _submitGoogle,
+                          ),
+                          const SizedBox(height: 10),
+                          _AuthErrorText(message: _googleErrorMessage),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'or use email',
+                                  style: AppTextStyles.micro(),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
                           if (_isSignUp) ...[
                             _InputField(
                               controller: _nameCtrl,
@@ -248,12 +324,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          _AuthErrorText(message: _errorMessage),
+                          _AuthErrorText(message: _emailErrorMessage),
                           const SizedBox(height: 14),
                           _SubmitButton(
                             loading: _loading,
-                            label:
-                                _isSignUp ? 'Create secure account' : 'Sign in',
+                            label: _isSignUp ? 'Sign up' : 'Sign in',
                             onPressed: _submit,
                           ),
                         ],
@@ -279,24 +354,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 }
 
 class _AuthHero extends StatelessWidget {
-  const _AuthHero();
+  final bool isSignUp;
+
+  const _AuthHero({required this.isSignUp});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 42,
-          height: 42,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-          child: Image.asset(
-            'assets/icon/icon_1024.png',
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text('ARTH', style: AppTextStyles.h3()),
+        const ArthBrandMark(size: 42),
+        const SizedBox(height: 20),
+        AuthMotionScene(isSignUp: isSignUp),
       ],
     );
   }
@@ -321,7 +390,7 @@ class _ModeSwitch extends StatelessWidget {
         children: [
           Expanded(
             child: _ModeButton(
-              label: 'Create',
+              label: 'Sign up',
               selected: isSignUp,
               onTap: () => onChanged(true),
             ),
@@ -467,6 +536,35 @@ class _AuthErrorText extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onPressed;
+
+  const _GoogleButton({required this.loading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      child: OutlinedButton.icon(
+        onPressed: loading ? null : onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.surface,
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: Image.asset(
+          'assets/images/google_logo.png',
+          width: 20,
+          height: 20,
+        ),
+        label: Text('Continue with Google', style: AppTextStyles.bodyMedium()),
+      ),
     );
   }
 }

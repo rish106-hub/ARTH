@@ -1,12 +1,13 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/paycheck.dart';
 import '../providers/paycheck_provider.dart';
 import '../theme/paycheck_theme.dart';
+import '../widgets/arth_brand_mark.dart';
+import 's31_profile_screens.dart';
 
 String _money(int amount) =>
     NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
@@ -396,99 +397,14 @@ class _InboxView extends ConsumerWidget {
   }
 }
 
-class _YouView extends StatelessWidget {
+class _YouView extends ConsumerWidget {
   final PaycheckState paycheck;
 
   const _YouView({required this.paycheck});
 
   @override
-  Widget build(BuildContext context) {
-    return _PageFrame(
-      eyebrow: 'YOUR PAY PROFILE',
-      title: paycheck.employeeName,
-      subtitle: '${paycheck.role}\n${paycheck.employer}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ProfileMetric(
-            label: 'ANNUAL BENEFITS TRACKED',
-            value: _money(paycheck.annualBenefits),
-            detail: 'Outside monthly fixed pay',
-          ),
-          const SizedBox(height: 12),
-          _ProfileMetric(
-            label: 'JULY NET CREDIT',
-            value: _money(paycheck.netCredited),
-            detail: 'Matched to salary alert',
-          ),
-          const SizedBox(height: 26),
-          Text('Controls', style: PaycheckType.heading()),
-          const SizedBox(height: 10),
-          const _SettingsRow(
-            icon: Icons.lock_outline_rounded,
-            title: 'Data and permissions',
-            detail: 'Review or remove every source',
-          ),
-          const _SettingsRow(
-            icon: Icons.delete_outline_rounded,
-            title: 'Delete paycheck data',
-            detail: 'Permanent and immediate',
-          ),
-          const SizedBox(height: 24),
-          Text('Small tools', style: PaycheckType.heading()),
-          const SizedBox(height: 10),
-          Material(
-            color: PaycheckColors.paper,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              key: const Key('tax_plan_tool'),
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => context.push('/tax-plan'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: PaycheckColors.contractSoft,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.calculate_outlined,
-                        color: PaycheckColors.contract,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Plan your tax',
-                              style: PaycheckType.bodyStrong()),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Run the ARTH tax-gap diagnostic.',
-                            style: PaycheckType.body(
-                              color: PaycheckColors.inkSoft,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: PaycheckColors.inkSoft,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ProfessionalProfileView(paycheck: paycheck);
   }
 }
 
@@ -502,7 +418,11 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text('ARTH', style: PaycheckType.heading()),
+        ArthBrandMark(
+          size: 30,
+          spacing: 9,
+          wordmarkStyle: PaycheckType.heading(),
+        ),
         const SizedBox(width: 10),
         Container(width: 1, height: 18, color: PaycheckColors.line),
         const SizedBox(width: 10),
@@ -783,14 +703,12 @@ class _PayPeriodStrip extends StatelessWidget {
 class _PageFrame extends StatelessWidget {
   final String eyebrow;
   final String title;
-  final String? subtitle;
   final Widget child;
 
   const _PageFrame({
     required this.eyebrow,
     required this.title,
     required this.child,
-    this.subtitle,
   });
 
   @override
@@ -801,18 +719,15 @@ class _PageFrame extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ARTH', style: PaycheckType.heading()),
+            ArthBrandMark(
+              size: 30,
+              spacing: 9,
+              wordmarkStyle: PaycheckType.heading(),
+            ),
             const SizedBox(height: 34),
             Text(eyebrow, style: PaycheckType.utility()),
             const SizedBox(height: 7),
             Text(title, style: PaycheckType.title()),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle!,
-                style: PaycheckType.body(color: PaycheckColors.inkSoft),
-              ),
-            ],
             const SizedBox(height: 26),
             child,
           ],
@@ -994,87 +909,6 @@ class _DetectedDocument extends StatelessWidget {
             style: PaycheckType.utility(
               color: attention ? PaycheckColors.claim : PaycheckColors.matched,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final String detail;
-
-  const _ProfileMetric({
-    required this.label,
-    required this.value,
-    required this.detail,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: PaycheckType.utility()),
-          const SizedBox(height: 8),
-          Text(value, style: PaycheckType.title()),
-          const SizedBox(height: 3),
-          Text(
-            detail,
-            style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String detail;
-
-  const _SettingsRow({
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: PaycheckColors.line)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: PaycheckColors.inkSoft),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: PaycheckType.bodyStrong()),
-                Text(
-                  detail,
-                  style: PaycheckType.body(color: PaycheckColors.inkSoft),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: PaycheckColors.inkSoft,
           ),
         ],
       ),

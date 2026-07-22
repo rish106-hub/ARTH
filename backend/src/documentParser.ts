@@ -1,4 +1,5 @@
 import { PasswordException, PDFParse } from 'pdf-parse';
+import { interpretOfferLetter } from './geminiInterpreter.js';
 
 export type PanVaultSuffix = {
   last4: string;
@@ -24,6 +25,10 @@ type ParsedForm16Fields = {
 };
 
 const expectedSignalsByType: Record<string, { signals: string[]; insight: string }> = {
+  offerLetter: {
+    signals: ['employer', 'role', 'fixed pay', 'variable pay', 'benefits'],
+    insight: 'Offer letter stored. Review every interpreted component before ARTH tracks it.',
+  },
   form16: {
     signals: ['employer TAN', 'gross salary', 'taxable income', 'TDS'],
     insight:
@@ -69,6 +74,40 @@ export async function parseUploadedDocument(input: {
   bytes: Buffer;
   panVaultSuffix?: PanVaultSuffix;
 }): Promise<DocumentParseResult> {
+  if (input.documentType === 'offerLetter') {
+    const base = metadataSummary(input.documentType, input.mimeType);
+    const interpretation = await interpretOfferLetter({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+    });
+    if (!interpretation) {
+      return {
+        status: 'metadata_ready',
+        summary: {
+          ...base,
+          parser: 'gemini-offer-letter-v1',
+          model: 'gemini-3.6-flash',
+          insight: 'Offer letter stored securely. AI interpretation is unavailable, so manual review is required.',
+          reviewRequired: true,
+        },
+      };
+    }
+    return {
+      status: 'needs_confirmation',
+      summary: {
+        ...base,
+        parser: 'gemini-offer-letter-v1',
+        model: 'gemini-3.6-flash',
+        llmUsed: true,
+        confidence: interpretation.warnings.length === 0 ? 'medium' : 'low',
+        insight: 'Offer letter interpreted. Confirm every component before ARTH uses it.',
+        extractedFields: interpretation,
+        confirmationStatus: 'pending',
+        reviewRequired: true,
+      },
+    };
+  }
+
   if (input.documentType !== 'form16') {
     return {
       status: 'metadata_ready',

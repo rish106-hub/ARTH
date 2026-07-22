@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/paycheck_provider.dart';
+import '../providers/tax_document_provider.dart';
 import '../theme/paycheck_theme.dart';
+import '../widgets/arth_brand_mark.dart';
 
 class PaycheckSetupScreen extends ConsumerStatefulWidget {
   const PaycheckSetupScreen({super.key});
@@ -26,19 +28,33 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
       );
       final file = await openFile(acceptedTypeGroups: const [typeGroup]);
       if (file == null || !mounted) return;
+      final extension = file.name.split('.').last.toLowerCase();
+      final mimeType = switch (extension) {
+        'pdf' => 'application/pdf',
+        'png' => 'image/png',
+        'jpg' || 'jpeg' => 'image/jpeg',
+        _ => 'application/octet-stream',
+      };
+      await ref.read(taxDocumentProvider.notifier).upload(
+            documentType: 'offerLetter',
+            filename: file.name,
+            mimeType: mimeType,
+            bytes: await file.readAsBytes(),
+          );
+      if (!mounted) return;
       ref.read(paycheckProvider.notifier).markOfferLetterAdded();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${file.name} added for review')),
       );
       context.go('/paycheck');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $error')),
+      );
     } finally {
       if (mounted) setState(() => _openingFile = false);
     }
-  }
-
-  void _openSample() {
-    ref.read(paycheckProvider.notifier).useSampleData();
-    context.go('/paycheck');
   }
 
   @override
@@ -53,7 +69,11 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
             children: [
               Row(
                 children: [
-                  Text('ARTH', style: PaycheckType.heading()),
+                  ArthBrandMark(
+                    size: 30,
+                    spacing: 9,
+                    wordmarkStyle: PaycheckType.heading(),
+                  ),
                   const Spacer(),
                   Text('PRIVATE BY DEFAULT', style: PaycheckType.utility()),
                 ],
@@ -121,19 +141,6 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                   child: Text(
                     _openingFile ? 'Opening files…' : 'Add offer letter',
                     style: PaycheckType.bodyStrong(color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _openSample,
-                  child: Text(
-                    'Explore with clearly labelled sample data',
-                    style: PaycheckType.bodyStrong(
-                      color: PaycheckColors.contract,
-                    ),
                   ),
                 ),
               ),

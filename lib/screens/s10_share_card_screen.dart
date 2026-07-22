@@ -186,15 +186,11 @@ class _ShareCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'ARTH',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                  style: AppTextStyles.h3(
                     color: AppColors.gold,
-                    letterSpacing: 4,
-                  ),
+                  ).copyWith(fontSize: 20, letterSpacing: 0),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -223,13 +219,9 @@ class _ShareCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '₹ ${_fmtFull(totalGap)}',
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 48,
-                    fontWeight: FontWeight.w900,
+                  style: AppTextStyles.display(
                     color: AppColors.gold,
-                    height: 1,
-                  ),
+                  ).copyWith(fontSize: 48, height: 1),
                 ),
                 const SizedBox(height: 4),
                 Text(

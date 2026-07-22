@@ -152,7 +152,7 @@ class PremiumHeader extends StatelessWidget {
                 Text(
                   eyebrow.toUpperCase(),
                   style: AppTextStyles.micro(color: AppColors.gold)
-                      .copyWith(fontWeight: FontWeight.w700, letterSpacing: 1),
+                      .copyWith(fontWeight: FontWeight.w700, letterSpacing: 0),
                 ),
                 const SizedBox(height: 6),
                 Text(title, style: AppTextStyles.h1()),

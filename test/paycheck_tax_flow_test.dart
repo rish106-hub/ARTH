@@ -110,7 +110,6 @@ void main() {
     await tester.tap(find.byKey(const Key('tax_plan_close')));
     await tester.pumpAndSettle();
 
-    expect(find.text('YOUR PAY PROFILE'), findsOneWidget);
-    expect(find.text('Small tools'), findsOneWidget);
+    expect(find.text('Your information'), findsOneWidget);
   });
 }

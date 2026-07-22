@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
+import { OAuth2Client } from 'google-auth-library';
 import { db, Queryable } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { env } from './config.js';
@@ -35,6 +36,10 @@ const signUpSchema = z.object({
 const signInSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
+});
+
+const googleAuthSchema = z.object({
+  idToken: z.string().min(100).max(10_000),
 });
 
 const refreshSchema = z.object({
@@ -109,6 +114,7 @@ const documentPatchSchema = z.object({
 }).refine((value) => Object.keys(value).length > 0);
 
 const documentTypeSchema = z.enum([
+  'offerLetter',
   'form16',
   'rentReceipts',
   'investment80c',
@@ -435,7 +441,8 @@ export async function registerRoutes(app: FastifyInstance) {
       return reply.code(401).send({ message: 'Invalid credentials' });
     }
     const user = result.rows[0];
-    const valid = await verifyPassword(payload.password, user.password_hash as string);
+    const valid = typeof user.password_hash === 'string'
+      && await verifyPassword(payload.password, user.password_hash);
     if (!valid) {
       return reply.code(401).send({ message: 'Invalid credentials' });
     }
@@ -445,6 +452,69 @@ export async function registerRoutes(app: FastifyInstance) {
       [user.id],
     );
     return issueSession(user, db, sessionMetadata(request));
+  });
+
+  app.post('/auth/google', authRateLimit, async (request, reply) => {
+    if (!env.GOOGLE_OAUTH_CLIENT_ID) {
+      return reply.code(503).send({ message: 'Google sign-in is not configured' });
+    }
+    const payload = googleAuthSchema.parse(request.body);
+    let ticket;
+    try {
+      ticket = await new OAuth2Client().verifyIdToken({
+        idToken: payload.idToken,
+        audience: env.GOOGLE_OAUTH_CLIENT_ID,
+      });
+    } catch {
+      return reply.code(401).send({ message: 'Invalid Google identity' });
+    }
+    const claims = ticket.getPayload();
+    if (!claims?.sub || !claims.email || claims.email_verified !== true) {
+      return reply.code(401).send({ message: 'Invalid Google identity' });
+    }
+
+    const email = claims.email.toLowerCase();
+    const byGoogleId = await db.query(
+      `select id, email, name, phone_e164, avatar_initials, avatar_color, created_at
+       from app_users where google_subject = $1`,
+      [claims.sub],
+    );
+    if (byGoogleId.rowCount) {
+      return issueSession(byGoogleId.rows[0], db, sessionMetadata(request));
+    }
+
+    const byEmail = await db.query(
+      `select id, email, name, phone_e164, avatar_initials, avatar_color,
+              google_subject, created_at
+       from app_users where email = $1`,
+      [email],
+    );
+    if (byEmail.rowCount) {
+      const authoritativeGoogleEmail = email.endsWith('@gmail.com') || Boolean(claims.hd);
+      if (!authoritativeGoogleEmail || byEmail.rows[0].google_subject) {
+        return reply.code(409).send({
+          message: 'Use your existing sign-in method for this email',
+        });
+      }
+      const linked = await db.query(
+        `update app_users
+         set google_subject = $2, auth_provider = 'google', email_verified = true,
+             updated_at = now(), last_seen_at = now()
+         where id = $1
+         returning id, email, name, phone_e164, avatar_initials, avatar_color, created_at`,
+        [byEmail.rows[0].id, claims.sub],
+      );
+      return issueSession(linked.rows[0], db, sessionMetadata(request));
+    }
+
+    const inserted = await db.query(
+      `insert into app_users (
+         email, name, password_hash, google_subject, auth_provider, email_verified
+       ) values ($1, $2, null, $3, 'google', true)
+       returning id, email, name, phone_e164, avatar_initials, avatar_color, created_at`,
+      [email, claims.name?.trim() || email.split('@')[0], claims.sub],
+    );
+    return issueSession(inserted.rows[0], db, sessionMetadata(request));
   });
 
   app.post('/auth/refresh', authRateLimit, async (request, reply) => {

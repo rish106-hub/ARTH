@@ -53,7 +53,7 @@ pool settings.
 - Enable Neon point-in-time restore for the production project.
 - Before release, confirm latest restore point exists.
 - Test restore into a separate branch/project before touching production.
-- Keep `backend/sql/001_init.sql` as the schema source for fresh environments.
+- Keep the ordered files in `backend/sql` as the schema source.
 - Never run destructive SQL against production without a verified restore path.
 
 ## Incident checklist
@@ -64,17 +64,14 @@ pool settings.
 - Check GitHub Dependabot, code scanning, and secret scanning alerts.
 - Preserve logs needed for investigation, but do not export passwords, tokens, or raw secrets.
 
-Apply the Neon schema in:
+Apply pending Neon migrations from the backend directory:
 
 ```bash
-backend/sql/001_init.sql
+npm run migrate
 ```
 
-Example:
-
-```bash
-psql "$DATABASE_URL" -f backend/sql/001_init.sql
-```
+Production startup runs the same migration command before accepting traffic.
+Applied files and checksums are recorded in `schema_migrations`.
 
 If you already have a Neon API key, you can provision a project from the terminal:
 

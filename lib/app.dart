@@ -25,6 +25,7 @@ import 'screens/s23_tax_calendar_screen.dart';
 import 'screens/s28_paycheck_setup_screen.dart';
 import 'screens/s29_paycheck_shell_screen.dart';
 import 'screens/s30_tax_plan_entry_screen.dart';
+import 'screens/s31_profile_screens.dart';
 import 'models/gap_card.dart';
 
 String _initialLocation() {
@@ -105,6 +106,22 @@ final _router = GoRouter(
     ),
     GoRoute(path: '/share', builder: (_, __) => const ShareCardScreen()),
     GoRoute(path: '/profile', redirect: (_, __) => '/paycheck/you'),
+    GoRoute(
+      path: '/profile/details',
+      builder: (_, __) => const ProfileDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/connections',
+      builder: (_, __) => const ProfileConnectionsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/tax-identity',
+      builder: (_, __) => const TaxIdentityScreen(),
+    ),
+    GoRoute(
+      path: '/profile/privacy',
+      builder: (_, __) => const ProfilePrivacyScreen(),
+    ),
     GoRoute(path: '/you', redirect: (_, __) => '/paycheck/you'),
     GoRoute(path: '/settings', redirect: (_, __) => '/paycheck/you'),
     GoRoute(

@@ -77,13 +77,13 @@ jobs:
           if [ -n "$ARTH_API_BASE_URL" ]; then
             args+=(--dart-define=ARTH_API_BASE_URL="$ARTH_API_BASE_URL")
           fi
-          flutter build apk --debug "${args[@]}"
+          flutter build apk --debug --flavor production "${args[@]}"
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v7
         with:
           name: arth-debug-${{ github.sha }}
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-production-debug.apk
           retention-days: 7
 
   backend:

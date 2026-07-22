@@ -178,22 +178,20 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 style: AppTextStyles.caption(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              const Row(
+              Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.description_outlined,
                     color: AppColors.gold,
                     size: 20,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'PDF · JPG · PNG   Maximum 8 MB',
-                      style: TextStyle(
+                      style: AppTextStyles.caption(
                         color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],

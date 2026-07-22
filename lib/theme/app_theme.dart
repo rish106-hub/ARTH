@@ -56,7 +56,7 @@ class AppColors {
 class AppTextStyles {
   // Numbers remain neutral. Green is reserved for action and positive state.
   static TextStyle display({Color color = AppColors.gold}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 56,
         fontWeight: FontWeight.w900,
         color: color,
@@ -65,7 +65,7 @@ class AppTextStyles {
       );
 
   static TextStyle displaySmall({Color color = AppColors.gold}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 40,
         fontWeight: FontWeight.w900,
         color: color,
@@ -75,7 +75,7 @@ class AppTextStyles {
 
   // Headings
   static TextStyle h1({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 34,
         fontWeight: FontWeight.w600,
         color: color,
@@ -84,7 +84,7 @@ class AppTextStyles {
       );
 
   static TextStyle h2({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 26,
         fontWeight: FontWeight.w600,
         color: color,
@@ -93,7 +93,7 @@ class AppTextStyles {
       );
 
   static TextStyle h3({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -102,7 +102,7 @@ class AppTextStyles {
 
   // Body
   static TextStyle body({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
@@ -110,16 +110,24 @@ class AppTextStyles {
       );
 
   static TextStyle bodyMedium({Color color = AppColors.textPrimary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: color,
         height: 1.5,
       );
 
+  static TextStyle bodyStrong({Color color = AppColors.textPrimary}) =>
+      GoogleFonts.plusJakartaSans(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: color,
+        height: 1.5,
+      );
+
   // Section labels are functional, not decorative.
   static TextStyle sectionLabel({Color color = AppColors.gold}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 12,
         fontWeight: FontWeight.w700,
         color: color,
@@ -128,7 +136,7 @@ class AppTextStyles {
 
   // Micro-copy
   static TextStyle micro({Color color = AppColors.textSecondary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 12,
         fontWeight: FontWeight.w300,
         color: color,
@@ -136,7 +144,7 @@ class AppTextStyles {
       );
 
   static TextStyle caption({Color color = AppColors.textSecondary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color,
@@ -145,7 +153,7 @@ class AppTextStyles {
 
   // Button
   static TextStyle button({Color color = AppColors.bgPrimary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: color,
@@ -155,9 +163,14 @@ class AppTextStyles {
 
 class AppTheme {
   static ThemeData get light {
+    final baseTextTheme =
+        GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme);
+
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bgPrimary,
+      textTheme: baseTextTheme,
+      primaryTextTheme: baseTextTheme,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.readiness,
@@ -166,16 +179,18 @@ class AppTheme {
         onPrimary: Colors.white,
         onSurface: AppColors.textPrimary,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle(
+        systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
           statusBarBrightness: Brightness.light,
         ),
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        titleTextStyle:
+            baseTextTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.gold,
@@ -185,7 +200,7 @@ class AppTheme {
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
         trackHeight: 4,
         valueIndicatorColor: AppColors.gold,
-        valueIndicatorTextStyle: GoogleFonts.inter(
+        valueIndicatorTextStyle: GoogleFonts.plusJakartaSans(
           color: Colors.white,
           fontWeight: FontWeight.w700,
           fontSize: 13,
@@ -213,7 +228,7 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         indicatorColor: AppColors.primarySoft,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          return GoogleFonts.inter(
+          return GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -234,7 +249,7 @@ class AppTheme {
         fillColor: AppColors.bgCard,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+        hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted),
         border: const OutlineInputBorder(
           borderRadius: AppRadius.card,
           borderSide: BorderSide(color: AppColors.border),
@@ -250,7 +265,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimary,
-        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        contentTextStyle: GoogleFonts.plusJakartaSans(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -269,7 +284,7 @@ class AppButtons {
     maximumSize: const Size(double.infinity, 52),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
-    textStyle: GoogleFonts.inter(
+    textStyle: GoogleFonts.plusJakartaSans(
       fontSize: 16,
       fontWeight: FontWeight.w700,
       letterSpacing: 0,
@@ -283,7 +298,8 @@ class AppButtons {
     maximumSize: const Size(double.infinity, 52),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
-    textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+    textStyle:
+        GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
   );
 }
 

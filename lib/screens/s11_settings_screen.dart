@@ -11,6 +11,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/animated_number.dart';
+import '../widgets/arth_brand_mark.dart';
 import '../utils/session_cleanup.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -283,11 +284,11 @@ class _SettingsHeader extends StatelessWidget {
         children: [
           Text(
             'Settings',
-            style: TextStyle(
-              fontFamily: 'SpaceGrotesk',
+            style: AppTextStyles.h2(
+              color: AppColors.textPrimary,
+            ).copyWith(
               fontSize: compact ? 24 : 26,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
               letterSpacing: 0,
             ),
           ),
@@ -298,13 +299,13 @@ class _SettingsHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
             ),
-            child: const Text(
+            child: Text(
               'FY2025-26 Filing',
-              style: TextStyle(
-                fontFamily: 'Inter',
+              style: AppTextStyles.micro(
+                color: AppColors.gold,
+              ).copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AppColors.gold,
               ),
             ),
           ),
@@ -382,12 +383,9 @@ class _AccountHeroCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         initials,
-                        style: const TextStyle(
-                          fontFamily: 'SpaceGrotesk',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                        style: AppTextStyles.bodyMedium(
                           color: Colors.black,
-                        ),
+                        ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -398,12 +396,9 @@ class _AccountHeroCard extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: const TextStyle(
-                            fontFamily: 'SpaceGrotesk',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                          style: AppTextStyles.bodyMedium(
                             color: AppColors.textPrimary,
-                          ),
+                          ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
@@ -432,23 +427,20 @@ class _AccountHeroCard extends StatelessWidget {
                         color: AppColors.teal.withValues(alpha: 0.4),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.cloud_done_rounded,
                           size: 11,
                           color: AppColors.teal,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
                           'Synced',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
+                          style: AppTextStyles.caption(
                             color: AppColors.teal,
-                          ),
+                          ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -579,11 +571,11 @@ class _HeroButton extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
+                  style: AppTextStyles.bodyMedium(
+                    color: color,
+                  ).copyWith(
                     fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w600,
-                    color: color,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -687,12 +679,9 @@ class _SnapCell extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: 'SpaceGrotesk',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+            style: AppTextStyles.bodyStrong(
               color: highlight ? AppColors.gold : AppColors.textPrimary,
-            ),
+            ).copyWith(fontSize: 14),
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
@@ -968,11 +957,11 @@ class _ActionTile extends StatelessWidget {
                             ),
                             child: Text(
                               badge!,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
+                              style: AppTextStyles.micro(
+                                color: AppColors.gold,
+                              ).copyWith(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.gold,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -1011,13 +1000,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        fontFamily: 'Inter',
-        fontSize: 10,
-        fontWeight: FontWeight.w600,
+      style: AppTextStyles.micro(
         color: AppColors.textMuted,
-        letterSpacing: 2.0,
-      ),
+      ).copyWith(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0),
     );
   }
 }
@@ -1041,30 +1026,12 @@ class _AppFooter extends StatelessWidget {
         const SizedBox(height: 16),
         GestureDetector(
           onTap: _openWebsite,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '₹',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.gold.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'ARTH',
-                style: TextStyle(
-                  fontFamily: 'SpaceGrotesk',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 4,
-                ),
-              ),
-            ],
+          child: ArthBrandMark(
+            size: 24,
+            spacing: 8,
+            wordmarkStyle: AppTextStyles.h3(
+              color: AppColors.textSecondary,
+            ).copyWith(fontSize: 14),
           ),
         ),
         const SizedBox(height: 6),

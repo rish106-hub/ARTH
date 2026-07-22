@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../providers/user_profile_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/arth_brand_mark.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -84,10 +85,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   scale: 0.88 + (0.12 * t),
                   child: Opacity(
                     opacity: 0.55 + (0.45 * t),
-                    child: Image.asset(
-                      'assets/icon/icon_1024.png',
-                      width: 112,
-                      height: 112,
+                    child: const ArthBrandMark(
+                      size: 112,
+                      showWordmark: false,
+                      spacing: 0,
                     ),
                   ),
                 );
@@ -100,7 +101,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               'ARTH',
               style: AppTextStyles.h1(
                 color: AppColors.textPrimary,
-              ).copyWith(letterSpacing: 8, fontSize: 32),
+              ).copyWith(letterSpacing: 0, fontSize: 32),
             )
                 .animate(delay: 600.ms)
                 .fadeIn(duration: 600.ms, curve: Curves.easeOut),

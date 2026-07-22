@@ -59,6 +59,12 @@ class AuthNotifier extends Notifier<UserAccount?> {
     return account;
   }
 
+  Future<UserAccount> signInWithGoogle() async {
+    final account = await _resolvedService.signInWithGoogle();
+    if (ref.mounted) state = account;
+    return account;
+  }
+
   Future<void> signOut() async {
     await _resolvedService.clearAccount();
     if (!ref.mounted) return;

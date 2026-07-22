@@ -18,25 +18,25 @@ class PaycheckColors {
 
 class PaycheckType {
   static TextStyle display({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 46,
         height: 0.98,
-        letterSpacing: -2,
+        letterSpacing: 0,
         fontWeight: FontWeight.w700,
         color: color,
       );
 
   static TextStyle title({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 28,
         height: 1.08,
-        letterSpacing: -0.8,
+        letterSpacing: 0,
         fontWeight: FontWeight.w700,
         color: color,
       );
 
   static TextStyle heading({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.plusJakartaSans(
         fontSize: 18,
         height: 1.2,
         fontWeight: FontWeight.w700,
@@ -44,7 +44,7 @@ class PaycheckType {
       );
 
   static TextStyle body({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 14,
         height: 1.45,
         fontWeight: FontWeight.w400,
@@ -52,7 +52,7 @@ class PaycheckType {
       );
 
   static TextStyle bodyStrong({Color color = PaycheckColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 14,
         height: 1.35,
         fontWeight: FontWeight.w700,
@@ -60,10 +60,10 @@ class PaycheckType {
       );
 
   static TextStyle utility({Color color = PaycheckColors.inkSoft}) =>
-      GoogleFonts.ibmPlexMono(
+      GoogleFonts.plusJakartaSans(
         fontSize: 11,
         height: 1.3,
-        letterSpacing: 0.45,
+        letterSpacing: 0,
         fontWeight: FontWeight.w500,
         color: color,
       );

@@ -3,11 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/paycheck.dart';
 
 class PaycheckNotifier extends Notifier<PaycheckState> {
+  PaycheckState? _realState;
+
   @override
-  PaycheckState build() => demoPaycheck;
+  PaycheckState build() => emptyPaycheck;
 
   void useSampleData() {
+    if (!state.usingSampleData) _realState = state;
     state = demoPaycheck;
+  }
+
+  void closeSampleData() {
+    state = _realState ?? emptyPaycheck;
+    _realState = null;
+  }
+
+  void clearUserData() {
+    state = emptyPaycheck;
+    _realState = null;
   }
 
   void markOfferLetterAdded() {

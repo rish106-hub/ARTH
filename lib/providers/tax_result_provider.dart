@@ -14,10 +14,6 @@ final backendSyncServiceProvider = Provider<BackendSyncService>(
 
 // Async provider that loads triggers from JSON and computes gaps
 final taxResultProvider = FutureProvider<TaxResult>((ref) async {
-  final complete = await ref.watch(completedTaxProfileProvider.future);
-  if (!complete) {
-    throw StateError('tax profile incomplete');
-  }
   final profile = ref.watch(userProfileProvider);
   final ruleSet = await ref.watch(activeTaxRuleSetProvider.future);
   final triggers = await GapFinder.loadTriggers();

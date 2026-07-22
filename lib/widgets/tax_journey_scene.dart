@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
@@ -10,6 +10,7 @@ class TaxJourneyScene extends StatefulWidget {
   final String chapter;
   final String helper;
   final Color accent;
+  final double height;
 
   const TaxJourneyScene({
     super.key,
@@ -18,14 +19,40 @@ class TaxJourneyScene extends StatefulWidget {
     required this.chapter,
     required this.helper,
     required this.accent,
+    this.height = 218,
   });
 
   @override
   State<TaxJourneyScene> createState() => _TaxJourneySceneState();
 }
 
-class _TaxJourneySceneState extends State<TaxJourneyScene> {
+class _TaxJourneySceneState extends State<TaxJourneyScene>
+    with SingleTickerProviderStateMixin {
   bool _showWhy = false;
+  late final AnimationController _pulseController;
+  late final Animation<double> _sceneMotion;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4200),
+      lowerBound: 0,
+      upperBound: 1,
+    )..repeat(reverse: true);
+    _sceneMotion = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOutSine,
+      reverseCurve: Curves.easeInOutSine,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant TaxJourneyScene oldWidget) {
@@ -37,6 +64,8 @@ class _TaxJourneySceneState extends State<TaxJourneyScene> {
   Widget build(BuildContext context) {
     final snapshot = _JourneySnapshot.forStep(widget.step, widget.profile);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final pulse =
+        reduceMotion ? const AlwaysStoppedAnimation(0.5) : _sceneMotion;
 
     return Semantics(
       button: true,
@@ -49,9 +78,9 @@ class _TaxJourneySceneState extends State<TaxJourneyScene> {
           onTap: () => setState(() => _showWhy = !_showWhy),
           child: AnimatedContainer(
             duration: reduceMotion ? Duration.zero : AppMotion.medium,
-            height: 156,
+            height: widget.height,
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
+              color: const Color(0xFFF3F0E8),
               borderRadius: AppRadius.card,
               border: Border.all(
                 color: _showWhy
@@ -67,35 +96,48 @@ class _TaxJourneySceneState extends State<TaxJourneyScene> {
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: AnimatedSwitcher(
-              duration: reduceMotion ? Duration.zero : AppMotion.medium,
-              switchInCurve: AppMotion.standard,
-              switchOutCurve: Curves.easeIn,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.08, 0),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                RepaintBoundary(
+                  child: _QuestionArtwork(
+                    key: ValueKey(widget.step),
+                    step: widget.step,
+                    animation: pulse,
+                    accent: widget.accent,
+                  ),
                 ),
-              ),
-              child: _showWhy
-                  ? _WhyPanel(
-                      key: ValueKey('why-${widget.step}'),
-                      chapter: widget.chapter,
-                      helper: widget.helper,
-                      accent: widget.accent,
-                    )
-                  : _SnapshotPanel(
-                      key: ValueKey('snapshot-${widget.step}'),
-                      step: widget.step,
-                      profile: widget.profile,
-                      snapshot: snapshot,
-                      chapter: widget.chapter,
+                if (!_showWhy) ...[
+                  Positioned(
+                    left: 12,
+                    top: 12,
+                    child: _ChapterPill(
+                      label: widget.chapter,
                       accent: widget.accent,
                     ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _SnapshotStrip(
+                      snapshot: snapshot,
+                      accent: widget.accent,
+                    ),
+                  ),
+                ],
+                AnimatedSwitcher(
+                  duration: reduceMotion ? Duration.zero : AppMotion.medium,
+                  child: _showWhy
+                      ? _WhyOverlay(
+                          key: ValueKey('why-${widget.step}'),
+                          chapter: widget.chapter,
+                          helper: widget.helper,
+                          accent: widget.accent,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ),
           ),
         ),
@@ -104,6 +146,537 @@ class _TaxJourneySceneState extends State<TaxJourneyScene> {
   }
 }
 
+class _ChapterPill extends StatelessWidget {
+  final String label;
+  final Color accent;
+
+  const _ChapterPill({required this.label, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: AppRadius.pill,
+        border: Border.all(color: accent.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTextStyles.micro(color: AppColors.textPrimary).copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestionArtwork extends StatelessWidget {
+  final int step;
+  final Color accent;
+  final Animation<double> animation;
+
+  const _QuestionArtwork({
+    super.key,
+    required this.step,
+    required this.accent,
+    required this.animation,
+  });
+
+  static const _backgrounds = <Color>[
+    Color(0xFFFFE9A8),
+    Color(0xFFD9E8FF),
+    Color(0xFFD7F2E8),
+    Color(0xFFFFDDD2),
+    Color(0xFFE5E0FF),
+    Color(0xFFFFE2A9),
+    Color(0xFFD6EFE4),
+    Color(0xFFE2E5FF),
+    Color(0xFFD6EFF5),
+    Color(0xFFFFE0E7),
+    Color(0xFFFFE8C7),
+    Color(0xFFDDE9F3),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final index = step.clamp(0, _backgrounds.length - 1);
+    return AnimatedContainer(
+      duration: AppMotion.medium,
+      color: _backgrounds[index],
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) => CustomPaint(
+          isComplex: true,
+          willChange: true,
+          painter: _QuestionScenePainter(
+            step: step,
+            progress: animation.value,
+            accent: accent,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestionScenePainter extends CustomPainter {
+  final int step;
+  final double progress;
+  final Color accent;
+
+  const _QuestionScenePainter({
+    required this.step,
+    required this.progress,
+    required this.accent,
+  });
+
+  static const _ink = Color(0xFF102C25);
+  static const _paper = Color(0xFFFFFCF5);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height - 62;
+    switch (step) {
+      case 0:
+        _income(canvas, size.width, h);
+      case 1:
+        _employment(canvas, size.width, h);
+      case 2:
+        _city(canvas, size.width, h);
+      case 3:
+        _rent(canvas, size.width, h);
+      case 4:
+        _hra(canvas, size.width, h);
+      case 5:
+        _investments(canvas, size.width, h);
+      case 6:
+        _homeLoan(canvas, size.width, h);
+      case 7:
+        _nps(canvas, size.width, h);
+      case 8:
+        _health(canvas, size.width, h);
+      case 9:
+        _education(canvas, size.width, h);
+      case 10:
+        _donations(canvas, size.width, h);
+      default:
+        _age(canvas, size.width, h);
+    }
+  }
+
+  void _income(Canvas c, double w, double h) {
+    _card(c, Rect.fromLTWH(w * .34, 22, w * .34, h - 32), -0.06);
+    _text(c, 'PAYSLIP', Offset(w * .39, 39), 13, _ink, bold: true);
+    for (var i = 0; i < 3; i++) {
+      _line(c, Offset(w * .39, 66 + i * 15),
+          Offset(w * (.55 + i * .02), 66 + i * 15));
+    }
+    final coinY = 34 + progress * 12;
+    for (var i = 0; i < 3; i++) {
+      _coin(c, Offset(w * .76 + i * 24, coinY + i * 27),
+          i == 1 ? accent : _paper);
+    }
+    for (var i = 0; i < 4; i++) {
+      _rect(
+          c,
+          Rect.fromLTWH(34 + i * 25, h - 28 - i * 13 * progress, 16,
+              18 + i * 13 * progress),
+          _ink,
+          radius: 5);
+    }
+  }
+
+  void _employment(Canvas c, double w, double h) {
+    final lift = progress * 7;
+    _card(c, Rect.fromLTWH(w * .38, 25 - lift, w * .28, h - 38), -0.08);
+    _circle(c, Offset(w * .47, 58 - lift), 18, accent);
+    _line(c, Offset(w * .42, 91 - lift), Offset(w * .59, 91 - lift), width: 7);
+    _line(c, Offset(w * .44, 108 - lift), Offset(w * .57, 108 - lift),
+        color: Colors.black26, width: 5);
+    _rect(c, Rect.fromLTWH(w * .72, 46 + lift, 74, 58), _ink, radius: 8);
+    _rect(c, Rect.fromLTWH(w * .75, 37 + lift, 28, 14), _paper, radius: 5);
+    _text(c, 'WORK', Offset(w * .75, 67 + lift), 12, Colors.white, bold: true);
+  }
+
+  void _city(Canvas c, double w, double h) {
+    for (var i = 0; i < 7; i++) {
+      final height = 35.0 + (i % 3) * 23;
+      _rect(
+          c,
+          Rect.fromLTWH(
+              22 + i * (w - 44) / 7, h - height, (w - 70) / 7, height),
+          i.isEven ? _ink : Colors.white70,
+          radius: 4);
+    }
+    final trainX = 22 + (w - 105) * progress;
+    _line(c, Offset(18, h - 4), Offset(w - 18, h - 4), width: 4);
+    _rect(c, Rect.fromLTWH(trainX, h - 28, 72, 24), accent, radius: 8);
+    _circle(c, Offset(w * .72, 45), 18 + progress * 7,
+        accent.withValues(alpha: .25));
+    _circle(c, Offset(w * .72, 45), 11, accent);
+  }
+
+  void _rent(Canvas c, double w, double h) {
+    final house = Path()
+      ..moveTo(w * .38, h * .48)
+      ..lineTo(w * .55, 24)
+      ..lineTo(w * .72, h * .48)
+      ..lineTo(w * .68, h - 8)
+      ..lineTo(w * .42, h - 8)
+      ..close();
+    c.drawPath(house, Paint()..color = _paper);
+    c.drawPath(
+        house,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4);
+    _rect(c, Rect.fromLTWH(w * .52, h - 54, 36, 46), accent, radius: 4);
+    c.save();
+    c.translate(w * .79, 38);
+    c.rotate(-.18 + progress * .36);
+    _circle(c, Offset.zero, 15, _ink);
+    _line(c, const Offset(0, 15), const Offset(0, 66), width: 9);
+    _line(c, const Offset(0, 58), const Offset(20, 58), width: 8);
+    c.restore();
+  }
+
+  void _hra(Canvas c, double w, double h) {
+    _card(c, Rect.fromLTWH(w * .32, 16, w * .42, h - 22), 0.04);
+    _text(c, 'SALARY', Offset(w * .38, 34), 12, _ink, bold: true);
+    for (var i = 0; i < 4; i++) {
+      final y = 58.0 + i * 18;
+      _line(c, Offset(w * .37, y), Offset(w * .66, y),
+          color: i == 2 ? accent : Colors.black26, width: i == 2 ? 10 : 6);
+    }
+    _text(c, 'HRA', Offset(w * .48, 91), 11, Colors.white, bold: true);
+    final lens = Offset(w * .76 + progress * 8, 82 - progress * 5);
+    c.drawCircle(lens, 30, Paint()..color = Colors.white54);
+    c.drawCircle(
+        lens,
+        30,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5);
+    _line(c, lens + const Offset(21, 21), lens + const Offset(49, 49),
+        width: 9);
+  }
+
+  void _investments(Canvas c, double w, double h) {
+    _rect(c, Rect.fromLTWH(w * .36, 29, w * .32, h - 38), _ink, radius: 14);
+    _text(c, '80C', Offset(w * .45, 60), 28, Colors.white, bold: true);
+    _rect(c, Rect.fromLTWH(w * .42, 95, w * .2 * progress, 12), accent,
+        radius: 6);
+    for (var i = 0; i < 3; i++) {
+      _coin(c, Offset(w * .75 + i * 25, 44 + i * 28 - progress * 7),
+          i == 1 ? accent : _paper);
+    }
+  }
+
+  void _homeLoan(Canvas c, double w, double h) {
+    final roof = Path()
+      ..moveTo(w * .3, 78)
+      ..lineTo(w * .49, 22)
+      ..lineTo(w * .68, 78)
+      ..close();
+    c.drawPath(roof, Paint()..color = accent);
+    _rect(c, Rect.fromLTWH(w * .34, 72, w * .3, h - 78), _paper, radius: 4);
+    _rect(c, Rect.fromLTWH(w * .46, h - 53, 34, 45), _ink, radius: 3);
+    final slide = progress * 10;
+    _card(c, Rect.fromLTWH(w * .7 + slide, 29, 84, 91), 0.06);
+    _text(c, 'EMI', Offset(w * .75 + slide, 49), 13, _ink, bold: true);
+    _text(c, '%', Offset(w * .77 + slide, 78), 28, accent, bold: true);
+  }
+
+  void _nps(Canvas c, double w, double h) {
+    _rect(c, Rect.fromLTWH(w * .4, 39, w * .27, h - 44), Colors.white70,
+        radius: 18);
+    _line(c, Offset(w * .43, 39), Offset(w * .64, 39), width: 9);
+    _text(c, 'NPS', Offset(w * .47, h - 41), 18, _ink, bold: true);
+    for (var i = 0; i < 4; i++) {
+      final y = 20.0 + i * 25 + progress * 17;
+      _coin(c, Offset(w * .54 + (i.isEven ? -18 : 18), y),
+          i == 2 ? accent : _paper,
+          radius: 15);
+    }
+    _text(c, '60', Offset(w * .76, 48), 30, _ink, bold: true);
+    _text(c, 'years', Offset(w * .76, 80), 12, _ink);
+  }
+
+  void _health(Canvas c, double w, double h) {
+    final center = Offset(w * .54, h * .54);
+    final shield = Path()
+      ..moveTo(center.dx, 19)
+      ..lineTo(center.dx + 68, 43)
+      ..lineTo(center.dx + 52, h - 22)
+      ..lineTo(center.dx, h - 4)
+      ..lineTo(center.dx - 52, h - 22)
+      ..lineTo(center.dx - 68, 43)
+      ..close();
+    c.drawPath(shield, Paint()..color = _paper);
+    c.drawPath(
+        shield,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4);
+    _line(c, center + const Offset(-22, -4), center + const Offset(22, -4),
+        color: accent, width: 13);
+    _line(c, center + const Offset(0, -26), center + const Offset(0, 18),
+        color: accent, width: 13);
+    final beat = 8 + progress * 10;
+    _line(c, Offset(20, h - 20), Offset(w * .25, h - 20), width: 4);
+    _line(c, Offset(w * .25, h - 20), Offset(w * .3, h - 20 - beat),
+        color: accent, width: 4);
+    _line(c, Offset(w * .3, h - 20 - beat), Offset(w * .35, h - 10),
+        color: accent, width: 4);
+  }
+
+  void _education(Canvas c, double w, double h) {
+    for (var i = 0; i < 3; i++) {
+      _rect(c, Rect.fromLTWH(w * .34 + i * 9, h - 35 - i * 25, w * .3, 22),
+          i == 1 ? accent : _ink,
+          radius: 5);
+    }
+    final bob = progress * 8;
+    final cap = Path()
+      ..moveTo(w * .52, 23 - bob)
+      ..lineTo(w * .69, 49 - bob)
+      ..lineTo(w * .52, 75 - bob)
+      ..lineTo(w * .35, 49 - bob)
+      ..close();
+    c.drawPath(cap, Paint()..color = _ink);
+    _line(c, Offset(w * .66, 52 - bob), Offset(w * .72, 94 - bob),
+        color: accent, width: 4);
+    _text(c, '%', Offset(w * .77, 63), 34, accent, bold: true);
+  }
+
+  void _donations(Canvas c, double w, double h) {
+    final scale = 1 + progress * .1;
+    c.save();
+    c.translate(w * .53, 66);
+    c.scale(scale);
+    final heart = Path()
+      ..moveTo(0, 34)
+      ..cubicTo(-62, 0, -42, -43, 0, -18)
+      ..cubicTo(42, -43, 62, 0, 0, 34)
+      ..close();
+    c.drawPath(heart, Paint()..color = accent);
+    c.restore();
+    _card(c, Rect.fromLTWH(w * .72, 33, 78, 92), 0.08);
+    _text(c, '80G', Offset(w * .75, 55), 15, _ink, bold: true);
+    _line(c, Offset(w * .75, 83), Offset(w * .85, 83),
+        color: Colors.black26, width: 5);
+    _circle(c, Offset(w * .82, 109), 10 + progress * 3, _ink);
+  }
+
+  void _age(Canvas c, double w, double h) {
+    _line(c, Offset(w * .24, h * .62), Offset(w * .83, h * .62), width: 6);
+    for (var i = 0; i < 4; i++) {
+      final active = progress * 3 >= i;
+      _circle(c, Offset(w * (.25 + i * .19), h * .62), active ? 15 : 10,
+          active ? accent : _paper);
+      _text(c, '${20 + i * 15}', Offset(w * (.23 + i * .19), h * .82), 11, _ink,
+          bold: true);
+    }
+    _circle(c, Offset(w * .54, 42), 28, _paper);
+    _circle(c, Offset(w * .54, 36), 11, _ink);
+    _rect(c, Rect.fromLTWH(w * .49, 49, w * .1, 32), _ink, radius: 16);
+  }
+
+  void _card(Canvas c, Rect rect, double angle) {
+    c.save();
+    c.translate(rect.center.dx, rect.center.dy);
+    c.rotate(angle);
+    final local = Rect.fromCenter(
+        center: Offset.zero, width: rect.width, height: rect.height);
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(local, const Radius.circular(10)));
+    c.drawShadow(path, Colors.black26, 8, false);
+    c.drawPath(path, Paint()..color = _paper);
+    c.drawPath(
+        path,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
+    c.restore();
+  }
+
+  void _coin(Canvas c, Offset center, Color color, {double radius = 18}) {
+    _circle(c, center, radius, color);
+    c.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
+    _text(c, '₹', center - Offset(radius * .38, radius * .63), radius * 1.05,
+        _ink,
+        bold: true);
+  }
+
+  void _circle(Canvas c, Offset center, double radius, Color color) {
+    c.drawCircle(center, radius, Paint()..color = color);
+  }
+
+  void _rect(Canvas c, Rect rect, Color color, {double radius = 0}) {
+    c.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)),
+        Paint()..color = color);
+  }
+
+  void _line(Canvas c, Offset from, Offset to,
+      {Color color = _ink, double width = 3}) {
+    c.drawLine(
+        from,
+        to,
+        Paint()
+          ..color = color
+          ..strokeWidth = width
+          ..strokeCap = StrokeCap.round);
+  }
+
+  void _text(Canvas c, String value, Offset offset, double size, Color color,
+      {bool bold = false}) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: value,
+        style: AppTextStyles.bodyMedium(
+          color: color,
+        ).copyWith(
+          fontSize: size,
+          fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(c, offset);
+  }
+
+  @override
+  bool shouldRepaint(_QuestionScenePainter oldDelegate) {
+    return step != oldDelegate.step ||
+        progress != oldDelegate.progress ||
+        accent != oldDelegate.accent;
+  }
+}
+
+class _SnapshotStrip extends StatelessWidget {
+  final _JourneySnapshot snapshot;
+  final Color accent;
+
+  const _SnapshotStrip({required this.snapshot, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 66,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: const Color(0xFF102C25).withValues(alpha: 0.94),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: AppRadius.card,
+            ),
+            child: Icon(snapshot.icon, size: 19, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  snapshot.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.micro(color: Colors.white70),
+                ),
+                Text(
+                  snapshot.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMedium(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.info_outline_rounded, color: Colors.white, size: 19),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhyOverlay extends StatelessWidget {
+  final String chapter;
+  final String helper;
+  final Color accent;
+
+  const _WhyOverlay({
+    super.key,
+    required this.chapter,
+    required this.helper,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFF102C25).withValues(alpha: 0.96),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: AppRadius.card,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 19,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              'Why $chapter matters',
+              style: AppTextStyles.h3().copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              helper,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Legacy compact renderer kept for narrow embedded surfaces.
+// ignore: unused_element
 class _SnapshotPanel extends StatelessWidget {
   final int step;
   final UserProfile profile;
@@ -111,8 +684,8 @@ class _SnapshotPanel extends StatelessWidget {
   final String chapter;
   final Color accent;
 
+  // ignore: unused_element_parameter
   const _SnapshotPanel({
-    super.key,
     required this.step,
     required this.profile,
     required this.snapshot,
@@ -241,8 +814,13 @@ class _IncomeBars extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('₹',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800)),
+        Text(
+          '₹',
+          style:
+              AppTextStyles.bodyStrong(color: AppColors.textPrimary).copyWith(
+            fontSize: 25,
+          ),
+        ),
         const Spacer(),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -437,8 +1015,13 @@ class _LimitRing extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        Text('${(progress * 100).round()}%',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        Text(
+          '${(progress * 100).round()}%',
+          style:
+              AppTextStyles.bodyStrong(color: AppColors.textPrimary).copyWith(
+            fontSize: 17,
+          ),
+        ),
       ],
     );
   }
@@ -556,13 +1139,14 @@ class _FinalCheck extends StatelessWidget {
       );
 }
 
+// ignore: unused_element
 class _WhyPanel extends StatelessWidget {
   final String chapter;
   final String helper;
   final Color accent;
 
+  // ignore: unused_element_parameter
   const _WhyPanel({
-    super.key,
     required this.chapter,
     required this.helper,
     required this.accent,

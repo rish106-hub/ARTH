@@ -8,10 +8,24 @@ import 'package:arth/models/tax_result.dart';
 import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
 import 'package:arth/providers/tax_year_provider.dart';
+import 'package:arth/providers/tax_result_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('tax result computes without an authenticated completion flag',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final result = await container.read(taxResultProvider.future);
+
+    expect(result.ruleSetLabel, 'FY2026-27 Planning');
+    expect(result.newRegimeTax, greaterThanOrEqualTo(0));
+  });
+
   test('diagnostic defaults to latest active planning year', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);

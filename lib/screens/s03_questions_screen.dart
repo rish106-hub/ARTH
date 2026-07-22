@@ -9,6 +9,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
+import '../widgets/tax_journey_scene.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   final bool paycheckMode;
@@ -92,7 +93,8 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
           widget.paycheckMode ? '/tax-plan/results' : '/gap-reveal',
         );
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Tax plan build failed: $error\n$stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -172,7 +174,12 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                     offset: Offset(0, 16 * (1 - _slideAnim.value)),
                     child: Opacity(opacity: _slideAnim.value, child: child),
                   ),
-                  child: _buildStep(context, profile, _step),
+                  child: _QuestionVisualScope(
+                    step: _step,
+                    profile: profile,
+                    meta: meta,
+                    child: _buildStep(context, profile, _step),
+                  ),
                 ),
               ),
             ],
@@ -211,6 +218,30 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+class _QuestionVisualScope extends InheritedWidget {
+  final int step;
+  final UserProfile profile;
+  final _DiagnosticMeta meta;
+
+  const _QuestionVisualScope({
+    required this.step,
+    required this.profile,
+    required this.meta,
+    required super.child,
+  });
+
+  static _QuestionVisualScope of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<_QuestionVisualScope>()!;
+  }
+
+  @override
+  bool updateShouldNotify(_QuestionVisualScope oldWidget) {
+    return step != oldWidget.step ||
+        profile != oldWidget.profile ||
+        meta != oldWidget.meta;
   }
 }
 
@@ -460,11 +491,9 @@ class _Q00NameState extends ConsumerState<_Q00Name> {
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
-        style: const TextStyle(
+        style: AppTextStyles.body(
           color: AppColors.textPrimary,
-          fontSize: 16,
-          fontFamily: 'Inter',
-        ),
+        ).copyWith(fontSize: 16),
         cursorColor: AppColors.gold,
       ),
       onNext: widget.onNext,
@@ -533,11 +562,9 @@ class _Q00EmailState extends ConsumerState<_Q00Email> {
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
-        style: const TextStyle(
+        style: AppTextStyles.body(
           color: AppColors.textPrimary,
-          fontSize: 16,
-          fontFamily: 'Inter',
-        ),
+        ).copyWith(fontSize: 16),
         cursorColor: AppColors.gold,
       ),
       onNext: widget.onNext,
@@ -567,6 +594,13 @@ class _QLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final visual = _QuestionVisualScope.of(context);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final visualHeight = bottomInset > 0
+        ? 0.0
+        : screenHeight < 760
+            ? 174.0
+            : 218.0;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -583,7 +617,23 @@ class _QLayout extends StatelessWidget {
               style: AppTextStyles.caption(color: AppColors.textSecondary),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          AnimatedContainer(
+            duration: AppMotion.medium,
+            curve: AppMotion.standard,
+            height: visualHeight,
+            child: visualHeight == 0
+                ? const SizedBox.shrink()
+                : TaxJourneyScene(
+                    step: visual.step,
+                    profile: visual.profile,
+                    chapter: visual.meta.title,
+                    helper: visual.meta.helper,
+                    accent: visual.meta.color,
+                    height: visualHeight,
+                  ),
+          ),
+          SizedBox(height: visualHeight == 0 ? 8 : 18),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -866,6 +916,7 @@ class _Q02Employment extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return _QLayout(
       question: 'Are you salaried or self-employed?',
+      onNext: onNext,
       content: Column(
         children: [
           SelectChip(
@@ -877,7 +928,6 @@ class _Q02Employment extends ConsumerWidget {
               ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(employmentType: EmploymentType.salaried),
                   );
-              onNext();
             },
           ),
           const SizedBox(height: 12),
@@ -891,7 +941,6 @@ class _Q02Employment extends ConsumerWidget {
                     (p) =>
                         p.copyWith(employmentType: EmploymentType.selfEmployed),
                   );
-              onNext();
             },
           ),
         ],
@@ -947,6 +996,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
     return _QLayout(
       question: 'Which city do you live in?',
       microCopy: 'Metro cities get higher HRA benefit.',
+      onNext: widget.profile.city.trim().isNotEmpty ? widget.onNext : null,
       content: Column(
         children: [
           TextField(
@@ -991,7 +1041,6 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                   ref.read(userProfileProvider.notifier).updateField(
                         (p) => p.copyWith(city: city, isMetroCity: isMetro),
                       );
-                  widget.onNext();
                 },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -1146,7 +1195,6 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
               ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(paysRent: false, monthlyRent: 0),
                   );
-              widget.onNext();
             },
           ),
           if (_paysRent == true) ...[
@@ -1246,6 +1294,7 @@ class _Q05HRA extends ConsumerWidget {
     return _QLayout(
       question: 'Does your employer give you HRA?',
       microCopy: 'Check your payslip. It\'s listed separately.',
+      onNext: onNext,
       content: Column(
         children: [
           SelectChip(
@@ -1256,7 +1305,6 @@ class _Q05HRA extends ConsumerWidget {
               ref
                   .read(userProfileProvider.notifier)
                   .updateField((p) => p.copyWith(hasHRA: true));
-              onNext();
             },
           ),
           const SizedBox(height: 12),
@@ -1268,7 +1316,6 @@ class _Q05HRA extends ConsumerWidget {
               ref
                   .read(userProfileProvider.notifier)
                   .updateField((p) => p.copyWith(hasHRA: false));
-              onNext();
             },
           ),
           const SizedBox(height: 16),
@@ -1579,7 +1626,6 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                         propertyType: null,
                       ),
                     );
-                widget.onNext();
               },
             ),
             if (_hasLoan == true) ...[
@@ -1765,7 +1811,6 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 ref.read(userProfileProvider.notifier).updateField(
                       (p) => p.copyWith(hasNPS: false, npsExtraContribution: 0),
                     );
-                widget.onNext();
               },
             ),
             const SizedBox(height: 10),
@@ -2100,7 +2145,6 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                         educationLoanInterest: 0,
                       ),
                     );
-                widget.onNext();
               },
             ),
             if (_hasLoan == true) ...[
@@ -2274,7 +2318,6 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
               ref.read(userProfileProvider.notifier).updateField(
                     (p) => p.copyWith(hasDonations: false, donationAmount: 0),
                   );
-              widget.onNext();
             },
           ),
           if (_hasDonations == true) ...[
@@ -2342,6 +2385,7 @@ class _Q12Age extends ConsumerWidget {
     return _QLayout(
       question: 'How old are you?',
       microCopy: 'Affects your tax slabs, rebates, and eligible deductions.',
+      onNext: onNext,
       content: Column(
         children: [
           for (final age in AgeGroup.values) ...[
@@ -2353,7 +2397,6 @@ class _Q12Age extends ConsumerWidget {
                 ref
                     .read(userProfileProvider.notifier)
                     .updateField((p) => p.copyWith(ageGroup: age));
-                onNext();
               },
             ),
             const SizedBox(height: 10),

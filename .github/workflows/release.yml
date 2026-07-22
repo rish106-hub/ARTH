@@ -116,6 +116,7 @@ jobs:
           ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
         run: |
           flutter build appbundle --release \
+            --flavor production \
             --build-name="$VERSION_NAME" \
             --build-number="$VERSION_CODE" \
             --dart-define=ARTH_API_BASE_URL="$ARTH_API_BASE_URL"
@@ -124,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: arth-release-${{ steps.version.outputs.name }}
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/bundle/productionRelease/app-production-release.aab
 
       # ── Deploy to Play Store (internal track) ────────────────────────────
       - name: Upload to Play Store — Internal track
@@ -132,7 +133,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.arth.taxgap
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          releaseFiles: build/app/outputs/bundle/productionRelease/app-production-release.aab
           track: internal
           status: completed
           whatsNewDirectory: distribution/whatsnew

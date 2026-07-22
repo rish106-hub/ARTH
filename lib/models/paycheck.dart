@@ -137,6 +137,27 @@ class PaycheckState {
   }
 }
 
+const emptyPaycheck = PaycheckState(
+  employeeName: 'Your pay profile',
+  employer: '',
+  role: 'Add an offer letter to begin',
+  payPeriod: 'Not connected',
+  promisedMonthly: 0,
+  grossReceived: 0,
+  netCredited: 0,
+  claimableNow: 0,
+  taxWithheld: 0,
+  otherDeductions: 0,
+  annualBenefits: 0,
+  usingSampleData: false,
+  offerLetterAdded: false,
+  inboxConnected: false,
+  preparedClaims: {},
+  items: [],
+  sources: [],
+  evidence: [],
+);
+
 const demoPaycheck = PaycheckState(
   employeeName: 'Aarav',
   employer: 'Northstar Labs India',

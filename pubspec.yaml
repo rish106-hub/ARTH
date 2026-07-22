@@ -1,7 +1,7 @@
 name: arth
 description: "ARTH - Paycheck reconciliation and tax-gap planning for salaried Indians."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+10000
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -43,6 +43,7 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.9
   file_selector: ^1.1.0
+  google_sign_in: ^7.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -79,5 +80,6 @@ flutter:
     - assets/lottie/coins.json
     - assets/icon/
     - assets/images/
+    - assets/fonts/
 
-  # SpaceGrotesk is loaded via google_fonts package at runtime — no local asset needed.
+  # Plus Jakarta Sans is bundled so first launch never falls back to a system font.

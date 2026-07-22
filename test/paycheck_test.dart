@@ -1,10 +1,18 @@
 import 'package:arth/models/paycheck.dart';
+import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  ProviderScope sampleScope(Widget child) => ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(SamplePaycheckNotifier.new),
+        ],
+        child: child,
+      );
+
   test('demo paycheck separates received, claimable and pending money', () {
     expect(demoPaycheck.claimableNow, 6400);
     expect(demoPaycheck.pendingAmount, 7500);
@@ -28,9 +36,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: PaycheckShellScreen()),
-      ),
+      sampleScope(const MaterialApp(home: PaycheckShellScreen())),
     );
     await tester.pump();
 
@@ -50,9 +56,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: PaycheckShellScreen()),
-      ),
+      sampleScope(const MaterialApp(home: PaycheckShellScreen())),
     );
     await tester.pump();
 
@@ -66,4 +70,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('PREPARED'), findsOneWidget);
   });
+}
+
+class SamplePaycheckNotifier extends PaycheckNotifier {
+  @override
+  PaycheckState build() => demoPaycheck;
 }

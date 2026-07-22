@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_account.dart';
 import 'secure_storage_service.dart';
 import 'server_api_service.dart';
@@ -11,6 +12,13 @@ class AuthService {
 
   final ServerApiService _api;
   final SecureStorageService _storage;
+  bool _googleInitialized = false;
+
+  static const _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_OAUTH_SERVER_CLIENT_ID',
+    defaultValue:
+        '101289118169-j0io6jjcdf947ss7bdfpjovk4dacfr4d.apps.googleusercontent.com',
+  );
 
   AuthService({ServerApiService? api, SecureStorageService? storage})
       : _api = api ?? ServerApiService(),
@@ -36,6 +44,25 @@ class AuthService {
     final response = await _api.postJson(
       '/auth/sign-in',
       body: {'email': email, 'password': password},
+      retryTransient: true,
+    );
+    return _persistAuthResponse(response);
+  }
+
+  Future<UserAccount> signInWithGoogle() async {
+    final google = GoogleSignIn.instance;
+    if (!_googleInitialized) {
+      await google.initialize(serverClientId: _googleServerClientId);
+      _googleInitialized = true;
+    }
+    final account = await google.authenticate();
+    final idToken = account.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError('Google did not return an identity token');
+    }
+    final response = await _api.postJson(
+      '/auth/google',
+      body: {'idToken': idToken},
       retryTransient: true,
     );
     return _persistAuthResponse(response);

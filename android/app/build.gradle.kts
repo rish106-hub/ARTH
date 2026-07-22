@@ -19,6 +19,10 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -48,13 +52,19 @@ android {
         // multiDexEnabled not needed — minSdk 24+ uses ART which handles multiple DEX natively
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("internal") {
+            dimension = "distribution"
+        }
+        create("production") {
+            dimension = "distribution"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -70,4 +80,6 @@ flutter {
 }
 
 dependencies {
+    implementation("com.google.firebase:firebase-appdistribution-api:16.0.0-beta20")
+    add("internalImplementation", "com.google.firebase:firebase-appdistribution:16.0.0-beta20")
 }
