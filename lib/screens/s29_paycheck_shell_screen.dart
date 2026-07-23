@@ -37,14 +37,16 @@ class PaycheckShellScreen extends ConsumerStatefulWidget {
 
 class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
   late int _index;
+  late final PaycheckNotifier _paycheckNotifier;
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex.clamp(0, 3);
+    _paycheckNotifier = ref.read(paycheckProvider.notifier);
     if (widget.exploreMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ref.read(paycheckProvider.notifier).useSampleData();
+        if (mounted) _paycheckNotifier.useSampleData();
       });
     }
   }
@@ -52,7 +54,9 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
   @override
   void dispose() {
     if (widget.exploreMode) {
-      ref.read(paycheckProvider.notifier).closeSampleData();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _paycheckNotifier.closeSampleData();
+      });
     }
     super.dispose();
   }
