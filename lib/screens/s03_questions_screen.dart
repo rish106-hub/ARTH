@@ -249,7 +249,9 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
       _appliedForm16Id = form16Prefill.documentId;
       Future<void>.microtask(() {
         if (!mounted) return;
-        ref.read(userProfileProvider.notifier).applyForm16Prefill(form16Prefill);
+        ref
+            .read(userProfileProvider.notifier)
+            .applyForm16Prefill(form16Prefill);
       });
     }
     // Offer letter fills income/employer only when there is no payslip or
@@ -261,7 +263,9 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
         _appliedOfferId = offerId;
         Future<void>.microtask(() {
           if (!mounted) return;
-          ref.read(userProfileProvider.notifier).applyConfirmedOfferLetter(offer);
+          ref
+              .read(userProfileProvider.notifier)
+              .applyConfirmedOfferLetter(offer);
         });
       }
     }
@@ -2403,7 +2407,8 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             parentsAbove60: _parentsAbove60,
             // Premiums drive the actual 80D deduction; clear them when the
             // corresponding cover is deselected.
-            healthInsuranceSelfPremium: _self ? _amount(_selfPremiumCtrl) : null,
+            healthInsuranceSelfPremium:
+                _self ? _amount(_selfPremiumCtrl) : null,
             healthInsuranceParentsPremium:
                 _parents ? _amount(_parentsPremiumCtrl) : null,
             preventiveHealthCheckup: _amount(_preventiveCtrl),
