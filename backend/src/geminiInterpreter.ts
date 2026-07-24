@@ -43,6 +43,7 @@ const payslipInterpretationSchema = z.object({
   }),
   earnings: z.array(z.object({
     label: z.string().max(120),
+    canonicalKey: z.string().max(80),
     amount: z.number().finite().min(-100_000_000).max(100_000_000),
     classification: z.enum([
       'basic_pay',
@@ -57,13 +58,21 @@ const payslipInterpretationSchema = z.object({
   })).max(80),
   deductions: z.array(z.object({
     label: z.string().max(120),
+    canonicalKey: z.string().max(80),
     amount: z.number().finite().min(-100_000_000).max(100_000_000),
     classification: z.enum([
       'income_tax',
       'professional_tax',
       'employee_pf',
+      'voluntary_pf',
       'employee_esi',
-      'loan',
+      'insurance',
+      'loan_repayment',
+      'housing_recovery',
+      'utility_recovery',
+      'welfare_contribution',
+      'cooperative_recovery',
+      'salary_adjustment',
       'other',
     ]),
     confidence: z.enum(['high', 'medium', 'low']),
@@ -112,6 +121,7 @@ const payslipResponseSchema = {
         type: 'object',
         properties: {
           label: { type: 'string' },
+          canonicalKey: { type: 'string' },
           amount: { type: 'number' },
           classification: {
             type: 'string',
@@ -127,7 +137,7 @@ const payslipResponseSchema = {
           },
           confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
         },
-        required: ['label', 'amount', 'classification', 'confidence'],
+        required: ['label', 'canonicalKey', 'amount', 'classification', 'confidence'],
       },
     },
     deductions: {
@@ -136,6 +146,7 @@ const payslipResponseSchema = {
         type: 'object',
         properties: {
           label: { type: 'string' },
+          canonicalKey: { type: 'string' },
           amount: { type: 'number' },
           classification: {
             type: 'string',
@@ -143,14 +154,21 @@ const payslipResponseSchema = {
               'income_tax',
               'professional_tax',
               'employee_pf',
+              'voluntary_pf',
               'employee_esi',
-              'loan',
+              'insurance',
+              'loan_repayment',
+              'housing_recovery',
+              'utility_recovery',
+              'welfare_contribution',
+              'cooperative_recovery',
+              'salary_adjustment',
               'other',
             ],
           },
           confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
         },
-        required: ['label', 'amount', 'classification', 'confidence'],
+        required: ['label', 'canonicalKey', 'amount', 'classification', 'confidence'],
       },
     },
     cumulative: {
@@ -378,14 +396,14 @@ export async function interpretPayslip(input: {
         store: false,
         systemInstruction: {
           parts: [{
-            text: 'Interpret Indian payslips, including bilingual and non-standard layouts. Extract only values visible in the document. Keep current-month earnings, current-month deductions, and cumulative or year-to-date values separate. Retain unfamiliar printed rows as other instead of dropping them. Preserve printed negative adjustments as negative amounts. Never calculate tax, invent values, or treat annual CTC or cumulative gross as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
+            text: 'Interpret Indian payslips, including bilingual and non-standard layouts. Read the whole document before classifying any row. Extract only values visible in the document. Keep current-month earnings, current-month deductions or recoveries, employer contributions, and cumulative or year-to-date values separate. Return every printed current-month row, including unfamiliar deductions, under exactly one section. Preserve printed negative adjustments as negative amounts. Never calculate tax, invent values, or treat annual CTC or cumulative gross as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
           }],
         },
         contents: [{
           role: 'user',
           parts: [
             {
-              text: 'Extract pay period, attendance, every current-month earning, every current-month deduction, every cumulative or year-to-date row, gross earnings, total deductions, and net salary for user review. Use the printed monthly totals even when taxable and non-taxable labels differ. Preserve the source labels and printed currency units.',
+              text: 'Extract pay period, attendance, every current-month earning, every current-month deduction or recovery, every cumulative or year-to-date row, gross earnings, total deductions, and net salary for user review. Use the printed monthly totals even when taxable and non-taxable labels differ. Preserve each source label. Give every earning and deduction a lowercase snake_case canonicalKey that represents its meaning. Use the same canonicalKey for aliases such as ITAX and income tax, but keep distinct concepts such as employee PF and voluntary PF separate. Do not return the same printed row twice even when OCR sources repeat it.',
             },
             ...(input.documentText
               ? [{
@@ -470,6 +488,16 @@ function normalizeInterpretation(value: unknown): unknown {
   };
 }
 
+function canonicalKeyFromLabel(value: unknown): string {
+  if (typeof value !== 'string') return 'unknown';
+  return value
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'unknown';
+}
+
 function normalizePayslipInterpretation(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const raw = value as Record<string, unknown>;
@@ -479,7 +507,14 @@ function normalizePayslipInterpretation(value: unknown): unknown {
     ? input.slice(0, 80).map((row) => {
       if (!row || typeof row !== 'object') return row;
       const fields = row as Record<string, unknown>;
-      return { ...fields, label: clamp(fields.label, 120) };
+      return {
+        ...fields,
+        label: clamp(fields.label, 120),
+        canonicalKey: clamp(
+          fields.canonicalKey ?? canonicalKeyFromLabel(fields.label),
+          80,
+        ),
+      };
     })
     : input;
   const clampList = (input: unknown, maxItems: number, maxLength: number) =>

@@ -70,9 +70,10 @@ class TaxDocument {
       needsConfirmation || reviewStatus == 'needs_review' || unsupported;
 
   bool get isPayslip {
+    final parser = parseSummary['parser']?.toString() ?? '';
     if (documentType == 'payslip' ||
         parseSummary['detectedDocumentType'] == 'payslip' ||
-        parseSummary['parser'] == 'gemini-payslip-v1') {
+        parser.contains('payslip')) {
       return true;
     }
     final fields =

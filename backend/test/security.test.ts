@@ -1192,9 +1192,16 @@ describe('backend security harness', () => {
   });
 
   it('persists parsed payslip fields through upload, review, and confirmation', async () => {
+    const previousGeminiKey = process.env.GEMINI_API_KEY;
+    const previousSarvamKey = process.env.SARVAM_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.SARVAM_API_KEY;
     const app = await buildApp();
     const alice = await createSession(app, 'Alice', 'alice@example.com');
-    const payslipBytes = Buffer.from('synthetic payslip image');
+    const payslipBytes = Buffer.concat([
+      Buffer.from('synthetic payslip image'),
+      Buffer.alloc(150 * 1024),
+    ]);
     const ocrText = `
       PAYSLIP FOR MAY-2023 PAID IN JUN-2023
       NAME/NAME: EXAMPLE EMPLOYEE
@@ -1243,7 +1250,7 @@ describe('backend security harness', () => {
       };
     };
     assert.equal(uploaded.parseStatus, 'needs_confirmation');
-    assert.equal(uploaded.parseSummary.parser, 'on-device-ocr-payslip-v1');
+    assert.equal(uploaded.parseSummary.parser, 'deterministic-payslip-v2');
     assert.equal(uploaded.parseSummary.extractedFields.grossEarnings, 109412);
     assert.equal(uploaded.parseSummary.extractedFields.totalDeductions, 50969);
     assert.equal(uploaded.parseSummary.extractedFields.netSalary, 58443);
@@ -1283,6 +1290,8 @@ describe('backend security harness', () => {
     assert.equal(storedAfterConfirmation?.confirmed_fields.netSalary, 58443);
 
     await app.close();
+    if (previousGeminiKey) process.env.GEMINI_API_KEY = previousGeminiKey;
+    if (previousSarvamKey) process.env.SARVAM_API_KEY = previousSarvamKey;
   });
 
   it('confirms parsed document fields only for the owner and pending documents', async () => {

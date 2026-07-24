@@ -9,6 +9,7 @@ import '../models/tax_document.dart';
 import '../providers/auth_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
+import '../services/on_device_document_ocr_service.dart';
 import '../services/server_api_service.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
@@ -919,13 +920,48 @@ class _InboxViewState extends ConsumerState<_InboxView> {
     try {
       setState(() {
         _uploadState = _InboxUploadState.parsing;
-        _uploadMessage = 'Uploading and reading ${file.name}';
+        _uploadMessage = 'Preparing and reading ${file.name}';
+      });
+      final sourceBytes = await file.readAsBytes();
+      List<int> uploadBytes = sourceBytes;
+      var uploadFilename = file.name;
+      var uploadMimeType = mimeType;
+      String? ocrText;
+      if (mimeType.startsWith('image/')) {
+        final ocr = OnDeviceDocumentOcrService();
+        final prepared = await ocr.prepareForUploadAsync(
+          bytes: sourceBytes,
+          filename: file.name,
+        );
+        uploadBytes = prepared.bytes;
+        uploadFilename = prepared.filename;
+        uploadMimeType = prepared.mimeType;
+        if (uploadType == _EvidenceUploadType.payslip) {
+          try {
+            ocrText = await ocr.extractLatinTextFromPreparedImage(prepared);
+          } catch (_) {
+            // Sarvam and manual review remain available when device OCR fails.
+          }
+        }
+      }
+      if (uploadBytes.length > 8 * 1024 * 1024) {
+        if (!mounted) return;
+        setState(() {
+          _uploadState = _InboxUploadState.failed;
+          _uploadMessage = 'Could not reduce this image below 8 MB.';
+        });
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _uploadMessage = 'Uploading and reading $uploadFilename';
       });
       final uploaded = await ref.read(taxDocumentProvider.notifier).upload(
             documentType: uploadType.documentType,
-            filename: file.name,
-            mimeType: mimeType,
-            bytes: await file.readAsBytes(),
+            filename: uploadFilename,
+            mimeType: uploadMimeType,
+            bytes: uploadBytes,
+            ocrText: ocrText,
           );
       if (!mounted) return;
       setState(() {
@@ -1440,7 +1476,10 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const _PayslipSectionTitle('Earnings'),
+                  _PayslipSectionTitle(
+                    'Earnings',
+                    count: earnings.length,
+                  ),
                   ...earnings.map(
                     (row) => _PayslipAmountRow(
                       label: row['label']?.toString() ?? 'Earning',
@@ -1453,7 +1492,10 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                     strong: true,
                   ),
                   const SizedBox(height: 24),
-                  const _PayslipSectionTitle('Deductions'),
+                  _PayslipSectionTitle(
+                    'Deductions',
+                    count: deductions.length,
+                  ),
                   ...deductions.map(
                     (row) => _PayslipAmountRow(
                       label: row['label']?.toString() ?? 'Deduction',
@@ -1592,14 +1634,20 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
 }
 
 class _PayslipSectionTitle extends StatelessWidget {
-  const _PayslipSectionTitle(this.title);
+  const _PayslipSectionTitle(this.title, {this.count});
 
   final String title;
+  final int? count;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(title.toUpperCase(), style: PaycheckType.utility()),
+        child: Text(
+          count == null
+              ? title.toUpperCase()
+              : '${title.toUpperCase()} ($count)',
+          style: PaycheckType.utility(),
+        ),
       );
 }
 

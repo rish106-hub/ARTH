@@ -77,6 +77,12 @@ export async function buildApp() {
       reply.headers(headers);
     }
     if (statusCode < 500) {
+      if (statusCode === 413) {
+        request.log.warn(
+          { errorCode: (error as { code?: string }).code ?? 'unknown' },
+          'request rejected as too large',
+        );
+      }
       const message = statusCode === 429
         ? 'Too many requests'
         : statusCode === 413

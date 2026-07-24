@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 class ServerApiException implements Exception {
   final int statusCode;
@@ -23,7 +24,7 @@ class ServerApiService {
   static const String _defaultBaseUrl =
       'https://arth-backend-production.up.railway.app/v1';
   static const Duration _requestTimeout = Duration(seconds: 15);
-  static const Duration _documentUploadTimeout = Duration(seconds: 60);
+  static const Duration _documentUploadTimeout = Duration(minutes: 10);
 
   final HttpClient _client;
   final String _baseUrl;
@@ -113,6 +114,28 @@ class ServerApiService {
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
     final boundary = 'arth-${DateTime.now().microsecondsSinceEpoch}';
+    final body = BytesBuilder(copy: false);
+
+    void writeAscii(String value) => body.add(ascii.encode(value));
+
+    for (final entry in fields.entries) {
+      writeAscii('--$boundary\r\n');
+      writeAscii(
+        'content-disposition: form-data; name="${entry.key}"\r\n\r\n',
+      );
+      body.add(utf8.encode(entry.value));
+      writeAscii('\r\n');
+    }
+
+    writeAscii('--$boundary\r\n');
+    writeAscii(
+      'content-disposition: form-data; name="$fieldName"; filename="$filename"\r\n',
+    );
+    writeAscii('content-type: $contentType\r\n\r\n');
+    body.add(bytes);
+    writeAscii('\r\n--$boundary--\r\n');
+    final bodyBytes = body.takeBytes();
+
     try {
       final request =
           await _client.openUrl('POST', uri).timeout(_documentUploadTimeout);
@@ -123,24 +146,8 @@ class ServerApiService {
         HttpHeaders.contentTypeHeader,
         'multipart/form-data; boundary=$boundary',
       );
-
-      void writeAscii(String value) => request.add(ascii.encode(value));
-
-      for (final entry in fields.entries) {
-        writeAscii('--$boundary\r\n');
-        writeAscii(
-          'content-disposition: form-data; name="${entry.key}"\r\n\r\n',
-        );
-        writeAscii('${entry.value}\r\n');
-      }
-
-      writeAscii('--$boundary\r\n');
-      writeAscii(
-        'content-disposition: form-data; name="$fieldName"; filename="$filename"\r\n',
-      );
-      writeAscii('content-type: $contentType\r\n\r\n');
-      request.add(bytes);
-      writeAscii('\r\n--$boundary--\r\n');
+      request.contentLength = bodyBytes.length;
+      request.add(bodyBytes);
 
       final response = await request.close().timeout(_documentUploadTimeout);
       final responseBody = await response
