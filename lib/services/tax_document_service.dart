@@ -53,13 +53,17 @@ class TaxDocumentService {
     required String filename,
     required String mimeType,
     required List<int> bytes,
+    String? ocrText,
   }) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) throw StateError('not signed in');
     final response = await _api.uploadMultipart(
       '/documents',
       bearerToken: token,
-      fields: {'documentType': documentType},
+      fields: {
+        'documentType': documentType,
+        if (ocrText != null) 'ocrText': ocrText,
+      },
       fieldName: 'file',
       filename: filename,
       contentType: mimeType,

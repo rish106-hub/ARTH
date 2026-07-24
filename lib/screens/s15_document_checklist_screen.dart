@@ -12,6 +12,7 @@ import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
+import '../services/on_device_document_ocr_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
@@ -237,8 +238,10 @@ class DocumentChecklistScreen extends ConsumerWidget {
     final bytes = await file.readAsBytes();
     if (bytes.isEmpty) return;
 
-    final mimeType = _mimeType(file.name);
-    if (mimeType == null) {
+    List<int> uploadBytes = bytes;
+    var uploadFilename = file.name;
+    final detectedMimeType = _mimeType(file.name);
+    if (detectedMimeType == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Use PDF, JPG, or PNG only.')),
@@ -246,10 +249,33 @@ class DocumentChecklistScreen extends ConsumerWidget {
       }
       return;
     }
-    if (bytes.length > 8 * 1024 * 1024) {
+    var uploadMimeType = detectedMimeType;
+    String? ocrText;
+    if (item.id == 'payslip' && uploadMimeType.startsWith('image/')) {
+      final ocr = OnDeviceDocumentOcrService();
+      try {
+        ocrText = await ocr.extractLatinText(file.path);
+      } catch (_) {
+        // Upload still provides manual review when on-device OCR is unavailable.
+      }
+      try {
+        final prepared = ocr.prepareForUpload(
+          bytes: bytes,
+          filename: file.name,
+        );
+        uploadBytes = prepared.bytes;
+        uploadFilename = prepared.filename;
+        uploadMimeType = prepared.mimeType;
+      } catch (_) {
+        // Keep the source image if decoding or resizing fails.
+      }
+    }
+    if (uploadBytes.length > 8 * 1024 * 1024) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Document must be under 8 MB.')),
+          const SnackBar(
+            content: Text('Could not reduce this image below 8 MB.'),
+          ),
         );
       }
       return;
@@ -258,9 +284,10 @@ class DocumentChecklistScreen extends ConsumerWidget {
     try {
       final uploaded = await ref.read(taxDocumentProvider.notifier).upload(
             documentType: item.id,
-            filename: file.name,
-            mimeType: mimeType,
-            bytes: bytes,
+            filename: uploadFilename,
+            mimeType: uploadMimeType,
+            bytes: uploadBytes,
+            ocrText: ocrText,
           );
       await ref
           .read(documentChecklistProvider.notifier)
