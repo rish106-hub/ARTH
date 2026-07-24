@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DB_DIALECT: z.enum(['postgres', 'cockroach']).default('postgres'),
   PORT: z.coerce.number().default(8787),
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1),
@@ -36,6 +37,26 @@ const envSchema = z.object({
   }
 
   if (env.NODE_ENV !== 'production') return;
+
+  if (env.DB_DIALECT === 'cockroach') {
+    let databaseUrl: URL | undefined;
+    try {
+      databaseUrl = new URL(env.DATABASE_URL);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DATABASE_URL'],
+        message: 'DATABASE_URL must be a valid PostgreSQL connection URL',
+      });
+    }
+    if (databaseUrl?.searchParams.get('sslmode') !== 'verify-full') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DATABASE_URL'],
+        message: 'CockroachDB production connections require sslmode=verify-full',
+      });
+    }
+  }
 
   if (!env.PAN_ENCRYPTION_KEY) {
     ctx.addIssue({

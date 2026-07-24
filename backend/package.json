@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/scripts/migrate.js && node dist/server.js",
     "migrate": "tsx src/scripts/migrate.ts",
+    "verify:cockroach": "tsx src/scripts/verify-cockroach.ts",
     "check": "tsc --noEmit -p tsconfig.json",
     "scan:secrets": "tsx src/scripts/scan-secrets.ts",
     "test": "tsx --test test/**/*.test.ts",

@@ -33,6 +33,7 @@ pool.on('error', (error: Error) => {
 let activeDb: DbHandle = pool;
 
 const transientDbErrorCodes = new Set([
+  '40001',
   'ECONNREFUSED',
   'ECONNRESET',
   'ETIMEDOUT',
@@ -79,6 +80,36 @@ async function withDbRetry<T>(operation: () => Promise<T>): Promise<T> {
         throw error;
       }
       await delay(delays[attempt]);
+    }
+  }
+
+  throw lastError;
+}
+
+export async function runSerializableTransaction<T>(
+  operation: (client: DbClient) => Promise<T>,
+  handle: DbHandle = db,
+): Promise<T> {
+  const delays = [50, 150, 500, 1_200];
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= delays.length; attempt += 1) {
+    const client = await handle.connect();
+    try {
+      await client.query('begin');
+      const result = await operation(client);
+      await client.query('commit');
+      return result;
+    } catch (error) {
+      lastError = error;
+      await client.query('rollback').catch(() => undefined);
+      const code = typeof error === 'object' && error
+        ? (error as { code?: unknown }).code
+        : undefined;
+      if (code !== '40001' || attempt === delays.length) throw error;
+      await delay(delays[attempt]);
+    } finally {
+      client.release();
     }
   }
 

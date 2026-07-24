@@ -106,4 +106,20 @@ describe('env validation', () => {
       /DOCUMENT_ENCRYPTION_KEY must be 32 base64-encoded bytes/,
     );
   });
+
+  it('requires verified TLS for CockroachDB', () => {
+    const cockroachEnv = {
+      ...baseEnv,
+      DB_DIALECT: 'cockroach',
+      DATABASE_URL: 'postgresql://user:pass@cluster.cockroachlabs.cloud:26257/arth?sslmode=verify-full',
+    };
+    assert.equal(parseEnv(cockroachEnv).DB_DIALECT, 'cockroach');
+    assert.throws(
+      () => parseEnv({
+        ...cockroachEnv,
+        DATABASE_URL: 'postgresql://user:pass@cluster.cockroachlabs.cloud:26257/arth?sslmode=require',
+      }),
+      /sslmode=verify-full/,
+    );
+  });
 });

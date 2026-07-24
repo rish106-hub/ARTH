@@ -1,7 +1,8 @@
 import 'dotenv/config';
 
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
@@ -10,10 +11,20 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is required to run migrations');
 }
 
-const sqlDirectory = fileURLToPath(new URL('../../sql/', import.meta.url));
+const dialect = process.env.DB_DIALECT === 'cockroach' ? 'cockroach' : 'postgres';
+const sqlDirectory = dialect === 'cockroach'
+  ? fileURLToPath(new URL('../../sql/cockroach/', import.meta.url))
+  : fileURLToPath(new URL('../../sql/', import.meta.url));
+const migrationTable = dialect === 'cockroach'
+  ? 'ops.schema_migrations'
+  : 'schema_migrations';
+const lockTable = dialect === 'cockroach'
+  ? 'ops.migration_lock'
+  : 'migration_lock';
 
 const transientDbErrorCodes = new Set([
   'ECONNREFUSED',
+  '40001',
   'ECONNRESET',
   'ETIMEDOUT',
   'ENOTFOUND',
@@ -73,25 +84,48 @@ async function connectWithRetry(): Promise<pg.Client> {
 
 async function migrate() {
   const client = await connectWithRetry();
-  await client.query("select pg_advisory_lock(hashtext('arth_schema_migrations'))");
+  const holder = randomUUID();
   try {
+    if (dialect === 'cockroach') {
+      await client.query('create schema if not exists ops');
+    }
     await client.query(`
-      create table if not exists schema_migrations (
+      create table if not exists ${migrationTable} (
         filename text primary key,
         checksum text not null,
         applied_at timestamptz not null default now()
       )
     `);
+    await client.query(`
+      create table if not exists ${lockTable} (
+        lock_name text primary key,
+        holder uuid not null,
+        expires_at timestamptz not null
+      )
+    `);
+    const locked = await client.query(
+      `insert into ${lockTable} (lock_name, holder, expires_at)
+       values ('schema', $1, $2)
+       on conflict (lock_name) do update
+       set holder = excluded.holder, expires_at = excluded.expires_at
+       where ${lockTable}.expires_at < now()
+          or ${lockTable}.holder = excluded.holder
+       returning holder`,
+      [holder, new Date(Date.now() + 15 * 60 * 1_000)],
+    );
+    if (!locked.rowCount) {
+      throw new Error('Another schema migration is running');
+    }
 
     const filenames = (await readdir(sqlDirectory))
       .filter((filename) => filename.endsWith('.sql'))
       .sort((left, right) => left.localeCompare(right));
 
     for (const filename of filenames) {
-      const sql = await readFile(new URL(`../../sql/${filename}`, import.meta.url), 'utf8');
+      const sql = await readFile(join(sqlDirectory, filename), 'utf8');
       const checksum = createHash('sha256').update(sql).digest('hex');
       const existing = await client.query(
-        'select checksum from schema_migrations where filename = $1',
+        `select checksum from ${migrationTable} where filename = $1`,
         [filename],
       );
       if (existing.rowCount) {
@@ -105,7 +139,7 @@ async function migrate() {
       try {
         await client.query(sql);
         await client.query(
-          'insert into schema_migrations (filename, checksum) values ($1, $2)',
+          `insert into ${migrationTable} (filename, checksum) values ($1, $2)`,
           [filename, checksum],
         );
         await client.query('commit');
@@ -116,7 +150,10 @@ async function migrate() {
       }
     }
   } finally {
-    await client.query("select pg_advisory_unlock(hashtext('arth_schema_migrations'))");
+    await client.query(
+      `delete from ${lockTable} where lock_name = 'schema' and holder = $1`,
+      [holder],
+    ).catch(() => undefined);
     await client.end();
   }
 }
