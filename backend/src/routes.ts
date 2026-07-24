@@ -116,6 +116,24 @@ const moneyGoalSchema = z.object({
   monthlyFamilySupport: z.number().int().min(0).max(100_000_000),
 });
 
+const spendMapSchema = z.object({
+  windowStart: z.string().datetime(),
+  windowEnd: z.string().datetime(),
+  generatedAt: z.string().datetime(),
+  monthlyIncome: z.number().int().min(0).max(1_000_000_000),
+  monthlySpend: z.number().int().min(0).max(1_000_000_000),
+  realisticMonthlySavings: z.number().int().min(0).max(1_000_000_000),
+  spendByCategory: z.record(
+    z.string().min(1).max(40),
+    z.number().int().min(0).max(1_000_000_000),
+  ),
+  monthlyTrend: z.array(z.object({
+    month: z.string().datetime(),
+    spent: z.number().int().min(0).max(1_000_000_000),
+    income: z.number().int().min(0).max(1_000_000_000),
+  })).max(24).default([]),
+});
+
 const employerSubmissionSchema = z.object({
   name: z.string().trim().min(2).max(120),
 });
@@ -1463,6 +1481,41 @@ export async function registerRoutes(app: FastifyInstance) {
     return { goals: result.rows.map(moneyGoalResponse) };
   });
 
+  app.post('/spend-map', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const summary = spendMapSchema.parse(request.body);
+    await db.query(
+      `insert into spend_maps (
+         user_id, window_start, window_end, generated_at, monthly_income,
+         monthly_spend, realistic_monthly_savings, spend_by_category,
+         monthly_trend, updated_at
+       ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, now())
+       on conflict (user_id) do update set
+         window_start = excluded.window_start,
+         window_end = excluded.window_end,
+         generated_at = excluded.generated_at,
+         monthly_income = excluded.monthly_income,
+         monthly_spend = excluded.monthly_spend,
+         realistic_monthly_savings = excluded.realistic_monthly_savings,
+         spend_by_category = excluded.spend_by_category,
+         monthly_trend = excluded.monthly_trend,
+         updated_at = now()`,
+      [
+        auth.userId,
+        summary.windowStart,
+        summary.windowEnd,
+        summary.generatedAt,
+        summary.monthlyIncome,
+        summary.monthlySpend,
+        summary.realisticMonthlySavings,
+        JSON.stringify(summary.spendByCategory),
+        JSON.stringify(summary.monthlyTrend),
+      ],
+    );
+    return { ok: true };
+  });
+
   app.post('/money-goals', dataRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
@@ -1633,6 +1686,7 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
         await client.query('delete from money_goals where user_id = $1', [auth.userId]);
+        await client.query('delete from spend_maps where user_id = $1', [auth.userId]);
         await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
         await client.query(
           `update user_private_identity

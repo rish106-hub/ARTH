@@ -11,12 +11,16 @@ class _FakeReader extends SmsReaderService {
   _FakeReader(this.messages);
   final List<RawSms> messages;
   bool granted = true;
+  DateTime? lastSince;
 
   @override
   Future<bool> requestPermission() async => granted;
 
   @override
-  Future<List<RawSms>> readInbox({DateTime? since}) async => messages;
+  Future<List<RawSms>> readInbox({DateTime? since}) async {
+    lastSince = since;
+    return messages;
+  }
 }
 
 /// No-op sync so the test never touches the network.
@@ -104,5 +108,37 @@ void main() {
     final state = container.read(spendMapProvider);
     expect(state.permissionDenied, isTrue);
     expect(state.hasData, isFalse);
+  });
+
+  test('scan uses the selected period and supports limited recategorization',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        sender: 'VMBANK',
+        body: 'Rs 700 debited via UPI to LOCAL STORE.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+
+    notifier.selectPeriod(SpendScanPeriod.sixMonths);
+    await notifier.scan();
+
+    final expected = SpendScanPeriod.sixMonths.since(DateTime.now());
+    expect(reader.lastSince?.year, expected.year);
+    expect(reader.lastSince?.month, expected.month);
+    expect(
+      container.read(spendMapProvider).selectedPeriod,
+      SpendScanPeriod.sixMonths,
+    );
+
+    await notifier.recategorize(0, SpendCategory.groceries);
+    expect(
+      container.read(spendMapProvider).map!.txns.single.category,
+      SpendCategory.groceries,
+    );
   });
 }
