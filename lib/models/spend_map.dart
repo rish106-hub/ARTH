@@ -80,12 +80,12 @@ class FinanceTxn {
   final String? merchant;
   final String? sender;
 
-  FinanceTxn copyWith({String? category}) => FinanceTxn(
+  FinanceTxn copyWith({String? category, bool? isSalary}) => FinanceTxn(
         amount: amount,
         direction: direction,
         date: date,
         category: category ?? this.category,
-        isSalary: isSalary,
+        isSalary: isSalary ?? this.isSalary,
         merchant: merchant,
         sender: sender,
       );
@@ -134,12 +134,27 @@ class SpendMap {
     required this.windowStart,
     required this.windowEnd,
     required this.generatedAt,
+    this.fallbackMonthlyIncome,
   });
 
   final List<FinanceTxn> txns;
   final DateTime windowStart;
   final DateTime windowEnd;
   final DateTime generatedAt;
+
+  /// Take-home income (rupees/month) derived from a confirmed payslip / CTC,
+  /// used only when no salary credit is detected in SMS. Transient — never
+  /// persisted or synced (it is re-derived from live documents on read).
+  final int? fallbackMonthlyIncome;
+
+  /// Returns a copy carrying [income] as the fallback monthly income.
+  SpendMap withFallbackIncome(int? income) => SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: income,
+      );
 
   static SpendMap empty(DateTime now) => SpendMap(
         txns: const [],
@@ -208,7 +223,15 @@ class SpendMap {
   }
 
   int get monthlySpend => (totalSpent / monthsSpan).round();
-  int get monthlyIncome => (salaryCredited / monthsSpan).round();
+
+  /// Monthly income. Prefers salary credits detected in SMS; when none are
+  /// found, falls back to payslip/CTC-derived income so income never collapses
+  /// to zero for a user with a confirmed payslip but no salary-credit SMS.
+  int get monthlyIncome {
+    final fromSalary = (salaryCredited / monthsSpan).round();
+    if (fromSalary > 0) return fromSalary;
+    return fallbackMonthlyIncome ?? 0;
+  }
 
   /// What can realistically be saved each month = income − observed spend,
   /// floored at 0. When no salary detected, falls back to 0 (unknown).

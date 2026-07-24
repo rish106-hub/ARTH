@@ -27,6 +27,52 @@ void main() {
     });
   });
 
+  group('recurring salary inference', () {
+    ({String sender, String body, DateTime date}) msg(
+      String body,
+      DateTime when,
+    ) =>
+        (sender: 'BANK', body: body, date: when);
+
+    test('tags a same-size NEFT credit recurring across months as salary', () {
+      final txns = parser.parseAll([
+        msg('Rs 85,000 credited to a/c XX12 by NEFT ref ACME-CORP.',
+            DateTime(2026, 5, 1)),
+        msg('Rs 85,000 credited to a/c XX12 by NEFT ref ACME-CORP.',
+            DateTime(2026, 6, 1)),
+        msg('Rs 85,000 credited to a/c XX12 by NEFT ref ACME-CORP.',
+            DateTime(2026, 7, 1)),
+        msg('Rs 499 debited to SWIGGY.', DateTime(2026, 7, 2)),
+      ]);
+      final credits = txns.where((t) => t.direction == TxnDirection.credit);
+      expect(credits.every((t) => t.isSalary), isTrue);
+      expect(credits.length, 3);
+    });
+
+    test('leaves a one-off large credit untagged', () {
+      final txns = parser.parseAll([
+        msg('Rs 90,000 credited to a/c XX12 by NEFT.', DateTime(2026, 6, 1)),
+        msg('Rs 499 debited to SWIGGY.', DateTime(2026, 6, 2)),
+      ]);
+      expect(txns.any((t) => t.isSalary), isFalse);
+    });
+
+    test('ignores small recurring credits (refunds/cashback)', () {
+      final txns = parser.parseAll([
+        msg('Rs 200 credited as refund.', DateTime(2026, 6, 1)),
+        msg('Rs 200 credited as refund.', DateTime(2026, 7, 1)),
+      ]);
+      expect(txns.any((t) => t.isSalary), isFalse);
+    });
+
+    test('keyword salary still wins without recurrence', () {
+      final txns = parser.parseAll([
+        msg('Rs 54,500 credited towards SALARY.', DateTime(2026, 7, 1)),
+      ]);
+      expect(txns.single.isSalary, isTrue);
+    });
+  });
+
   group('spend / debit', () {
     test('food merchant → food category', () {
       final txn = parse(
@@ -100,6 +146,44 @@ void main() {
       expect(map.monthlySpend, 2048);
       expect(map.realisticMonthlySavings, 60000 - 2048);
       expect(map.topCategories.first.key, SpendCategory.shopping);
+    });
+
+    test('falls back to payslip/CTC income when no salary detected', () {
+      final base = SpendMap(
+        txns: [parse('Rs 499 debited to SWIGGY.')!],
+        windowStart: DateTime(2026, 7, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      );
+      expect(base.salaryCredited, 0);
+      expect(base.monthlyIncome, 0); // no fallback yet
+
+      final withFallback = base.withFallbackIncome(70000);
+      expect(withFallback.monthlyIncome, 70000);
+      expect(withFallback.realisticMonthlySavings, 70000 - 499);
+      expect(withFallback.savingsRate, greaterThan(0));
+    });
+
+    test('detected salary overrides the fallback', () {
+      final map = SpendMap(
+        txns: [parse('Rs 60000 credited towards SALARY.')!],
+        windowStart: DateTime(2026, 7, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      ).withFallbackIncome(999999);
+      expect(map.monthlyIncome, 60000);
+    });
+
+    test('fallback is not persisted through JSON', () {
+      final map = SpendMap(
+        txns: [parse('Rs 500 debited to SWIGGY.')!],
+        windowStart: DateTime(2026, 7, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      ).withFallbackIncome(50000);
+      final restored = SpendMap.fromJsonString(map.toJsonString());
+      expect(restored.fallbackMonthlyIncome, isNull);
+      expect(restored.monthlyIncome, 0);
     });
 
     test('round-trips through JSON', () {

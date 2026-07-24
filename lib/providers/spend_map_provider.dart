@@ -6,6 +6,9 @@ import '../services/secure_storage_service.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import 'auth_provider.dart';
+import 'paycheck_provider.dart';
+import 'tax_document_provider.dart';
+import 'user_profile_provider.dart';
 
 enum SpendScanPeriod {
   oneMonth,
@@ -89,16 +92,47 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   @override
   SpendMapState build() {
     Future.microtask(_loadCached);
+    // Income falls back to payslip/CTC when no salary credit is detected in
+    // SMS; re-derive it whenever a document, paycheck, or profile changes.
+    ref.listen(paycheckProvider, (_, __) => _refreshFallbackIncome());
+    ref.listen(payslipTaxPrefillProvider, (_, __) => _refreshFallbackIncome());
+    ref.listen(
+      userProfileProvider.select((p) => p.annualCTC),
+      (_, __) => _refreshFallbackIncome(),
+    );
     return const SpendMapState();
   }
 
   String _uid() => ref.read(authProvider)?.uid ?? 'guest';
 
+  /// Take-home income (rupees/month) from confirmed documents, used only when
+  /// SMS carries no detectable salary credit: net pay → payslip gross → CTC.
+  int? _fallbackMonthlyIncome() {
+    final net = ref.read(paycheckProvider).netCredited;
+    if (net > 0) return net;
+    final gross = ref.read(payslipTaxPrefillProvider)?.annualGrossSalary;
+    if (gross != null && gross > 0) return (gross / 12).round();
+    final ctc = ref.read(userProfileProvider).annualCTC;
+    if (ctc > 0) return (ctc / 12).round();
+    return null;
+  }
+
+  void _refreshFallbackIncome() {
+    final map = state.map;
+    if (map == null) return;
+    state = state.copyWith(
+      map: map.withFallbackIncome(_fallbackMonthlyIncome()),
+    );
+  }
+
   Future<void> _loadCached() async {
     final json = await _storage.read(_spendMapKey(_uid()));
     if (json == null) return;
     try {
-      state = state.copyWith(map: SpendMap.fromJsonString(json));
+      state = state.copyWith(
+        map: SpendMap.fromJsonString(json)
+            .withFallbackIncome(_fallbackMonthlyIncome()),
+      );
     } catch (_) {
       // Corrupt cache — ignore, a rescan will overwrite it.
     }
@@ -127,7 +161,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
       final map = _buildMap(txns, since);
       await _storage.write(_spendMapKey(_uid()), map.toJsonString());
-      state = state.copyWith(map: map, loading: false);
+      state = state.copyWith(
+        map: map.withFallbackIncome(_fallbackMonthlyIncome()),
+        loading: false,
+      );
 
       // Best-effort remote mirror; never blocks or fails the local flow.
       try {
@@ -161,7 +198,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       generatedAt: DateTime.now(),
     );
     await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
-    state = state.copyWith(map: updated);
+    state = state.copyWith(
+      map: updated.withFallbackIncome(_fallbackMonthlyIncome()),
+    );
     try {
       await _sync.push(updated);
     } catch (_) {}
