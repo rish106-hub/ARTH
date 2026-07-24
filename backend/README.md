@@ -15,6 +15,8 @@ data store. Neon remains active during the parallel CockroachDB migration.
 - user profile storage
 - tax-result storage
 - done-gap storage
+- per-user envelope-encryption primitives
+- private GCS document-object storage
 - CockroachDB row-level security and ownership constraints
 
 ## Setup

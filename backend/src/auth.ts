@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { db } from './db.js';
 import { verifyAccessToken } from './security.js';
 
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
@@ -15,9 +16,20 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   try {
     const token = authHeader.replace('Bearer ', '').trim();
     const payload = await verifyAccessToken(token);
+    if (payload.sid) {
+      const activeSession = await db.query(
+        `select 1
+         from auth_refresh_sessions
+         where id = $1
+           and user_id = $2
+           and revoked_at is null
+           and expires_at > now()`,
+        [payload.sid, payload.sub],
+      );
+      if (!activeSession.rowCount) throw new Error('Session revoked');
+    }
     return {
       userId: payload.sub,
-      email: payload.email,
     };
   } catch (_) {
     reply.code(401).send({

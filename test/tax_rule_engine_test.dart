@@ -5,6 +5,7 @@ import 'package:arth/engine/tax_engine.dart';
 import 'package:arth/models/gap_card.dart';
 import 'package:arth/models/tax_document.dart';
 import 'package:arth/models/form16_tax_prefill.dart';
+import 'package:arth/models/proof_prefill.dart';
 import 'package:arth/models/tax_result.dart';
 import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
@@ -549,6 +550,44 @@ void main() {
     ));
     // new regime: gross 15L − SD 75k − 80CCH 50k
     expect(r.newRegimeTaxableIncome, 1375000);
+  });
+
+  // ─── Batch 6: proof-document prefill ────────────────────────────────────
+
+  TaxDocument proofDoc(String type, Map<String, dynamic> fields) =>
+      TaxDocument.fromJson({
+        'id': 'proof-$type',
+        'fy': 'FY2026-27',
+        'documentType': type,
+        'originalFilename': '$type.pdf',
+        'mimeType': 'application/pdf',
+        'byteSize': 512,
+        'parseStatus': 'parsed',
+        'confirmedFields': fields,
+      });
+
+  test('proof prefill fills empty fields and sets the matching flags', () {
+    final prefill = proofPrefillFromDocuments([
+      proofDoc('rentReceipts', {'monthlyRent': 25000}),
+      proofDoc('healthInsurance80d', {'healthInsuranceSelfPremium': 18000}),
+      proofDoc('donationReceipts', {'donationAmount': 5000}),
+    ]);
+    expect(prefill, isNotNull);
+    final p = prefill!.applyTo(const UserProfile());
+    expect(p.monthlyRent, 25000);
+    expect(p.paysRent, isTrue);
+    expect(p.healthInsuranceSelfPremium, 18000);
+    expect(p.hasHealthInsuranceSelf, isTrue);
+    expect(p.donationAmount, 5000);
+    expect(p.hasDonations, isTrue);
+  });
+
+  test('proof prefill never overrides an already-entered value', () {
+    final prefill = proofPrefillFromDocuments([
+      proofDoc('rentReceipts', {'monthlyRent': 25000}),
+    ])!;
+    final p = prefill.applyTo(const UserProfile(monthlyRent: 40000));
+    expect(p.monthlyRent, 40000); // user value preserved
   });
 }
 

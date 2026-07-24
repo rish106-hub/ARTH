@@ -1,10 +1,10 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { buildRevision } from './buildRevision.js';
-import { db, Queryable } from './db.js';
+import { db, Queryable, runSerializableTransaction } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { env } from './config.js';
 import {
@@ -15,11 +15,13 @@ import {
   type EncryptedSecret,
   hashPan,
   hashPassword,
+  passwordNeedsRehash,
   hashRefreshToken,
   signAccessToken,
   verifyPassword,
 } from './security.js';
 import { requireAuth } from './auth.js';
+import { blindIndex } from './envelopeEncryption.js';
 
 const signUpPasswordSchema = z.string()
   .min(12)
@@ -45,6 +47,10 @@ const googleAuthSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(20).max(256),
+});
+
+const deleteAccountSchema = z.object({
+  confirmation: z.literal('DELETE'),
 });
 
 const accountProfileSchema = z.object({
@@ -274,13 +280,15 @@ async function issueSession(user: {
   avatar_color?: string | null;
   created_at: string | Date;
 }, store: Queryable = db, metadata: SessionMetadata = {}) {
+  const sessionId = randomUUID();
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
   await store.query(
     `insert into auth_refresh_sessions (
-       user_id, token_hash, expires_at, user_agent, ip_address
-     ) values ($1, $2, $3, $4, $5)`,
+       id, user_id, token_hash, expires_at, user_agent, ip_address
+     ) values ($1, $2, $3, $4, $5, $6)`,
     [
+      sessionId,
       user.id,
       refreshTokenHash,
       refreshExpiryDate(),
@@ -289,7 +297,7 @@ async function issueSession(user: {
     ],
   );
 
-  const accessToken = await signAccessToken(user.id, user.email);
+  const accessToken = await signAccessToken(user.id, sessionId);
   return {
     user: {
       id: user.id,
@@ -574,6 +582,12 @@ export async function registerRoutes(app: FastifyInstance) {
       return reply.code(401).send({ message: 'Invalid credentials' });
     }
 
+    if (passwordNeedsRehash(user.password_hash)) {
+      await db.query(
+        'update app_users set password_hash = $2, updated_at = now() where id = $1',
+        [user.id, await hashPassword(payload.password)],
+      );
+    }
     await db.query(
       'update app_users set last_seen_at = now(), updated_at = now() where id = $1',
       [user.id],
@@ -647,9 +661,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.post('/auth/refresh', authRateLimit, async (request, reply) => {
     const payload = refreshSchema.parse(request.body);
     const tokenHash = hashRefreshToken(payload.refreshToken);
-    const client = await db.connect();
-    try {
-      await client.query('begin');
+    const response = await runSerializableTransaction(async (client) => {
       const session = await client.query(
       `select s.id, s.user_id, s.expires_at, u.email, u.name, u.created_at
        from auth_refresh_sessions s
@@ -661,8 +673,7 @@ export async function registerRoutes(app: FastifyInstance) {
         [tokenHash],
       );
       if (!session.rowCount) {
-        await client.query('rollback');
-        return reply.code(401).send({ message: 'Invalid refresh token' });
+        return null;
       }
 
       const row = session.rows[0];
@@ -671,7 +682,7 @@ export async function registerRoutes(app: FastifyInstance) {
         [row.id],
       );
 
-      const response = await issueSession({
+      return issueSession({
         id: row.user_id as string,
         email: row.email as string,
         name: row.name as string,
@@ -680,14 +691,11 @@ export async function registerRoutes(app: FastifyInstance) {
         avatar_color: row.avatar_color as string | null,
         created_at: row.created_at as string | Date,
       }, client, sessionMetadata(request));
-      await client.query('commit');
-      return response;
-    } catch (error) {
-      await client.query('rollback');
-      throw error;
-    } finally {
-      client.release();
+    });
+    if (!response) {
+      return reply.code(401).send({ message: 'Invalid refresh token' });
     }
+    return response;
   });
 
   app.post('/auth/sign-out', authRateLimit, async (request, reply) => {
@@ -708,6 +716,9 @@ export async function registerRoutes(app: FastifyInstance) {
       'select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1',
       [auth.userId],
     );
+    if (!result.rowCount) {
+      return reply.code(401).send({ message: 'Account no longer exists' });
+    }
     const user = result.rows[0];
     return {
       user: {
@@ -1655,9 +1666,7 @@ export async function registerRoutes(app: FastifyInstance) {
       if (!auth) return;
 
       const payload = doneGapsSchema.parse(request.body);
-      const client = await db.connect();
-      try {
-        await client.query('begin');
+      await runSerializableTransaction(async (client) => {
         await client.query(
           'delete from done_gaps where user_id = $1 and fy = $2',
           [auth.userId, env.CURRENT_FY],
@@ -1668,13 +1677,7 @@ export async function registerRoutes(app: FastifyInstance) {
             [auth.userId, env.CURRENT_FY, gapId],
           );
         }
-        await client.query('commit');
-      } catch (error) {
-        await client.query('rollback');
-        throw error;
-      } finally {
-        client.release();
-      }
+      });
       return { ok: true };
     },
   );
@@ -1685,9 +1688,7 @@ export async function registerRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const auth = await requireAuth(request, reply);
       if (!auth) return;
-      const client = await db.connect();
-      try {
-        await client.query('begin');
+      await runSerializableTransaction(async (client) => {
         await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
         await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
@@ -1707,12 +1708,42 @@ export async function registerRoutes(app: FastifyInstance) {
            where user_id = $1`,
           [auth.userId],
         );
-        await client.query('commit');
-      } catch (error) {
-        await client.query('rollback');
-        throw error;
-      } finally {
-        client.release();
+      });
+      return reply.code(204).send();
+    },
+  );
+
+  app.delete(
+    '/account',
+    dataRateLimit,
+    async (request, reply) => {
+      const auth = await requireAuth(request, reply);
+      if (!auth) return;
+      deleteAccountSchema.parse(request.body);
+
+      const anonymousSubjectHash = blindIndex('deleted-user', auth.userId).toString('hex');
+      const deletionId = randomUUID();
+      const backupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
+      const deleted = await runSerializableTransaction(async (client) => {
+        await client.query(
+          'update auth_refresh_sessions set revoked_at = now() where user_id = $1 and revoked_at is null',
+          [auth.userId],
+        );
+        const result = await client.query(
+          'delete from app_users where id = $1 returning id',
+          [auth.userId],
+        );
+        if (!result.rowCount) return false;
+        await client.query(
+          `insert into security_tombstones (
+             deletion_id, anonymous_subject_hash, deleted_at, backup_expires_at
+           ) values ($1, $2, now(), $3)`,
+          [deletionId, anonymousSubjectHash, backupExpiresAt],
+        );
+        return true;
+      });
+      if (!deleted) {
+        return reply.code(404).send({ message: 'Account not found' });
       }
       return reply.code(204).send();
     },

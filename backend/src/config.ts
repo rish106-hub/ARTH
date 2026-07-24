@@ -19,6 +19,11 @@ const envSchema = z.object({
   PAN_ENCRYPTION_KEY: z.string().optional(),
   PAN_HASH_KEY: z.string().optional(),
   DOCUMENT_ENCRYPTION_KEY: z.string().optional(),
+  USER_KEY_ENCRYPTION_KEY: z.string().optional(),
+  DATA_HMAC_KEY: z.string().optional(),
+  GCP_KMS_KEY_NAME: z.string().optional(),
+  GCS_DOCUMENT_BUCKET: z.string().optional(),
+  GCS_LOCATION: z.string().default('asia-south1'),
   GEMINI_API_KEY: z.string().min(20).optional(),
   GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
   GEMINI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(25_000),
@@ -54,6 +59,34 @@ const envSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ['DATABASE_URL'],
         message: 'CockroachDB production connections require sslmode=verify-full',
+      });
+    }
+    if (!env.GCP_KMS_KEY_NAME) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GCP_KMS_KEY_NAME'],
+        message: 'GCP_KMS_KEY_NAME is required for CockroachDB production',
+      });
+    }
+    if (!env.GCS_DOCUMENT_BUCKET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GCS_DOCUMENT_BUCKET'],
+        message: 'GCS_DOCUMENT_BUCKET is required for CockroachDB production',
+      });
+    }
+    if (!env.DATA_HMAC_KEY || env.DATA_HMAC_KEY.length < 32) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DATA_HMAC_KEY'],
+        message: 'DATA_HMAC_KEY is required for CockroachDB production and must be at least 32 characters',
+      });
+    }
+    if (env.GCS_LOCATION !== 'asia-south1') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GCS_LOCATION'],
+        message: 'GCS_LOCATION must be asia-south1',
       });
     }
   }
