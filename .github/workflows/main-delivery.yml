@@ -99,6 +99,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE:/workspace" \
             --workdir /workspace \
             ghcr.io/railwayapp/cli@sha256:d20bbf09038cf3b65a0007f5c29f5fedf19cfaec15f275c1896608b04115d30b \
+            railway \
             up backend \
             --path-as-root \
             --ci \
