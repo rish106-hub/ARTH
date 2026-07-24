@@ -303,14 +303,113 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION_NAME: ${{ steps.version.outputs.name }}
         run: |
-          gh release create "v$VERSION_NAME" \
-            "ARTH-$VERSION_NAME.apk" \
-            "ARTH-$VERSION_NAME.apk.sha256" \
-            arth-update.json \
-            --target "$GITHUB_SHA" \
-            --title "ARTH $VERSION_NAME" \
-            --notes "Automatic release for main commit ${GITHUB_SHA::7}." \
-            --latest
+          tag="v$VERSION_NAME"
+          notes="Automatic release for main commit ${GITHUB_SHA::7}."
+          assets=(
+            "ARTH-$VERSION_NAME.apk"
+            "ARTH-$VERSION_NAME.apk.sha256"
+            "arth-update.json"
+          )
+
+          for attempt in $(seq 1 5); do
+            if gh release view "$tag" >/dev/null 2>&1; then
+              break
+            fi
+
+            if gh release create "$tag" \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "ARTH $VERSION_NAME" \
+              --notes "$notes"; then
+              break
+            fi
+
+            echo "Draft creation attempt $attempt/5 failed"
+            sleep $((attempt * 5))
+          done
+
+          release_json=""
+          for attempt in $(seq 1 5); do
+            if release_json="$(gh release view "$tag" --json isDraft,assets)"; then
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          if [ -z "$release_json" ]; then
+            echo "::error::Could not read release $tag"
+            exit 1
+          fi
+
+          is_draft="$(jq -r '.isDraft' <<< "$release_json")"
+          if [ "$is_draft" = "true" ]; then
+            uploaded=false
+            for attempt in $(seq 1 5); do
+              if gh release upload "$tag" "${assets[@]}" --clobber; then
+                uploaded=true
+                break
+              fi
+
+              echo "Asset upload attempt $attempt/5 failed"
+              sleep $((attempt * 5))
+            done
+
+            if [ "$uploaded" != "true" ]; then
+              echo "::error::Could not upload release assets for $tag"
+              exit 1
+            fi
+
+            published=false
+            for attempt in $(seq 1 5); do
+              if gh release edit "$tag" \
+                --draft=false \
+                --latest \
+                --target "$GITHUB_SHA" \
+                --title "ARTH $VERSION_NAME" \
+                --notes "$notes"; then
+                published=true
+                break
+              fi
+
+              is_draft="$(gh release view "$tag" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
+              if [ "$is_draft" = "false" ]; then
+                published=true
+                break
+              fi
+
+              echo "Release publication attempt $attempt/5 failed"
+              sleep $((attempt * 5))
+            done
+
+            if [ "$published" != "true" ]; then
+              echo "::error::Could not publish release $tag"
+              exit 1
+            fi
+          fi
+
+          release_json=""
+          for attempt in $(seq 1 5); do
+            if release_json="$(gh release view "$tag" --json isDraft,assets)"; then
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          if [ -z "$release_json" ]; then
+            echo "::error::Could not verify release $tag"
+            exit 1
+          fi
+
+          if [ "$(jq -r '.isDraft' <<< "$release_json")" != "false" ]; then
+            echo "::error::Release $tag is still a draft"
+            exit 1
+          fi
+
+          for asset in "${assets[@]}"; do
+            if ! jq -e --arg name "$asset" \
+              '.assets | any(.name == $name)' <<< "$release_json" >/dev/null; then
+              echo "::error::Release $tag is missing $asset"
+              exit 1
+            fi
+          done
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v7
