@@ -1191,6 +1191,100 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('persists parsed payslip fields through upload, review, and confirmation', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const payslipBytes = Buffer.from('synthetic payslip image');
+    const ocrText = `
+      PAYSLIP FOR MAY-2023 PAID IN JUN-2023
+      NAME/NAME: EXAMPLE EMPLOYEE
+
+      PAYMENTS (TAXABLE)
+      BASIC 66703
+      DA 25147
+      PERKS 15877
+      TOTAL EARNINGS 109412
+
+      RECOVERIES (NON-TAXABLE)
+      CPF PC 11022
+      VPF 25000
+      ITAX 11059
+      TOTAL DEDUCTIONS 50969
+
+      NET PAY 58443
+    `;
+
+    const upload = await app.inject({
+      method: 'POST',
+      url: '/v1/documents',
+      headers: {
+        ...bearer(alice.accessToken),
+        'content-type': `multipart/form-data; boundary=${multipartBoundary}`,
+      },
+      payload: multipartPayload({
+        documentType: 'payslip',
+        filename: 'May payslip.jpg',
+        mimeType: 'image/jpeg',
+        bytes: payslipBytes,
+        ocrText,
+      }),
+    });
+    assert.equal(upload.statusCode, 200);
+    const uploaded = upload.json().document as {
+      id: string;
+      parseStatus: string;
+      parseSummary: {
+        parser: string;
+        extractedFields: {
+          grossEarnings: number;
+          totalDeductions: number;
+          netSalary: number;
+        };
+      };
+    };
+    assert.equal(uploaded.parseStatus, 'needs_confirmation');
+    assert.equal(uploaded.parseSummary.parser, 'on-device-ocr-payslip-v1');
+    assert.equal(uploaded.parseSummary.extractedFields.grossEarnings, 109412);
+    assert.equal(uploaded.parseSummary.extractedFields.totalDeductions, 50969);
+    assert.equal(uploaded.parseSummary.extractedFields.netSalary, 58443);
+
+    const storedBeforeConfirmation = fakeDb.rawDocument(uploaded.id);
+    assert.ok(storedBeforeConfirmation);
+    assert.equal(
+      Object.hasOwn(storedBeforeConfirmation.parse_summary, 'extractedFields'),
+      false,
+    );
+    assert.ok(storedBeforeConfirmation.parse_summary.encryptedExtractedFields);
+    assert.equal(JSON.stringify(storedBeforeConfirmation).includes(ocrText), false);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/v1/documents',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(listed.statusCode, 200);
+    assert.equal(
+      listed.json().documents[0].parseSummary.extractedFields.netSalary,
+      58443,
+    );
+
+    const confirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${uploaded.id}/confirm`,
+      headers: bearer(alice.accessToken),
+      payload: {},
+    });
+    assert.equal(confirm.statusCode, 200);
+    assert.equal(confirm.json().document.parseStatus, 'parsed');
+    assert.equal(confirm.json().document.confirmedFields.netSalary, 58443);
+
+    const storedAfterConfirmation = fakeDb.rawDocument(uploaded.id);
+    assert.equal(storedAfterConfirmation?.parse_status, 'parsed');
+    assert.equal(storedAfterConfirmation?.confirmed_fields.netSalary, 58443);
+
+    await app.close();
+  });
+
   it('confirms parsed document fields only for the owner and pending documents', async () => {
     const { encryptDocument } = await import('../src/security.js');
     const app = await buildApp();
@@ -1445,14 +1539,24 @@ function multipartPayload(input: {
   filename: string;
   mimeType: string;
   bytes: Buffer;
+  ocrText?: string;
 }) {
+  const textFields = [
+    `--${multipartBoundary}`,
+    'Content-Disposition: form-data; name="documentType"',
+    '',
+    input.documentType,
+    ...(input.ocrText ? [
+      `--${multipartBoundary}`,
+      'Content-Disposition: form-data; name="ocrText"',
+      '',
+      input.ocrText,
+    ] : []),
+  ];
   return Buffer.concat([
     Buffer.from(
       [
-        `--${multipartBoundary}`,
-        'Content-Disposition: form-data; name="documentType"',
-        '',
-        input.documentType,
+        ...textFields,
         `--${multipartBoundary}`,
         `Content-Disposition: form-data; name="file"; filename="${input.filename}"`,
         `Content-Type: ${input.mimeType}`,
