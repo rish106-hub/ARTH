@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tax_document.dart';
 import '../models/payslip_tax_prefill.dart';
 import '../models/form16_tax_prefill.dart';
+import '../models/proof_prefill.dart';
 import '../services/tax_document_service.dart';
 import 'user_profile_provider.dart';
 
@@ -106,4 +107,12 @@ final form16TaxPrefillProvider = Provider<Form16TaxPrefill?>((ref) {
   final documents = ref.watch(taxDocumentProvider).asData?.value;
   if (documents == null) return null;
   return form16TaxPrefillFromDocuments(documents);
+});
+
+/// Gap-filling prefill from confirmed proof documents (rent receipts, 80C/80D
+/// proofs, home-loan / education-loan certificates, donation receipts).
+final proofPrefillProvider = Provider<ProofPrefill?>((ref) {
+  final documents = ref.watch(taxDocumentProvider).asData?.value;
+  if (documents == null) return null;
+  return proofPrefillFromDocuments(documents);
 });
