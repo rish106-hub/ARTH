@@ -222,7 +222,55 @@ class FinanceMessageParser {
       final txn = parse(sender: m.sender, body: m.body, date: m.date);
       if (txn != null) result.add(txn);
     }
-    return result;
+    return inferRecurringSalary(result);
+  }
+
+  // A recurring credit smaller than this is treated as a refund/cashback/P2P,
+  // not salary.
+  static const _minRecurringSalary = 10000;
+  // Same-size credits are bucketed to the nearest this many rupees so a small
+  // month-to-month variance (variable pay, rounding) still groups together.
+  static const _salaryBucketRupees = 500;
+
+  /// Second pass: bank salary credits (NEFT/IMPS/RTGS/ACH) rarely contain a
+  /// "salary" keyword, so [parse] tags them as ordinary credits. Detect them
+  /// by structure instead — a same-size credit that recurs across two or more
+  /// distinct months is almost certainly salary. Tags the single strongest
+  /// such group (most months, then largest amount) as salary.
+  static List<FinanceTxn> inferRecurringSalary(List<FinanceTxn> txns) {
+    final buckets = <int, List<int>>{};
+    for (var i = 0; i < txns.length; i++) {
+      final t = txns[i];
+      if (t.direction != TxnDirection.credit || t.isSalary) continue;
+      if (t.amount < _minRecurringSalary) continue;
+      final key = (t.amount / _salaryBucketRupees).round();
+      (buckets[key] ??= <int>[]).add(i);
+    }
+
+    int? bestKey;
+    var bestMonths = 1;
+    var bestAmount = 0;
+    buckets.forEach((key, indices) {
+      final months = indices
+          .map((i) => txns[i].date.year * 12 + txns[i].date.month)
+          .toSet();
+      if (months.length < 2) return; // not recurring
+      final amount =
+          indices.map((i) => txns[i].amount).reduce((a, b) => a > b ? a : b);
+      if (months.length > bestMonths ||
+          (months.length == bestMonths && amount > bestAmount)) {
+        bestKey = key;
+        bestMonths = months.length;
+        bestAmount = amount;
+      }
+    });
+
+    if (bestKey == null) return txns;
+    final chosen = buckets[bestKey]!.toSet();
+    return [
+      for (var i = 0; i < txns.length; i++)
+        chosen.contains(i) ? txns[i].copyWith(isSalary: true) : txns[i],
+    ];
   }
 
   int? _extractAmount(String lowerBody) {
