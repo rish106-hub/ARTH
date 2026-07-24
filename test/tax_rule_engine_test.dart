@@ -456,6 +456,100 @@ void main() {
     expect(form16TaxPrefillFromDocuments([payslipLike]), isNull);
     expect(form16TaxPrefillFromDocuments([form16Doc(const {})]), isNull);
   });
+
+  // ─── Batch 5: other income + special-rate gains ─────────────────────────
+
+  TaxResult calc(UserProfile p) => TaxEngine.calculate(p, const [],
+      ruleSet: _loadRuleSet(TaxYearId.fy2026_27));
+
+  // Low salary so the slab tax is zero and only the capital-gains tax remains.
+  UserProfile cgBase(UserProfile Function(UserProfile) f) => f(
+        const UserProfile(
+          annualCTC: 300000,
+          employmentType: EmploymentType.salaried,
+        ),
+      );
+
+  test('STCG 111A taxed at 20%', () {
+    final r = calc(cgBase((p) => p.copyWith(stcgEquity111A: 100000)));
+    expect(r.trace.newTaxBeforeCess, closeTo(20000, 1)); // 100000 × 20%
+  });
+
+  test('LTCG 112A taxed at 12.5% above the ₹1.25L exemption', () {
+    final r = calc(cgBase((p) => p.copyWith(ltcgEquity112A: 325000)));
+    // (325000 − 125000) × 12.5% = 25000
+    expect(r.trace.newTaxBeforeCess, closeTo(25000, 1));
+  });
+
+  test('LTCG 112A within the exemption is untaxed', () {
+    final r = calc(cgBase((p) => p.copyWith(ltcgEquity112A: 100000)));
+    expect(r.trace.newTaxBeforeCess, closeTo(0, 1));
+  });
+
+  test('LTCG 112 (other assets) taxed at 12.5%', () {
+    final r = calc(cgBase((p) => p.copyWith(ltcgOther112: 100000)));
+    expect(r.trace.newTaxBeforeCess, closeTo(12500, 1));
+  });
+
+  test('presumptive business income is added at the scheme rate', () {
+    final ada = calc(const UserProfile(
+      annualCTC: 0,
+      employmentType: EmploymentType.selfEmployed,
+      businessPresumption: BusinessPresumption.profession44ADA,
+      businessGrossReceipts: 1000000,
+    ));
+    expect(ada.newRegimeTaxableIncome, 500000); // 50% of 10L
+
+    final ad = calc(const UserProfile(
+      annualCTC: 0,
+      employmentType: EmploymentType.selfEmployed,
+      businessPresumption: BusinessPresumption.business44AD,
+      businessGrossReceipts: 1000000,
+    ));
+    expect(ad.newRegimeTaxableIncome, 80000); // 8% of 10L
+  });
+
+  test('let-out house-property loss sets off only in the old regime', () {
+    // 0.7×6,00,000 − 5,00,000 = −80,000 loss.
+    final r = calc(const UserProfile(
+      annualCTC: 1000000,
+      employmentType: EmploymentType.selfEmployed,
+      rentalIncomeAnnual: 600000,
+      letOutHomeLoanInterest: 500000,
+    ));
+    expect(r.oldRegimeTaxableIncome, 920000); // loss reduces old-regime income
+    expect(r.newRegimeTaxableIncome, 1000000); // loss ignored in new regime
+  });
+
+  test('80U / 80DDB / 80EEB apply in the old regime with correct caps', () {
+    expect(
+      deductionsOld(selfEmp((p) => p.copyWith(
+            selfDisability: DisabilityLevel.severe,
+          ))),
+      125000,
+    );
+    expect(
+      deductionsOld(selfEmp((p) => p.copyWith(
+            criticalIllnessExpense: 150000,
+            criticalIllnessPatientSenior: true,
+          ))),
+      100000, // 80DDB senior cap
+    );
+    expect(
+      deductionsOld(selfEmp((p) => p.copyWith(evLoanInterest: 200000))),
+      150000, // 80EEB cap
+    );
+  });
+
+  test('80CCH (Agniveer) is allowed in BOTH regimes', () {
+    final r = calc(const UserProfile(
+      annualCTC: 1500000,
+      employmentType: EmploymentType.salaried,
+      agniveerCorpus: 50000,
+    ));
+    // new regime: gross 15L − SD 75k − 80CCH 50k
+    expect(r.newRegimeTaxableIncome, 1375000);
+  });
 }
 
 TaxRuleSet _loadRuleSet(TaxYearId id) {

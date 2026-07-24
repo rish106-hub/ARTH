@@ -22,6 +22,7 @@ import '../widgets/employer_picker.dart';
 enum _QStep {
   ctc,
   employment,
+  business,
   regime,
   city,
   rent,
@@ -32,6 +33,8 @@ enum _QStep {
   health,
   educationLoan,
   donations,
+  extraDeductions,
+  otherIncome,
   age,
 }
 
@@ -41,6 +44,7 @@ extension _QStepX on _QStep {
   int get visualIndex => switch (this) {
         _QStep.ctc => 0,
         _QStep.employment => 1,
+        _QStep.business => 1,
         _QStep.regime => 1,
         _QStep.city => 2,
         _QStep.rent => 3,
@@ -51,6 +55,8 @@ extension _QStepX on _QStep {
         _QStep.health => 8,
         _QStep.educationLoan => 9,
         _QStep.donations => 10,
+        _QStep.extraDeductions => 8,
+        _QStep.otherIncome => 0,
         _QStep.age => 11,
       };
 }
@@ -95,7 +101,11 @@ Map<String, dynamic>? _confirmedOfferLetterFields(WidgetRef ref) {
 
 /// The ordered, gated list of steps for the current profile.
 List<_QStep> _visibleSteps(UserProfile p, TaxRuleSet? rs) {
-  final steps = <_QStep>[_QStep.ctc, _QStep.employment, _QStep.regime];
+  final steps = <_QStep>[_QStep.ctc, _QStep.employment];
+  if (p.employmentType == EmploymentType.selfEmployed) {
+    steps.add(_QStep.business); // presumptive income
+  }
+  steps.add(_QStep.regime);
   if (_needsDeductionInputs(p, rs)) {
     steps.add(_QStep.city);
     steps.add(_QStep.rent);
@@ -109,8 +119,12 @@ List<_QStep> _visibleSteps(UserProfile p, TaxRuleSet? rs) {
       _QStep.health,
       _QStep.educationLoan,
       _QStep.donations,
+      _QStep.extraDeductions, // 80U / 80DD / 80DDB / 80EEB
     ]);
   }
+  // Other income (capital gains, rent, misc) is taxed under BOTH regimes, so
+  // it is always asked.
+  steps.add(_QStep.otherIncome);
   steps.add(_QStep.age);
   return steps;
 }
@@ -365,6 +379,8 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
           payslipPrefill: ref.read(payslipTaxPrefillProvider),
           onNext: _next,
         );
+      case _QStep.business:
+        return _QBusiness(profile: p, onNext: _next);
       case _QStep.regime:
         return _QRegime(profile: p, onNext: _next);
       case _QStep.city:
@@ -389,6 +405,10 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
         return _Q10EducationLoan(profile: p, onNext: _next);
       case _QStep.donations:
         return _Q11Donations(profile: p, onNext: _next);
+      case _QStep.extraDeductions:
+        return _QExtraDeductions(profile: p, onNext: _next);
+      case _QStep.otherIncome:
+        return _QOtherIncome(profile: p, onNext: _next);
       case _QStep.age:
         return _Q12Age(profile: p, onNext: _next);
     }
@@ -434,7 +454,9 @@ class _DiagnosticMeta {
     switch (step) {
       case _QStep.ctc:
       case _QStep.employment:
+      case _QStep.business:
       case _QStep.regime:
+      case _QStep.otherIncome:
         return const _DiagnosticMeta(
           title: 'Income profile',
           helper: 'First, the shape of your income.',
@@ -454,6 +476,7 @@ class _DiagnosticMeta {
       case _QStep.health:
       case _QStep.educationLoan:
       case _QStep.donations:
+      case _QStep.extraDeductions:
         return const _DiagnosticMeta(
           title: 'Deductions scan',
           helper: 'Now we check the deductions that apply to you.',
@@ -2957,6 +2980,437 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 ),
               ],
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Shared amount field ────────────────────────────────────────────────────
+class _AmountField extends StatelessWidget {
+  const _AmountField({
+    required this.controller,
+    required this.label,
+    required this.onChanged,
+    this.helper,
+  });
+  final TextEditingController controller;
+  final String label;
+  final String? helper;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.bodyMedium()),
+        if (helper != null) ...[
+          const SizedBox(height: 2),
+          Text(helper!,
+              style: AppTextStyles.micro(color: AppColors.textSecondary)),
+        ],
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: AppTextStyles.body(),
+          decoration: InputDecoration(
+            hintText: 'Amount (₹)',
+            hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+            prefixText: '₹ ',
+            prefixStyle: AppTextStyles.body(color: AppColors.gold),
+            filled: true,
+            fillColor: AppColors.bgCard,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+            ),
+          ),
+          onChanged: (_) => onChanged(),
+        ),
+      ],
+    );
+  }
+}
+
+int _parseAmount(TextEditingController c) =>
+    int.tryParse(c.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+// ─── Business (self-employed presumptive income) ────────────────────────────
+class _QBusiness extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _QBusiness({required this.profile, required this.onNext});
+  @override
+  ConsumerState<_QBusiness> createState() => _QBusinessState();
+}
+
+class _QBusinessState extends ConsumerState<_QBusiness> {
+  late BusinessPresumption _scheme;
+  final _receipts = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scheme = widget.profile.businessPresumption;
+    if (widget.profile.businessGrossReceipts > 0) {
+      _receipts.text = widget.profile.businessGrossReceipts.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _receipts.dispose();
+    super.dispose();
+  }
+
+  void _update() {
+    ref.read(userProfileProvider.notifier).updateField(
+          (p) => p.copyWith(
+            businessPresumption: _scheme,
+            businessGrossReceipts: _parseAmount(_receipts),
+          ),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = _scheme == BusinessPresumption.profession44ADA
+        ? 0.50
+        : _scheme == BusinessPresumption.business44AD
+            ? 0.08
+            : 0.0;
+    final presumptive = (_parseAmount(_receipts) * rate).round();
+    return _QLayout(
+      question: 'How do you earn your self-employed income?',
+      microCopy: 'Presumptive schemes tax a fixed share of your receipts.',
+      onNext: widget.onNext,
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final opt in const [
+              (
+                BusinessPresumption.profession44ADA,
+                'Profession (44ADA) — 50% taxable',
+              ),
+              (
+                BusinessPresumption.business44AD,
+                'Small business (44AD) — 8% taxable',
+              ),
+              (
+                BusinessPresumption.none,
+                'Regular books — I will enter net income as CTC',
+              ),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: SelectChip(
+                  label: opt.$2,
+                  selected: _scheme == opt.$1,
+                  fullWidth: true,
+                  onTap: () {
+                    setState(() => _scheme = opt.$1);
+                    _update();
+                  },
+                ),
+              ),
+            if (_scheme != BusinessPresumption.none) ...[
+              const SizedBox(height: 12),
+              _AmountField(
+                controller: _receipts,
+                label: 'Annual gross receipts / turnover',
+                onChanged: () => setState(_update),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Taxable business income ≈ ₹${NumberFormat('#,##,##0', 'en_IN').format(presumptive)}',
+                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Other income (capital gains, rent, misc) ───────────────────────────────
+class _QOtherIncome extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _QOtherIncome({required this.profile, required this.onNext});
+  @override
+  ConsumerState<_QOtherIncome> createState() => _QOtherIncomeState();
+}
+
+class _QOtherIncomeState extends ConsumerState<_QOtherIncome> {
+  final _stcg = TextEditingController();
+  final _ltcgEq = TextEditingController();
+  final _ltcgOther = TextEditingController();
+  final _rent = TextEditingController();
+  final _rentInterest = TextEditingController();
+  final _other = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.profile;
+    void seed(TextEditingController c, int v) {
+      if (v > 0) c.text = v.toString();
+    }
+
+    seed(_stcg, p.stcgEquity111A);
+    seed(_ltcgEq, p.ltcgEquity112A);
+    seed(_ltcgOther, p.ltcgOther112);
+    seed(_rent, p.rentalIncomeAnnual);
+    seed(_rentInterest, p.letOutHomeLoanInterest);
+    seed(_other, p.otherSlabIncome);
+  }
+
+  @override
+  void dispose() {
+    for (final c in [
+      _stcg,
+      _ltcgEq,
+      _ltcgOther,
+      _rent,
+      _rentInterest,
+      _other
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _update() {
+    ref.read(userProfileProvider.notifier).updateField(
+          (p) => p.copyWith(
+            stcgEquity111A: _parseAmount(_stcg),
+            ltcgEquity112A: _parseAmount(_ltcgEq),
+            ltcgOther112: _parseAmount(_ltcgOther),
+            rentalIncomeAnnual: _parseAmount(_rent),
+            letOutHomeLoanInterest: _parseAmount(_rentInterest),
+            otherSlabIncome: _parseAmount(_other),
+          ),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: 'Any income beyond your salary?',
+      microCopy: 'Leave blank if none. These are taxed under both regimes.',
+      onNext: widget.onNext,
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _residentRow(),
+            const SizedBox(height: 18),
+            _AmountField(
+              controller: _stcg,
+              label: 'Short-term equity gains (STCG)',
+              helper: 'Listed shares/funds held < 1 year — taxed at 20%.',
+              onChanged: _update,
+            ),
+            const SizedBox(height: 14),
+            _AmountField(
+              controller: _ltcgEq,
+              label: 'Long-term equity gains (LTCG)',
+              helper: 'Listed shares/funds held > 1 year — 12.5% above ₹1.25L.',
+              onChanged: _update,
+            ),
+            const SizedBox(height: 14),
+            _AmountField(
+              controller: _ltcgOther,
+              label: 'Other long-term gains (property, gold…)',
+              helper: 'Taxed at 12.5%.',
+              onChanged: _update,
+            ),
+            const SizedBox(height: 14),
+            _AmountField(
+              controller: _rent,
+              label: 'Annual rent received (let-out property)',
+              onChanged: _update,
+            ),
+            const SizedBox(height: 14),
+            _AmountField(
+              controller: _rentInterest,
+              label: 'Interest on that property loan',
+              onChanged: _update,
+            ),
+            const SizedBox(height: 14),
+            _AmountField(
+              controller: _other,
+              label: 'Other income (freelance, misc)',
+              onChanged: _update,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _residentRow() {
+    Widget chip(ResidentialStatus s, String label) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: SelectChip(
+            label: label,
+            selected: widget.profile.residentialStatus == s,
+            onTap: () => ref
+                .read(userProfileProvider.notifier)
+                .updateField((p) => p.copyWith(residentialStatus: s)),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Residential status', style: AppTextStyles.bodyMedium()),
+        const SizedBox(height: 8),
+        Wrap(
+          children: [
+            chip(ResidentialStatus.resident, 'Resident'),
+            chip(ResidentialStatus.rnor, 'RNOR'),
+            chip(ResidentialStatus.nonResident, 'NRI'),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Extra deductions (80U / 80DD / 80DDB / 80EEB / 80CCH) ───────────────────
+class _QExtraDeductions extends ConsumerStatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _QExtraDeductions({required this.profile, required this.onNext});
+  @override
+  ConsumerState<_QExtraDeductions> createState() => _QExtraDeductionsState();
+}
+
+class _QExtraDeductionsState extends ConsumerState<_QExtraDeductions> {
+  late DisabilityLevel _self;
+  late DisabilityLevel _dependent;
+  late bool _ddbSenior;
+  final _ddb = TextEditingController();
+  final _ev = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _self = widget.profile.selfDisability;
+    _dependent = widget.profile.dependentDisability;
+    _ddbSenior = widget.profile.criticalIllnessPatientSenior;
+    if ((widget.profile.criticalIllnessExpense ?? 0) > 0) {
+      _ddb.text = widget.profile.criticalIllnessExpense.toString();
+    }
+    if (widget.profile.evLoanInterest > 0) {
+      _ev.text = widget.profile.evLoanInterest.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ddb.dispose();
+    _ev.dispose();
+    super.dispose();
+  }
+
+  void _update() {
+    final ddb = _parseAmount(_ddb);
+    ref.read(userProfileProvider.notifier).updateField(
+          (p) => p.copyWith(
+            selfDisability: _self,
+            dependentDisability: _dependent,
+            criticalIllnessExpense: ddb > 0 ? ddb : null,
+            criticalIllnessPatientSenior: _ddbSenior,
+            evLoanInterest: _parseAmount(_ev),
+          ),
+        );
+  }
+
+  Widget _levelRow(String title, DisabilityLevel value,
+      ValueChanged<DisabilityLevel> onPick) {
+    Widget chip(DisabilityLevel l, String label) => Padding(
+          padding: const EdgeInsets.only(right: 8, bottom: 8),
+          child: SelectChip(
+            label: label,
+            selected: value == l,
+            onTap: () => onPick(l),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTextStyles.bodyMedium()),
+        const SizedBox(height: 8),
+        Wrap(children: [
+          chip(DisabilityLevel.none, 'None'),
+          chip(DisabilityLevel.moderate, '40–79%'),
+          chip(DisabilityLevel.severe, '80%+'),
+        ]),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _QLayout(
+      question: 'Disability, illness or an EV loan?',
+      microCopy: 'Skip anything that does not apply.',
+      onNext: widget.onNext,
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _levelRow('Disability — you (80U)', _self, (l) {
+              setState(() => _self = l);
+              _update();
+            }),
+            const SizedBox(height: 16),
+            _levelRow('Disability — a dependent (80DD)', _dependent, (l) {
+              setState(() => _dependent = l);
+              _update();
+            }),
+            const SizedBox(height: 16),
+            _AmountField(
+              controller: _ddb,
+              label: 'Medical spend on a specified illness (80DDB)',
+              onChanged: () => setState(_update),
+            ),
+            if (_parseAmount(_ddb) > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SelectChip(
+                  label: 'Patient is a senior citizen (higher ₹1L cap)',
+                  selected: _ddbSenior,
+                  onTap: () {
+                    setState(() => _ddbSenior = !_ddbSenior);
+                    _update();
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+            _AmountField(
+              controller: _ev,
+              label: 'EV loan interest (80EEB)',
+              helper: 'Only for loans sanctioned Apr 2019 – Mar 2023.',
+              onChanged: _update,
+            ),
           ],
         ),
       ),

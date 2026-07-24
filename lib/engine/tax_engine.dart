@@ -70,7 +70,9 @@ class TaxEngine {
     UserProfile p,
     TaxRuleSet ruleSet,
   ) {
-    double gross = p.annualCTC.toDouble() + _modeledInterestIncome(p);
+    double gross = p.annualCTC.toDouble() +
+        _modeledInterestIncome(p) +
+        _slabIncomeAdditions(p, ruleSet, allowHousePropertyLoss: false);
     final rule = ruleSet.newRegime;
 
     // Standard deduction — salaried/pension only (not self-employed).
@@ -84,29 +86,43 @@ class TaxEngine {
       deductions += _employerNpsDeduction(p, rate: 0.14);
     }
 
+    // 80CCH (Agniveer) is the only Chapter VI-A deduction allowed here.
+    deductions += _additionalDeductions(p, ruleSet, oldRegime: false);
+
     double taxable = gross - deductions;
     if (taxable < 0) taxable = 0;
+
+    final cgIncome = _capitalGainsIncome(p);
+    final cgTax = _capitalGainsTax(p, ruleSet);
 
     double tax = _applySlabs(taxable, rule.slabs);
 
     tax = _apply87ARebateAndMarginalRelief(
       tax,
-      taxable,
+      taxable + cgIncome,
       rule,
       cessRate: ruleSet.cessRate,
       // Marginal relief on the rebate is a new-regime feature.
       allowMarginalRelief: true,
     );
 
-    // Surcharge (with marginal relief; new-regime 25% cap).
-    double surcharge = _surcharge(tax, taxable, rule.slabs, isNew: true);
+    // Surcharge (with marginal relief; new-regime 25% cap; CG capped at 15%).
+    double surcharge = _combinedSurcharge(
+      normalTax: tax,
+      cgTax: cgTax,
+      slabTaxable: taxable,
+      cgIncome: cgIncome,
+      slabs: rule.slabs,
+      isNew: true,
+      specialCap: ruleSet.capitalGains.surchargeSpecialCap,
+    );
 
     // Cess 4%
-    double cess = (tax + surcharge) * ruleSet.cessRate;
+    double cess = (tax + cgTax + surcharge) * ruleSet.cessRate;
 
     return {
-      'tax': tax + surcharge + cess,
-      'taxBeforeCess': tax,
+      'tax': tax + cgTax + surcharge + cess,
+      'taxBeforeCess': tax + cgTax,
       'surcharge': surcharge,
       'cess': cess,
       'taxable': taxable,
@@ -120,7 +136,9 @@ class TaxEngine {
     TaxRuleSet ruleSet, {
     double extraDeductions = 0,
   }) {
-    double gross = p.annualCTC.toDouble() + _modeledInterestIncome(p);
+    double gross = p.annualCTC.toDouble() +
+        _modeledInterestIncome(p) +
+        _slabIncomeAdditions(p, ruleSet, allowHousePropertyLoss: true);
     final rule = ruleSet.oldRegime;
     double deductions = 0;
 
@@ -200,6 +218,9 @@ class TaxEngine {
       deductions += interest < cap ? interest.toDouble() : cap.toDouble();
     }
 
+    // 80U / 80DD / 80DDB / 80EEB (old regime) + 80CCH (both).
+    deductions += _additionalDeductions(p, ruleSet, oldRegime: true);
+
     deductions += extraDeductions;
 
     double taxable = gross - deductions;
@@ -214,26 +235,38 @@ class TaxEngine {
     } else {
       slabs = rule.slabs;
     }
+
+    final cgIncome = _capitalGainsIncome(p);
+    final cgTax = _capitalGainsTax(p, ruleSet);
+
     double tax = _applySlabs(taxable, slabs);
 
     tax = _apply87ARebateAndMarginalRelief(
       tax,
-      taxable,
+      taxable + cgIncome,
       rule,
       cessRate: ruleSet.cessRate,
       // Old-regime 87A rebate has NO marginal relief above the ₹5L limit.
       allowMarginalRelief: false,
     );
 
-    // Surcharge (with marginal relief; old-regime up to 37%).
-    double surcharge = _surcharge(tax, taxable, slabs, isNew: false);
+    // Surcharge (marginal relief; old-regime up to 37%; CG capped at 15%).
+    double surcharge = _combinedSurcharge(
+      normalTax: tax,
+      cgTax: cgTax,
+      slabTaxable: taxable,
+      cgIncome: cgIncome,
+      slabs: slabs,
+      isNew: false,
+      specialCap: ruleSet.capitalGains.surchargeSpecialCap,
+    );
 
     // Cess 4%
-    double cess = (tax + surcharge) * ruleSet.cessRate;
+    double cess = (tax + cgTax + surcharge) * ruleSet.cessRate;
 
     return {
-      'tax': tax + surcharge + cess,
-      'taxBeforeCess': tax,
+      'tax': tax + cgTax + surcharge + cess,
+      'taxBeforeCess': tax + cgTax,
       'surcharge': surcharge,
       'cess': cess,
       'taxable': taxable,
@@ -338,6 +371,136 @@ class TaxEngine {
 
   /// 80CCD(2) employer NPS deduction, capped at [rate] × basic+DA. The cap rate
   /// differs by regime: 14% (new) vs 10% (old, private sector).
+  // ─── Batch 5: other income + special-rate gains ─────────────────────────
+
+  /// Income taxed at slab rates in ADDITION to salary/business CTC: misc other
+  /// income, presumptive business income, and net let-out house-property
+  /// income. House-property losses set off against other heads only in the old
+  /// regime (capped), never in the new regime.
+  static double _slabIncomeAdditions(
+    UserProfile p,
+    TaxRuleSet ruleSet, {
+    required bool allowHousePropertyLoss,
+  }) {
+    double add = p.otherSlabIncome.toDouble();
+    add += _presumptiveBusinessIncome(p, ruleSet);
+    add += _housePropertyIncome(
+      p,
+      allowLoss: allowHousePropertyLoss,
+      lossCap: ruleSet.deductionCaps['house_property_loss_cap'] ?? 200000,
+    );
+    return add;
+  }
+
+  static double _presumptiveBusinessIncome(UserProfile p, TaxRuleSet ruleSet) {
+    if (p.businessGrossReceipts <= 0) return 0;
+    final receipts = p.businessGrossReceipts.toDouble();
+    switch (p.businessPresumption) {
+      case BusinessPresumption.profession44ADA:
+        return receipts * ruleSet.presumptive.rate44ada;
+      case BusinessPresumption.business44AD:
+        return receipts * ruleSet.presumptive.rate44ad;
+      case BusinessPresumption.none:
+        return 0;
+    }
+  }
+
+  /// Net let-out house-property income: gross rent − 30% standard deduction
+  /// (s.24a) − interest (s.24b). A negative result is a loss.
+  static double _housePropertyIncome(
+    UserProfile p, {
+    required bool allowLoss,
+    required int lossCap,
+  }) {
+    if (p.rentalIncomeAnnual <= 0 && p.letOutHomeLoanInterest <= 0) return 0;
+    final net = p.rentalIncomeAnnual * 0.70 - p.letOutHomeLoanInterest;
+    if (net >= 0) return net;
+    if (!allowLoss) return 0; // new regime: HP loss not set off vs other heads
+    return net < -lossCap ? -lossCap.toDouble() : net;
+  }
+
+  /// Total capital-gains income (for surcharge-rate and rebate-eligibility).
+  static double _capitalGainsIncome(UserProfile p) =>
+      (p.stcgEquity111A + p.ltcgEquity112A + p.ltcgOther112).toDouble();
+
+  /// Tax on capital gains at their special rates (same in both regimes).
+  static double _capitalGainsTax(UserProfile p, TaxRuleSet ruleSet) {
+    final cg = ruleSet.capitalGains;
+    double tax = p.stcgEquity111A * cg.stcg111A;
+    final ltcg112ATaxable = p.ltcgEquity112A - cg.ltcg112AExemption;
+    if (ltcg112ATaxable > 0) tax += ltcg112ATaxable * cg.ltcg112A;
+    tax += p.ltcgOther112 * cg.ltcg112;
+    return tax;
+  }
+
+  /// Chapter VI-A deductions added in Batch 5. 80U/80DD/80DDB/80EEB are
+  /// old-regime only; 80CCH (Agniveer) is allowed in both.
+  static double _additionalDeductions(
+    UserProfile p,
+    TaxRuleSet ruleSet, {
+    required bool oldRegime,
+  }) {
+    double d = 0;
+    int cap(String k, int f) => ruleSet.deductionCaps[k] ?? f;
+
+    // 80CCH — Agniveer Corpus Fund (both regimes, 100%).
+    d += p.agniveerCorpus.toDouble();
+
+    if (!oldRegime) return d;
+
+    // 80U — self disability (flat).
+    if (p.selfDisability == DisabilityLevel.severe) {
+      d += cap('80u_severe', 125000);
+    } else if (p.selfDisability == DisabilityLevel.moderate) {
+      d += cap('80u', 75000);
+    }
+    // 80DD — dependent with disability (flat).
+    if (p.dependentDisability == DisabilityLevel.severe) {
+      d += cap('80dd_severe', 125000);
+    } else if (p.dependentDisability == DisabilityLevel.moderate) {
+      d += cap('80dd', 75000);
+    }
+    // 80DDB — specified diseases (expense, capped).
+    if (p.criticalIllnessExpense != null && p.criticalIllnessExpense! > 0) {
+      final ddbCap = p.criticalIllnessPatientSenior
+          ? cap('80ddb_senior', 100000)
+          : cap('80ddb', 40000);
+      final spend = p.criticalIllnessExpense!;
+      d += spend < ddbCap ? spend.toDouble() : ddbCap.toDouble();
+    }
+    // 80EEB — EV loan interest (capped).
+    if (p.evLoanInterest > 0) {
+      final eebCap = cap('80eeb', 150000);
+      d += p.evLoanInterest < eebCap
+          ? p.evLoanInterest.toDouble()
+          : eebCap.toDouble();
+    }
+    return d;
+  }
+
+  /// Combined surcharge: normal income uses the total-income rate; the capital
+  /// gains / dividend portion is capped at the special rate (15%). Marginal
+  /// relief is applied on the common (no-capital-gains) path only.
+  static double _combinedSurcharge({
+    required double normalTax,
+    required double cgTax,
+    required double slabTaxable,
+    required double cgIncome,
+    required List<TaxSlab> slabs,
+    required bool isNew,
+    required double specialCap,
+  }) {
+    if (cgIncome <= 0) {
+      // No special-rate income — full marginal-relief path (unchanged).
+      return _surcharge(normalTax, slabTaxable, slabs, isNew: isNew);
+    }
+    final totalIncome = slabTaxable + cgIncome;
+    final rate = _surchargeRate(totalIncome, isNew: isNew);
+    if (rate == 0) return 0;
+    final cgRate = rate < specialCap ? rate : specialCap;
+    return normalTax * rate + cgTax * cgRate;
+  }
+
   static double _employerNpsDeduction(UserProfile p, {required double rate}) {
     final contribution = p.employerNpsContribution ?? 0;
     final cap = p.approximateBasicSalary * rate;
@@ -350,12 +513,15 @@ class TaxEngine {
 
   static double _apply87ARebateAndMarginalRelief(
     double tax,
-    double taxable,
+    double totalIncome,
     RegimeRuleSet rule, {
     required double cessRate,
     required bool allowMarginalRelief,
   }) {
-    if (taxable <= rule.rebate87ALimit) {
+    // Eligibility is based on TOTAL income (incl. capital gains), but the
+    // rebate reduces only the normal (slab) tax passed in — 87A does not apply
+    // against LTCG u/s 112A.
+    if (totalIncome <= rule.rebate87ALimit) {
       final rebate =
           tax < rule.rebate87AAmount ? tax : rule.rebate87AAmount.toDouble();
       final afterRebate = tax - rebate;
@@ -367,7 +533,7 @@ class TaxEngine {
     // exceeds the income earned over the limit.
     if (!allowMarginalRelief) return tax;
 
-    final excess = taxable - rule.rebate87ALimit;
+    final excess = totalIncome - rule.rebate87ALimit;
     if (excess <= 0) return tax;
     final preCessCap = excess / (1 + cessRate);
     return tax > preCessCap ? preCessCap : tax;

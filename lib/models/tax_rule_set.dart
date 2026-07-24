@@ -183,6 +183,53 @@ class RegimeRuleSet {
   }
 }
 
+/// Special-rate capital-gains rules (same in both regimes).
+class CapitalGainsRules {
+  final double stcg111A; // listed equity STCG
+  final double ltcg112A; // listed equity LTCG
+  final int ltcg112AExemption; // annual exemption for 112A gains
+  final double ltcg112; // other-asset LTCG
+  final double surchargeSpecialCap; // max surcharge rate on CG/dividends
+
+  const CapitalGainsRules({
+    this.stcg111A = 0.20,
+    this.ltcg112A = 0.125,
+    this.ltcg112AExemption = 125000,
+    this.ltcg112 = 0.125,
+    this.surchargeSpecialCap = 0.15,
+  });
+
+  factory CapitalGainsRules.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const CapitalGainsRules();
+    double d(String k, double f) => (json[k] as num?)?.toDouble() ?? f;
+    return CapitalGainsRules(
+      stcg111A: d('stcg_111a', 0.20),
+      ltcg112A: d('ltcg_112a', 0.125),
+      ltcg112AExemption:
+          (json['ltcg_112a_exemption'] as num?)?.toInt() ?? 125000,
+      ltcg112: d('ltcg_112', 0.125),
+      surchargeSpecialCap: d('surcharge_special_cap', 0.15),
+    );
+  }
+}
+
+/// Presumptive-taxation rates.
+class PresumptiveRules {
+  final double rate44ada; // professionals
+  final double rate44ad; // small business
+
+  const PresumptiveRules({this.rate44ada = 0.50, this.rate44ad = 0.08});
+
+  factory PresumptiveRules.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const PresumptiveRules();
+    double d(String k, double f) => (json[k] as num?)?.toDouble() ?? f;
+    return PresumptiveRules(
+      rate44ada: d('rate_44ada', 0.50),
+      rate44ad: d('rate_44ad', 0.08),
+    );
+  }
+}
+
 class IncomeGuidanceItem {
   final String range;
   final String recommendation;
@@ -222,6 +269,8 @@ class TaxRuleSet {
   final RegimeRuleSet oldRegime;
   final Map<String, int> deductionCaps;
   final List<IncomeGuidanceItem> incomeGuidance;
+  final CapitalGainsRules capitalGains;
+  final PresumptiveRules presumptive;
 
   /// Cities that qualify for the 50% HRA exemption (vs 40% elsewhere). This is
   /// year-dependent: FY2026-27 expanded the list from 4 to 8 metros (Rule 279).
@@ -244,6 +293,8 @@ class TaxRuleSet {
     required this.deductionCaps,
     required this.incomeGuidance,
     this.hraMetroCities = const [],
+    this.capitalGains = const CapitalGainsRules(),
+    this.presumptive = const PresumptiveRules(),
   });
 
   /// Whether [city] qualifies for the 50% HRA metro rate under this year's
@@ -289,6 +340,10 @@ class TaxRuleSet {
       hraMetroCities: (json['hra_metro_cities'] as List<dynamic>? ?? const [])
           .map((c) => c.toString())
           .toList(),
+      capitalGains: CapitalGainsRules.fromJson(
+          json['capital_gains'] as Map<String, dynamic>?),
+      presumptive: PresumptiveRules.fromJson(
+          json['presumptive'] as Map<String, dynamic>?),
     );
   }
 

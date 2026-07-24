@@ -71,7 +71,26 @@
     "80d_parents_above60": 50000,
     "section_24b_self_occupied": 200000,
     "80tta": 10000,
-    "80ttb": 50000
+    "80ttb": 50000,
+    "80dd": 75000,
+    "80dd_severe": 125000,
+    "80u": 75000,
+    "80u_severe": 125000,
+    "80ddb": 40000,
+    "80ddb_senior": 100000,
+    "80eeb": 150000,
+    "house_property_loss_cap": 200000
+  },
+  "capital_gains": {
+    "stcg_111a": 0.20,
+    "ltcg_112a": 0.125,
+    "ltcg_112a_exemption": 125000,
+    "ltcg_112": 0.125,
+    "surcharge_special_cap": 0.15
+  },
+  "presumptive": {
+    "rate_44ada": 0.50,
+    "rate_44ad": 0.08
   },
   "income_guidance": [
     {

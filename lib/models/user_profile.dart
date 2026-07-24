@@ -19,6 +19,29 @@ enum PropertyType { selfOccupied, letOut }
 /// (and skip deduction questions when the new regime is a clear win).
 enum RegimePreference { auto, newRegime, oldRegime }
 
+/// Residential status — determines scope of taxable income and some reliefs.
+enum ResidentialStatus { resident, rnor, nonResident }
+
+/// Presumptive-taxation scheme for self-employed income.
+enum BusinessPresumption {
+  none,
+  profession44ADA, // professionals: 50% of gross receipts
+  business44AD, // small business: 8% of turnover (6% digital)
+}
+
+/// Disability severity band (per 80U / 80DD): moderate = 40–79%, severe = 80%+.
+enum DisabilityLevel { none, moderate, severe }
+
+T _enumFromName<T>(
+    List<T> values, String Function(T) name, dynamic raw, T fallback) {
+  if (raw is String) {
+    for (final v in values) {
+      if (name(v) == raw) return v;
+    }
+  }
+  return fallback;
+}
+
 RegimePreference _regimePreferenceFromJson(dynamic value) {
   if (value is String) {
     for (final r in RegimePreference.values) {
@@ -213,6 +236,26 @@ class UserProfile {
   // Regime intent — gates whether deduction questions are asked.
   final RegimePreference regimePreference;
 
+  // ── Other income (taxed alongside / at special rates) ──
+  final ResidentialStatus residentialStatus;
+  final int stcgEquity111A; // short-term gains on listed equity (111A)
+  final int ltcgEquity112A; // long-term gains on listed equity (112A)
+  final int ltcgOther112; // long-term gains on other assets (112)
+  final int
+      otherSlabIncome; // misc income taxed at slab (non-equity STCG, etc.)
+  final int rentalIncomeAnnual; // gross annual rent from let-out property
+  final int letOutHomeLoanInterest; // interest on a let-out property loan
+  final BusinessPresumption businessPresumption;
+  final int businessGrossReceipts; // turnover / gross receipts for presumptive
+
+  // ── Additional deductions ──
+  final DisabilityLevel selfDisability; // 80U
+  final DisabilityLevel dependentDisability; // 80DD
+  final int? criticalIllnessExpense; // 80DDB
+  final bool criticalIllnessPatientSenior;
+  final int evLoanInterest; // 80EEB (loans sanctioned Apr 2019 – Mar 2023)
+  final int agniveerCorpus; // 80CCH
+
   // Optional exactness inputs. Null means "not collected yet" and the engine
   // will use a conservative app assumption with a visible assumption tag.
   final int? actualBasicSalary;
@@ -268,6 +311,21 @@ class UserProfile {
     this.donationInCash = false,
     this.ageGroup = AgeGroup.below30,
     this.regimePreference = RegimePreference.auto,
+    this.residentialStatus = ResidentialStatus.resident,
+    this.stcgEquity111A = 0,
+    this.ltcgEquity112A = 0,
+    this.ltcgOther112 = 0,
+    this.otherSlabIncome = 0,
+    this.rentalIncomeAnnual = 0,
+    this.letOutHomeLoanInterest = 0,
+    this.businessPresumption = BusinessPresumption.none,
+    this.businessGrossReceipts = 0,
+    this.selfDisability = DisabilityLevel.none,
+    this.dependentDisability = DisabilityLevel.none,
+    this.criticalIllnessExpense,
+    this.criticalIllnessPatientSenior = false,
+    this.evLoanInterest = 0,
+    this.agniveerCorpus = 0,
     this.actualBasicSalary,
     this.actualHraReceived,
     this.actualProfessionalTax,
@@ -313,6 +371,21 @@ class UserProfile {
     bool? donationInCash,
     AgeGroup? ageGroup,
     RegimePreference? regimePreference,
+    ResidentialStatus? residentialStatus,
+    int? stcgEquity111A,
+    int? ltcgEquity112A,
+    int? ltcgOther112,
+    int? otherSlabIncome,
+    int? rentalIncomeAnnual,
+    int? letOutHomeLoanInterest,
+    BusinessPresumption? businessPresumption,
+    int? businessGrossReceipts,
+    DisabilityLevel? selfDisability,
+    DisabilityLevel? dependentDisability,
+    Object? criticalIllnessExpense = _unset,
+    bool? criticalIllnessPatientSenior,
+    int? evLoanInterest,
+    int? agniveerCorpus,
     Object? actualBasicSalary = _unset,
     Object? actualHraReceived = _unset,
     Object? actualProfessionalTax = _unset,
@@ -362,6 +435,26 @@ class UserProfile {
       donationInCash: donationInCash ?? this.donationInCash,
       ageGroup: ageGroup ?? this.ageGroup,
       regimePreference: regimePreference ?? this.regimePreference,
+      residentialStatus: residentialStatus ?? this.residentialStatus,
+      stcgEquity111A: stcgEquity111A ?? this.stcgEquity111A,
+      ltcgEquity112A: ltcgEquity112A ?? this.ltcgEquity112A,
+      ltcgOther112: ltcgOther112 ?? this.ltcgOther112,
+      otherSlabIncome: otherSlabIncome ?? this.otherSlabIncome,
+      rentalIncomeAnnual: rentalIncomeAnnual ?? this.rentalIncomeAnnual,
+      letOutHomeLoanInterest:
+          letOutHomeLoanInterest ?? this.letOutHomeLoanInterest,
+      businessPresumption: businessPresumption ?? this.businessPresumption,
+      businessGrossReceipts:
+          businessGrossReceipts ?? this.businessGrossReceipts,
+      selfDisability: selfDisability ?? this.selfDisability,
+      dependentDisability: dependentDisability ?? this.dependentDisability,
+      criticalIllnessExpense: identical(criticalIllnessExpense, _unset)
+          ? this.criticalIllnessExpense
+          : criticalIllnessExpense as int?,
+      criticalIllnessPatientSenior:
+          criticalIllnessPatientSenior ?? this.criticalIllnessPatientSenior,
+      evLoanInterest: evLoanInterest ?? this.evLoanInterest,
+      agniveerCorpus: agniveerCorpus ?? this.agniveerCorpus,
       actualBasicSalary: identical(actualBasicSalary, _unset)
           ? this.actualBasicSalary
           : actualBasicSalary as int?,
@@ -426,6 +519,21 @@ class UserProfile {
         'donationInCash': donationInCash,
         'ageGroup': ageGroup.name,
         'regimePreference': regimePreference.name,
+        'residentialStatus': residentialStatus.name,
+        'stcgEquity111A': stcgEquity111A,
+        'ltcgEquity112A': ltcgEquity112A,
+        'ltcgOther112': ltcgOther112,
+        'otherSlabIncome': otherSlabIncome,
+        'rentalIncomeAnnual': rentalIncomeAnnual,
+        'letOutHomeLoanInterest': letOutHomeLoanInterest,
+        'businessPresumption': businessPresumption.name,
+        'businessGrossReceipts': businessGrossReceipts,
+        'selfDisability': selfDisability.name,
+        'dependentDisability': dependentDisability.name,
+        'criticalIllnessExpense': criticalIllnessExpense,
+        'criticalIllnessPatientSenior': criticalIllnessPatientSenior,
+        'evLoanInterest': evLoanInterest,
+        'agniveerCorpus': agniveerCorpus,
         'actualBasicSalary': actualBasicSalary,
         'actualHraReceived': actualHraReceived,
         'actualProfessionalTax': actualProfessionalTax,
@@ -474,6 +582,26 @@ class UserProfile {
       donationInCash: json['donationInCash'] ?? false,
       ageGroup: _ageGroupFromJson(json['ageGroup']),
       regimePreference: _regimePreferenceFromJson(json['regimePreference']),
+      residentialStatus: _enumFromName(ResidentialStatus.values, (v) => v.name,
+          json['residentialStatus'], ResidentialStatus.resident),
+      stcgEquity111A: readInt('stcgEquity111A', 0),
+      ltcgEquity112A: readInt('ltcgEquity112A', 0),
+      ltcgOther112: readInt('ltcgOther112', 0),
+      otherSlabIncome: readInt('otherSlabIncome', 0),
+      rentalIncomeAnnual: readInt('rentalIncomeAnnual', 0),
+      letOutHomeLoanInterest: readInt('letOutHomeLoanInterest', 0),
+      businessPresumption: _enumFromName(BusinessPresumption.values,
+          (v) => v.name, json['businessPresumption'], BusinessPresumption.none),
+      businessGrossReceipts: readInt('businessGrossReceipts', 0),
+      selfDisability: _enumFromName(DisabilityLevel.values, (v) => v.name,
+          json['selfDisability'], DisabilityLevel.none),
+      dependentDisability: _enumFromName(DisabilityLevel.values, (v) => v.name,
+          json['dependentDisability'], DisabilityLevel.none),
+      criticalIllnessExpense: readOptionalInt('criticalIllnessExpense'),
+      criticalIllnessPatientSenior:
+          json['criticalIllnessPatientSenior'] ?? false,
+      evLoanInterest: readInt('evLoanInterest', 0),
+      agniveerCorpus: readInt('agniveerCorpus', 0),
       actualBasicSalary: readOptionalInt('actualBasicSalary'),
       actualHraReceived: readOptionalInt('actualHraReceived'),
       actualProfessionalTax: readOptionalInt('actualProfessionalTax'),
