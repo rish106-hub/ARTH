@@ -255,26 +255,22 @@ void main() {
       // Salary in Apr/May/Jun; spend only in Jun. Income must average over its
       // 3 months (60k) while spend reflects its 1 month (3k) — not 3k/3.
       final txns = [
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 60000 credited towards SALARY.',
-                date: DateTime(2026, 4, 1))!,
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 60000 credited towards SALARY.',
-                date: DateTime(2026, 5, 1))!,
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 60000 credited towards SALARY.',
-                date: DateTime(2026, 6, 1))!,
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 3000 spent at AMAZON.',
-                date: DateTime(2026, 6, 10))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 60000 credited towards SALARY.',
+            date: DateTime(2026, 4, 1))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 60000 credited towards SALARY.',
+            date: DateTime(2026, 5, 1))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 60000 credited towards SALARY.',
+            date: DateTime(2026, 6, 1))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 3000 spent at AMAZON.',
+            date: DateTime(2026, 6, 10))!,
       ];
       final map = SpendMap(
         txns: txns,
@@ -290,21 +286,18 @@ void main() {
 
     test('essential spend excludes discretionary categories', () {
       final txns = [
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 12000 debited for RENT to NOBROKER.',
-                date: DateTime(2026, 7, 1))!,
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 1500 debited for BESCOM electricity bill.',
-                date: DateTime(2026, 7, 2))!,
-        parser
-            .parse(
-                sender: 'B',
-                body: 'Rs 5000 spent at AMAZON.',
-                date: DateTime(2026, 7, 3))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 12000 debited for RENT to NOBROKER.',
+            date: DateTime(2026, 7, 1))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 1500 debited for BESCOM electricity bill.',
+            date: DateTime(2026, 7, 2))!,
+        parser.parse(
+            sender: 'B',
+            body: 'Rs 5000 spent at AMAZON.',
+            date: DateTime(2026, 7, 3))!,
       ];
       final map = SpendMap(
         txns: txns,

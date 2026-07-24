@@ -408,7 +408,8 @@ void main() {
 
   // ─── Batch 4: Form 16 prefill ───────────────────────────────────────────
 
-  TaxDocument form16Doc(Map<String, dynamic> confirmed) => TaxDocument.fromJson({
+  TaxDocument form16Doc(Map<String, dynamic> confirmed) =>
+      TaxDocument.fromJson({
         'id': 'f16-1',
         'fy': 'FY2026-27',
         'documentType': 'form16',

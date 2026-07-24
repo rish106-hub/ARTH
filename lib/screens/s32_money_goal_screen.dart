@@ -132,8 +132,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
     // (payslip/CTC-derived) so a goal can still be tested before a payslip is
     // confirmed, instead of always reading as infeasible.
     final netPay = ref.watch(paycheckProvider).netCredited;
-    final spendIncome =
-        ref.watch(spendMapProvider).map?.monthlyIncome ?? 0;
+    final spendIncome = ref.watch(spendMapProvider).map?.monthlyIncome ?? 0;
     final effectiveIncome = netPay > 0 ? netPay : spendIncome;
     final usingConfirmedPay = netPay > 0;
     final projection =
