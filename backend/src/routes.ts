@@ -932,6 +932,12 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!allowedDocumentTypes.has(documentType)) {
       return reply.code(400).send({ message: 'Unsupported document type' });
     }
+    const ocrTextRaw = fields.ocrText?.value;
+    const ocrText = typeof ocrTextRaw === 'string'
+      && ocrTextRaw.length >= 40
+      && ocrTextRaw.length <= 100_000
+      ? ocrTextRaw
+      : undefined;
     if (!allowedMimeTypes.has(part.mimetype)) {
       return reply.code(415).send({ message: 'Unsupported document file type' });
     }
@@ -960,6 +966,7 @@ export async function registerRoutes(app: FastifyInstance) {
       documentType,
       mimeType: part.mimetype,
       bytes: buffer,
+      ocrText,
       panVaultSuffix,
     });
     const detectedDocumentType = parsed.summary.detectedDocumentType;
