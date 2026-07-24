@@ -3,6 +3,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
+import { buildRevision } from './buildRevision.js';
 import { db, Queryable } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { env } from './config.js';
@@ -525,7 +526,12 @@ export async function registerRoutes(app: FastifyInstance) {
     timeWindow: '1 minute',
   });
   app.get('/health', async () => ({ ok: true }));
-  app.get('/ping', async () => ({ ok: true }));
+  app.get('/ping', async () => ({
+    ok: true,
+    commit: process.env.RAILWAY_GIT_COMMIT_SHA
+      ?? process.env.GIT_COMMIT_SHA
+      ?? buildRevision,
+  }));
 
   app.post('/auth/sign-up', authRateLimit, async (request, reply) => {
     const payload = signUpSchema.parse(request.body);

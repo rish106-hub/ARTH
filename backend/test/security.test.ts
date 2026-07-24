@@ -669,6 +669,30 @@ describe('backend security harness', () => {
     await app.close();
   });
 
+  it('reports the deployed commit for delivery verification', async () => {
+    const previousCommit = process.env.RAILWAY_GIT_COMMIT_SHA;
+    process.env.RAILWAY_GIT_COMMIT_SHA = 'abc123';
+
+    const app = await buildApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/ping',
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), {
+      ok: true,
+      commit: 'abc123',
+    });
+    await app.close();
+
+    if (previousCommit === undefined) {
+      delete process.env.RAILWAY_GIT_COMMIT_SHA;
+    } else {
+      process.env.RAILWAY_GIT_COMMIT_SHA = previousCommit;
+    }
+  });
+
   it('rejects weak sign-up passwords and sanitizes validation errors', async () => {
     const app = await buildApp();
     const response = await app.inject({
