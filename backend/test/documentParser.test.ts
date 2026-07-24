@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { parsePayslipText, parseUploadedDocument } from '../src/documentParser.js';
+import { interpretPayslip } from '../src/geminiInterpreter.js';
 
 describe('offer letter interpretation', () => {
   it('stores the document for manual review when Gemini is not configured', async () => {
@@ -171,6 +172,157 @@ describe('offer letter interpretation', () => {
 });
 
 describe('payslip interpretation', () => {
+  it('gives Gemini Sarvam text without attaching the original file again', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    let requestBody: Record<string, any> | undefined;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async (_input, init) => {
+      requestBody = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                employerName: 'Example Employer',
+                employeeName: 'Example Employee',
+                payPeriod: 'May 2023',
+                paymentDate: null,
+                currency: 'INR',
+                attendance: {
+                  actualPayableDays: null,
+                  totalWorkingDays: null,
+                  lossOfPayDays: null,
+                  daysPayable: null,
+                },
+                earnings: [],
+                deductions: [],
+                cumulative: [],
+                grossEarnings: 109412,
+                totalDeductions: 50969,
+                netSalary: 58443,
+                warnings: [],
+                questionsForUser: [],
+              }),
+            }],
+          },
+        }],
+      }), { status: 200 });
+    };
+
+    try {
+      const result = await interpretPayslip({
+        documentText: '# Sarvam Markdown\nNET PAY 58443',
+      });
+      assert.ok(result);
+      const parts = requestBody?.contents?.[0]?.parts as Array<
+        { text?: string; inlineData?: unknown }
+      >;
+      assert.match(parts[1].text ?? '', /Sarvam Markdown/);
+      assert.equal(parts.some((part) => part.inlineData != null), false);
+      assert.equal(requestBody?.store, false);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
+  it('parses Sarvam Markdown deterministically before using Gemini', async () => {
+    const previousSarvamKey = process.env.SARVAM_API_KEY;
+    const previousGeminiKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    process.env.SARVAM_API_KEY = 'test-sarvam-key';
+    delete process.env.GEMINI_API_KEY;
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith('/doc-digitization/job/v1')) {
+        return new Response(JSON.stringify({
+          job_id: 'job-payslip',
+          job_state: 'Accepted',
+        }), { status: 202 });
+      }
+      if (url.endsWith('/upload-files')) {
+        return new Response(JSON.stringify({
+          upload_urls: {
+            'document-images.zip': 'https://upload.example/payslip.zip',
+          },
+        }), { status: 200 });
+      }
+      if (url === 'https://upload.example/payslip.zip') {
+        return new Response(null, { status: 200 });
+      }
+      if (url.endsWith('/job-payslip/start')) {
+        return new Response(JSON.stringify({
+          job_id: 'job-payslip',
+          job_state: 'Accepted',
+        }), { status: 202 });
+      }
+      if (url.endsWith('/job-payslip/status')) {
+        return new Response(JSON.stringify({
+          job_id: 'job-payslip',
+          job_state: 'Completed',
+        }), { status: 200 });
+      }
+      if (url.endsWith('/job-payslip/download-files')) {
+        return new Response(JSON.stringify({
+          download_urls: {
+            'payslip.md': 'https://download.example/payslip.md',
+          },
+        }), { status: 200 });
+      }
+      if (url === 'https://download.example/payslip.md') {
+        return new Response(`
+          PAYSLIP FOR MAY-2023 PAID IN JUN-2023
+          NAME/NAME: EXAMPLE EMPLOYEE
+
+          PAYMENTS (TAXABLE)
+          BASIC 66703
+          DA 25147
+          PERKS 15877
+          TOTAL EARNINGS 109412
+
+          RECOVERIES (NON-TAXABLE)
+          CPF PC 11022
+          VPF 25000
+          ITAX 11059
+          TOTAL DEDUCTIONS 50969
+
+          NET PAY 58443
+        `, { status: 200 });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    };
+
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'payslip',
+        mimeType: 'image/jpeg',
+        bytes: Buffer.from('synthetic payslip image'),
+      });
+
+      assert.equal(result.status, 'needs_confirmation');
+      assert.equal(result.summary.parser, 'sarvam-deterministic-payslip-v1');
+      assert.equal(result.summary.documentProvider, 'sarvam');
+      assert.equal(result.summary.providerJobId, 'job-payslip');
+      assert.equal(result.summary.llmUsed, false);
+      const fields = result.summary.extractedFields as {
+        grossEarnings: number;
+        totalDeductions: number;
+        netSalary: number;
+      };
+      assert.equal(fields.grossEarnings, 109412);
+      assert.equal(fields.totalDeductions, 50969);
+      assert.equal(fields.netSalary, 58443);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousSarvamKey) process.env.SARVAM_API_KEY = previousSarvamKey;
+      else delete process.env.SARVAM_API_KEY;
+      if (previousGeminiKey) process.env.GEMINI_API_KEY = previousGeminiKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
   it('parses text payslip sections without Gemini', () => {
     const parsed = parsePayslipText(`
       SALARY DETAILS

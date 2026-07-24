@@ -21,6 +21,10 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(20).optional(),
   GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
   GEMINI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(25_000),
+  SARVAM_API_KEY: z.string().min(10).optional(),
+  SARVAM_API_BASE_URL: z.string().url().default('https://api.sarvam.ai'),
+  SARVAM_DOCUMENT_LANGUAGE: z.string().regex(/^[a-z]{2,3}-[A-Z]{2}$/).default('hi-IN'),
+  SARVAM_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(45_000).default(25_000),
   GOOGLE_OAUTH_CLIENT_ID: z.string().endsWith('.apps.googleusercontent.com').optional(),
 }).superRefine((env, ctx) => {
   if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {

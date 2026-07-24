@@ -4,6 +4,7 @@ import {
   interpretPayslip,
   type PayslipInterpretation,
 } from './geminiInterpreter.js';
+import { digitizeWithSarvam } from './sarvamDocumentService.js';
 
 export type PanVaultSuffix = {
   last4: string;
@@ -130,6 +131,55 @@ export async function parseUploadedDocument(input: {
         // Fall through to Gemini/manual review. Scanned or locked PDFs may not expose text.
       }
     }
+    const sarvam = await digitizeWithSarvam({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+    });
+    if (sarvam) {
+      const parsed = parsePayslipText(sarvam.text);
+      if (parsed) {
+        const checked = withPayslipArithmeticChecks(parsed);
+        return {
+          status: 'needs_confirmation',
+          summary: {
+            ...base,
+            parser: 'sarvam-deterministic-payslip-v1',
+            documentProvider: 'sarvam',
+            providerJobId: sarvam.jobId,
+            llmUsed: false,
+            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+            insight:
+              'Payslip digitized with Sarvam. Confirm every amount before reconciliation.',
+            extractedFields: checked,
+            confirmationStatus: 'pending',
+            reviewRequired: true,
+          },
+        };
+      }
+      const textInterpretation = await interpretPayslip({
+        documentText: sarvam.text,
+      });
+      if (textInterpretation) {
+        const checked = withPayslipArithmeticChecks(textInterpretation);
+        return {
+          status: 'needs_confirmation',
+          summary: {
+            ...base,
+            parser: 'sarvam-gemini-payslip-v1',
+            documentProvider: 'sarvam',
+            providerJobId: sarvam.jobId,
+            model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+            llmUsed: true,
+            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+            insight:
+              'Payslip digitized with Sarvam and mapped by Gemini. Confirm every amount before reconciliation.',
+            extractedFields: checked,
+            confirmationStatus: 'pending',
+            reviewRequired: true,
+          },
+        };
+      }
+    }
     const interpretation = await interpretPayslip({
       bytes: input.bytes,
       mimeType: input.mimeType,
@@ -165,10 +215,16 @@ export async function parseUploadedDocument(input: {
 
   if (input.documentType === 'offerLetter') {
     const base = metadataSummary(input.documentType, input.mimeType);
-    const interpretation = await interpretOfferLetter({
+    const sarvam = await digitizeWithSarvam({
       bytes: input.bytes,
       mimeType: input.mimeType,
     });
+    const interpretation = sarvam
+      ? await interpretOfferLetter({ documentText: sarvam.text })
+      : await interpretOfferLetter({
+          bytes: input.bytes,
+          mimeType: input.mimeType,
+        });
     if (!interpretation) {
       return {
         status: 'metadata_ready',
@@ -182,17 +238,23 @@ export async function parseUploadedDocument(input: {
       };
     }
     if (looksLikePayslip(interpretation)) {
-      const payslip = await interpretPayslip({
-        bytes: input.bytes,
-        mimeType: input.mimeType,
-      });
+      const payslip = sarvam
+        ? await interpretPayslip({ documentText: sarvam.text })
+        : await interpretPayslip({
+            bytes: input.bytes,
+            mimeType: input.mimeType,
+          });
       if (payslip) {
         const checked = withPayslipArithmeticChecks(payslip);
         return {
           status: 'needs_confirmation',
           summary: {
             ...base,
-            parser: 'gemini-payslip-v1',
+            parser: sarvam ? 'sarvam-gemini-payslip-v1' : 'gemini-payslip-v1',
+            ...(sarvam ? {
+              documentProvider: 'sarvam',
+              providerJobId: sarvam.jobId,
+            } : {}),
             model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
             llmUsed: true,
             detectedDocumentType: 'payslip',
@@ -209,7 +271,11 @@ export async function parseUploadedDocument(input: {
       status: 'needs_confirmation',
       summary: {
         ...base,
-        parser: 'gemini-offer-letter-v1',
+        parser: sarvam ? 'sarvam-gemini-offer-letter-v1' : 'gemini-offer-letter-v1',
+        ...(sarvam ? {
+          documentProvider: 'sarvam',
+          providerJobId: sarvam.jobId,
+        } : {}),
         model: 'gemini-3.6-flash',
         llmUsed: true,
         confidence: interpretation.warnings.length === 0 ? 'medium' : 'low',
@@ -229,52 +295,63 @@ export async function parseUploadedDocument(input: {
   }
 
   const base = metadataSummary(input.documentType, input.mimeType);
-  if (input.mimeType !== 'application/pdf') {
-    return {
-      status: 'unsupported',
-      summary: {
-        ...base,
-        parser: 'deterministic-form16-v1',
-        confidence: 'unsupported',
-        insight:
-          'Form 16 image stored securely. Deterministic parsing currently supports text PDFs only.',
-        unsupportedReason: 'image_form16_parser_not_available',
-      },
-    };
+  let text: string | undefined;
+  let parser = 'deterministic-form16-v1';
+  let providerJobId: string | undefined;
+  let failureReason = input.mimeType === 'application/pdf'
+    ? 'no_extractable_text'
+    : 'image_form16_parser_not_available';
+
+  if (input.mimeType === 'application/pdf') {
+    try {
+      text = await extractPdfText(input.bytes);
+    } catch (error) {
+      failureReason = error instanceof PasswordException
+        ? 'password_protected_pdf'
+        : 'pdf_text_extraction_failed';
+    }
   }
 
-  try {
-    const text = await extractPdfText(input.bytes);
-    if (text.replace(/\s/g, '').length < 40) {
-      return unsupportedTextPdf(base, 'no_extractable_text');
+  if (!text || text.replace(/\s/g, '').length < 40) {
+    const sarvam = await digitizeWithSarvam({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+    });
+    if (sarvam) {
+      text = sarvam.text;
+      parser = 'sarvam-deterministic-form16-v1';
+      providerJobId = sarvam.jobId;
     }
-
-    const parsed = parseForm16Text(text, input.panVaultSuffix ?? null);
-    const fieldCount = countParsedFields(parsed);
-    if (fieldCount < 2) {
-      return unsupportedTextPdf(base, 'form16_fields_not_detected');
-    }
-
-    return {
-      status: 'needs_confirmation',
-      summary: {
-        ...base,
-        parser: 'deterministic-form16-v1',
-        llmUsed: false,
-        confidence: confidenceLabel(fieldCount),
-        insight:
-          'Form 16 text parsed. Review and confirm these values before ARTH uses them for filing readiness.',
-        extractedFields: parsed,
-        confirmationStatus: 'pending',
-        reviewRequired: true,
-      },
-    };
-  } catch (error) {
-    const reason = error instanceof PasswordException
-      ? 'password_protected_pdf'
-      : 'pdf_text_extraction_failed';
-    return unsupportedTextPdf(base, reason);
   }
+
+  if (!text || text.replace(/\s/g, '').length < 40) {
+    return unsupportedTextPdf(base, failureReason);
+  }
+
+  const parsed = parseForm16Text(text, input.panVaultSuffix ?? null);
+  const fieldCount = countParsedFields(parsed);
+  if (fieldCount < 2) {
+    return unsupportedTextPdf(base, 'form16_fields_not_detected');
+  }
+
+  return {
+    status: 'needs_confirmation',
+    summary: {
+      ...base,
+      parser,
+      ...(providerJobId ? {
+        documentProvider: 'sarvam',
+        providerJobId,
+      } : {}),
+      llmUsed: false,
+      confidence: confidenceLabel(fieldCount),
+      insight:
+        'Form 16 text parsed. Review and confirm these values before ARTH uses them for filing readiness.',
+      extractedFields: parsed,
+      confirmationStatus: 'pending',
+      reviewRequired: true,
+    },
+  };
 }
 
 function looksLikePayslip(interpretation: {
