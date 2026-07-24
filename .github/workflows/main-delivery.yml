@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: main-delivery
@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -60,11 +62,14 @@ jobs:
   deploy_backend:
     name: Deploy backend to Railway
     needs: validate
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Validate deployment configuration
         env:
@@ -93,7 +98,7 @@ jobs:
             --env RAILWAY_TOKEN \
             --volume "$GITHUB_WORKSPACE:/workspace" \
             --workdir /workspace \
-            ghcr.io/railwayapp/cli:latest \
+            ghcr.io/railwayapp/cli@sha256:d20bbf09038cf3b65a0007f5c29f5fedf19cfaec15f275c1896608b04115d30b \
             up backend \
             --path-as-root \
             --ci \
@@ -123,10 +128,14 @@ jobs:
     name: Build and publish signed APK
     needs: deploy_backend
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Determine next release version
         id: version
