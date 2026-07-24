@@ -254,20 +254,16 @@ class DocumentChecklistScreen extends ConsumerWidget {
     if (item.id == 'payslip' && uploadMimeType.startsWith('image/')) {
       final ocr = OnDeviceDocumentOcrService();
       try {
-        ocrText = await ocr.extractLatinText(file.path);
-      } catch (_) {
-        // Upload still provides manual review when on-device OCR is unavailable.
-      }
-      try {
-        final prepared = ocr.prepareForUpload(
+        final prepared = await ocr.prepareForUploadAsync(
           bytes: bytes,
           filename: file.name,
         );
         uploadBytes = prepared.bytes;
         uploadFilename = prepared.filename;
         uploadMimeType = prepared.mimeType;
+        ocrText = await ocr.extractLatinTextFromPreparedImage(prepared);
       } catch (_) {
-        // Keep the source image if decoding or resizing fails.
+        // Upload still provides manual review when preparation or OCR fails.
       }
     }
     if (uploadBytes.length > 8 * 1024 * 1024) {

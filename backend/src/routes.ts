@@ -134,8 +134,9 @@ const documentPatchSchema = z.object({
 
 const manualPayslipRowSchema = z.object({
   label: z.string().trim().min(1).max(120),
+  canonicalKey: z.string().trim().min(1).max(80).optional(),
   amount: z.number().finite().min(-100_000_000).max(100_000_000),
-  classification: z.literal('other').default('other'),
+  classification: z.string().trim().min(1).max(40).default('other'),
   confidence: z.literal('high').default('high'),
 }).strict();
 
@@ -156,8 +157,8 @@ const manualPayslipFieldsSchema = z.object({
     lossOfPayDays: null,
     daysPayable: null,
   }),
-  earnings: z.array(manualPayslipRowSchema).max(80).default([]),
-  deductions: z.array(manualPayslipRowSchema).max(80).default([]),
+  earnings: z.array(manualPayslipRowSchema).max(120).default([]),
+  deductions: z.array(manualPayslipRowSchema).max(120).default([]),
   grossEarnings: z.number().finite().positive().max(100_000_000),
   totalDeductions: z.number().finite().nonnegative().max(100_000_000),
   netSalary: z.number().finite().positive().max(100_000_000),
@@ -217,6 +218,16 @@ const dataRateLimit = {
   config: {
     rateLimit: {
       max: 60,
+      timeWindow: '1 minute',
+    },
+  },
+};
+
+const documentUploadOptions = {
+  bodyLimit: 9 * 1024 * 1024,
+  config: {
+    rateLimit: {
+      max: 20,
       timeWindow: '1 minute',
     },
   },
@@ -915,7 +926,7 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.post('/documents', dataRateLimit, async (request, reply) => {
+  app.post('/documents', documentUploadOptions, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
 
@@ -1051,10 +1062,12 @@ export async function registerRoutes(app: FastifyInstance) {
     const storedSummary = typeof row.parse_summary === 'object' && row.parse_summary
       ? row.parse_summary as Record<string, unknown>
       : {};
+    const storedParser = typeof storedSummary.parser === 'string'
+      ? storedSummary.parser
+      : '';
     const isPayslip = row.document_type === 'payslip'
       || storedSummary.detectedDocumentType === 'payslip'
-      || storedSummary.parser === 'gemini-payslip-v1'
-      || storedSummary.parser === 'deterministic-payslip-v1';
+      || storedParser.includes('payslip');
     const manualFields = payload.fields;
     const canConfirmExtracted = row.parse_status === 'needs_confirmation';
     const canConfirmManually = manualFields

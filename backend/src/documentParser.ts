@@ -86,131 +86,100 @@ export async function parseUploadedDocument(input: {
 }): Promise<DocumentParseResult> {
   if (input.documentType === 'payslip') {
     const base = metadataSummary(input.documentType, input.mimeType);
-    if (input.ocrText) {
-      const parsed = parsePayslipText(input.ocrText);
-      if (parsed) {
-        const checked = withPayslipArithmeticChecks(parsed);
-        return {
-          status: 'needs_confirmation',
-          summary: {
-            ...base,
-            parser: 'on-device-ocr-payslip-v1',
-            llmUsed: false,
-            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
-            insight:
-              'Payslip text recognised on your phone. Confirm every amount before reconciliation.',
-            extractedFields: checked,
-            confirmationStatus: 'pending',
-            reviewRequired: true,
-          },
-        };
-      }
-    }
+    let pdfText: string | undefined;
     if (input.mimeType === 'application/pdf') {
       try {
-        const text = await extractPdfText(input.bytes);
-        const parsed = parsePayslipText(text);
-        if (parsed) {
-          const checked = withPayslipArithmeticChecks(parsed);
-          return {
-            status: 'needs_confirmation',
-            summary: {
-              ...base,
-              parser: 'deterministic-payslip-v1',
-              llmUsed: false,
-              confidence: checked.warnings.length === 0 ? 'medium' : 'low',
-              insight:
-                'Payslip text parsed. Confirm attendance, earnings, deductions, and net salary before reconciliation.',
-              extractedFields: checked,
-              confirmationStatus: 'pending',
-              reviewRequired: true,
-            },
-          };
-        }
+        pdfText = await extractPdfText(input.bytes);
       } catch {
-        // Fall through to Gemini/manual review. Scanned or locked PDFs may not expose text.
+        // Scanned or locked PDFs may not expose embedded text.
       }
     }
     const sarvam = await digitizeWithSarvam({
       bytes: input.bytes,
       mimeType: input.mimeType,
     });
-    if (sarvam) {
-      const parsed = parsePayslipText(sarvam.text);
-      if (parsed) {
-        const checked = withPayslipArithmeticChecks(parsed);
-        return {
-          status: 'needs_confirmation',
-          summary: {
-            ...base,
-            parser: 'sarvam-deterministic-payslip-v1',
-            documentProvider: 'sarvam',
-            providerJobId: sarvam.jobId,
-            llmUsed: false,
-            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
-            insight:
-              'Payslip digitized with Sarvam. Confirm every amount before reconciliation.',
-            extractedFields: checked,
-            confirmationStatus: 'pending',
-            reviewRequired: true,
-          },
-        };
-      }
-      const textInterpretation = await interpretPayslip({
-        documentText: sarvam.text,
-      });
-      if (textInterpretation) {
-        const checked = withPayslipArithmeticChecks(textInterpretation);
-        return {
-          status: 'needs_confirmation',
-          summary: {
-            ...base,
-            parser: 'sarvam-gemini-payslip-v1',
-            documentProvider: 'sarvam',
-            providerJobId: sarvam.jobId,
-            model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-            llmUsed: true,
-            confidence: checked.warnings.length === 0 ? 'medium' : 'low',
-            insight:
-              'Payslip digitized with Sarvam and mapped by Gemini. Confirm every amount before reconciliation.',
-            extractedFields: checked,
-            confirmationStatus: 'pending',
-            reviewRequired: true,
-          },
-        };
-      }
-    }
-    const interpretation = await interpretPayslip({
-      bytes: input.bytes,
-      mimeType: input.mimeType,
+    const documentText = combinePayslipTextSources({
+      sarvam: sarvam?.text,
+      pdf: pdfText,
+      device: input.ocrText,
     });
+    const interpretation = documentText
+      ? await interpretPayslip({ documentText })
+      : await interpretPayslip({
+          bytes: input.bytes,
+          mimeType: input.mimeType,
+        });
+    if (interpretation) {
+      const checked = withPayslipArithmeticChecks(interpretation);
+      return {
+        status: 'needs_confirmation',
+        summary: {
+          ...base,
+          parser: sarvam ? 'sarvam-gemini-payslip-v2' : 'gemini-payslip-v2',
+          ...(sarvam ? {
+            documentProvider: 'sarvam',
+            providerJobId: sarvam.jobId,
+          } : {}),
+          textSources: availableTextSources({
+            sarvam: sarvam?.text,
+            pdf: pdfText,
+            device: input.ocrText,
+          }),
+          model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+          llmUsed: true,
+          confidence: checked.warnings.length === 0 ? 'medium' : 'low',
+          insight:
+            'The full payslip was digitized and normalized. Confirm every earning and deduction before reconciliation.',
+          extractedFields: checked,
+          confirmationStatus: 'pending',
+          reviewRequired: true,
+        },
+      };
+    }
+
+    const fallbackText = sarvam?.text ?? pdfText ?? input.ocrText;
+    const fallback = fallbackText ? parsePayslipText(fallbackText) : null;
+    if (fallback) {
+      const checked = withPayslipArithmeticChecks(fallback);
+      return {
+        status: 'needs_confirmation',
+        summary: {
+          ...base,
+          parser: sarvam
+            ? 'sarvam-deterministic-payslip-v2'
+            : 'deterministic-payslip-v2',
+          ...(sarvam ? {
+            documentProvider: 'sarvam',
+            providerJobId: sarvam.jobId,
+          } : {}),
+          textSources: availableTextSources({
+            sarvam: sarvam?.text,
+            pdf: pdfText,
+            device: input.ocrText,
+          }),
+          llmUsed: false,
+          confidence: 'low',
+          insight:
+            'Gemini was unavailable. ARTH used a limited fallback parser, so check every row.',
+          extractedFields: checked,
+          confirmationStatus: 'pending',
+          reviewRequired: true,
+        },
+      };
+    }
+
     if (!interpretation) {
       return {
         status: 'metadata_ready',
         summary: {
           ...base,
-          parser: 'gemini-payslip-v1',
+          parser: 'gemini-payslip-v2',
           model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
           insight: 'Payslip stored securely. AI extraction is unavailable, so manual review is required.',
           reviewRequired: true,
         },
       };
     }
-    const checked = withPayslipArithmeticChecks(interpretation);
-    return {
-      status: 'needs_confirmation',
-      summary: {
-        ...base,
-        parser: 'gemini-payslip-v1',
-        model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-        llmUsed: true,
-        confidence: checked.warnings.length === 0 ? 'medium' : 'low',
-        insight: 'Payslip extracted. Confirm attendance, earnings, deductions, and net salary before reconciliation.',
-        extractedFields: checked,
-        confirmationStatus: 'pending',
-        reviewRequired: true,
-      },
-    };
   }
 
   if (input.documentType === 'offerLetter') {
@@ -384,8 +353,10 @@ function withPayslipArithmeticChecks(
   payslip: PayslipInterpretation,
 ): PayslipInterpretation {
   const warnings = [...payslip.warnings];
-  const earningsSum = payslip.earnings.reduce((sum, row) => sum + row.amount, 0);
-  const deductionsSum = payslip.deductions.reduce((sum, row) => sum + row.amount, 0);
+  const earnings = deduplicatePayrollRows(payslip.earnings, 'earning', warnings);
+  const deductions = deduplicatePayrollRows(payslip.deductions, 'deduction', warnings);
+  const earningsSum = earnings.reduce((sum, row) => sum + row.amount, 0);
+  const deductionsSum = deductions.reduce((sum, row) => sum + row.amount, 0);
   const tolerance = 1;
 
   if (payslip.grossEarnings != null &&
@@ -405,7 +376,110 @@ function withPayslipArithmeticChecks(
     warnings.push('Gross earnings minus deductions does not match the printed net salary.');
   }
 
-  return { ...payslip, warnings: warnings.slice(0, 20) };
+  return {
+    ...payslip,
+    earnings,
+    deductions,
+    warnings: [...new Set(warnings)].slice(0, 20),
+  };
+}
+
+function combinePayslipTextSources(sources: {
+  sarvam?: string;
+  pdf?: string;
+  device?: string;
+}): string | undefined {
+  const sections: Array<[string, string | undefined]> = [
+    ['SARVAM FULL DOCUMENT', sources.sarvam],
+    ['EMBEDDED PDF TEXT', sources.pdf],
+    ['ON DEVICE OCR', sources.device],
+  ];
+  const combined = sections
+    .filter((entry): entry is [string, string] =>
+      typeof entry[1] === 'string' && entry[1].trim().length > 0)
+    .map(([label, text]) => `--- ${label} ---\n${text.trim()}`)
+    .join('\n\n');
+  return combined ? combined.slice(0, 100_000) : undefined;
+}
+
+function availableTextSources(sources: {
+  sarvam?: string;
+  pdf?: string;
+  device?: string;
+}): string[] {
+  return Object.entries(sources)
+    .filter(([, text]) => typeof text === 'string' && text.trim().length > 0)
+    .map(([source]) => source);
+}
+
+type PayrollRow = PayslipInterpretation['earnings'][number]
+  | PayslipInterpretation['deductions'][number];
+
+export function deduplicatePayrollRows<T extends PayrollRow>(
+  rows: T[],
+  section: 'earning' | 'deduction',
+  warnings: string[] = [],
+): T[] {
+  const result: T[] = [];
+  const exact = new Set<string>();
+  const amountsByKey = new Map<string, Set<number>>();
+
+  for (const row of rows) {
+    const canonicalKey = canonicalPayrollKey(row, section);
+    const normalized = { ...row, canonicalKey } as T;
+    const amount = Number(row.amount.toFixed(2));
+    const exactKey = `${canonicalKey}:${amount}`;
+    if (exact.has(exactKey)) continue;
+
+    const existingAmounts = amountsByKey.get(canonicalKey);
+    if (existingAmounts && !existingAmounts.has(amount)) {
+      warnings.push(
+        `Multiple ${humanizeCanonicalKey(canonicalKey)} rows have different amounts. Confirm each one.`,
+      );
+    }
+    exact.add(exactKey);
+    (existingAmounts ?? new Set<number>()).add(amount);
+    amountsByKey.set(canonicalKey, existingAmounts ?? new Set([amount]));
+    result.push(normalized);
+  }
+  return result;
+}
+
+function canonicalPayrollKey(
+  row: PayrollRow,
+  section: 'earning' | 'deduction',
+): string {
+  const label = row.label.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (section === 'earning') {
+    if (/\b(hra|house rent allowance)\b/.test(label)) return 'house_rent_allowance';
+    if (/\bbasic\b/.test(label)) return 'basic_pay';
+  } else {
+    if (/\b(vpf|voluntary provident)\b/.test(label)) return 'voluntary_provident_fund';
+    if (/\b(cpf pc|epf|employee provident|provident fund|pf contribution)\b/.test(label)) {
+      return 'employee_provident_fund';
+    }
+    if (/\b(itax|income tax|tds)\b/.test(label)) return 'income_tax';
+    if (/\b(ptax|professional tax)\b/.test(label)) return 'professional_tax';
+    if (/\b(hrent|house rent recovery|rent recovery)\b/.test(label)) {
+      return 'house_rent_recovery';
+    }
+    if (/\blic\b/.test(label)) return 'life_insurance';
+  }
+  const supplied = 'canonicalKey' in row ? row.canonicalKey : '';
+  return slug(supplied || row.label);
+}
+
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'unknown';
+}
+
+function humanizeCanonicalKey(value: string): string {
+  return value.replace(/_/g, ' ');
 }
 
 export function metadataSummary(documentType: string, mimeType: string) {
@@ -615,6 +689,7 @@ function extractPayslipRows(
   const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
   const rows: Array<{
     label: string;
+    canonicalKey: string;
     amount: number;
     classification: string;
     confidence: 'high' | 'medium' | 'low';
@@ -644,6 +719,7 @@ function extractPayslipRows(
     if (!label || !Number.isFinite(amount) || /^total\b/i.test(label)) continue;
     rows.push({
       label,
+      canonicalKey: slug(label),
       amount: Number(amount.toFixed(2)),
       classification: section === 'earnings'
         ? classifyEarning(label)
@@ -669,11 +745,20 @@ function classifyEarning(label: string): PayslipInterpretation['earnings'][numbe
 
 function classifyDeduction(label: string): PayslipInterpretation['deductions'][number]['classification'] {
   const lower = label.toLowerCase();
-  if (lower.includes('professional tax')) return 'professional_tax';
-  if (lower.includes('income tax') || lower.includes('tds')) return 'income_tax';
+  if (lower.includes('professional tax') || lower.includes('ptax')) return 'professional_tax';
+  if (lower.includes('income tax') || lower.includes('tds') || lower.includes('itax')) {
+    return 'income_tax';
+  }
+  if (lower.includes('vpf') || lower.includes('voluntary provident')) return 'voluntary_pf';
   if (lower.includes('pf') || lower.includes('provident')) return 'employee_pf';
   if (lower.includes('esi')) return 'employee_esi';
-  if (lower.includes('loan')) return 'loan';
+  if (lower.includes('lic') || lower.includes('insurance')) return 'insurance';
+  if (lower.includes('loan')) return 'loan_repayment';
+  if (lower.includes('rent')) return 'housing_recovery';
+  if (lower.includes('electric') || lower.includes('water')) return 'utility_recovery';
+  if (lower.includes('welfare')) return 'welfare_contribution';
+  if (lower.includes('coop')) return 'cooperative_recovery';
+  if (lower.includes('adjust') || lower.includes('ntax')) return 'salary_adjustment';
   return 'other';
 }
 

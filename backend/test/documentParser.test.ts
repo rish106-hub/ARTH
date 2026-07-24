@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { parsePayslipText, parseUploadedDocument } from '../src/documentParser.js';
+import {
+  deduplicatePayrollRows,
+  parsePayslipText,
+  parseUploadedDocument,
+} from '../src/documentParser.js';
 import { interpretPayslip } from '../src/geminiInterpreter.js';
 
 describe('offer letter interpretation', () => {
@@ -228,14 +232,93 @@ describe('payslip interpretation', () => {
     }
   });
 
-  it('parses Sarvam Markdown deterministically before using Gemini', async () => {
+  it('sends full Sarvam output to Gemini for final normalization', async () => {
     const previousSarvamKey = process.env.SARVAM_API_KEY;
     const previousGeminiKey = process.env.GEMINI_API_KEY;
     const previousFetch = globalThis.fetch;
     process.env.SARVAM_API_KEY = 'test-sarvam-key';
-    delete process.env.GEMINI_API_KEY;
-    globalThis.fetch = async (input) => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async (input, init) => {
       const url = String(input);
+      if (new URL(url).hostname === 'generativelanguage.googleapis.com') {
+        const request = JSON.parse(String(init?.body));
+        const parts = request.contents[0].parts as Array<{ text?: string }>;
+        assert.match(parts[1].text ?? '', /SARVAM FULL DOCUMENT/);
+        assert.match(parts[1].text ?? '', /CPF PC 11022/);
+        return new Response(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  employerName: 'SAIL',
+                  employeeName: 'EXAMPLE EMPLOYEE',
+                  payPeriod: 'MAY-2023',
+                  paymentDate: null,
+                  currency: 'INR',
+                  attendance: {
+                    actualPayableDays: null,
+                    totalWorkingDays: null,
+                    lossOfPayDays: null,
+                    daysPayable: null,
+                  },
+                  earnings: [
+                    {
+                      label: 'BASIC',
+                      canonicalKey: 'basic_pay',
+                      amount: 66703,
+                      classification: 'basic_pay',
+                      confidence: 'high',
+                    },
+                    {
+                      label: 'DA',
+                      canonicalKey: 'dearness_allowance',
+                      amount: 25147,
+                      classification: 'allowance',
+                      confidence: 'high',
+                    },
+                    {
+                      label: 'PERKS',
+                      canonicalKey: 'perks',
+                      amount: 15877,
+                      classification: 'allowance',
+                      confidence: 'high',
+                    },
+                  ],
+                  deductions: [
+                    {
+                      label: 'CPF PC',
+                      canonicalKey: 'employee_provident_fund',
+                      amount: 11022,
+                      classification: 'employee_pf',
+                      confidence: 'high',
+                    },
+                    {
+                      label: 'VPF',
+                      canonicalKey: 'voluntary_provident_fund',
+                      amount: 25000,
+                      classification: 'voluntary_pf',
+                      confidence: 'high',
+                    },
+                    {
+                      label: 'ITAX',
+                      canonicalKey: 'income_tax',
+                      amount: 11059,
+                      classification: 'income_tax',
+                      confidence: 'high',
+                    },
+                  ],
+                  cumulative: [],
+                  grossEarnings: 109412,
+                  totalDeductions: 50969,
+                  netSalary: 58443,
+                  warnings: [],
+                  questionsForUser: [],
+                }),
+              }],
+            },
+          }],
+        }), { status: 200 });
+      }
       if (url.endsWith('/doc-digitization/job/v1')) {
         return new Response(JSON.stringify({
           job_id: 'job-payslip',
@@ -302,10 +385,11 @@ describe('payslip interpretation', () => {
       });
 
       assert.equal(result.status, 'needs_confirmation');
-      assert.equal(result.summary.parser, 'sarvam-deterministic-payslip-v1');
+      assert.equal(result.summary.parser, 'sarvam-gemini-payslip-v2');
       assert.equal(result.summary.documentProvider, 'sarvam');
       assert.equal(result.summary.providerJobId, 'job-payslip');
-      assert.equal(result.summary.llmUsed, false);
+      assert.equal(result.summary.llmUsed, true);
+      assert.deepEqual(result.summary.textSources, ['sarvam']);
       const fields = result.summary.extractedFields as {
         grossEarnings: number;
         totalDeductions: number;
@@ -360,6 +444,70 @@ describe('payslip interpretation', () => {
     assert.equal(parsed.netSalary, 38567);
   });
 
+  it('captures every printed SAIL earning and recovery row', () => {
+    const parsed = parsePayslipText(`
+      PAYSLIP FOR MAY-2023 PAID IN JUN-2023
+      NAME/NAME: RAMKRISHNA DEWAN
+      TAXABLE GROSS PAY: 109412
+      NON TAXABLE DEDUCTIONS: 50969
+      NET PAY: 58443
+
+      SALARY DETAILS
+      PAYMENTS (TAXABLE)
+      BASIC 66703
+      DA 25147
+      PERKS 15877
+      INCENTIVE PIS 206
+      INCENTIVE 243
+      INCENTIVE BONUS 712
+      INCENTIVE QBMS 524
+
+      RECOVERIES (NON-TAXABLE)
+      CPF PC 11022
+      VPF 25000
+      SESBF 1837
+      ITAX 11059
+      CESS 443
+      PTAX 200
+      FEST REC 500
+      HRENT 70
+      ELEC 545
+      LIC 1683
+      COOP 300
+      PERKS NTAX -1800
+      WATER CHARGES 20
+      FAMILY WELFARE 90
+
+      CUMULATIVES
+      GROSS 423039
+      CPF 33026
+    `);
+
+    assert.ok(parsed);
+    assert.equal(parsed.earnings.length, 7);
+    assert.equal(parsed.deductions.length, 14);
+    assert.equal(
+      parsed.earnings.reduce((sum, row) => sum + row.amount, 0),
+      109412,
+    );
+    assert.equal(
+      parsed.deductions.reduce((sum, row) => sum + row.amount, 0),
+      50969,
+    );
+    assert.equal(
+      parsed.deductions.find((row) => row.label === 'VPF')?.classification,
+      'voluntary_pf',
+    );
+    assert.equal(
+      parsed.deductions.find((row) => row.label === 'ITAX')?.classification,
+      'income_tax',
+    );
+    assert.equal(
+      parsed.deductions.find((row) => row.label === 'PTAX')?.classification,
+      'professional_tax',
+    );
+  });
+
   it('keeps a payslip for manual review when Gemini is not configured', async () => {
     const previousKey = process.env.GEMINI_API_KEY;
     delete process.env.GEMINI_API_KEY;
@@ -371,7 +519,7 @@ describe('payslip interpretation', () => {
       });
 
       assert.equal(result.status, 'metadata_ready');
-      assert.equal(result.summary.parser, 'gemini-payslip-v1');
+      assert.equal(result.summary.parser, 'gemini-payslip-v2');
       assert.equal(result.summary.reviewRequired, true);
       assert.equal(result.summary.llmUsed, false);
     } finally {
@@ -413,7 +561,7 @@ describe('payslip interpretation', () => {
       });
 
       assert.equal(result.status, 'needs_confirmation');
-      assert.equal(result.summary.parser, 'on-device-ocr-payslip-v1');
+      assert.equal(result.summary.parser, 'deterministic-payslip-v2');
       assert.equal(result.summary.llmUsed, false);
       const fields = result.summary.extractedFields as Record<string, any>;
       assert.equal(fields.payPeriod, 'MAY-2023');
@@ -512,5 +660,156 @@ describe('payslip interpretation', () => {
       if (previousKey) process.env.GEMINI_API_KEY = previousKey;
       else delete process.env.GEMINI_API_KEY;
     }
+  });
+
+  it('uses Gemini as the final normalizer for OCR text', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    const previousSarvamKey = process.env.SARVAM_API_KEY;
+    const previousFetch = globalThis.fetch;
+    let requestBody: Record<string, any> | undefined;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    delete process.env.SARVAM_API_KEY;
+    globalThis.fetch = async (_input, init) => {
+      requestBody = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                employerName: 'SAIL',
+                employeeName: 'Example Employee',
+                payPeriod: 'May 2023',
+                paymentDate: null,
+                currency: 'INR',
+                attendance: {
+                  actualPayableDays: null,
+                  totalWorkingDays: null,
+                  lossOfPayDays: null,
+                  daysPayable: null,
+                },
+                earnings: [{
+                  label: 'BASIC',
+                  canonicalKey: 'basic_pay',
+                  amount: 66703,
+                  classification: 'basic_pay',
+                  confidence: 'high',
+                }],
+                deductions: [{
+                  label: 'ITAX',
+                  canonicalKey: 'income_tax',
+                  amount: 11059,
+                  classification: 'income_tax',
+                  confidence: 'high',
+                }],
+                cumulative: [],
+                grossEarnings: 109412,
+                totalDeductions: 50969,
+                netSalary: 58443,
+                warnings: [],
+                questionsForUser: [],
+              }),
+            }],
+          },
+        }],
+      }), { status: 200 });
+    };
+
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'payslip',
+        mimeType: 'image/jpeg',
+        bytes: Buffer.from('image'),
+        ocrText: 'PAYSLIP\nBASIC 66703\nITAX 11059\nNET PAY 58443',
+      });
+
+      assert.equal(result.summary.parser, 'gemini-payslip-v2');
+      assert.equal(result.summary.llmUsed, true);
+      assert.deepEqual(result.summary.textSources, ['device']);
+      const parts = requestBody?.contents?.[0]?.parts as Array<{ text?: string }>;
+      assert.match(parts[1].text ?? '', /ON DEVICE OCR/);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+      else delete process.env.GEMINI_API_KEY;
+      if (previousSarvamKey) process.env.SARVAM_API_KEY = previousSarvamKey;
+      else delete process.env.SARVAM_API_KEY;
+    }
+  });
+
+  it('keeps dynamic deductions and removes only semantic duplicates', () => {
+    const warnings: string[] = [];
+    const rows = [
+      {
+        label: 'ITAX',
+        canonicalKey: 'income_tax',
+        amount: 11059,
+        classification: 'income_tax' as const,
+        confidence: 'high' as const,
+      },
+      {
+        label: 'Income Tax',
+        canonicalKey: 'income_tax',
+        amount: 11059,
+        classification: 'income_tax' as const,
+        confidence: 'high' as const,
+      },
+      {
+        label: 'CPF PC',
+        canonicalKey: 'employee_provident_fund',
+        amount: 11022,
+        classification: 'employee_pf' as const,
+        confidence: 'high' as const,
+      },
+      {
+        label: 'VPF',
+        canonicalKey: 'voluntary_provident_fund',
+        amount: 25000,
+        classification: 'voluntary_pf' as const,
+        confidence: 'high' as const,
+      },
+      ...Array.from({ length: 30 }, (_, index) => ({
+        label: `Custom recovery ${index + 1}`,
+        canonicalKey: `custom_recovery_${index + 1}`,
+        amount: index + 1,
+        classification: 'other' as const,
+        confidence: 'medium' as const,
+      })),
+    ];
+
+    const normalized = deduplicatePayrollRows(rows, 'deduction', warnings);
+
+    assert.equal(normalized.length, 33);
+    assert.equal(
+      normalized.filter((row) => row.canonicalKey === 'income_tax').length,
+      1,
+    );
+    assert.ok(normalized.some((row) => row.canonicalKey === 'employee_provident_fund'));
+    assert.ok(normalized.some((row) => row.canonicalKey === 'voluntary_provident_fund'));
+    assert.deepEqual(warnings, []);
+  });
+
+  it('keeps conflicting amounts and asks the user to confirm them', () => {
+    const warnings: string[] = [];
+    const rows = [
+      {
+        label: 'House Rent Recovery',
+        canonicalKey: 'house_rent_recovery',
+        amount: 70,
+        classification: 'housing_recovery' as const,
+        confidence: 'high' as const,
+      },
+      {
+        label: 'HRENT',
+        canonicalKey: 'house_rent_recovery',
+        amount: 75,
+        classification: 'housing_recovery' as const,
+        confidence: 'medium' as const,
+      },
+    ];
+
+    const normalized = deduplicatePayrollRows(rows, 'deduction', warnings);
+
+    assert.equal(normalized.length, 2);
+    assert.match(warnings[0], /different amounts/);
   });
 });
