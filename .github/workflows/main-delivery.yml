@@ -13,6 +13,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  backend_changes:
+    name: Detect backend changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.backend.outputs.changed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check backend paths
+        id: backend
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] ||
+             [ -z "$BEFORE_SHA" ] ||
+             [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            changed=true
+          elif git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- backend/; then
+            changed=false
+          else
+            changed=true
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "Backend changed: $changed"
+
   validate:
     name: Validate backend and app
     runs-on: ubuntu-latest
@@ -61,8 +93,10 @@ jobs:
 
   deploy_backend:
     name: Deploy backend to Railway
-    needs: validate
-    if: github.ref == 'refs/heads/main'
+    needs: [backend_changes, validate]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      needs.backend_changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -127,7 +161,13 @@ jobs:
 
   release_apk:
     name: Build and publish signed APK
-    needs: deploy_backend
+    needs: [backend_changes, validate, deploy_backend]
+    if: >-
+      always() &&
+      needs.backend_changes.result == 'success' &&
+      needs.validate.result == 'success' &&
+      (needs.deploy_backend.result == 'success' ||
+      needs.deploy_backend.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
