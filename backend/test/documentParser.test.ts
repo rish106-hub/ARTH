@@ -227,6 +227,55 @@ describe('payslip interpretation', () => {
     }
   });
 
+  it('parses on-device OCR text from a bilingual non-standard payslip', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'payslip',
+        mimeType: 'image/jpeg',
+        bytes: Buffer.from('synthetic payslip image'),
+        ocrText: `
+          PAYSLIP FOR MAY-2023 PAID IN JUN-2023
+          NAME/NAME: EXAMPLE EMPLOYEE
+          TAXABLE GROSS PAY: 109412
+          NON TAXABLE DEDUCTIONS: 50969
+          NET PAY: 58443
+
+          भुगतान/PAYMENTS (TAXABLE)
+          BASIC 66703
+          DA 25147
+          PERKS 15877
+          INCENTIVE BONUS 712
+
+          कटौती/RECOVERIES (NON-TAXABLE)
+          CPF PC 11022
+          VPF 25000
+          ITAX 11059
+          PERKS NTAX -1800
+
+          संचय राशि/CUMULATIVES
+          GROSS 423039
+          CPF 33026
+        `,
+      });
+
+      assert.equal(result.status, 'needs_confirmation');
+      assert.equal(result.summary.parser, 'on-device-ocr-payslip-v1');
+      assert.equal(result.summary.llmUsed, false);
+      const fields = result.summary.extractedFields as Record<string, any>;
+      assert.equal(fields.payPeriod, 'MAY-2023');
+      assert.equal(fields.grossEarnings, 109412);
+      assert.equal(fields.totalDeductions, 50969);
+      assert.equal(fields.netSalary, 58443);
+      assert.equal(fields.earnings.length, 4);
+      assert.equal(fields.deductions.length, 4);
+      assert.equal(fields.deductions[3].amount, -1800);
+    } finally {
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+    }
+  });
+
   it('separates payslip sections and flags arithmetic mismatches', async () => {
     const previousKey = process.env.GEMINI_API_KEY;
     const previousFetch = globalThis.fetch;

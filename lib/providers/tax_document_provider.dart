@@ -28,6 +28,7 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     required String filename,
     required String mimeType,
     required List<int> bytes,
+    String? ocrText,
   }) async {
     final previous = state.asData?.value ?? const <TaxDocument>[];
     final uploaded = await _service.uploadDocument(
@@ -35,6 +36,7 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
       filename: filename,
       mimeType: mimeType,
       bytes: bytes,
+      ocrText: ocrText,
     );
     state = AsyncData([
       uploaded,
