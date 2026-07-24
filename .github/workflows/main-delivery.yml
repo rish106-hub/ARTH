@@ -1,0 +1,273 @@
+name: Main Delivery
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: main-delivery
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate backend and app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Validate backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run scan:secrets
+          npm run check
+          npm test
+          npm run build
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.x
+          channel: stable
+          cache: true
+
+      - name: Validate Flutter
+        run: |
+          flutter pub get
+          dart format --set-exit-if-changed lib/ test/
+          flutter analyze --no-fatal-infos
+          flutter test
+
+  deploy_backend:
+    name: Deploy backend to Railway
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Validate deployment configuration
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
+        run: |
+          missing=0
+          for name in RAILWAY_TOKEN ARTH_API_BASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required"
+              missing=1
+            fi
+          done
+          test "$missing" -eq 0
+
+      - name: Embed delivery revision
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: printf "export const buildRevision = '%s';\n" "$EXPECTED_COMMIT" > backend/src/buildRevision.ts
+
+      - name: Upload backend to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          docker run --rm \
+            --env RAILWAY_TOKEN \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --workdir /workspace \
+            ghcr.io/railwayapp/cli:latest \
+            up backend \
+            --path-as-root \
+            --ci \
+            --project e6c90390-8cdd-47c1-8a80-47929ee97d43 \
+            --environment 7d22c025-394d-407e-ad16-ca06c505088c \
+            --service b2d6b7ee-5a12-4136-93b2-732216714fec
+
+      - name: Wait for the merged commit
+        env:
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          for attempt in $(seq 1 60); do
+            response="$(curl --fail --silent --show-error "$ARTH_API_BASE_URL/ping" || true)"
+            deployed_commit="$(jq -r '.commit // empty' <<< "$response" 2>/dev/null || true)"
+            if [ "$deployed_commit" = "$EXPECTED_COMMIT" ]; then
+              echo "Railway is serving commit $EXPECTED_COMMIT"
+              exit 0
+            fi
+            echo "Waiting for Railway deployment ($attempt/60)"
+            sleep 10
+          done
+          echo "::error::Railway did not serve commit $EXPECTED_COMMIT within 10 minutes"
+          exit 1
+
+  release_apk:
+    name: Build and publish signed APK
+    needs: deploy_backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Determine next release version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_tag="$(
+            gh release list --limit 100 \
+              --json tagName,isDraft,isPrerelease,publishedAt \
+              --jq '[.[] | select(.isDraft == false and .isPrerelease == false and (.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")))] | sort_by(.publishedAt) | last | .tagName'
+          )"
+          if [[ ! "$latest_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::No semantic GitHub release was found"
+            exit 1
+          fi
+
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+          patch="${BASH_REMATCH[3]}"
+          version_name="$major.$minor.$((patch + 1))"
+
+          mkdir previous-release
+          gh release download "$latest_tag" \
+            --pattern arth-update.json \
+            --dir previous-release
+          previous_code="$(jq -r '.versionCode' previous-release/arth-update.json)"
+          if [[ ! "$previous_code" =~ ^[0-9]+$ ]]; then
+            echo "::error::The latest release has no valid Android version code"
+            exit 1
+          fi
+          version_code="$((previous_code + 1))"
+
+          echo "name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "code=$version_code" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version_name" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.x
+          channel: stable
+          cache: true
+
+      - name: Validate signing configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
+        run: |
+          missing=0
+          for name in GOOGLE_SERVICES_JSON KEYSTORE_BASE64 KEYSTORE_STORE_PASSWORD KEYSTORE_KEY_PASSWORD KEYSTORE_KEY_ALIAS ARTH_API_BASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required"
+              missing=1
+            fi
+          done
+          test "$missing" -eq 0
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Write Firebase and signing files
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+        run: |
+          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/arth-release.jks
+          cat > android/key.properties << EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=arth-release.jks
+          EOF
+
+      - name: Build signed APK
+        env:
+          ARTH_API_BASE_URL: ${{ vars.ARTH_API_BASE_URL }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          flutter build apk --release \
+            --flavor internal \
+            --build-name="$VERSION_NAME" \
+            --build-number="$VERSION_CODE" \
+            --dart-define=ARTH_API_BASE_URL="$ARTH_API_BASE_URL"
+
+      - name: Verify and prepare release
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          apk="build/app/outputs/flutter-apk/app-internal-release.apk"
+          release_apk="ARTH-$VERSION_NAME.apk"
+          apksigner="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --verbose --print-certs "$apk"
+          cp "$apk" "$release_apk"
+          sha256="$(sha256sum "$release_apk" | cut -d ' ' -f 1)"
+          release_notes="Automatic release for main commit ${GITHUB_SHA::7}."
+          jq -n \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg versionName "$VERSION_NAME" \
+            --arg apkUrl "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION_NAME}/${release_apk}" \
+            --arg sha256 "$sha256" \
+            --arg releaseNotes "$release_notes" \
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,sha256:$sha256,releaseNotes:$releaseNotes}' \
+            > arth-update.json
+          sha256sum "$release_apk" > "$release_apk.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          gh release create "v$VERSION_NAME" \
+            "ARTH-$VERSION_NAME.apk" \
+            "ARTH-$VERSION_NAME.apk.sha256" \
+            arth-update.json \
+            --target "$GITHUB_SHA" \
+            --title "ARTH $VERSION_NAME" \
+            --notes "Automatic release for main commit ${GITHUB_SHA::7}." \
+            --latest
+
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: arth-signed-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: |
+            ARTH-${{ steps.version.outputs.name }}.apk
+            ARTH-${{ steps.version.outputs.name }}.apk.sha256
+            arth-update.json
+          retention-days: 30
