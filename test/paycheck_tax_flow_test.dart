@@ -227,7 +227,7 @@ void main() {
     expect(paycheck.evidence.single.statusLabel, 'CONFIRMED');
   });
 
-  testWidgets('tax planning opens as a contained tool from You',
+  testWidgets('tax planning opens as a contained tool from Tax',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -237,11 +237,11 @@ void main() {
     });
 
     final router = GoRouter(
-      initialLocation: '/paycheck/you',
+      initialLocation: '/paycheck/tax',
       routes: [
         GoRoute(
-          path: '/paycheck/you',
-          builder: (_, __) => const PaycheckShellScreen(initialIndex: 3),
+          path: '/paycheck/tax',
+          builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
         ),
         GoRoute(
           path: '/tax-plan',
@@ -264,15 +264,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('tax_plan_tool')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byKey(const Key('tax_plan_tool')));
+    await tester.tap(find.byKey(const Key('open_tax_plan')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Plan your tax.'), findsOneWidget);
+    expect(find.text('Plan your tax'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Housing'), findsOneWidget);
     expect(find.text('Deductions'), findsOneWidget);
@@ -281,8 +276,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('closing tax planning returns to the paycheck profile',
-      (tester) async {
+  testWidgets('closing tax planning returns to the Tax tab', (tester) async {
     final router = GoRouter(
       initialLocation: '/tax-plan',
       routes: [
@@ -291,8 +285,8 @@ void main() {
           builder: (_, __) => const TaxPlanEntryScreen(),
         ),
         GoRoute(
-          path: '/paycheck/you',
-          builder: (_, __) => const PaycheckShellScreen(initialIndex: 3),
+          path: '/paycheck/tax',
+          builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
         ),
       ],
     );
@@ -313,6 +307,6 @@ void main() {
     await tester.tap(find.byKey(const Key('tax_plan_close')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your information'), findsOneWidget);
+    expect(find.text('Plan with confirmed numbers.'), findsOneWidget);
   });
 }

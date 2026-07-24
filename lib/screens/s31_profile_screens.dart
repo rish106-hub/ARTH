@@ -96,21 +96,6 @@ class ProfessionalProfileView extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
-                const _SectionTitle('Planning'),
-                _ProfileGroup(
-                  children: [
-                    _ProfileRow(
-                      key: const Key('tax_plan_tool'),
-                      icon: Icons.calculate_outlined,
-                      title: 'Plan your tax',
-                      detail: 'Compare regimes and review deduction gaps',
-                      onTap: () => context.push('/tax-plan'),
-                      isLast: true,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
                 const _SectionTitle('Sources and connections'),
                 _ProfileGroup(
                   children: [
@@ -563,7 +548,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                 backgroundColor: PaycheckColors.ink,
                 minimumSize: const Size.fromHeight(54),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
               onPressed: _saving ? null : _save,
@@ -711,7 +696,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: PaycheckColors.contractSoft,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1094,7 +1079,7 @@ class _CompletenessPanel extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: PaycheckColors.ink,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1205,7 +1190,7 @@ class _ProfileGroup extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: PaycheckColors.line),
       ),
       child: Column(children: children),

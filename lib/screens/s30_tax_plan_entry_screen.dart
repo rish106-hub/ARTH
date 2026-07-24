@@ -25,12 +25,12 @@ class TaxPlanEntryScreen extends ConsumerWidget {
                   IconButton(
                     key: const Key('tax_plan_close'),
                     tooltip: 'Back to paycheck',
-                    onPressed: () => context.go('/paycheck/you'),
+                    onPressed: () => context.go('/paycheck/tax'),
                     icon: const Icon(Icons.close_rounded),
                     color: PaycheckColors.ink,
                   ),
                   const Spacer(),
-                  Text('SMALL TOOL', style: PaycheckType.utility()),
+                  Text('Tax plan', style: PaycheckType.utility()),
                 ],
               ),
               const SizedBox(height: 28),
@@ -39,7 +39,7 @@ class TaxPlanEntryScreen extends ConsumerWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: PaycheckColors.contractSoft,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.calculate_outlined,
@@ -47,7 +47,7 @@ class TaxPlanEntryScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Plan your tax.', style: PaycheckType.display()),
+              Text('Plan your tax', style: PaycheckType.title()),
               const SizedBox(height: 12),
               Text(
                 'Answer the original ARTH diagnostic. We compare tax regimes and show the deduction gaps that may matter for you.',
@@ -94,7 +94,7 @@ class TaxPlanEntryScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: PaycheckColors.paper,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: PaycheckColors.line),
                 ),
                 child: Row(
@@ -142,7 +142,7 @@ class _TaxActions extends StatelessWidget {
             backgroundColor: PaycheckColors.ink,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
           onPressed: () => context.push('/tax-plan/questions'),

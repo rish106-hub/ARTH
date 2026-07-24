@@ -44,6 +44,22 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     _scheduleDraftSync();
   }
 
+  void applyConfirmedOfferLetter(Map<String, dynamic> fields) {
+    final employerName = fields['employerName']?.toString().trim() ?? '';
+    final annualCtc = (fields['annualCtc'] as num?)?.round();
+    final fixedAnnualPay = (fields['fixedAnnualPay'] as num?)?.round();
+    final confirmedAnnualPay = annualCtc ?? fixedAnnualPay;
+
+    state = state.copyWith(
+      employmentType: EmploymentType.salaried,
+      employerName: employerName.isEmpty ? state.employerName : employerName,
+      annualCTC: confirmedAnnualPay != null && confirmedAnnualPay > 0
+          ? confirmedAnnualPay
+          : state.annualCTC,
+    );
+    _scheduleDraftSync();
+  }
+
   void applyAccountIdentity(UserAccount account) {
     state = state.copyWith(name: account.name, email: account.email);
   }

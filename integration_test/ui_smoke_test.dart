@@ -27,15 +27,15 @@ void main() {
       await tester.tap(find.byKey(const Key('explore_app_button')));
       await _waitForTransition(tester);
       expect(find.text('You are exploring sample data'), findsOneWidget);
-      expect(find.text('READY TO CLAIM'), findsOneWidget);
+      expect(find.text('Your July 2026 pay is ready'), findsOneWidget);
 
-      await tester.tap(find.text('Promise').last);
+      await tester.tap(find.text('Evidence').last);
       await _waitForTransition(tester);
-      expect(find.text('What your employer\npromised.'), findsOneWidget);
+      expect(find.text('Documents behind your pay'), findsOneWidget);
 
-      await tester.tap(find.text('Inbox').last);
+      await tester.tap(find.text('Tax').last);
       await _waitForTransition(tester);
-      expect(find.text('Your pay evidence.'), findsOneWidget);
+      expect(find.text('Plan with confirmed numbers.'), findsOneWidget);
 
       await tester.tap(find.text('You').last);
       await _waitForTransition(tester);
@@ -43,7 +43,7 @@ void main() {
 
       await tester.tap(find.text('Sign up'));
       await _waitForTransition(tester);
-      expect(find.text('Give your income a job.'), findsOneWidget);
+      expect(find.text('Know what reached you.'), findsOneWidget);
     });
 
     testWidgets('auth mode switch validates fields without a network request',
@@ -101,10 +101,10 @@ void main() {
       addTearDown(router.dispose);
       await _pump(tester, router);
 
-      expect(find.text('Plan your tax.'), findsOneWidget);
+      expect(find.text('Plan your tax'), findsOneWidget);
       await tester.tap(find.byKey(const Key('tax_plan_close')));
       await _waitForTransition(tester);
-      expect(find.text('Your information'), findsOneWidget);
+      expect(find.text('Plan with confirmed numbers.'), findsOneWidget);
     });
   });
 }
@@ -130,6 +130,9 @@ GoRouter _router(String initialLocation) => GoRouter(
         GoRoute(
             path: '/paycheck/you',
             builder: (_, __) => const PaycheckShellScreen(initialIndex: 3)),
+        GoRoute(
+            path: '/paycheck/tax',
+            builder: (_, __) => const PaycheckShellScreen(initialIndex: 2)),
       ],
     );
 

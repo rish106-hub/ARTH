@@ -44,7 +44,7 @@ class RetryErrorState extends StatelessWidget {
                     foregroundColor: AppColors.gold,
                     side: const BorderSide(color: AppColors.gold),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),

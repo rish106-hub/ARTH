@@ -35,7 +35,7 @@ class ArthBrandMark extends StatelessWidget {
         AppTextStyles.h3(
           color: AppColors.textPrimary,
         ).copyWith(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           letterSpacing: 0,
         );
 
@@ -67,12 +67,7 @@ class _ArthGlyphPainter extends CustomPainter {
 
     canvas.drawRRect(
       shell,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF14213D), Color(0xFF3149C7)],
-          begin: Alignment.bottomLeft,
-          end: Alignment.topRight,
-        ).createShader(rect),
+      Paint()..color = AppColors.ink,
     );
 
     final letterPaint = Paint()
@@ -94,7 +89,7 @@ class _ArthGlyphPainter extends CustomPainter {
     );
 
     final reconcilePaint = Paint()
-      ..color = const Color(0xFFF2B84B)
+      ..color = AppColors.readiness
       ..style = PaintingStyle.stroke
       ..strokeWidth = shortest * 0.09
       ..strokeCap = StrokeCap.round;

@@ -8,10 +8,10 @@ void goToArthTab(BuildContext context, int index) {
       context.go('/paycheck');
       break;
     case 1:
-      context.go('/paycheck/promise');
+      context.go('/paycheck/evidence');
       break;
     case 2:
-      context.go('/paycheck/inbox');
+      context.go('/paycheck/tax');
       break;
     case 3:
       context.go('/paycheck/you');
@@ -31,19 +31,19 @@ class ArthBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-      icon: Icons.today_outlined,
-      activeIcon: Icons.today_rounded,
-      label: 'Paycheck',
+      icon: Icons.account_balance_wallet_outlined,
+      activeIcon: Icons.account_balance_wallet_rounded,
+      label: 'Pay',
     ),
     _NavItem(
-      icon: Icons.payments_outlined,
-      activeIcon: Icons.payments_rounded,
-      label: 'Promise',
+      icon: Icons.description_outlined,
+      activeIcon: Icons.description_rounded,
+      label: 'Evidence',
     ),
     _NavItem(
-      icon: Icons.route_outlined,
-      activeIcon: Icons.route_rounded,
-      label: 'Inbox',
+      icon: Icons.calculate_outlined,
+      activeIcon: Icons.calculate_rounded,
+      label: 'Tax',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
@@ -106,7 +106,7 @@ class ArthBottomNav extends StatelessWidget {
                               : AppColors.textSecondary,
                         ).copyWith(
                             fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500),
+                                selected ? FontWeight.w600 : FontWeight.w500),
                       ),
                     ],
                   ),

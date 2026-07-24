@@ -4,20 +4,20 @@ import 'package:flutter/services.dart';
 class AppColors {
   // Shared ARTH palette. Tax tools inherit the paycheck product skin so they
   // feel like a contained capability, not a second application.
-  static const Color canvas = Color(0xFFF3F6FB);
+  static const Color canvas = Color(0xFFF3F5F8);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFE8EDF5);
-  static const Color surfacePressed = Color(0xFFDCE3ED);
-  static const Color ink = Color(0xFF14213D);
-  static const Color inkSecondary = Color(0xFF657087);
-  static const Color inkMuted = Color(0xFF8A94A7);
-  static const Color primary = Color(0xFF4A66F0);
-  static const Color primarySoft = Color(0xFFE4E9FF);
-  static const Color primaryDark = Color(0xFF3149C7);
-  static const Color readiness = Color(0xFF12A875);
-  static const Color readinessSoft = Color(0xFFDDF5EC);
-  static const Color risk = Color(0xFFFF6B4A);
-  static const Color warning = Color(0xFFF2B84B);
+  static const Color surfaceMuted = Color(0xFFE8EDF1);
+  static const Color surfacePressed = Color(0xFFD9E0E6);
+  static const Color ink = Color(0xFF11263D);
+  static const Color inkSecondary = Color(0xFF5F6F7E);
+  static const Color inkMuted = Color(0xFF7D8A96);
+  static const Color primary = Color(0xFF315C78);
+  static const Color primarySoft = Color(0xFFE6EEF3);
+  static const Color primaryDark = Color(0xFF21455D);
+  static const Color readiness = Color(0xFF0A6B63);
+  static const Color readinessSoft = Color(0xFFE2F2EF);
+  static const Color risk = Color(0xFFD95746);
+  static const Color warning = Color(0xFFB9821F);
 
   static const Color bgPrimary = canvas;
   static const Color bgCard = surface;
@@ -39,8 +39,8 @@ class AppColors {
   static const Color textMuted = inkMuted;
   static const Color textGold = gold;
 
-  static const Color divider = Color(0xFFDCE3ED);
-  static const Color border = Color(0xFFD3DCE9);
+  static const Color divider = Color(0xFFD9E0E6);
+  static const Color border = Color(0xFFCDD6DD);
 
   // Gap card colors by size
   static const Color gapSmall = readiness;
@@ -55,27 +55,29 @@ class AppColors {
 class AppTextStyles {
   // Numbers remain neutral. Green is reserved for action and positive state.
   static TextStyle display({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 56,
-        fontWeight: FontWeight.w900,
+        fontFamily: 'Anek',
+        fontSize: 38,
+        fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
-        height: 1.0,
+        height: 1.05,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   static TextStyle displaySmall({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 40,
-        fontWeight: FontWeight.w900,
+        fontFamily: 'Anek',
+        fontSize: 32,
+        fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
-        height: 1.0,
+        height: 1.08,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   // Headings
   static TextStyle h1({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 34,
+        fontFamily: 'Anek',
+        fontSize: 28,
         fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
@@ -83,8 +85,8 @@ class AppTextStyles {
       );
 
   static TextStyle h2({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 26,
+        fontFamily: 'Anek',
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
@@ -92,7 +94,7 @@ class AppTextStyles {
       );
 
   static TextStyle h3({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -101,7 +103,7 @@ class AppTextStyles {
 
   // Body
   static TextStyle body({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
@@ -110,7 +112,7 @@ class AppTextStyles {
 
   static TextStyle bodyMedium({Color color = AppColors.textPrimary}) =>
       TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: color,
@@ -119,44 +121,58 @@ class AppTextStyles {
 
   static TextStyle bodyStrong({Color color = AppColors.textPrimary}) =>
       TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 15,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         color: color,
         height: 1.5,
       );
 
   // Section labels are functional, not decorative.
   static TextStyle sectionLabel({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 12,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0,
       );
 
   // Micro-copy
   static TextStyle micro({Color color = AppColors.textSecondary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 12,
-        fontWeight: FontWeight.w300,
+        fontWeight: FontWeight.w400,
         color: color,
         height: 1.4,
       );
 
   static TextStyle caption({Color color = AppColors.textSecondary}) =>
       TextStyle(
-        fontFamily: 'PlusJakartaSans',
+        fontFamily: 'Anek',
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color,
         height: 1.4,
       );
 
+  static TextStyle money({
+    Color color = AppColors.textPrimary,
+    double size = 15,
+    FontWeight weight = FontWeight.w600,
+  }) =>
+      TextStyle(
+        fontFamily: 'Anek',
+        fontSize: size,
+        fontWeight: weight,
+        fontFeatures: const [FontFeature.tabularFigures()],
+        color: color,
+        height: 1.15,
+      );
+
   // Button
   static TextStyle button({Color color = AppColors.bgPrimary}) => TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 16,
+        fontFamily: 'Anek',
+        fontSize: 15,
         fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: 0.2,
@@ -165,8 +181,7 @@ class AppTextStyles {
 
 class AppTheme {
   static ThemeData get light {
-    final baseTextTheme =
-        ThemeData.light().textTheme.apply(fontFamily: 'PlusJakartaSans');
+    final baseTextTheme = ThemeData.light().textTheme.apply(fontFamily: 'Anek');
 
     return ThemeData(
       brightness: Brightness.light,
@@ -203,9 +218,9 @@ class AppTheme {
         trackHeight: 4,
         valueIndicatorColor: AppColors.gold,
         valueIndicatorTextStyle: const TextStyle(
-          fontFamily: 'PlusJakartaSans',
+          fontFamily: 'Anek',
           color: Colors.white,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           fontSize: 13,
         ),
         showValueIndicator: ShowValueIndicator.onDrag,
@@ -232,10 +247,10 @@ class AppTheme {
         indicatorColor: AppColors.primarySoft,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           return TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 11,
+            fontFamily: 'Anek',
+            fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w700
+                ? FontWeight.w600
                 : FontWeight.w500,
             color: states.contains(WidgetState.selected)
                 ? AppColors.primary
@@ -252,8 +267,7 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.bgCard,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        hintStyle: TextStyle(
-            fontFamily: 'PlusJakartaSans', color: AppColors.textMuted),
+        hintStyle: TextStyle(fontFamily: 'Anek', color: AppColors.textMuted),
         border: OutlineInputBorder(
           borderRadius: AppRadius.card,
           borderSide: BorderSide(color: AppColors.border),
@@ -270,7 +284,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimary,
         contentTextStyle:
-            const TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.white),
+            const TextStyle(fontFamily: 'Anek', color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -290,9 +304,9 @@ class AppButtons {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
     textStyle: const TextStyle(
-      fontFamily: 'PlusJakartaSans',
-      fontSize: 16,
-      fontWeight: FontWeight.w700,
+      fontFamily: 'Anek',
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
       letterSpacing: 0,
     ),
   );
@@ -305,9 +319,7 @@ class AppButtons {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     padding: const EdgeInsets.symmetric(horizontal: 20),
     textStyle: const TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 15,
-        fontWeight: FontWeight.w600),
+        fontFamily: 'Anek', fontSize: 15, fontWeight: FontWeight.w600),
   );
 }
 
@@ -324,16 +336,16 @@ class Spacing {
 // Border radius
 class AppRadius {
   static const double sm = 8;
-  static const double md = 10;
-  static const double lg = 12;
-  static const double xl = 16;
-  static const BorderRadius card = BorderRadius.all(Radius.circular(12));
+  static const double md = 8;
+  static const double lg = 8;
+  static const double xl = 8;
+  static const BorderRadius card = BorderRadius.all(Radius.circular(8));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
 }
 
 class AppMotion {
-  static const Duration fast = Duration(milliseconds: 160);
-  static const Duration medium = Duration(milliseconds: 260);
-  static const Duration slow = Duration(milliseconds: 420);
+  static const Duration fast = Duration(milliseconds: 180);
+  static const Duration medium = Duration(milliseconds: 240);
+  static const Duration slow = Duration(milliseconds: 320);
   static const Curve standard = Curves.easeOutCubic;
 }

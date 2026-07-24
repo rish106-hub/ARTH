@@ -65,10 +65,18 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/paycheck/promise',
-      builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
+      redirect: (_, __) => '/paycheck',
     ),
     GoRoute(
       path: '/paycheck/inbox',
+      redirect: (_, __) => '/paycheck/evidence',
+    ),
+    GoRoute(
+      path: '/paycheck/evidence',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
+    ),
+    GoRoute(
+      path: '/paycheck/tax',
       builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
     ),
     GoRoute(
