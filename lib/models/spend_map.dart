@@ -32,6 +32,17 @@ class SpendCategory {
     other,
   ];
 
+  /// Categories that count as non-discretionary living costs. Used to seed the
+  /// savings-goal "essentials" figure without pulling in discretionary spend
+  /// (shopping, entertainment, dining out).
+  static const essentials = [
+    rent,
+    bills,
+    groceries,
+    transport,
+    health,
+  ];
+
   static String label(String category) {
     switch (category) {
       case food:
@@ -165,13 +176,29 @@ class SpendMap {
 
   bool get isEmpty => txns.isEmpty;
 
-  /// Number of whole months the window spans (min 1).
-  int get monthsSpan {
-    final diff = (windowEnd.year - windowStart.year) * 12 +
-        windowEnd.month -
-        windowStart.month;
-    return diff < 1 ? 1 : diff + 1;
+  /// Count of distinct calendar months (min 1) among the transactions matching
+  /// [test]. This is the correct denominator for a monthly average: it reflects
+  /// the months a given series actually has data for, instead of a fixed window
+  /// or the raw first-to-last span (which over-counts empty months and mixes
+  /// series that cover different months — see the income-vs-spend bug).
+  int _distinctMonths(bool Function(FinanceTxn) test) {
+    final months = <int>{};
+    for (final t in txns) {
+      if (test(t)) months.add(t.date.year * 12 + t.date.month);
+    }
+    return months.isEmpty ? 1 : months.length;
   }
+
+  /// Distinct months that contain any transaction (for display only).
+  int get observedMonths => _distinctMonths((_) => true);
+
+  /// Distinct months containing a salary credit / any debit — each series is
+  /// averaged over its own coverage so income and spend stay on the same
+  /// per-month basis regardless of which months each happens to touch.
+  int get _salaryMonths =>
+      _distinctMonths((t) => t.direction == TxnDirection.credit && t.isSalary);
+  int get _spendMonths =>
+      _distinctMonths((t) => t.direction == TxnDirection.debit);
 
   int get totalSpent => txns
       .where((t) => t.direction == TxnDirection.debit)
@@ -222,14 +249,29 @@ class SpendMap {
     return result;
   }
 
-  int get monthlySpend => (totalSpent / monthsSpan).round();
+  int get monthlySpend => (totalSpent / _spendMonths).round();
 
-  /// Monthly income. Prefers salary credits detected in SMS; when none are
-  /// found, falls back to payslip/CTC-derived income so income never collapses
-  /// to zero for a user with a confirmed payslip but no salary-credit SMS.
+  /// Average monthly spend on non-discretionary categories only. Seeds the
+  /// savings-goal "essentials" field without discretionary spend inflating it.
+  int get monthlyEssentialSpend {
+    final essentialTotal = txns
+        .where((t) =>
+            t.direction == TxnDirection.debit &&
+            SpendCategory.essentials.contains(t.category))
+        .fold<int>(0, (sum, t) => sum + t.amount);
+    return (essentialTotal / _spendMonths).round();
+  }
+
+  /// True when income comes from a salary credit detected in SMS (as opposed to
+  /// the payslip/CTC fallback). Lets the UI label the figure honestly.
+  bool get incomeIsDetected => salaryCredited > 0;
+
+  /// Monthly income. Prefers salary credits detected in SMS (averaged over the
+  /// months those credits actually cover); when none are found, falls back to
+  /// payslip/CTC-derived income so income never collapses to zero for a user
+  /// with a confirmed payslip but no salary-credit SMS.
   int get monthlyIncome {
-    final fromSalary = (salaryCredited / monthsSpan).round();
-    if (fromSalary > 0) return fromSalary;
+    if (salaryCredited > 0) return (salaryCredited / _salaryMonths).round();
     return fallbackMonthlyIncome ?? 0;
   }
 

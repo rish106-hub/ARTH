@@ -26,7 +26,11 @@ class SpendMapService {
         'windowEnd': map.windowEnd.toIso8601String(),
         'generatedAt': map.generatedAt.toIso8601String(),
         'monthlyIncome': map.monthlyIncome,
+        'incomeSource': map.incomeIsDetected
+            ? 'detected'
+            : (map.monthlyIncome > 0 ? 'fallback' : 'none'),
         'monthlySpend': map.monthlySpend,
+        'monthlyEssentialSpend': map.monthlyEssentialSpend,
         'realisticMonthlySavings': map.realisticMonthlySavings,
         'spendByCategory': map.spendByCategory,
         'monthlyTrend': map.monthlyTrend

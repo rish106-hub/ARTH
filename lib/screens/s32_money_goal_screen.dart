@@ -84,7 +84,10 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
     final now = DateTime.now();
     final months =
         (_targetDate.year - now.year) * 12 + _targetDate.month - now.month;
-    return months.clamp(1, 12);
+    // Do not clamp to 12: long horizons set via the date picker must not be
+    // silently misrepresented as ≤12 months. The selector simply highlights no
+    // preset when the horizon exceeds its options; the date button is truth.
+    return months.clamp(1, 600);
   }
 
   MoneyGoal _draft() => MoneyGoal(
@@ -125,8 +128,16 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
     if (goal != null && _loadedId == null) {
       _loadGoal(goal);
     }
+    // Prefer confirmed net pay; fall back to the spend map's monthly income
+    // (payslip/CTC-derived) so a goal can still be tested before a payslip is
+    // confirmed, instead of always reading as infeasible.
     final netPay = ref.watch(paycheckProvider).netCredited;
-    final projection = projectGoal(goal: _draft(), monthlyNetPay: netPay);
+    final spendIncome =
+        ref.watch(spendMapProvider).map?.monthlyIncome ?? 0;
+    final effectiveIncome = netPay > 0 ? netPay : spendIncome;
+    final usingConfirmedPay = netPay > 0;
+    final projection =
+        projectGoal(goal: _draft(), monthlyNetPay: effectiveIncome);
 
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
@@ -148,13 +159,18 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                netPay > 0
+                usingConfirmedPay
                     ? 'The plan uses your confirmed net pay of ${money0(netPay)}.'
-                    : 'Confirm a payslip first so ARTH can test this goal against real net pay.',
+                    : spendIncome > 0
+                        ? 'No confirmed payslip yet — using estimated monthly income of ${money0(spendIncome)} from your spend map. Confirm a payslip for a precise plan.'
+                        : 'Confirm a payslip or build your spend map so ARTH can test this goal against real income.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 20),
-              _ProjectionBand(projection: projection, hasPay: netPay > 0),
+              _ProjectionBand(
+                projection: projection,
+                hasPay: effectiveIncome > 0,
+              ),
               const SizedBox(height: 26),
               Text('Goal', style: PaycheckType.heading()),
               const SizedBox(height: 12),
@@ -345,9 +361,11 @@ class _PlanGuidance extends StatelessWidget {
   Widget build(BuildContext context) {
     final bufferTarget = essentials * 3;
     final shortfall = -projection.monthlyHeadroom;
-    final message = projection.isFeasible
-        ? 'Keep at least ${money0(bufferTarget)} as a three-month safety buffer. Then automate ${money0(projection.requiredMonthly)} monthly toward this goal.'
-        : 'The current target is short by ${money0(shortfall)} per month. Extend the date, lower the target, or reduce a flexible commitment before choosing an investment product.';
+    final message = projection.alreadyFunded
+        ? 'This goal is already fully funded. Keep at least ${money0(bufferTarget)} as a three-month safety buffer, or set a new target.'
+        : projection.isFeasible
+            ? 'Keep at least ${money0(bufferTarget)} as a three-month safety buffer. Then automate ${money0(projection.requiredMonthly)} monthly toward this goal.'
+            : 'The current target is short by ${money0(shortfall)} per month. Extend the date, lower the target, or reduce a flexible commitment before choosing an investment product.';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -422,7 +440,11 @@ class _SpendMapHint extends ConsumerWidget {
         ),
       );
     }
-    final monthly = state.map!.monthlySpend;
+    // Seed essentials from essential categories only (rent, bills, groceries,
+    // transport, health) — not total outflow — so discretionary spend does not
+    // inflate the essentials figure and understate available money.
+    final monthly = state.map!.monthlyEssentialSpend;
+    if (monthly <= 0) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -437,7 +459,7 @@ class _SpendMapHint extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'SMS spend map: ${money0(monthly)}/mo detected',
+              'SMS spend map: ${money0(monthly)}/mo of essentials detected',
               style: PaycheckType.body(),
             ),
           ),

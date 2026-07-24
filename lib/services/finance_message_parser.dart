@@ -15,6 +15,14 @@ class FinanceMessageParser {
     caseSensitive: false,
   );
 
+  // Worded amounts: "Rs 1.5 lakh", "2 crore" (currency prefix optional because
+  // the unit word makes it unambiguous). "cr"/"l" single-letter units are
+  // deliberately excluded — "CR" collides with the credit marker.
+  static final RegExp _wordedAmountRe = RegExp(
+    r'(?:rs\.?|inr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*(lakhs?|lacs?|crores?)\b',
+    caseSensitive: false,
+  );
+
   static const _debitWords = [
     'debited',
     'debit',
@@ -61,7 +69,14 @@ class FinanceMessageParser {
     'has been set',
     'failed',
     'declined',
+    'reversed',
+    'reversal',
   ];
+
+  // Match skip words on word boundaries so a substring inside a merchant name
+  // (e.g. "declined" appearing in a brand) cannot wrongly drop a real txn.
+  static final RegExp _skipRe =
+      RegExp('\\b(?:${_skipWords.join('|')})\\b', caseSensitive: false);
 
   // merchant/keyword → category. First match wins.
   static const Map<String, List<String>> _categoryKeywords = {
@@ -175,9 +190,7 @@ class FinanceMessageParser {
     final lower = body.toLowerCase();
 
     // 1. Discard non-transactional noise.
-    for (final skip in _skipWords) {
-      if (lower.contains(skip)) return null;
-    }
+    if (_skipRe.hasMatch(lower)) return null;
 
     // 2. Amount.
     final amount = _extractAmount(lower);
@@ -213,7 +226,8 @@ class FinanceMessageParser {
     );
   }
 
-  /// Parse a batch, dropping non-transactions.
+  /// Parse a batch, dropping non-transactions and duplicate alerts, then infer
+  /// recurring salary.
   List<FinanceTxn> parseAll(
     Iterable<({String sender, String body, DateTime date})> messages,
   ) {
@@ -222,7 +236,24 @@ class FinanceMessageParser {
       final txn = parse(sender: m.sender, body: m.body, date: m.date);
       if (txn != null) result.add(txn);
     }
-    return inferRecurringSalary(result);
+    return inferRecurringSalary(_deduplicate(result));
+  }
+
+  /// Drops duplicate alerts for the same transaction. Banks and UPI apps often
+  /// send two SMS (different sender headers, similar bodies) for one payment;
+  /// keeping both double-counts spend and income. Two txns with the same
+  /// amount, direction and calendar day are treated as one. This can merge two
+  /// genuinely-distinct same-amount payments on the same day, but that is far
+  /// rarer than duplicate alerts and much less distorting.
+  static List<FinanceTxn> _deduplicate(List<FinanceTxn> txns) {
+    final seen = <String>{};
+    final out = <FinanceTxn>[];
+    for (final t in txns) {
+      final key = '${t.amount}|${t.direction.name}|'
+          '${t.date.year}-${t.date.month}-${t.date.day}';
+      if (seen.add(key)) out.add(t);
+    }
+    return out;
   }
 
   // A recurring credit smaller than this is treated as a refund/cashback/P2P,
@@ -233,10 +264,15 @@ class FinanceMessageParser {
   static const _salaryBucketRupees = 500;
 
   /// Second pass: bank salary credits (NEFT/IMPS/RTGS/ACH) rarely contain a
-  /// "salary" keyword, so [parse] tags them as ordinary credits. Detect them
-  /// by structure instead — a same-size credit that recurs across two or more
-  /// distinct months is almost certainly salary. Tags the single strongest
-  /// such group (most months, then largest amount) as salary.
+  /// "salary" keyword, so [parse] tags them as ordinary credits. Detect them by
+  /// structure instead — a same-size credit that recurs across two or more
+  /// distinct months is almost certainly recurring income.
+  ///
+  /// Tags every qualifying group (so multiple income streams are all counted),
+  /// but at most ONE credit per calendar month per group. Without that cap, two
+  /// same-size credits landing in the same month (a split payout, a bonus, or a
+  /// duplicate that slipped past dedup) would both be summed into
+  /// `salaryCredited` and inflate the monthly-income average.
   static List<FinanceTxn> inferRecurringSalary(List<FinanceTxn> txns) {
     final buckets = <int, List<int>>{};
     for (var i = 0; i < txns.length; i++) {
@@ -247,33 +283,39 @@ class FinanceMessageParser {
       (buckets[key] ??= <int>[]).add(i);
     }
 
-    int? bestKey;
-    var bestMonths = 1;
-    var bestAmount = 0;
+    final toTag = <int>{};
     buckets.forEach((key, indices) {
-      final months = indices
-          .map((i) => txns[i].date.year * 12 + txns[i].date.month)
-          .toSet();
-      if (months.length < 2) return; // not recurring
-      final amount =
-          indices.map((i) => txns[i].amount).reduce((a, b) => a > b ? a : b);
-      if (months.length > bestMonths ||
-          (months.length == bestMonths && amount > bestAmount)) {
-        bestKey = key;
-        bestMonths = months.length;
-        bestAmount = amount;
+      // Keep the largest credit per month within this amount group.
+      final byMonth = <int, int>{};
+      for (final i in indices) {
+        final month = txns[i].date.year * 12 + txns[i].date.month;
+        final current = byMonth[month];
+        if (current == null || txns[i].amount > txns[current].amount) {
+          byMonth[month] = i;
+        }
       }
+      if (byMonth.length < 2) return; // not recurring across months
+      toTag.addAll(byMonth.values);
     });
 
-    if (bestKey == null) return txns;
-    final chosen = buckets[bestKey]!.toSet();
+    if (toTag.isEmpty) return txns;
     return [
       for (var i = 0; i < txns.length; i++)
-        chosen.contains(i) ? txns[i].copyWith(isSalary: true) : txns[i],
+        toTag.contains(i) ? txns[i].copyWith(isSalary: true) : txns[i],
     ];
   }
 
   int? _extractAmount(String lowerBody) {
+    // Worded amounts ("1.5 lakh") first — they are explicit and unambiguous.
+    final worded = _wordedAmountRe.firstMatch(lowerBody);
+    if (worded != null) {
+      final value = double.tryParse(worded.group(1)!);
+      if (value != null && value > 0) {
+        final unit = worded.group(2)!;
+        final multiplier = unit.startsWith('cr') ? 10000000 : 100000;
+        return (value * multiplier).round();
+      }
+    }
     // Prefer an amount that is NOT immediately described as a balance.
     final matches = _amountRe.allMatches(lowerBody).toList();
     if (matches.isEmpty) return null;

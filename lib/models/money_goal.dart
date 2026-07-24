@@ -59,6 +59,9 @@ class GoalProjection {
   final int availableMonthly;
   final int monthlyHeadroom;
 
+  /// The goal is already fully funded (saved ≥ target).
+  bool get alreadyFunded => amountRemaining <= 0;
+
   bool get isFeasible => monthlyHeadroom >= 0;
 }
 

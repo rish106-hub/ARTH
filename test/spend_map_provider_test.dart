@@ -14,6 +14,9 @@ class _FakeReader extends SmsReaderService {
   DateTime? lastSince;
 
   @override
+  bool get isSupported => true;
+
+  @override
   Future<bool> requestPermission() async => granted;
 
   @override

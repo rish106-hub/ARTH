@@ -141,6 +141,8 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   /// Requests SMS permission (if needed), reads the inbox, parses on-device,
   /// builds and persists the spend map, and best-effort syncs a summary.
   Future<void> scan([SpendScanPeriod? period]) async {
+    // Re-entrancy guard: ignore taps while a scan is already running.
+    if (state.loading) return;
     final selected = period ?? state.selectedPeriod;
     state = state.copyWith(
       loading: true,
@@ -149,6 +151,13 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       error: null,
     );
     try {
+      if (!_reader.isSupported) {
+        state = state.copyWith(
+          loading: false,
+          error: 'SMS scanning is available on Android only.',
+        );
+        return;
+      }
       final granted = await _reader.requestPermission();
       if (!granted) {
         state = state.copyWith(loading: false, permissionDenied: true);
@@ -175,8 +184,14 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     }
   }
 
-  void selectPeriod(SpendScanPeriod period) {
+  /// Changes the scan window. If a map already exists, immediately re-scans so
+  /// the figures reflect the new window (the period chips are otherwise inert).
+  /// Before the first scan we only record the choice and wait for the explicit
+  /// scan the empty-state button triggers.
+  Future<void> selectPeriod(SpendScanPeriod period) async {
+    if (period == state.selectedPeriod) return;
     state = state.copyWith(selectedPeriod: period);
+    if (state.hasData) await scan(period);
   }
 
   Future<void> recategorize(int transactionIndex, String category) async {
@@ -207,25 +222,15 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   }
 
   SpendMap _buildMap(List<FinanceTxn> txns, DateTime since) {
+    // Window reflects the requested scan period, not the transaction extent, so
+    // it stays truthful even when data is sparse. Monthly averages are derived
+    // from the months each series actually covers (see SpendMap), not from this
+    // window, so a partial window no longer distorts them.
     final now = DateTime.now();
-    if (txns.isEmpty) {
-      return SpendMap(
-        txns: const [],
-        windowStart: since,
-        windowEnd: now,
-        generatedAt: now,
-      );
-    }
-    var earliest = txns.first.date;
-    var latest = txns.first.date;
-    for (final t in txns) {
-      if (t.date.isBefore(earliest)) earliest = t.date;
-      if (t.date.isAfter(latest)) latest = t.date;
-    }
     return SpendMap(
       txns: txns,
-      windowStart: earliest,
-      windowEnd: latest,
+      windowStart: since,
+      windowEnd: now,
       generatedAt: now,
     );
   }

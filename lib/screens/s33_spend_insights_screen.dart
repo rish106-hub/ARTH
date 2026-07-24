@@ -29,7 +29,7 @@ class SpendInsightsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'ARTH reads bank & UPI SMS on this phone to map where your money goes. Parsing stays on-device.',
+                'ARTH reads only bank & UPI transaction SMS on this phone to map where your money goes. Personal messages are ignored and parsing stays on-device.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 20),
@@ -256,6 +256,11 @@ class _Insights extends ConsumerWidget {
         _CategoryBars(map: map),
         const SizedBox(height: 24),
         Text('Month by month', style: PaycheckType.heading()),
+        const SizedBox(height: 4),
+        Text(
+          'Spend per month',
+          style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+        ),
         const SizedBox(height: 12),
         _MonthlyTrend(map: map),
         if (unclear.isNotEmpty) ...[
@@ -294,7 +299,7 @@ class _Insights extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          '${map.txns.length} transactions across ${map.monthsSpan} month(s), '
+          '${map.txns.length} transactions across ${map.observedMonths} month(s), '
           'ending ${DateFormat('d MMM').format(map.windowEnd)}.',
           style: PaycheckType.utility(),
         ),
@@ -547,7 +552,12 @@ class _SavingsHero extends StatelessWidget {
           Text(money0(savings),
               style: PaycheckType.display(color: PaycheckColors.ink)),
           if (map.monthlyIncome > 0)
-            Text('$rate% of detected income', style: PaycheckType.utility()),
+            Text(
+              map.incomeIsDetected
+                  ? '$rate% of detected income'
+                  : '$rate% of estimated income (from your payslip)',
+              style: PaycheckType.utility(),
+            ),
           const SizedBox(height: 10),
           Text(coaching, style: PaycheckType.body()),
         ],

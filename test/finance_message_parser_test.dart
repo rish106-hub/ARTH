@@ -71,6 +71,70 @@ void main() {
       ]);
       expect(txns.single.isSalary, isTrue);
     });
+
+    test('caps at one credit per month so same-month payouts do not inflate',
+        () {
+      final txns = parser.parseAll([
+        // Two same-size credits in June (e.g. split payout) + one in July.
+        msg('Rs 85,000 credited by NEFT.', DateTime(2026, 6, 1)),
+        msg('Rs 85,000 credited by NEFT.', DateTime(2026, 6, 15)),
+        msg('Rs 85,000 credited by NEFT.', DateTime(2026, 7, 1)),
+      ]);
+      final map = SpendMap(
+        txns: txns,
+        windowStart: DateTime(2026, 6, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      );
+      // 2 tagged months × 85k, averaged over 2 salary-months → 85k (not 127.5k).
+      expect(map.monthlyIncome, 85000);
+    });
+
+    test('tags multiple recurring income streams', () {
+      final txns = parser.parseAll([
+        msg('Rs 85,000 credited by NEFT.', DateTime(2026, 6, 1)),
+        msg('Rs 85,000 credited by NEFT.', DateTime(2026, 7, 1)),
+        msg('Rs 20,000 credited by IMPS.', DateTime(2026, 6, 3)),
+        msg('Rs 20,000 credited by IMPS.', DateTime(2026, 7, 3)),
+      ]);
+      final salaryCount = txns.where((t) => t.isSalary).length;
+      expect(salaryCount, 4); // both streams recognised
+    });
+  });
+
+  group('dedup & amount coverage', () {
+    ({String sender, String body, DateTime date}) msg(
+      String body,
+      DateTime when, [
+      String sender = 'BANK',
+    ]) =>
+        (sender: sender, body: body, date: when);
+
+    test('drops duplicate alerts (same amount, direction, day)', () {
+      final txns = parser.parseAll([
+        msg('Rs 499 debited to SWIGGY.', DateTime(2026, 7, 5), 'HDFCBK'),
+        msg('Rs 499 paid to SWIGGY via UPI.', DateTime(2026, 7, 5), 'PAYTM'),
+      ]);
+      expect(txns.length, 1);
+    });
+
+    test('parses worded lakh amounts', () {
+      final txn = parse('Rs 1.5 lakh credited towards SALARY.');
+      expect(txn!.amount, 150000);
+      expect(txn.isSalary, isTrue);
+    });
+
+    test('parses crore amounts', () {
+      final txn = parse('INR 2 crore credited to a/c.');
+      expect(txn!.amount, 20000000);
+    });
+
+    test('word-boundary skip words do not drop legit merchants', () {
+      // "declined" only as a substring would wrongly drop this; word-boundary
+      // matching keeps it since there is no standalone skip word.
+      final txn = parse('Rs 300 debited at STORE for undeclinedX.');
+      expect(txn, isNotNull);
+    });
   });
 
   group('spend / debit', () {
@@ -139,7 +203,7 @@ void main() {
         windowEnd: DateTime(2026, 7, 31),
         generatedAt: DateTime(2026, 7, 31),
       );
-      expect(map.monthsSpan, 1);
+      expect(map.observedMonths, 1);
       expect(map.salaryCredited, 60000);
       expect(map.totalSpent, 499 + 1299 + 250);
       expect(map.monthlyIncome, 60000);
@@ -184,6 +248,73 @@ void main() {
       final restored = SpendMap.fromJsonString(map.toJsonString());
       expect(restored.fallbackMonthlyIncome, isNull);
       expect(restored.monthlyIncome, 0);
+    });
+
+    test('income and spend average over their own months, not a shared span',
+        () {
+      // Salary in Apr/May/Jun; spend only in Jun. Income must average over its
+      // 3 months (60k) while spend reflects its 1 month (3k) — not 3k/3.
+      final txns = [
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 60000 credited towards SALARY.',
+                date: DateTime(2026, 4, 1))!,
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 60000 credited towards SALARY.',
+                date: DateTime(2026, 5, 1))!,
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 60000 credited towards SALARY.',
+                date: DateTime(2026, 6, 1))!,
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 3000 spent at AMAZON.',
+                date: DateTime(2026, 6, 10))!,
+      ];
+      final map = SpendMap(
+        txns: txns,
+        windowStart: DateTime(2026, 4, 1),
+        windowEnd: DateTime(2026, 6, 30),
+        generatedAt: DateTime(2026, 6, 30),
+      );
+      expect(map.observedMonths, 3);
+      expect(map.monthlyIncome, 60000);
+      expect(map.monthlySpend, 3000);
+      expect(map.realisticMonthlySavings, 57000);
+    });
+
+    test('essential spend excludes discretionary categories', () {
+      final txns = [
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 12000 debited for RENT to NOBROKER.',
+                date: DateTime(2026, 7, 1))!,
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 1500 debited for BESCOM electricity bill.',
+                date: DateTime(2026, 7, 2))!,
+        parser
+            .parse(
+                sender: 'B',
+                body: 'Rs 5000 spent at AMAZON.',
+                date: DateTime(2026, 7, 3))!,
+      ];
+      final map = SpendMap(
+        txns: txns,
+        windowStart: DateTime(2026, 7, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      );
+      // rent + bills only (shopping excluded), single month.
+      expect(map.monthlyEssentialSpend, 13500);
+      expect(map.monthlySpend, 18500);
     });
 
     test('round-trips through JSON', () {
