@@ -43,7 +43,7 @@ const payslipInterpretationSchema = z.object({
   }),
   earnings: z.array(z.object({
     label: z.string().max(120),
-    amount: z.number().nonnegative(),
+    amount: z.number().finite().min(-100_000_000).max(100_000_000),
     classification: z.enum([
       'basic_pay',
       'hra',
@@ -57,7 +57,7 @@ const payslipInterpretationSchema = z.object({
   })).max(80),
   deductions: z.array(z.object({
     label: z.string().max(120),
-    amount: z.number().nonnegative(),
+    amount: z.number().finite().min(-100_000_000).max(100_000_000),
     classification: z.enum([
       'income_tax',
       'professional_tax',
@@ -68,6 +68,12 @@ const payslipInterpretationSchema = z.object({
     ]),
     confidence: z.enum(['high', 'medium', 'low']),
   })).max(80),
+  cumulative: z.array(z.object({
+    label: z.string().max(120),
+    amount: z.number().finite().min(-100_000_000).max(100_000_000),
+    category: z.enum(['earning', 'deduction', 'other']),
+    confidence: z.enum(['high', 'medium', 'low']),
+  })).max(80).default([]),
   grossEarnings: z.number().nonnegative().nullable(),
   totalDeductions: z.number().nonnegative().nullable(),
   netSalary: z.number().nonnegative().nullable(),
@@ -147,6 +153,22 @@ const payslipResponseSchema = {
         required: ['label', 'amount', 'classification', 'confidence'],
       },
     },
+    cumulative: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          amount: { type: 'number' },
+          category: {
+            type: 'string',
+            enum: ['earning', 'deduction', 'other'],
+          },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['label', 'amount', 'category', 'confidence'],
+      },
+    },
     grossEarnings: { type: 'number', nullable: true },
     totalDeductions: { type: 'number', nullable: true },
     netSalary: { type: 'number', nullable: true },
@@ -162,6 +184,7 @@ const payslipResponseSchema = {
     'attendance',
     'earnings',
     'deductions',
+    'cumulative',
     'grossEarnings',
     'totalDeductions',
     'netSalary',
@@ -349,14 +372,14 @@ export async function interpretPayslip(input: {
         store: false,
         systemInstruction: {
           parts: [{
-            text: 'Interpret Indian payslips. Extract only values visible in the document. Keep earnings and deductions separate. Never calculate tax, invent values, or treat an annual CTC value as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
+            text: 'Interpret Indian payslips, including bilingual and non-standard layouts. Extract only values visible in the document. Keep current-month earnings, current-month deductions, and cumulative or year-to-date values separate. Retain unfamiliar printed rows as other instead of dropping them. Preserve printed negative adjustments as negative amounts. Never calculate tax, invent values, or treat annual CTC or cumulative gross as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
           }],
         },
         contents: [{
           role: 'user',
           parts: [
             {
-              text: 'Extract pay period, attendance, every earning, every deduction, gross earnings, total deductions, and net salary for user review. Preserve the printed currency units.',
+              text: 'Extract pay period, attendance, every current-month earning, every current-month deduction, every cumulative or year-to-date row, gross earnings, total deductions, and net salary for user review. Use the printed monthly totals even when taxable and non-taxable labels differ. Preserve the source labels and printed currency units.',
             },
             {
               inlineData: {
@@ -463,6 +486,7 @@ function normalizePayslipInterpretation(value: unknown): unknown {
     currency: clamp(raw.currency, 8),
     earnings: clampRows(raw.earnings),
     deductions: clampRows(raw.deductions),
+    cumulative: clampRows(raw.cumulative ?? []),
     warnings: clampList(raw.warnings, 20, 240),
     questionsForUser: clampList(raw.questionsForUser, 12, 240),
   };

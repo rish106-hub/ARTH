@@ -400,6 +400,7 @@ export function parsePayslipText(text: string): PayslipInterpretation | null {
     },
     earnings,
     deductions,
+    cumulative: [],
     grossEarnings: grossEarnings ?? null,
     totalDeductions: totalDeductions ?? null,
     netSalary: netSalary ?? null,

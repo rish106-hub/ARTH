@@ -132,6 +132,57 @@ const documentPatchSchema = z.object({
   reviewStatus: z.enum(['not_reviewed', 'needs_review', 'reviewed']).optional(),
 }).refine((value) => Object.keys(value).length > 0);
 
+const manualPayslipRowSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  amount: z.number().finite().min(-100_000_000).max(100_000_000),
+  classification: z.literal('other').default('other'),
+  confidence: z.literal('high').default('high'),
+}).strict();
+
+const manualPayslipFieldsSchema = z.object({
+  employerName: z.string().trim().max(160).nullable().default(null),
+  employeeName: z.string().trim().max(160).nullable().default(null),
+  payPeriod: z.string().trim().max(80).nullable().default(null),
+  paymentDate: z.string().trim().max(40).nullable().default(null),
+  currency: z.string().trim().min(1).max(8).default('INR'),
+  attendance: z.object({
+    actualPayableDays: z.number().finite().nonnegative().max(366).nullable(),
+    totalWorkingDays: z.number().finite().nonnegative().max(366).nullable(),
+    lossOfPayDays: z.number().finite().nonnegative().max(366).nullable(),
+    daysPayable: z.number().finite().nonnegative().max(366).nullable(),
+  }).strict().default({
+    actualPayableDays: null,
+    totalWorkingDays: null,
+    lossOfPayDays: null,
+    daysPayable: null,
+  }),
+  earnings: z.array(manualPayslipRowSchema).max(80).default([]),
+  deductions: z.array(manualPayslipRowSchema).max(80).default([]),
+  grossEarnings: z.number().finite().positive().max(100_000_000),
+  totalDeductions: z.number().finite().nonnegative().max(100_000_000),
+  netSalary: z.number().finite().positive().max(100_000_000),
+  warnings: z.array(z.string().trim().min(1).max(240)).max(20)
+    .default(['Entered manually by the user.']),
+  questionsForUser: z.array(z.string().trim().min(1).max(240)).max(12)
+    .default([]),
+}).strict().superRefine((fields, context) => {
+  const expectedNet = fields.grossEarnings - fields.totalDeductions;
+  if (Math.abs(expectedNet - fields.netSalary) > 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['netSalary'],
+      message: 'Net salary must equal gross earnings minus total deductions',
+    });
+  }
+});
+
+const documentConfirmationSchema = z.preprocess(
+  (value) => value ?? {},
+  z.object({
+    fields: manualPayslipFieldsSchema.optional(),
+  }).strict(),
+);
+
 const documentTypeSchema = z.enum([
   'offerLetter',
   'payslip',
@@ -978,6 +1029,7 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!auth) return;
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const payload = documentConfirmationSchema.parse(request.body);
     const current = await db.query(
       `select parse_status, parse_summary, document_type
        from tax_documents
@@ -989,31 +1041,45 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     const row = current.rows[0];
-    if (row.parse_status !== 'needs_confirmation') {
+    const storedSummary = typeof row.parse_summary === 'object' && row.parse_summary
+      ? row.parse_summary as Record<string, unknown>
+      : {};
+    const isPayslip = row.document_type === 'payslip'
+      || storedSummary.detectedDocumentType === 'payslip'
+      || storedSummary.parser === 'gemini-payslip-v1'
+      || storedSummary.parser === 'deterministic-payslip-v1';
+    const manualFields = payload.fields;
+    const canConfirmExtracted = row.parse_status === 'needs_confirmation';
+    const canConfirmManually = manualFields
+      && isPayslip
+      && ['metadata_ready', 'needs_confirmation'].includes(row.parse_status);
+    if (!canConfirmExtracted && !canConfirmManually) {
       return reply.code(409).send({
         message: 'This document has no pending parsed fields to confirm',
       });
     }
 
-    const storedSummary = typeof row.parse_summary === 'object' && row.parse_summary
-      ? row.parse_summary as Record<string, unknown>
-      : {};
     const summary = publicParseSummary(storedSummary);
-    const extractedFields = summary.extractedFields && typeof summary.extractedFields === 'object'
-      ? summary.extractedFields as Record<string, unknown>
-      : {};
+    const extractedFields = manualFields ?? (
+      summary.extractedFields && typeof summary.extractedFields === 'object'
+        ? summary.extractedFields as Record<string, unknown>
+        : {}
+    );
     const confirmedSummary = {
       ...storedSummary,
       confirmationStatus: 'confirmed',
       confirmedAt: new Date().toISOString(),
       confirmedFieldKeys: Object.keys(extractedFields),
+      ...(manualFields ? { manualEntry: true } : {}),
     };
     const payslipFields = Array.isArray(extractedFields.earnings)
       && Array.isArray(extractedFields.deductions)
       && ('netSalary' in extractedFields || 'grossEarnings' in extractedFields);
-    const confirmedDocumentType = row.document_type === 'offerLetter' && payslipFields
+    const confirmedDocumentType = manualFields
       ? 'payslip'
-      : row.document_type;
+      : row.document_type === 'offerLetter' && payslipFields
+        ? 'payslip'
+        : row.document_type;
     const updated = await db.query(
       `update tax_documents
        set parse_status = 'parsed',
