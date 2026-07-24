@@ -135,14 +135,14 @@ void main() {
               'classification': 'voluntary_pf',
             },
             {
-              'label': 'Employee NPS',
-              'canonicalKey': 'employee_nps',
+              'label': 'NPS 80CCD(1B)',
+              'canonicalKey': 'nps_80ccd_1b',
               'amount': 1000,
               'classification': 'other',
             },
             {
-              'label': 'Health insurance',
-              'canonicalKey': 'health_insurance',
+              'label': 'Mediclaim 80D',
+              'canonicalKey': 'mediclaim_80d',
               'amount': 750,
               'classification': 'insurance',
             },

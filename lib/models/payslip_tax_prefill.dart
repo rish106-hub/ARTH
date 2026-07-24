@@ -98,13 +98,16 @@ PayslipTaxPrefill? payslipTaxPrefillFromDocuments(
   );
   final employeeNps = _sumWhere(
     deductions,
-    (row) => _containsAny(row, const ['nps', 'national pension']),
+    (row) => _containsAny(
+      row,
+      const ['80ccd(1b)', '80ccd 1b', '80ccd_1b', '80ccd1b'],
+    ),
   );
   final healthInsurance = _sumWhere(
     deductions,
     (row) =>
         row['classification']?.toString() == 'insurance' &&
-        _containsAny(row, const ['health', 'medical', 'mediclaim']),
+        _containsAny(row, const ['80d', 'mediclaim']),
   );
 
   final prefill = PayslipTaxPrefill(
