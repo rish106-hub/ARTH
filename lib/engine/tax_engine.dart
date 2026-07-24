@@ -73,12 +73,15 @@ class TaxEngine {
     double gross = p.annualCTC.toDouble() + _modeledInterestIncome(p);
     final rule = ruleSet.newRegime;
 
-    // Standard deduction
-    double deductions = rule.standardDeduction.toDouble();
+    // Standard deduction — salaried/pension only (not self-employed).
+    double deductions = p.employmentType == EmploymentType.salaried
+        ? rule.standardDeduction.toDouble()
+        : 0;
 
+    // 80CCD(2) employer NPS — allowed in the new regime at 14% of basic+DA.
     if (p.employmentType == EmploymentType.salaried &&
         p.employerNpsContribution != null) {
-      deductions += _employerNpsDeduction(p);
+      deductions += _employerNpsDeduction(p, rate: 0.14);
     }
 
     double taxable = gross - deductions;
@@ -91,10 +94,12 @@ class TaxEngine {
       taxable,
       rule,
       cessRate: ruleSet.cessRate,
+      // Marginal relief on the rebate is a new-regime feature.
+      allowMarginalRelief: true,
     );
 
-    // Surcharge
-    double surcharge = _surcharge(tax, taxable, isNew: true);
+    // Surcharge (with marginal relief; new-regime 25% cap).
+    double surcharge = _surcharge(tax, taxable, rule.slabs, isNew: true);
 
     // Cess 4%
     double cess = (tax + surcharge) * ruleSet.cessRate;
@@ -119,8 +124,10 @@ class TaxEngine {
     final rule = ruleSet.oldRegime;
     double deductions = 0;
 
-    // Standard deduction (old regime)
-    deductions += rule.standardDeduction;
+    // Standard deduction — salaried/pension only (not self-employed).
+    if (p.employmentType == EmploymentType.salaried) {
+      deductions += rule.standardDeduction;
+    }
 
     // Professional tax — only applicable for salaried employees (max ₹2,500)
     if (p.employmentType == EmploymentType.salaried) {
@@ -154,9 +161,10 @@ class TaxEngine {
     final npsCap = ruleSet.deductionCaps['80ccd_1b'] ?? 50000;
     deductions += npsExtra < npsCap ? npsExtra : npsCap.toDouble();
 
+    // 80CCD(2) employer NPS — old regime: 10% of basic+DA (private sector).
     if (p.employmentType == EmploymentType.salaried &&
         p.employerNpsContribution != null) {
-      deductions += _employerNpsDeduction(p);
+      deductions += _employerNpsDeduction(p, rate: 0.10);
     }
 
     // 80D
@@ -171,10 +179,13 @@ class TaxEngine {
       deductions += p.educationLoanInterest.toDouble();
     }
 
-    // 80G — donations (simplified: 50% of amount, no qualifying limit applied here)
-    if (p.hasDonations) {
-      final rate = (p.donationDeductionRatePercent ?? 50).clamp(0, 100) / 100;
-      deductions += (p.donationAmount * rate).toDouble();
+    // 80G — donations. Category drives the rate (100%/50%) and whether the
+    // 10%-of-adjusted-GTI qualifying limit applies. Adjusted GTI is
+    // approximated as gross minus the deductions accumulated so far (all of
+    // which precede 80G in this method).
+    if (p.hasDonations && p.donationAmount > 0) {
+      final adjustedGti = gross - deductions;
+      deductions += _calculate80G(p, adjustedGti < 0 ? 0 : adjustedGti);
     }
 
     // 80TTA / 80TTB
@@ -210,10 +221,12 @@ class TaxEngine {
       taxable,
       rule,
       cessRate: ruleSet.cessRate,
+      // Old-regime 87A rebate has NO marginal relief above the ₹5L limit.
+      allowMarginalRelief: false,
     );
 
-    // Surcharge
-    double surcharge = _surcharge(tax, taxable, isNew: false);
+    // Surcharge (with marginal relief; old-regime up to 37%).
+    double surcharge = _surcharge(tax, taxable, slabs, isNew: false);
 
     // Cess 4%
     double cess = (tax + surcharge) * ruleSet.cessRate;
@@ -269,13 +282,19 @@ class TaxEngine {
   // ─── 80D ─────────────────────────────────────────────────────────────────
   static double _calculate80D(UserProfile p, TaxRuleSet ruleSet) {
     double deduction = 0;
-    if (p.healthInsuranceSelfPremium != null) {
+
+    // Preventive health check-up is deductible up to ₹5,000, WITHIN the
+    // self/family limit (not on top of it).
+    final preventive =
+        (p.preventiveHealthCheckup ?? 0).clamp(0, 5000).toDouble();
+
+    if (p.healthInsuranceSelfPremium != null || preventive > 0) {
       final cap = p.ageAbove60
           ? ruleSet.deductionCaps['80d_self_above60'] ?? 50000
           : ruleSet.deductionCaps['80d_self_below60'] ?? 25000;
-      deduction += p.healthInsuranceSelfPremium! < cap
-          ? p.healthInsuranceSelfPremium!.toDouble()
-          : cap.toDouble();
+      final selfSpend =
+          (p.healthInsuranceSelfPremium ?? 0).toDouble() + preventive;
+      deduction += selfSpend < cap ? selfSpend : cap.toDouble();
     }
     if (p.healthInsuranceParentsPremium != null) {
       final cap = p.parentsAbove60
@@ -288,9 +307,40 @@ class TaxEngine {
     return deduction;
   }
 
-  static double _employerNpsDeduction(UserProfile p) {
+  // ─── 80G ─────────────────────────────────────────────────────────────────
+  static double _calculate80G(UserProfile p, double adjustedGti) {
+    final amount = p.donationAmount.toDouble();
+    if (amount <= 0) return 0;
+
+    // Cash donations above ₹2,000 are entirely ineligible.
+    if (p.donationInCash && amount > 2000) return 0;
+
+    final category = p.donationCategory;
+    final double rate;
+    final bool limited;
+    if (category != null) {
+      rate = category.rate;
+      limited = category.hasQualifyingLimit;
+    } else {
+      // Legacy: free-form rate (default 50%), no qualifying limit — preserves
+      // prior behaviour until the category question is answered.
+      rate = (p.donationDeductionRatePercent ?? 50).clamp(0, 100) / 100;
+      limited = false;
+    }
+
+    double eligible = amount;
+    if (limited) {
+      final qualifyingCap = adjustedGti * 0.10;
+      if (eligible > qualifyingCap) eligible = qualifyingCap;
+    }
+    return eligible * rate;
+  }
+
+  /// 80CCD(2) employer NPS deduction, capped at [rate] × basic+DA. The cap rate
+  /// differs by regime: 14% (new) vs 10% (old, private sector).
+  static double _employerNpsDeduction(UserProfile p, {required double rate}) {
     final contribution = p.employerNpsContribution ?? 0;
-    final cap = p.approximateBasicSalary * 0.10;
+    final cap = p.approximateBasicSalary * rate;
     return contribution < cap ? contribution.toDouble() : cap;
   }
 
@@ -303,6 +353,7 @@ class TaxEngine {
     double taxable,
     RegimeRuleSet rule, {
     required double cessRate,
+    required bool allowMarginalRelief,
   }) {
     if (taxable <= rule.rebate87ALimit) {
       final rebate =
@@ -311,20 +362,61 @@ class TaxEngine {
       return afterRebate < 0 ? 0 : afterRebate;
     }
 
+    // Above the rebate limit: the old regime gets no rebate and no marginal
+    // relief. Only the new regime caps tax just above the limit so it never
+    // exceeds the income earned over the limit.
+    if (!allowMarginalRelief) return tax;
+
     final excess = taxable - rule.rebate87ALimit;
     if (excess <= 0) return tax;
     final preCessCap = excess / (1 + cessRate);
     return tax > preCessCap ? preCessCap : tax;
   }
 
-  // ─── SURCHARGE ───────────────────────────────────────────────────────────
-  static double _surcharge(double tax, double taxable, {required bool isNew}) {
+  // ─── SURCHARGE (with marginal relief) ────────────────────────────────────
+  /// Surcharge on income tax, with marginal relief at each threshold so a rupee
+  /// over a boundary never adds more (tax + surcharge) than the extra income.
+  /// [slabs] are the regime/age slabs actually used, so the tax-at-threshold
+  /// used for relief matches how this taxpayer is taxed.
+  static double _surcharge(
+    double tax,
+    double taxable,
+    List<TaxSlab> slabs, {
+    required bool isNew,
+  }) {
+    final rate = _surchargeRate(taxable, isNew: isNew);
+    if (rate == 0) return 0;
+    double surcharge = tax * rate;
+
+    // Marginal relief: (tax + surcharge) must not exceed the (tax + surcharge)
+    // at the threshold below, plus the income earned above that threshold.
+    final (threshold, lowerRate) = _surchargeThresholdBelow(taxable);
+    final taxAtThreshold = _applySlabs(threshold, slabs);
+    final totalAtThreshold = taxAtThreshold * (1 + lowerRate);
+    final cap = totalAtThreshold + (taxable - threshold);
+    if (tax + surcharge > cap) {
+      surcharge = cap - tax;
+      if (surcharge < 0) surcharge = 0;
+    }
+    return surcharge;
+  }
+
+  static double _surchargeRate(double taxable, {required bool isNew}) {
     if (taxable <= 5000000) return 0;
-    if (taxable <= 10000000) return tax * 0.10;
-    if (taxable <= 20000000) return tax * 0.15;
-    if (taxable <= 50000000) return tax * 0.25;
-    // Above 5 Cr
-    return isNew ? tax * 0.25 : tax * 0.37;
+    if (taxable <= 10000000) return 0.10;
+    if (taxable <= 20000000) return 0.15;
+    if (taxable <= 50000000) return 0.25;
+    // Above 5 Cr: new regime caps surcharge at 25%.
+    return isNew ? 0.25 : 0.37;
+  }
+
+  /// The surcharge threshold just below [taxable] and the surcharge rate that
+  /// applies at that threshold — used to compute marginal relief.
+  static (double, double) _surchargeThresholdBelow(double taxable) {
+    if (taxable <= 10000000) return (5000000, 0.0);
+    if (taxable <= 20000000) return (10000000, 0.10);
+    if (taxable <= 50000000) return (20000000, 0.15);
+    return (50000000, 0.25);
   }
 
   // ─── SLAB APPLICATION ────────────────────────────────────────────────────
@@ -447,7 +539,9 @@ class TaxEngine {
         ),
       );
     }
-    if (p.hasDonations && p.donationDeductionRatePercent == null) {
+    if (p.hasDonations &&
+        p.donationCategory == null &&
+        p.donationDeductionRatePercent == null) {
       assumptions.add(
         const TaxAssumption(
           code: 'donation_rate_estimated',

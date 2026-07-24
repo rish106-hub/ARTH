@@ -223,6 +223,10 @@ class TaxRuleSet {
   final Map<String, int> deductionCaps;
   final List<IncomeGuidanceItem> incomeGuidance;
 
+  /// Cities that qualify for the 50% HRA exemption (vs 40% elsewhere). This is
+  /// year-dependent: FY2026-27 expanded the list from 4 to 8 metros (Rule 279).
+  final List<String> hraMetroCities;
+
   const TaxRuleSet({
     required this.id,
     required this.calculationMode,
@@ -239,7 +243,15 @@ class TaxRuleSet {
     required this.oldRegime,
     required this.deductionCaps,
     required this.incomeGuidance,
+    this.hraMetroCities = const [],
   });
+
+  /// Whether [city] qualifies for the 50% HRA metro rate under this year's
+  /// rules. Case-insensitive.
+  bool isHraMetro(String city) {
+    final target = city.trim().toLowerCase();
+    return hraMetroCities.any((c) => c.toLowerCase() == target);
+  }
 
   bool get isFiling => calculationMode == CalculationMode.filing;
 
@@ -273,6 +285,9 @@ class TaxRuleSet {
           .map((item) => IncomeGuidanceItem.fromJson(
                 item as Map<String, dynamic>,
               ))
+          .toList(),
+      hraMetroCities: (json['hra_metro_cities'] as List<dynamic>? ?? const [])
+          .map((c) => c.toString())
           .toList(),
     );
   }

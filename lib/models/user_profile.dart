@@ -15,6 +15,63 @@ enum AgeGroup { below30, age30to45, age45to60, above60, above80 }
 
 enum PropertyType { selfOccupied, letOut }
 
+/// How the user wants the two regimes handled. `auto` lets the app decide
+/// (and skip deduction questions when the new regime is a clear win).
+enum RegimePreference { auto, newRegime, oldRegime }
+
+RegimePreference _regimePreferenceFromJson(dynamic value) {
+  if (value is String) {
+    for (final r in RegimePreference.values) {
+      if (r.name == value) return r;
+    }
+  }
+  return RegimePreference.auto;
+}
+
+/// 80G donation buckets. Each maps to a statutory deduction rate and whether
+/// the 10%-of-adjusted-GTI qualifying limit applies.
+enum DonationCategory {
+  /// PM CARES, PMNRF, National Defence Fund, etc. — 100%, no qualifying limit.
+  hundredNoLimit,
+
+  /// e.g. certain government/state funds — 100%, subject to the 10% limit.
+  hundredWithLimit,
+
+  /// e.g. PM Drought Relief and similar — 50%, no qualifying limit.
+  fiftyNoLimit,
+
+  /// NGOs, charitable / religious (temple) trusts with 80G — 50%, 10% limit.
+  fiftyWithLimit,
+}
+
+extension DonationCategoryX on DonationCategory {
+  /// Fraction of the eligible donation that is deductible.
+  double get rate => switch (this) {
+        DonationCategory.hundredNoLimit => 1.0,
+        DonationCategory.hundredWithLimit => 1.0,
+        DonationCategory.fiftyNoLimit => 0.5,
+        DonationCategory.fiftyWithLimit => 0.5,
+      };
+
+  /// Whether the 10%-of-adjusted-GTI qualifying limit caps the eligible amount.
+  bool get hasQualifyingLimit => switch (this) {
+        DonationCategory.hundredWithLimit => true,
+        DonationCategory.fiftyWithLimit => true,
+        _ => false,
+      };
+
+  int get ratePercent => (rate * 100).round();
+}
+
+DonationCategory? _donationCategoryFromJson(dynamic value) {
+  if (value is String) {
+    for (final c in DonationCategory.values) {
+      if (c.name == value) return c;
+    }
+  }
+  return null;
+}
+
 EmploymentType _employmentTypeFromJson(dynamic value) {
   if (value is String) {
     return EmploymentType.values.firstWhere(
@@ -147,9 +204,14 @@ class UserProfile {
   // Q11
   final bool hasDonations;
   final int donationAmount;
+  final DonationCategory? donationCategory;
+  final bool donationInCash;
 
   // Q12
   final AgeGroup ageGroup;
+
+  // Regime intent — gates whether deduction questions are asked.
+  final RegimePreference regimePreference;
 
   // Optional exactness inputs. Null means "not collected yet" and the engine
   // will use a conservative app assumption with a visible assumption tag.
@@ -158,6 +220,7 @@ class UserProfile {
   final int? actualProfessionalTax;
   final int? healthInsuranceSelfPremium;
   final int? healthInsuranceParentsPremium;
+  final int? preventiveHealthCheckup;
   final int? savingsInterest;
   final int? fdInterest;
   final int? employerNpsContribution;
@@ -201,12 +264,16 @@ class UserProfile {
     this.educationLoanInterest = 0,
     this.hasDonations = false,
     this.donationAmount = 0,
+    this.donationCategory,
+    this.donationInCash = false,
     this.ageGroup = AgeGroup.below30,
+    this.regimePreference = RegimePreference.auto,
     this.actualBasicSalary,
     this.actualHraReceived,
     this.actualProfessionalTax,
     this.healthInsuranceSelfPremium,
     this.healthInsuranceParentsPremium,
+    this.preventiveHealthCheckup,
     this.savingsInterest,
     this.fdInterest,
     this.employerNpsContribution,
@@ -242,12 +309,16 @@ class UserProfile {
     int? educationLoanInterest,
     bool? hasDonations,
     int? donationAmount,
+    Object? donationCategory = _unset,
+    bool? donationInCash,
     AgeGroup? ageGroup,
+    RegimePreference? regimePreference,
     Object? actualBasicSalary = _unset,
     Object? actualHraReceived = _unset,
     Object? actualProfessionalTax = _unset,
     Object? healthInsuranceSelfPremium = _unset,
     Object? healthInsuranceParentsPremium = _unset,
+    Object? preventiveHealthCheckup = _unset,
     Object? savingsInterest = _unset,
     Object? fdInterest = _unset,
     Object? employerNpsContribution = _unset,
@@ -285,7 +356,12 @@ class UserProfile {
           educationLoanInterest ?? this.educationLoanInterest,
       hasDonations: hasDonations ?? this.hasDonations,
       donationAmount: donationAmount ?? this.donationAmount,
+      donationCategory: identical(donationCategory, _unset)
+          ? this.donationCategory
+          : donationCategory as DonationCategory?,
+      donationInCash: donationInCash ?? this.donationInCash,
       ageGroup: ageGroup ?? this.ageGroup,
+      regimePreference: regimePreference ?? this.regimePreference,
       actualBasicSalary: identical(actualBasicSalary, _unset)
           ? this.actualBasicSalary
           : actualBasicSalary as int?,
@@ -302,6 +378,9 @@ class UserProfile {
           identical(healthInsuranceParentsPremium, _unset)
               ? this.healthInsuranceParentsPremium
               : healthInsuranceParentsPremium as int?,
+      preventiveHealthCheckup: identical(preventiveHealthCheckup, _unset)
+          ? this.preventiveHealthCheckup
+          : preventiveHealthCheckup as int?,
       savingsInterest: identical(savingsInterest, _unset)
           ? this.savingsInterest
           : savingsInterest as int?,
@@ -343,12 +422,16 @@ class UserProfile {
         'educationLoanInterest': educationLoanInterest,
         'hasDonations': hasDonations,
         'donationAmount': donationAmount,
+        'donationCategory': donationCategory?.name,
+        'donationInCash': donationInCash,
         'ageGroup': ageGroup.name,
+        'regimePreference': regimePreference.name,
         'actualBasicSalary': actualBasicSalary,
         'actualHraReceived': actualHraReceived,
         'actualProfessionalTax': actualProfessionalTax,
         'healthInsuranceSelfPremium': healthInsuranceSelfPremium,
         'healthInsuranceParentsPremium': healthInsuranceParentsPremium,
+        'preventiveHealthCheckup': preventiveHealthCheckup,
         'savingsInterest': savingsInterest,
         'fdInterest': fdInterest,
         'employerNpsContribution': employerNpsContribution,
@@ -387,13 +470,17 @@ class UserProfile {
       educationLoanInterest: readInt('educationLoanInterest', 0),
       hasDonations: json['hasDonations'] ?? false,
       donationAmount: readInt('donationAmount', 0),
+      donationCategory: _donationCategoryFromJson(json['donationCategory']),
+      donationInCash: json['donationInCash'] ?? false,
       ageGroup: _ageGroupFromJson(json['ageGroup']),
+      regimePreference: _regimePreferenceFromJson(json['regimePreference']),
       actualBasicSalary: readOptionalInt('actualBasicSalary'),
       actualHraReceived: readOptionalInt('actualHraReceived'),
       actualProfessionalTax: readOptionalInt('actualProfessionalTax'),
       healthInsuranceSelfPremium: readOptionalInt('healthInsuranceSelfPremium'),
       healthInsuranceParentsPremium:
           readOptionalInt('healthInsuranceParentsPremium'),
+      preventiveHealthCheckup: readOptionalInt('preventiveHealthCheckup'),
       savingsInterest: readOptionalInt('savingsInterest'),
       fdInterest: readOptionalInt('fdInterest'),
       employerNpsContribution: readOptionalInt('employerNpsContribution'),

@@ -15,6 +15,16 @@
     "https://www.incometaxindia.gov.in/w/tax-rates%E2%80%8B"
   ],
   "cess_rate": 0.04,
+  "hra_metro_cities": [
+    "Delhi",
+    "Mumbai",
+    "Chennai",
+    "Kolkata",
+    "Bengaluru",
+    "Hyderabad",
+    "Pune",
+    "Ahmedabad"
+  ],
   "new_regime": {
     "standard_deduction": 75000,
     "rebate_87a_limit": 1200000,

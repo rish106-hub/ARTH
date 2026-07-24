@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_account.dart';
 import '../models/user_profile.dart';
 import '../models/payslip_tax_prefill.dart';
+import '../models/form16_tax_prefill.dart';
 import '../services/backend_sync_service.dart';
 import '../services/secure_storage_service.dart';
 import 'auth_provider.dart';
@@ -40,6 +41,11 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   }
 
   void applyPayslipPrefill(PayslipTaxPrefill prefill) {
+    state = prefill.applyTo(state);
+    _scheduleDraftSync();
+  }
+
+  void applyForm16Prefill(Form16TaxPrefill prefill) {
     state = prefill.applyTo(state);
     _scheduleDraftSync();
   }

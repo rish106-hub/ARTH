@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/tax_document.dart';
 import '../models/payslip_tax_prefill.dart';
+import '../models/form16_tax_prefill.dart';
 import '../services/tax_document_service.dart';
 import 'user_profile_provider.dart';
 
@@ -98,4 +99,11 @@ final payslipTaxPrefillProvider = Provider<PayslipTaxPrefill?>((ref) {
     userProfileProvider.select((profile) => profile.jobDurationMonths),
   );
   return payslipTaxPrefillFromDocuments(documents, monthsWorked: monthsWorked);
+});
+
+/// Prefill from the latest confirmed Form 16 (employer's annual statement).
+final form16TaxPrefillProvider = Provider<Form16TaxPrefill?>((ref) {
+  final documents = ref.watch(taxDocumentProvider).asData?.value;
+  if (documents == null) return null;
+  return form16TaxPrefillFromDocuments(documents);
 });

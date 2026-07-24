@@ -5,14 +5,115 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
+import '../models/tax_rule_set.dart';
 import '../models/payslip_tax_prefill.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/tax_journey_scene.dart';
 import '../widgets/employer_picker.dart';
+
+/// The diagnostic's question steps. The flow shows a gated SUBSET of these
+/// (doctor-style): deduction steps are skipped when the new regime is a clear
+/// win, and HRA is skipped for the self-employed.
+enum _QStep {
+  ctc,
+  employment,
+  regime,
+  city,
+  rent,
+  hra,
+  eightyC,
+  homeLoan,
+  nps,
+  health,
+  educationLoan,
+  donations,
+  age,
+}
+
+extension _QStepX on _QStep {
+  /// Stable index into the illustration set (`_JourneySnapshot.forStep`), which
+  /// is keyed to a question's MEANING, not its position in the gated list.
+  int get visualIndex => switch (this) {
+        _QStep.ctc => 0,
+        _QStep.employment => 1,
+        _QStep.regime => 1,
+        _QStep.city => 2,
+        _QStep.rent => 3,
+        _QStep.hra => 4,
+        _QStep.eightyC => 5,
+        _QStep.homeLoan => 6,
+        _QStep.nps => 7,
+        _QStep.health => 8,
+        _QStep.educationLoan => 9,
+        _QStep.donations => 10,
+        _QStep.age => 11,
+      };
+}
+
+/// Whether the old-regime deduction questions are worth asking. When the new
+/// regime already makes tax zero (income within the rebate + standard-deduction
+/// band) there is nothing the old regime can beat, so we skip them.
+bool _needsDeductionInputs(UserProfile p, TaxRuleSet? rs) {
+  switch (p.regimePreference) {
+    case RegimePreference.oldRegime:
+      return true;
+    case RegimePreference.newRegime:
+      return false;
+    case RegimePreference.auto:
+      final rebateLimit = rs?.newRegime.rebate87ALimit ?? 1200000;
+      final sd = p.employmentType == EmploymentType.salaried
+          ? (rs?.newRegime.standardDeduction ?? 75000)
+          : 0;
+      return p.annualCTC > rebateLimit + sd;
+  }
+}
+
+/// Fields of the latest confirmed offer letter, tagged with `__documentId`, or
+/// null. Watches the document list so a newly-confirmed offer triggers a
+/// rebuild.
+Map<String, dynamic>? _confirmedOfferLetterFields(WidgetRef ref) {
+  final docs = ref.watch(taxDocumentProvider).asData?.value;
+  if (docs == null) return null;
+  final offers = docs
+      .where((d) =>
+          d.active &&
+          d.documentType == 'offerLetter' &&
+          !d.isPayslip &&
+          d.parsed &&
+          d.confirmedFields.isNotEmpty)
+      .toList()
+    ..sort((a, b) => (b.reviewedAt ?? b.createdAt ?? DateTime(1970))
+        .compareTo(a.reviewedAt ?? a.createdAt ?? DateTime(1970)));
+  if (offers.isEmpty) return null;
+  return {...offers.first.confirmedFields, '__documentId': offers.first.id};
+}
+
+/// The ordered, gated list of steps for the current profile.
+List<_QStep> _visibleSteps(UserProfile p, TaxRuleSet? rs) {
+  final steps = <_QStep>[_QStep.ctc, _QStep.employment, _QStep.regime];
+  if (_needsDeductionInputs(p, rs)) {
+    steps.add(_QStep.city);
+    steps.add(_QStep.rent);
+    if (p.employmentType == EmploymentType.salaried) {
+      steps.add(_QStep.hra); // self-employed cannot claim HRA
+    }
+    steps.addAll(const [
+      _QStep.eightyC,
+      _QStep.homeLoan,
+      _QStep.nps,
+      _QStep.health,
+      _QStep.educationLoan,
+      _QStep.donations,
+    ]);
+  }
+  steps.add(_QStep.age);
+  return steps;
+}
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   final bool paycheckMode;
@@ -28,9 +129,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   late AnimationController _slideCtrl;
   late Animation<double> _slideAnim;
   late UserProfile _entryProfile;
-  int _step = 0; // 0–11 tax questions only
+  int _pos = 0; // position within the gated visible-steps list
   bool _finishing = false;
   String? _appliedPayslipId;
+  String? _appliedForm16Id;
+  String? _appliedOfferId;
+
+  List<_QStep> _currentSteps() {
+    final p = ref.read(userProfileProvider);
+    final rs = ref.read(activeTaxRuleSetProvider).asData?.value;
+    return _visibleSteps(p, rs);
+  }
 
   @override
   void initState() {
@@ -52,8 +161,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
   void _next() {
     HapticFeedback.lightImpact();
-    if (_step < 11) {
-      setState(() => _step++);
+    // Recompute against the latest profile: the answer just given (e.g. regime
+    // choice, employment type) may have added or removed later steps.
+    final steps = _currentSteps();
+    if (_pos < steps.length - 1) {
+      setState(() => _pos++);
       _slideCtrl.reset();
       _slideCtrl.forward();
     } else {
@@ -62,9 +174,9 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   }
 
   Future<void> _prev() async {
-    if (_step > 0) {
+    if (_pos > 0) {
       HapticFeedback.lightImpact();
-      setState(() => _step--);
+      setState(() => _pos--);
       _slideCtrl.reset();
       _slideCtrl.forward();
     } else {
@@ -119,6 +231,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   Widget build(BuildContext context) {
     final profile = ref.watch(userProfileProvider);
     final payslipPrefill = ref.watch(payslipTaxPrefillProvider);
+    final form16Prefill = ref.watch(form16TaxPrefillProvider);
     if (payslipPrefill != null &&
         _appliedPayslipId != payslipPrefill.documentId) {
       _appliedPayslipId = payslipPrefill.documentId;
@@ -129,12 +242,39 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
             .applyPayslipPrefill(payslipPrefill);
       });
     }
+    // Form 16 is the authoritative annual statement — apply after the payslip
+    // so its true annual gross wins, while the payslip's granular basic/HRA/80C
+    // values are preserved.
+    if (form16Prefill != null && _appliedForm16Id != form16Prefill.documentId) {
+      _appliedForm16Id = form16Prefill.documentId;
+      Future<void>.microtask(() {
+        if (!mounted) return;
+        ref.read(userProfileProvider.notifier).applyForm16Prefill(form16Prefill);
+      });
+    }
+    // Offer letter fills income/employer only when there is no payslip or
+    // Form 16 (which are both more authoritative).
+    if (payslipPrefill == null && form16Prefill == null) {
+      final offer = _confirmedOfferLetterFields(ref);
+      final offerId = offer?['__documentId']?.toString();
+      if (offer != null && offerId != null && _appliedOfferId != offerId) {
+        _appliedOfferId = offerId;
+        Future<void>.microtask(() {
+          if (!mounted) return;
+          ref.read(userProfileProvider.notifier).applyConfirmedOfferLetter(offer);
+        });
+      }
+    }
 
     if (_finishing) {
       return const _BuildingPlanScreen();
     }
 
-    final meta = _DiagnosticMeta.forStep(_step);
+    final ruleSet = ref.watch(activeTaxRuleSetProvider).asData?.value;
+    final steps = _visibleSteps(profile, ruleSet);
+    final pos = _pos.clamp(0, steps.length - 1);
+    final current = steps[pos];
+    final meta = _DiagnosticMeta.forQStep(current);
 
     return PopScope(
       canPop: false,
@@ -166,7 +306,10 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: QuestionProgressBar(current: _step, total: 12),
+                          child: QuestionProgressBar(
+                            current: pos,
+                            total: steps.length,
+                          ),
                         ),
                       ],
                     ),
@@ -176,7 +319,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
 
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                child: _ChapterMarker(meta: meta, step: _step),
+                child: _ChapterMarker(meta: meta, step: current.visualIndex),
               ),
 
               const SizedBox(height: 22),
@@ -190,10 +333,10 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                     child: Opacity(opacity: _slideAnim.value, child: child),
                   ),
                   child: _QuestionVisualScope(
-                    step: _step,
+                    step: current.visualIndex,
                     profile: profile,
                     meta: meta,
-                    child: _buildStep(context, profile, _step),
+                    child: _buildStep(context, profile, current),
                   ),
                 ),
               ),
@@ -204,46 +347,46 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
     );
   }
 
-  Widget _buildStep(BuildContext context, UserProfile p, int step) {
+  Widget _buildStep(BuildContext context, UserProfile p, _QStep step) {
     switch (step) {
-      case 0:
+      case _QStep.ctc:
         return _Q01CTC(
           profile: p,
           payslipPrefill: ref.read(payslipTaxPrefillProvider),
           onNext: _next,
         );
-      case 1:
+      case _QStep.employment:
         return _Q02Employment(
           profile: p,
           payslipPrefill: ref.read(payslipTaxPrefillProvider),
           onNext: _next,
         );
-      case 2:
+      case _QStep.regime:
+        return _QRegime(profile: p, onNext: _next);
+      case _QStep.city:
         return _Q03City(profile: p, onNext: _next);
-      case 3:
+      case _QStep.rent:
         return _Q04Rent(profile: p, onNext: _next);
-      case 4:
+      case _QStep.hra:
         return _Q05HRA(
           profile: p,
           payslipPrefill: ref.read(payslipTaxPrefillProvider),
           onNext: _next,
         );
-      case 5:
+      case _QStep.eightyC:
         return _Q06EightyC(profile: p, onNext: _next);
-      case 6:
+      case _QStep.homeLoan:
         return _Q07HomeLoan(profile: p, onNext: _next);
-      case 7:
+      case _QStep.nps:
         return _Q08NPS(profile: p, onNext: _next);
-      case 8:
+      case _QStep.health:
         return _Q09HealthInsurance(profile: p, onNext: _next);
-      case 9:
+      case _QStep.educationLoan:
         return _Q10EducationLoan(profile: p, onNext: _next);
-      case 10:
+      case _QStep.donations:
         return _Q11Donations(profile: p, onNext: _next);
-      case 11:
+      case _QStep.age:
         return _Q12Age(profile: p, onNext: _next);
-      default:
-        return const SizedBox.shrink();
     }
   }
 }
@@ -283,33 +426,42 @@ class _DiagnosticMeta {
     required this.color,
   });
 
-  static _DiagnosticMeta forStep(int step) {
-    if (step <= 2) {
-      return const _DiagnosticMeta(
-        title: 'Income profile',
-        helper: 'First, the shape of your income.',
-        color: AppColors.gold,
-      );
+  static _DiagnosticMeta forQStep(_QStep step) {
+    switch (step) {
+      case _QStep.ctc:
+      case _QStep.employment:
+      case _QStep.regime:
+        return const _DiagnosticMeta(
+          title: 'Income profile',
+          helper: 'First, the shape of your income.',
+          color: AppColors.gold,
+        );
+      case _QStep.city:
+      case _QStep.rent:
+      case _QStep.hra:
+        return const _DiagnosticMeta(
+          title: 'Housing and rent',
+          helper: 'Next, where and how you live.',
+          color: AppColors.teal,
+        );
+      case _QStep.eightyC:
+      case _QStep.homeLoan:
+      case _QStep.nps:
+      case _QStep.health:
+      case _QStep.educationLoan:
+      case _QStep.donations:
+        return const _DiagnosticMeta(
+          title: 'Deductions scan',
+          helper: 'Now we check the deductions that apply to you.',
+          color: AppColors.info,
+        );
+      case _QStep.age:
+        return const _DiagnosticMeta(
+          title: 'Final checks',
+          helper: 'A few final details before the result.',
+          color: AppColors.amber,
+        );
     }
-    if (step <= 4) {
-      return const _DiagnosticMeta(
-        title: 'Housing and rent',
-        helper: 'Next, where and how you live.',
-        color: AppColors.teal,
-      );
-    }
-    if (step <= 8) {
-      return const _DiagnosticMeta(
-        title: 'Deductions scan',
-        helper: 'Now we check the deductions that apply to you.',
-        color: AppColors.info,
-      );
-    }
-    return const _DiagnosticMeta(
-      title: 'Final checks',
-      helper: 'A few final details before the result.',
-      color: AppColors.amber,
-    );
   }
 }
 
@@ -812,31 +964,30 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
 
     // Always call setState so the display text re-renders from the text field.
     setState(() {
-      if (val != null && val >= 1.0) {
-        _value = val.clamp(1.0, 60.0); // keep slider in sync
+      if (val != null && val > 0) {
+        _value = val.clamp(1.0, 60.0); // slider position only (display)
       }
-      // If input is empty / below min / mid-typing, _value holds the last
-      // valid position — slider stays put, display shows raw typed value.
+      // If input is empty / mid-typing, _value holds the last valid slider
+      // position — slider stays put, display shows raw typed value.
     });
 
-    // Persist to profile only when value is in valid range.
-    if (val != null && val >= 1.0) {
-      final clamped = val.clamp(1.0, 60.0);
+    // Persist the TRUE typed amount — the slider range does not cap real income.
+    if (val != null && val > 0) {
       ref.read(userProfileProvider.notifier).updateField(
-            (p) => p.copyWith(annualCTC: (clamped * 100000).round()),
+            (p) => p.copyWith(annualCTC: (val * 100000).round()),
           );
     }
   }
 
-  /// Called on blur/submit — snap to valid range.
+  /// Called on blur/submit.
   void _onTextSubmitted(String raw) {
-    final val = double.tryParse(raw.trim()) ?? _value;
-    final clamped = val.clamp(1.0, 60.0);
-    setState(() => _value = clamped);
-    _textCtrl.text = clamped.toStringAsFixed(1);
+    final parsed = double.tryParse(raw.trim());
+    final val = (parsed != null && parsed > 0) ? parsed : _value;
+    setState(() => _value = val.clamp(1.0, 60.0));
+    _textCtrl.text = val.toStringAsFixed(1);
     ref
         .read(userProfileProvider.notifier)
-        .updateField((p) => p.copyWith(annualCTC: (clamped * 100000).round()));
+        .updateField((p) => p.copyWith(annualCTC: (val * 100000).round()));
   }
 
   void _onSliderChanged(double v) {
@@ -1079,6 +1230,75 @@ class _Q02Employment extends ConsumerWidget {
 }
 
 // ─── Q03: City ───────────────────────────────────────────────────────────────
+// ─── Regime preference (gates the deduction questions) ──────────────────────
+class _QRegime extends ConsumerWidget {
+  final UserProfile profile;
+  final VoidCallback onNext;
+  const _QRegime({required this.profile, required this.onNext});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rs = ref.watch(activeTaxRuleSetProvider).asData?.value;
+    final rebateLimit = rs?.newRegime.rebate87ALimit ?? 1200000;
+    final sd = profile.employmentType == EmploymentType.salaried
+        ? (rs?.newRegime.standardDeduction ?? 75000)
+        : 0;
+    final nilCap = rebateLimit + sd;
+    final autoLikelyNew = profile.annualCTC <= nilCap;
+
+    void set(RegimePreference pref) {
+      ref
+          .read(userProfileProvider.notifier)
+          .updateField((p) => p.copyWith(regimePreference: pref));
+    }
+
+    Widget option(RegimePreference pref, String label) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: SelectChip(
+            label: label,
+            selected: profile.regimePreference == pref,
+            fullWidth: true,
+            onTap: () => set(pref),
+          ),
+        );
+
+    return _QLayout(
+      question: 'How should we pick your tax regime?',
+      microCopy: 'The new regime is the default. We only ask about deductions '
+          'if the old regime could actually save you more.',
+      onNext: onNext,
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            option(RegimePreference.auto, 'Recommend for me (compare both)'),
+            option(RegimePreference.newRegime,
+                'New regime — simplest, fewer questions'),
+            option(RegimePreference.oldRegime,
+                'Old regime — I have deductions to claim'),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.07),
+                borderRadius: AppRadius.card,
+              ),
+              child: Text(
+                autoLikelyNew
+                    ? 'At your income, the new regime likely makes tax ₹0 — we can '
+                        'skip the deduction questions entirely.'
+                    : 'At your income the old regime can still win with strong '
+                        'deductions, so we will ask a few targeted questions.',
+                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Q03City extends ConsumerStatefulWidget {
   final UserProfile profile;
   final VoidCallback onNext;
@@ -1092,7 +1312,19 @@ class _Q03CityState extends ConsumerState<_Q03City> {
   final _search = TextEditingController();
   String _query = '';
 
-  static const _metros = ['Delhi', 'Mumbai', 'Chennai', 'Kolkata'];
+  // Fallback only — the authoritative metro list comes from the active year's
+  // rule set (FY2026-27 expanded it from 4 to 8 cities). Used if the rule set
+  // has not finished loading.
+  static const _fallbackMetros = [
+    'Delhi',
+    'Mumbai',
+    'Chennai',
+    'Kolkata',
+    'Bengaluru',
+    'Hyderabad',
+    'Pune',
+    'Ahmedabad',
+  ];
   static const _cities = [
     'Delhi',
     'Mumbai',
@@ -1130,6 +1362,9 @@ class _Q03CityState extends ConsumerState<_Q03City> {
 
   @override
   Widget build(BuildContext context) {
+    final ruleSet = ref.watch(activeTaxRuleSetProvider).asData?.value;
+    bool isMetroOf(String city) =>
+        ruleSet?.isHraMetro(city) ?? _fallbackMetros.contains(city);
     return _QLayout(
       question: 'Which city do you live in?',
       microCopy: 'Metro cities get higher HRA benefit.',
@@ -1171,7 +1406,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (_, i) {
               final city = _filtered[i];
-              final isMetro = _metros.contains(city);
+              final isMetro = isMetroOf(city);
               final selected = widget.profile.city == city;
               return GestureDetector(
                 onTap: () {
@@ -1243,7 +1478,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                 ref.read(userProfileProvider.notifier).updateField(
                       (profile) => profile.copyWith(
                         city: city,
-                        isMetroCity: false,
+                        isMetroCity: isMetroOf(city),
                       ),
                     );
               },
@@ -1291,27 +1526,27 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
 
     // Always rebuild so display mirrors the text field instantly.
     setState(() {
-      if (val != null && val >= 1.0) {
-        _rentK = val.clamp(1.0, 200.0);
+      if (val != null && val > 0) {
+        _rentK = val.clamp(1.0, 200.0); // slider position only
       }
     });
 
-    if (val != null && val >= 1.0) {
-      final clamped = val.clamp(1.0, 200.0);
+    // Persist the true rent — the slider range does not cap it.
+    if (val != null && val > 0) {
       ref.read(userProfileProvider.notifier).updateField(
-            (p) => p.copyWith(monthlyRent: (clamped * 1000).round()),
+            (p) => p.copyWith(monthlyRent: (val * 1000).round()),
           );
     }
   }
 
   void _onRentTextSubmitted(String raw) {
-    final val = double.tryParse(raw.trim()) ?? _rentK;
-    final clamped = val.clamp(1.0, 200.0);
-    setState(() => _rentK = clamped);
-    _rentTextCtrl.text = clamped.toStringAsFixed(0);
+    final parsed = double.tryParse(raw.trim());
+    final val = (parsed != null && parsed > 0) ? parsed : _rentK;
+    setState(() => _rentK = val.clamp(1.0, 200.0));
+    _rentTextCtrl.text = val.toStringAsFixed(0);
     ref
         .read(userProfileProvider.notifier)
-        .updateField((p) => p.copyWith(monthlyRent: (clamped * 1000).round()));
+        .updateField((p) => p.copyWith(monthlyRent: (val * 1000).round()));
   }
 
   void _onRentSliderChanged(double v) {
@@ -1582,6 +1817,15 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
       onNext: widget.onNext,
       content: Column(
         children: [
+          if (ref.watch(payslipTaxPrefillProvider)?.annualEligible80C !=
+              null) ...[
+            _PayslipSourceNote(
+              title: 'Prefilled from your payslip',
+              detail:
+                  '₹${_fmt.format(ref.watch(payslipTaxPrefillProvider)!.annualEligible80C)} of PF / insurance detected. Add any extra 80C like ELSS, PPF or tuition fees.',
+            ),
+            const SizedBox(height: 16),
+          ],
           Center(
             child: Column(
               children: [
@@ -1742,11 +1986,12 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
   void _onInterestTextChanged(String raw) {
     final stripped = raw.replaceAll(',', '').replaceAll(' ', '');
     final val = int.tryParse(stripped);
-    if (val != null) {
-      final l = (val / 100000).clamp(0.25, 5.0);
-      setState(() => _interestL = l);
+    if (val != null && val >= 0) {
+      // Slider position is clamped for display; the persisted value is the
+      // true amount (the engine applies the ₹2L / let-out statutory caps).
+      setState(() => _interestL = (val / 100000).clamp(0.25, 5.0));
       ref.read(userProfileProvider.notifier).updateField(
-            (p) => p.copyWith(homeLoanInterest: (l * 100000).round()),
+            (p) => p.copyWith(homeLoanInterest: val),
           );
     }
   }
@@ -1957,6 +2202,15 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
       content: SingleChildScrollView(
         child: Column(
           children: [
+            if (ref.watch(payslipTaxPrefillProvider)?.annualEmployeeNps !=
+                null) ...[
+              const _PayslipSourceNote(
+                title: 'Prefilled from your payslip',
+                detail:
+                    'NPS contribution detected on your payslip. Confirm or adjust the amount below.',
+              ),
+              const SizedBox(height: 16),
+            ],
             SelectChip(
               label: 'Yes — I have NPS Tier-1',
               selected: _choice == 0,
@@ -2105,6 +2359,9 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
   late bool _self;
   late bool _parents;
   late bool _parentsAbove60;
+  final _selfPremiumCtrl = TextEditingController();
+  final _parentsPremiumCtrl = TextEditingController();
+  final _preventiveCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -2112,6 +2369,30 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
     _self = widget.profile.hasHealthInsuranceSelf;
     _parents = widget.profile.hasHealthInsuranceParents;
     _parentsAbove60 = widget.profile.parentsAbove60;
+    if (widget.profile.healthInsuranceSelfPremium != null) {
+      _selfPremiumCtrl.text =
+          widget.profile.healthInsuranceSelfPremium.toString();
+    }
+    if (widget.profile.healthInsuranceParentsPremium != null) {
+      _parentsPremiumCtrl.text =
+          widget.profile.healthInsuranceParentsPremium.toString();
+    }
+    if (widget.profile.preventiveHealthCheckup != null) {
+      _preventiveCtrl.text = widget.profile.preventiveHealthCheckup.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _selfPremiumCtrl.dispose();
+    _parentsPremiumCtrl.dispose();
+    _preventiveCtrl.dispose();
+    super.dispose();
+  }
+
+  int? _amount(TextEditingController c) {
+    final v = int.tryParse(c.text.replaceAll(RegExp(r'[^0-9]'), ''));
+    return (v == null || v <= 0) ? null : v;
   }
 
   void _update() {
@@ -2120,109 +2401,167 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             hasHealthInsuranceSelf: _self,
             hasHealthInsuranceParents: _parents,
             parentsAbove60: _parentsAbove60,
+            // Premiums drive the actual 80D deduction; clear them when the
+            // corresponding cover is deselected.
+            healthInsuranceSelfPremium: _self ? _amount(_selfPremiumCtrl) : null,
+            healthInsuranceParentsPremium:
+                _parents ? _amount(_parentsPremiumCtrl) : null,
+            preventiveHealthCheckup: _amount(_preventiveCtrl),
           ),
         );
+  }
+
+  Widget _premiumField({
+    required TextEditingController controller,
+    required String label,
+    String? helper,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.h3()),
+        if (helper != null) ...[
+          const SizedBox(height: 4),
+          Text(helper,
+              style: AppTextStyles.micro(color: AppColors.textSecondary)),
+        ],
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: AppTextStyles.body(),
+          decoration: InputDecoration(
+            hintText: 'Annual premium (₹)',
+            hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+            prefixText: '₹ ',
+            prefixStyle: AppTextStyles.body(color: AppColors.gold),
+            filled: true,
+            fillColor: AppColors.bgCard,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+            ),
+          ),
+          onChanged: (_) => _update(),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return _QLayout(
       question: 'Health insurance — who is covered?',
-      microCopy: 'Select all that apply.',
+      microCopy: 'Select all that apply, then add the premiums you pay.',
       onNext: widget.onNext,
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Tap to select:', style: AppTextStyles.caption()),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              MultiSelectChip(
-                label: 'Self',
-                selected: _self,
-                onTap: () {
-                  setState(() => _self = !_self);
-                  _update();
-                },
-              ),
-              MultiSelectChip(
-                label: 'Spouse',
-                selected: _self, // same policy
-                onTap: () {
-                  setState(() => _self = !_self);
-                  _update();
-                },
-              ),
-              MultiSelectChip(
-                label: 'Parents',
-                selected: _parents,
-                onTap: () {
-                  setState(() => _parents = !_parents);
-                  _update();
-                },
-              ),
-              MultiSelectChip(
-                label: 'No insurance',
-                selected: !_self && !_parents,
-                onTap: () {
-                  setState(() {
-                    _self = false;
-                    _parents = false;
-                  });
-                  _update();
-                },
-              ),
-            ],
-          ),
-          if (_parents) ...[
-            const SizedBox(height: 24),
-            Text('Are your parents above 60?', style: AppTextStyles.h3()),
-            const SizedBox(height: 12),
-            Row(
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tap to select:', style: AppTextStyles.caption()),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                Expanded(
-                  child: SelectChip(
-                    label: 'Yes (60+)',
-                    selected: _parentsAbove60,
-                    fullWidth: true,
-                    onTap: () {
-                      setState(() => _parentsAbove60 = true);
-                      _update();
-                    },
-                  ),
+                MultiSelectChip(
+                  label: 'Self / family',
+                  selected: _self,
+                  onTap: () {
+                    setState(() => _self = !_self);
+                    _update();
+                  },
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SelectChip(
-                    label: 'No',
-                    selected: !_parentsAbove60,
-                    fullWidth: true,
-                    onTap: () {
-                      setState(() => _parentsAbove60 = false);
-                      _update();
-                    },
-                  ),
+                MultiSelectChip(
+                  label: 'Parents',
+                  selected: _parents,
+                  onTap: () {
+                    setState(() => _parents = !_parents);
+                    _update();
+                  },
+                ),
+                MultiSelectChip(
+                  label: 'No insurance',
+                  selected: !_self && !_parents,
+                  onTap: () {
+                    setState(() {
+                      _self = false;
+                      _parents = false;
+                    });
+                    _update();
+                  },
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.07),
-                borderRadius: AppRadius.card,
+            if (_self) ...[
+              const SizedBox(height: 24),
+              _premiumField(
+                controller: _selfPremiumCtrl,
+                label: 'Annual premium for you / family',
+                helper: widget.profile.ageAbove60
+                    ? 'Deductible up to ₹50,000 (senior).'
+                    : 'Deductible up to ₹25,000 under 80D.',
               ),
-              child: Text(
-                _parentsAbove60
-                    ? 'Senior parent coverage = ₹50,000 extra deduction under 80D.'
-                    : 'Parent coverage = ₹25,000 deduction under 80D.',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              const SizedBox(height: 16),
+              _premiumField(
+                controller: _preventiveCtrl,
+                label: 'Preventive health check-up (optional)',
+                helper: 'Up to ₹5,000, counted within the limit above.',
               ),
-            ),
+            ],
+            if (_parents) ...[
+              const SizedBox(height: 24),
+              Text('Are your parents above 60?', style: AppTextStyles.h3()),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SelectChip(
+                      label: 'Yes (60+)',
+                      selected: _parentsAbove60,
+                      fullWidth: true,
+                      onTap: () {
+                        setState(() => _parentsAbove60 = true);
+                        _update();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SelectChip(
+                      label: 'No',
+                      selected: !_parentsAbove60,
+                      fullWidth: true,
+                      onTap: () {
+                        setState(() => _parentsAbove60 = false);
+                        _update();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _premiumField(
+                controller: _parentsPremiumCtrl,
+                label: 'Annual premium for parents',
+                helper: _parentsAbove60
+                    ? 'Deductible up to ₹50,000 (senior parents).'
+                    : 'Deductible up to ₹25,000 under 80D.',
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -2265,11 +2604,12 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
   void _onEdLoanTextChanged(String raw) {
     final stripped = raw.replaceAll(',', '').replaceAll(' ', '');
     final val = int.tryParse(stripped);
-    if (val != null) {
-      final k = (val / 1000).clamp(5.0, 200.0);
-      setState(() => _interestK = k);
+    if (val != null && val >= 0) {
+      // Slider position clamps for display only; 80E has no upper limit, so the
+      // persisted interest is the true amount typed.
+      setState(() => _interestK = (val / 1000).clamp(5.0, 200.0));
       ref.read(userProfileProvider.notifier).updateField(
-            (p) => p.copyWith(educationLoanInterest: (k * 1000).round()),
+            (p) => p.copyWith(educationLoanInterest: val),
           );
     }
   }
@@ -2419,18 +2759,41 @@ class _Q11Donations extends ConsumerStatefulWidget {
 
 class _Q11DonationsState extends ConsumerState<_Q11Donations> {
   bool? _hasDonations;
-  double _amountK = 5;
-  final TextEditingController _donationTextCtrl = TextEditingController(
-    text: '5000',
-  );
+  final TextEditingController _donationTextCtrl = TextEditingController();
+  DonationCategory? _category;
+  bool _inCash = false;
+
+  static const _categoryOptions = <(DonationCategory, String, String)>[
+    (
+      DonationCategory.hundredNoLimit,
+      'PM CARES / PMNRF / Defence Fund',
+      '100% deductible, no income limit',
+    ),
+    (
+      DonationCategory.hundredWithLimit,
+      'Government / local authority fund',
+      '100% deductible, capped at 10% of income',
+    ),
+    (
+      DonationCategory.fiftyNoLimit,
+      'Approved national fund',
+      '50% deductible, no income limit',
+    ),
+    (
+      DonationCategory.fiftyWithLimit,
+      'NGO / charitable / temple trust (80G)',
+      '50% deductible, capped at 10% of income',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     final amount = widget.profile.donationAmount;
     _hasDonations = widget.profile.hasDonations || amount > 0 ? true : null;
-    _amountK = amount > 0 ? (amount / 1000).clamp(0.5, 100.0) : 5.0;
-    _donationTextCtrl.text = (_amountK * 1000).round().toString();
+    _category = widget.profile.donationCategory;
+    _inCash = widget.profile.donationInCash;
+    if (amount > 0) _donationTextCtrl.text = amount.toString();
   }
 
   @override
@@ -2439,25 +2802,22 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
     super.dispose();
   }
 
-  void _onDonationTextChanged(String raw) {
-    final stripped = raw.replaceAll(',', '').replaceAll(' ', '');
-    final val = int.tryParse(stripped);
-    if (val != null) {
-      final k = (val / 1000).clamp(0.5, 100.0);
-      setState(() => _amountK = k);
-      ref
-          .read(userProfileProvider.notifier)
-          .updateField((p) => p.copyWith(donationAmount: (k * 1000).round()));
-    }
-  }
+  int get _amount =>
+      int.tryParse(_donationTextCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+      0;
 
-  void _onDonationSliderChanged(double v) {
-    setState(() => _amountK = v);
-    _donationTextCtrl.text = (v * 1000).round().toString();
+  void _update() {
     ref.read(userProfileProvider.notifier).updateField(
-          (p) => p.copyWith(donationAmount: (_amountK * 1000).round()),
+          (p) => p.copyWith(
+            hasDonations: _hasDonations == true,
+            donationAmount: _amount,
+            donationCategory: _category,
+            donationInCash: _inCash,
+          ),
         );
   }
+
+  bool get _cashBlocked => _inCash && _amount > 2000;
 
   @override
   Widget build(BuildContext context) {
@@ -2465,80 +2825,135 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
       question: 'Did you make any donations this year?',
       microCopy: 'PM Relief Fund, NGOs, temple trusts with 80G certificate.',
       onNext: _hasDonations != null ? widget.onNext : null,
-      content: Column(
-        children: [
-          SelectChip(
-            label: 'Yes — PM Relief / NGO / temple',
-            selected: _hasDonations == true,
-            fullWidth: true,
-            onTap: () {
-              setState(() => _hasDonations = true);
-              ref
-                  .read(userProfileProvider.notifier)
-                  .updateField((p) => p.copyWith(hasDonations: true));
-            },
-          ),
-          const SizedBox(height: 12),
-          SelectChip(
-            label: 'No / Not sure',
-            selected: _hasDonations == false,
-            fullWidth: true,
-            onTap: () {
-              setState(() => _hasDonations = false);
-              ref.read(userProfileProvider.notifier).updateField(
-                    (p) => p.copyWith(hasDonations: false, donationAmount: 0),
-                  );
-            },
-          ),
-          if (_hasDonations == true) ...[
-            const SizedBox(height: 24),
-            Text('Approximate amount donated?', style: AppTextStyles.h3()),
-            const SizedBox(height: 8),
-            _ResponsiveAmount('₹ ${(_amountK * 1000).round()}'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SelectChip(
+              label: 'Yes — PM Relief / NGO / temple',
+              selected: _hasDonations == true,
+              fullWidth: true,
+              onTap: () {
+                setState(() => _hasDonations = true);
+                _update();
+              },
+            ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _donationTextCtrl,
-              keyboardType: TextInputType.number,
-              style: AppTextStyles.body(),
-              decoration: InputDecoration(
-                hintText: 'Enter amount (₹)',
-                hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
-                prefixText: '₹ ',
-                prefixStyle: AppTextStyles.body(color: AppColors.gold),
-                filled: true,
-                fillColor: AppColors.bgCard,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
+            SelectChip(
+              label: 'No / Not sure',
+              selected: _hasDonations == false,
+              fullWidth: true,
+              onTap: () {
+                setState(() => _hasDonations = false);
+                ref.read(userProfileProvider.notifier).updateField(
+                      (p) => p.copyWith(hasDonations: false, donationAmount: 0),
+                    );
+              },
+            ),
+            if (_hasDonations == true) ...[
+              const SizedBox(height: 24),
+              Text('Amount donated', style: AppTextStyles.h3()),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _donationTextCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: AppTextStyles.body(),
+                decoration: InputDecoration(
+                  hintText: 'Enter amount (₹)',
+                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+                  prefixText: '₹ ',
+                  prefixStyle: AppTextStyles.body(color: AppColors.gold),
+                  filled: true,
+                  fillColor: AppColors.bgCard,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.gold, width: 1.5),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: AppColors.gold,
-                    width: 1.5,
+                onChanged: (_) => setState(_update),
+              ),
+              const SizedBox(height: 20),
+              Text('What kind of donation?', style: AppTextStyles.h3()),
+              const SizedBox(height: 4),
+              Text(
+                'This decides how much is deductible under 80G.',
+                style: AppTextStyles.micro(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              ..._categoryOptions.map(
+                (opt) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SelectChip(
+                    label: '${opt.$2}  ·  ${opt.$3}',
+                    selected: _category == opt.$1,
+                    fullWidth: true,
+                    onTap: () {
+                      setState(() => _category = opt.$1);
+                      _update();
+                    },
                   ),
                 ),
               ),
-              onChanged: _onDonationTextChanged,
-            ),
-            Slider(
-              value: _amountK,
-              min: 0.5,
-              max: 100,
-              divisions: 40,
-              label: '₹${_amountK.round()}K',
-              onChanged: _onDonationSliderChanged,
-            ),
+              const SizedBox(height: 12),
+              Text('How did you pay?', style: AppTextStyles.h3()),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SelectChip(
+                      label: 'Digital / cheque',
+                      selected: !_inCash,
+                      fullWidth: true,
+                      onTap: () {
+                        setState(() => _inCash = false);
+                        _update();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SelectChip(
+                      label: 'Cash',
+                      selected: _inCash,
+                      fullWidth: true,
+                      onTap: () {
+                        setState(() => _inCash = true);
+                        _update();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (_cashBlocked) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.alert.withValues(alpha: 0.1),
+                    borderRadius: AppRadius.card,
+                  ),
+                  child: Text(
+                    'Cash donations above ₹2,000 are not eligible for 80G. '
+                    'Pay digitally or by cheque to claim this deduction.',
+                    style: AppTextStyles.micro(color: AppColors.alert),
+                  ),
+                ),
+              ],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
