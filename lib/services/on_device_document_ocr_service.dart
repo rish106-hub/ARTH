@@ -41,9 +41,8 @@ class OnDeviceDocumentOcrService {
       );
     }
     const maxDimension = 2400;
-    final longest = decoded.width > decoded.height
-        ? decoded.width
-        : decoded.height;
+    final longest =
+        decoded.width > decoded.height ? decoded.width : decoded.height;
     final resized = longest > maxDimension
         ? decoded.width >= decoded.height
             ? image.copyResize(
