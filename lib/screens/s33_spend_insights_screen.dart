@@ -224,7 +224,7 @@ class _SavingsHero extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: PaycheckColors.matchedSoft,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border:
             Border.all(color: PaycheckColors.matched.withValues(alpha: 0.4)),
       ),
@@ -338,7 +338,7 @@ class _Card extends StatelessWidget {
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: PaycheckColors.line),
       ),
       child: child,

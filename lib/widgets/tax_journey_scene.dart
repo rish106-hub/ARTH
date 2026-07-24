@@ -200,6 +200,14 @@ class _QuestionArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (step == 2) {
+      return Image.asset(
+        'assets/images/india-heritage-landmark.jpg',
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+        semanticLabel: 'Red Fort, Delhi',
+      );
+    }
     final index = step.clamp(0, _backgrounds.length - 1);
     return AnimatedContainer(
       duration: AppMotion.medium,

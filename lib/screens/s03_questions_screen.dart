@@ -9,7 +9,6 @@ import '../models/payslip_tax_prefill.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
-import '../services/city_image_service.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/question_progress_bar.dart';
 import '../widgets/tax_journey_scene.dart';
@@ -911,15 +910,15 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
                 vertical: 14,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
               ),
             ),
@@ -1166,8 +1165,6 @@ class _Q03CityState extends ConsumerState<_Q03City> {
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 12),
-          _CityLandmark(city: widget.profile.city),
-          const SizedBox(height: 12),
           ListView.builder(
             itemCount: _filtered.length,
             shrinkWrap: true,
@@ -1252,149 +1249,6 @@ class _Q03CityState extends ConsumerState<_Q03City> {
               },
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _CityLandmark extends StatefulWidget {
-  const _CityLandmark({required this.city});
-
-  final String city;
-
-  static String? assetFor(String city) => switch (city) {
-        'Delhi' => 'assets/images/city_delhi.webp',
-        'Mumbai' => 'assets/images/city_mumbai.webp',
-        'Kolkata' => 'assets/images/city_kolkata.webp',
-        'Lucknow' => 'assets/images/city_lucknow.webp',
-        'Durgapur' => 'assets/images/city_durgapur.webp',
-        _ => null,
-      };
-
-  @override
-  State<_CityLandmark> createState() => _CityLandmarkState();
-}
-
-class _CityLandmarkState extends State<_CityLandmark>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  final _service = CityImageService();
-  Future<CityImageResult?>? _remoteImage;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 9),
-    )..repeat(reverse: true);
-    _loadRemoteIfNeeded();
-  }
-
-  @override
-  void didUpdateWidget(covariant _CityLandmark oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.city != widget.city) _loadRemoteIfNeeded();
-  }
-
-  void _loadRemoteIfNeeded() {
-    setState(() {
-      _remoteImage = _CityLandmark.assetFor(widget.city) == null
-          ? _service.find(widget.city)
-          : null;
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final asset = _CityLandmark.assetFor(widget.city);
-    if (asset == null) {
-      final future = _remoteImage;
-      if (future == null) return const SizedBox.shrink();
-      return FutureBuilder<CityImageResult?>(
-        future: future,
-        builder: (context, snapshot) {
-          final image = snapshot.data;
-          if (image == null) {
-            return snapshot.connectionState == ConnectionState.waiting
-                ? const SizedBox(
-                    height: 118,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : const SizedBox.shrink();
-          }
-          return _RemoteCityImage(city: widget.city, image: image);
-        },
-      );
-    }
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      child: ClipRRect(
-        key: ValueKey(asset),
-        borderRadius: AppRadius.card,
-        child: SizedBox(
-          width: double.infinity,
-          height: 158,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) => Transform.scale(
-              scale: 1 + (_controller.value * 0.035),
-              child: child,
-            ),
-            child: Image.asset(asset, fit: BoxFit.cover),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RemoteCityImage extends StatelessWidget {
-  const _RemoteCityImage({required this.city, required this.image});
-
-  final String city;
-  final CityImageResult image;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: AppRadius.card,
-      child: SizedBox(
-        height: 158,
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              image.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const ColoredBox(
-                color: AppColors.surfaceMuted,
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                color: Colors.black.withValues(alpha: 0.68),
-                child: Text(
-                  '$city · ${image.artist} · ${image.license}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1541,15 +1395,15 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(
                     color: AppColors.gold,
                     width: 1.5,
@@ -1772,15 +1626,15 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
                 vertical: 14,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
               ),
             ),
@@ -2011,15 +1865,15 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
                       color: AppColors.gold,
                       width: 1.5,
@@ -2203,15 +2057,15 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
                       color: AppColors.gold,
                       width: 1.5,
@@ -2520,15 +2374,15 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
                       color: AppColors.gold,
                       width: 1.5,
@@ -2658,15 +2512,15 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(
                     color: AppColors.gold,
                     width: 1.5,

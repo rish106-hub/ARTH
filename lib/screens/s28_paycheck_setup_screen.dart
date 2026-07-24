@@ -53,7 +53,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$pickerLabel added. Check the details next.')),
       );
-      context.go('/paycheck/inbox');
+      context.go('/paycheck/evidence');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,16 +82,16 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                     wordmarkStyle: PaycheckType.heading(),
                   ),
                   const Spacer(),
-                  Text('PRIVATE BY DEFAULT', style: PaycheckType.utility()),
+                  Text('Private by default', style: PaycheckType.utility()),
                 ],
               ),
               const SizedBox(height: 52),
               Container(
                 width: 44,
                 height: 44,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: PaycheckColors.contract,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.receipt_long_rounded,
@@ -101,8 +101,8 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Start with what\nyou were promised.',
-                style: PaycheckType.title().copyWith(fontSize: 36),
+                'Start with what you were promised',
+                style: PaycheckType.title().copyWith(fontSize: 30),
               ),
               const SizedBox(height: 14),
               Text(
@@ -133,7 +133,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                 number: '01',
                 title: 'Add your offer letter',
                 detail: 'PDF or image. You review every extracted number.',
-                stateLabel: 'START HERE',
+                stateLabel: 'Start here',
                 active: true,
               ),
               const _SetupConnector(),
@@ -142,14 +142,14 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                 title: 'Connect salary emails',
                 detail:
                     'Later, use narrow read-only access for payslips and bills.',
-                stateLabel: 'OPTIONAL',
+                stateLabel: 'Optional',
               ),
               const _SetupConnector(),
               const _SetupStep(
                 number: '03',
                 title: 'Review your first match',
                 detail: 'See promised, received and still claimable money.',
-                stateLabel: 'ABOUT 2 MIN',
+                stateLabel: 'About 2 min',
               ),
               const SizedBox(height: 34),
               SizedBox(
@@ -160,7 +160,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: _openingFile

@@ -188,10 +188,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final headline = _isSignUp ? 'Give your income a job.' : 'Welcome back.';
+    final headline = _isSignUp ? 'Know what reached you.' : 'Welcome back.';
     final subhead = _isSignUp
-        ? 'Create an account to turn compensation, commitments and goals into one working plan.'
-        : 'Sign in to continue from your last money decision.';
+        ? 'Keep your offer letter, payslips, and confirmed pay in one private record.'
+        : 'Sign in to continue reviewing your pay evidence.';
 
     return ArthScaffold(
       showAmbientGlow: false,
@@ -222,12 +222,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       subhead,
                       style: AppTextStyles.body(color: AppColors.textSecondary),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'A first plan takes about 3 minutes.',
-                      style: AppTextStyles.caption(color: AppColors.primary),
-                    ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 28),
                     Form(
                       key: _formKey,
                       child: Column(

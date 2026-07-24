@@ -77,6 +77,16 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
         _targetDate.month == expected.month;
   }
 
+  int get _selectedHorizonMonths {
+    for (final months in kJobDurationOptions) {
+      if (_isHorizon(months)) return months;
+    }
+    final now = DateTime.now();
+    final months =
+        (_targetDate.year - now.year) * 12 + _targetDate.month - now.month;
+    return months.clamp(1, 12);
+  }
+
   MoneyGoal _draft() => MoneyGoal(
         id: _loadedId ?? '',
         name: _name.text.trim().isEmpty ? 'My money goal' : _name.text.trim(),
@@ -199,8 +209,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               Text('Horizon', style: PaycheckType.utility()),
               const SizedBox(height: 8),
               JobDurationSelector(
-                selectedMonths:
-                    kJobDurationOptions.firstWhere(_isHorizon, orElse: () => 0),
+                selectedMonths: _selectedHorizonMonths,
                 onChanged: (months) =>
                     setState(() => _targetDate = _monthsFromNow(months)),
               ),
@@ -419,7 +428,7 @@ class _SpendMapHint extends ConsumerWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: PaycheckColors.contractSoft,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [

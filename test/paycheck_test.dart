@@ -1,6 +1,7 @@
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
+import 'package:arth/theme/paycheck_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,7 +26,13 @@ void main() {
     );
   });
 
-  testWidgets('paycheck home and promise tabs render on a small phone', (
+  test('paycheck typography uses the bundled Anek family', () {
+    expect(PaycheckType.body().fontFamily, 'Anek');
+    expect(PaycheckType.display().fontFamily, 'Anek');
+    expect(PaycheckType.utility().fontSize, greaterThanOrEqualTo(12));
+  });
+
+  testWidgets('paycheck home and evidence tabs render on a small phone', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 740);
@@ -41,14 +48,14 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('paycheck_claimable_amount')), findsOneWidget);
-    expect(find.text('Money needing action'), findsOneWidget);
+    expect(find.text('Needs your review'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Promise'));
+    await tester.tap(find.byKey(const Key('paycheck_nav_evidence')));
     await tester.pumpAndSettle();
 
-    expect(find.text('What your employer\npromised.'), findsOneWidget);
-    expect(find.text('Contract ledger'), findsOneWidget);
+    expect(find.text('Documents behind your pay'), findsOneWidget);
+    expect(find.text('Your files'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -68,7 +75,7 @@ void main() {
 
     await tester.tap(find.text('Prepare claim pack'));
     await tester.pumpAndSettle();
-    expect(find.text('PREPARED'), findsOneWidget);
+    expect(find.text('READY'), findsOneWidget);
   });
 
   testWidgets('confirmed payslip replaces empty home copy on a small phone', (
@@ -91,11 +98,34 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('NET PAY THIS PERIOD'), findsOneWidget);
+    expect(find.text('Your July 2026 pay is ready'), findsOneWidget);
     expect(find.textContaining('38,567'), findsWidgets);
     expect(find.textContaining('38,767'), findsWidgets);
     expect(find.textContaining('Two benefits'), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('empty paycheck opens Evidence from the primary action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(EmptyPaycheckNotifier.new),
+        ],
+        child: const MaterialApp(home: PaycheckShellScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Add your first payslip'), findsOneWidget);
+    expect(find.byKey(const Key('add_first_payslip')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('add_first_payslip')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Documents behind your pay'), findsOneWidget);
+    expect(find.byKey(const Key('add_paycheck_evidence')), findsOneWidget);
   });
 }
 
@@ -114,4 +144,9 @@ class ConfirmedPayslipNotifier extends PaycheckNotifier {
         netCredited: 38567,
         otherDeductions: 200,
       );
+}
+
+class EmptyPaycheckNotifier extends PaycheckNotifier {
+  @override
+  PaycheckState build() => emptyPaycheck;
 }

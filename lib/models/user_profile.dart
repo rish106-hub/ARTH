@@ -6,19 +6,9 @@ enum EmploymentType { salaried, selfEmployed }
 /// Allowed job/income durations within a financial year (months).
 const List<int> kJobDurationOptions = [3, 6, 9, 12];
 
-/// Snap any stored/legacy value to the nearest allowed option; default 12.
+/// Keep saved custom durations valid for salary annualisation.
 int normalizeJobDurationMonths(int value) {
-  if (kJobDurationOptions.contains(value)) return value;
-  var best = 12;
-  var bestDiff = (value - best).abs();
-  for (final option in kJobDurationOptions) {
-    final diff = (value - option).abs();
-    if (diff < bestDiff) {
-      best = option;
-      bestDiff = diff;
-    }
-  }
-  return best;
+  return value.clamp(1, 12);
 }
 
 enum AgeGroup { below30, age30to45, age45to60, above60, above80 }
@@ -116,7 +106,8 @@ class UserProfile {
   final String employerName;
 
   // Duration of this job/income engagement within the financial year.
-  // Not every job runs the full year — allowed values 3, 6, 9, 12 months.
+  // Not every job runs the full year. Common options are 3, 6, 9 and 12
+  // months, with any one-to-twelve-month duration supported.
   // Drives salary annualization (monthly figure × jobDurationMonths).
   final int jobDurationMonths;
 

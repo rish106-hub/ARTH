@@ -9,6 +9,7 @@ import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_year_provider.dart';
+import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animated_number.dart';
@@ -358,6 +359,12 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 final documents = ref.read(taxDocumentProvider).asData?.value ??
                     <TaxDocument>[confirmed];
                 ref.read(paycheckProvider.notifier).syncDocuments(documents);
+                if (confirmed.documentType == 'offerLetter' &&
+                    !confirmed.isPayslip) {
+                  ref
+                      .read(userProfileProvider.notifier)
+                      .applyConfirmedOfferLetter(confirmed.confirmedFields);
+                }
                 if (!sheetContext.mounted) return;
                 Navigator.pop(sheetContext);
                 ScaffoldMessenger.of(context).showSnackBar(
