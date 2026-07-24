@@ -57,6 +57,7 @@ class FakeDb {
   private identities = new Map<string, Row>();
   private documents = new Map<string, Row>();
   private moneyGoals = new Map<string, Row>();
+  private spendMaps = new Map<string, Row>();
   private employers = new Map<string, Row>();
   private events: Row[] = [];
   private ids = 0;
@@ -71,6 +72,7 @@ class FakeDb {
     this.identities.clear();
     this.documents.clear();
     this.moneyGoals.clear();
+    this.spendMaps.clear();
     this.employers.clear();
     this.events = [];
     this.ids = 0;
@@ -495,6 +497,27 @@ class FakeDb {
       for (const [goalId, goal] of this.moneyGoals.entries()) {
         if (goal.user_id === params[0]) this.moneyGoals.delete(goalId);
       }
+      return rows();
+    }
+
+    if (normalized.startsWith('insert into spend_maps')) {
+      this.spendMaps.set(params[0] as string, {
+        user_id: params[0],
+        window_start: params[1],
+        window_end: params[2],
+        generated_at: params[3],
+        monthly_income: params[4],
+        monthly_spend: params[5],
+        realistic_monthly_savings: params[6],
+        spend_by_category: JSON.parse(params[7] as string),
+        monthly_trend: JSON.parse(params[8] as string),
+        updated_at: new Date(),
+      });
+      return rows();
+    }
+
+    if (normalized.startsWith('delete from spend_maps where user_id = $1')) {
+      this.spendMaps.delete(params[0] as string);
       return rows();
     }
 
@@ -1011,6 +1034,27 @@ describe('backend security harness', () => {
     });
     assert.equal(aliceGoals.statusCode, 200);
     assert.equal(aliceGoals.json().goals.length, 1);
+
+    const spendMap = await app.inject({
+      method: 'POST',
+      url: '/v1/spend-map',
+      headers: bearer(alice.accessToken),
+      payload: {
+        windowStart: '2026-05-01T00:00:00.000Z',
+        windowEnd: '2026-07-24T00:00:00.000Z',
+        generatedAt: '2026-07-24T00:00:00.000Z',
+        monthlyIncome: 109412,
+        monthlySpend: 50969,
+        realisticMonthlySavings: 58443,
+        spendByCategory: { bills: 12000, groceries: 8000 },
+        monthlyTrend: [{
+          month: '2026-07-01T00:00:00.000Z',
+          spent: 50969,
+          income: 109412,
+        }],
+      },
+    });
+    assert.equal(spendMap.statusCode, 200);
 
     const bobUpdate = await app.inject({
       method: 'PUT',

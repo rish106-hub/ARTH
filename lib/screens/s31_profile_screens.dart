@@ -96,6 +96,27 @@ class ProfessionalProfileView extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const _SectionTitle('Money tools'),
+                _ProfileGroup(
+                  children: [
+                    _ProfileRow(
+                      key: const Key('profile_spend_map'),
+                      icon: Icons.sms_outlined,
+                      title: 'Expenses from SMS',
+                      detail: 'Scan 1, 3, 6, or 12 months and YTD',
+                      status: ProfileStatus.action,
+                      onTap: () => context.push('/spend-map'),
+                    ),
+                    _ProfileRow(
+                      key: const Key('profile_money_goal'),
+                      icon: Icons.flag_outlined,
+                      title: 'Savings goal',
+                      detail: 'Build a plan from net pay and observed expenses',
+                      onTap: () => context.push('/money-goal'),
+                      isLast: true,
+                    ),
+                  ],
+                ),
                 const _SectionTitle('Sources and connections'),
                 _ProfileGroup(
                   children: [

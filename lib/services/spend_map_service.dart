@@ -29,6 +29,15 @@ class SpendMapService {
         'monthlySpend': map.monthlySpend,
         'realisticMonthlySavings': map.realisticMonthlySavings,
         'spendByCategory': map.spendByCategory,
+        'monthlyTrend': map.monthlyTrend
+            .map(
+              (point) => {
+                'month': point.month.toIso8601String(),
+                'spent': point.spent,
+                'income': point.income,
+              },
+            )
+            .toList(growable: false),
       },
     );
   }

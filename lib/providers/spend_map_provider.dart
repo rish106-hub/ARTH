@@ -7,8 +7,31 @@ import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import 'auth_provider.dart';
 
-/// How far back to scan the SMS inbox.
-const Duration kSpendScanWindow = Duration(days: 120);
+enum SpendScanPeriod {
+  oneMonth,
+  threeMonths,
+  sixMonths,
+  twelveMonths,
+  yearToDate,
+}
+
+extension SpendScanPeriodLabel on SpendScanPeriod {
+  String get label => switch (this) {
+        SpendScanPeriod.oneMonth => '1 month',
+        SpendScanPeriod.threeMonths => '3 months',
+        SpendScanPeriod.sixMonths => '6 months',
+        SpendScanPeriod.twelveMonths => '12 months',
+        SpendScanPeriod.yearToDate => 'YTD',
+      };
+
+  DateTime since(DateTime now) => switch (this) {
+        SpendScanPeriod.oneMonth => DateTime(now.year, now.month - 1),
+        SpendScanPeriod.threeMonths => DateTime(now.year, now.month - 3),
+        SpendScanPeriod.sixMonths => DateTime(now.year, now.month - 6),
+        SpendScanPeriod.twelveMonths => DateTime(now.year, now.month - 12),
+        SpendScanPeriod.yearToDate => DateTime(now.year),
+      };
+}
 
 String _spendMapKey(String uid) => 'arth_spend_map_$uid';
 
@@ -17,12 +40,14 @@ class SpendMapState {
     this.map,
     this.loading = false,
     this.permissionDenied = false,
+    this.selectedPeriod = SpendScanPeriod.threeMonths,
     this.error,
   });
 
   final SpendMap? map;
   final bool loading;
   final bool permissionDenied;
+  final SpendScanPeriod selectedPeriod;
   final String? error;
 
   bool get hasData => map != null && !map!.isEmpty;
@@ -31,12 +56,14 @@ class SpendMapState {
     SpendMap? map,
     bool? loading,
     bool? permissionDenied,
+    SpendScanPeriod? selectedPeriod,
     Object? error = _unset,
   }) {
     return SpendMapState(
       map: map ?? this.map,
       loading: loading ?? this.loading,
       permissionDenied: permissionDenied ?? this.permissionDenied,
+      selectedPeriod: selectedPeriod ?? this.selectedPeriod,
       error: identical(error, _unset) ? this.error : error as String?,
     );
   }
@@ -79,8 +106,14 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
   /// Requests SMS permission (if needed), reads the inbox, parses on-device,
   /// builds and persists the spend map, and best-effort syncs a summary.
-  Future<void> scan() async {
-    state = state.copyWith(loading: true, permissionDenied: false, error: null);
+  Future<void> scan([SpendScanPeriod? period]) async {
+    final selected = period ?? state.selectedPeriod;
+    state = state.copyWith(
+      loading: true,
+      permissionDenied: false,
+      selectedPeriod: selected,
+      error: null,
+    );
     try {
       final granted = await _reader.requestPermission();
       if (!granted) {
@@ -88,7 +121,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         return;
       }
 
-      final since = DateTime.now().subtract(kSpendScanWindow);
+      final since = selected.since(DateTime.now());
       final raw = await _reader.readInbox(since: since);
       final txns = _parser.parseAll(raw);
 
@@ -103,6 +136,35 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     } catch (error) {
       state = state.copyWith(loading: false, error: error.toString());
     }
+  }
+
+  void selectPeriod(SpendScanPeriod period) {
+    state = state.copyWith(selectedPeriod: period);
+  }
+
+  Future<void> recategorize(int transactionIndex, String category) async {
+    final current = state.map;
+    if (current == null ||
+        transactionIndex < 0 ||
+        transactionIndex >= current.txns.length ||
+        !SpendCategory.all.contains(category)) {
+      return;
+    }
+    final txns = [...current.txns];
+    txns[transactionIndex] = txns[transactionIndex].copyWith(
+      category: category,
+    );
+    final updated = SpendMap(
+      txns: txns,
+      windowStart: current.windowStart,
+      windowEnd: current.windowEnd,
+      generatedAt: DateTime.now(),
+    );
+    await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
+    state = state.copyWith(map: updated);
+    try {
+      await _sync.push(updated);
+    } catch (_) {}
   }
 
   SpendMap _buildMap(List<FinanceTxn> txns, DateTime since) {

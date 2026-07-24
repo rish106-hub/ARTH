@@ -80,6 +80,16 @@ class FinanceTxn {
   final String? merchant;
   final String? sender;
 
+  FinanceTxn copyWith({String? category}) => FinanceTxn(
+        amount: amount,
+        direction: direction,
+        date: date,
+        category: category ?? this.category,
+        isSalary: isSalary,
+        merchant: merchant,
+        sender: sender,
+      );
+
   Map<String, dynamic> toJson() => {
         'amount': amount,
         'direction': direction.name,
@@ -102,6 +112,18 @@ class FinanceTxn {
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
       );
+}
+
+class MonthlySpendPoint {
+  const MonthlySpendPoint({
+    required this.month,
+    required this.spent,
+    required this.income,
+  });
+
+  final DateTime month;
+  final int spent;
+  final int income;
 }
 
 /// Aggregated spend/income picture built from parsed transactions.
@@ -161,6 +183,28 @@ class SpendMap {
     final entries = spendByCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return entries;
+  }
+
+  List<MonthlySpendPoint> get monthlyTrend {
+    final values = <String, MonthlySpendPoint>{};
+    for (final txn in txns) {
+      final month = DateTime(txn.date.year, txn.date.month);
+      final key = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+      final current =
+          values[key] ?? MonthlySpendPoint(month: month, spent: 0, income: 0);
+      values[key] = MonthlySpendPoint(
+        month: month,
+        spent: current.spent +
+            (txn.direction == TxnDirection.debit ? txn.amount : 0),
+        income: current.income +
+            (txn.direction == TxnDirection.credit && txn.isSalary
+                ? txn.amount
+                : 0),
+      );
+    }
+    final result = values.values.toList()
+      ..sort((a, b) => a.month.compareTo(b.month));
+    return result;
   }
 
   int get monthlySpend => (totalSpent / monthsSpan).round();
