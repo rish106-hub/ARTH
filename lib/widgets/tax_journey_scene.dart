@@ -103,6 +103,7 @@ class _TaxJourneySceneState extends State<TaxJourneyScene>
                   child: _QuestionArtwork(
                     key: ValueKey(widget.step),
                     step: widget.step,
+                    city: widget.profile.city,
                     animation: pulse,
                     accent: widget.accent,
                   ),
@@ -173,12 +174,14 @@ class _ChapterPill extends StatelessWidget {
 
 class _QuestionArtwork extends StatelessWidget {
   final int step;
+  final String city;
   final Color accent;
   final Animation<double> animation;
 
   const _QuestionArtwork({
     super.key,
     required this.step,
+    required this.city,
     required this.accent,
     required this.animation,
   });
@@ -200,7 +203,9 @@ class _QuestionArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (step == 2) {
+    final normalizedCity = city.trim().toLowerCase();
+    if (step == 2 &&
+        (normalizedCity == 'delhi' || normalizedCity == 'new delhi')) {
       return Image.asset(
         'assets/images/india-heritage-landmark.jpg',
         fit: BoxFit.cover,

@@ -72,6 +72,28 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
         ),
       ),
     ];
+    final components = <PaycheckComponent>[
+      ...earnings.map(
+        (row) => PaycheckComponent(
+          label: row['label']?.toString() ?? 'Earning',
+          canonicalKey:
+              row['canonicalKey']?.toString() ?? _itemId(row['label']),
+          classification: row['classification']?.toString() ?? 'other',
+          amount: _amount(row['amount']) ?? 0,
+          kind: PaycheckComponentKind.earning,
+        ),
+      ),
+      ...deductions.map(
+        (row) => PaycheckComponent(
+          label: row['label']?.toString() ?? 'Deduction',
+          canonicalKey:
+              row['canonicalKey']?.toString() ?? _itemId(row['label']),
+          classification: row['classification']?.toString() ?? 'other',
+          amount: _amount(row['amount']) ?? 0,
+          kind: PaycheckComponentKind.deduction,
+        ),
+      ),
+    ];
 
     state = emptyPaycheck.copyWith(
       employeeName: _text(pay['employeeName']) ?? state.employeeName,
@@ -94,6 +116,7 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
           active.any((document) =>
               document.documentType == 'offerLetter' && !document.isPayslip),
       items: items,
+      components: components,
       sources: [
         if (offerLetter != null)
           const PaycheckSource(

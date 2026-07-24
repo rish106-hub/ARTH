@@ -10,6 +10,9 @@ class PayslipTaxPrefill {
     required this.annualBasicSalary,
     required this.annualHraReceived,
     required this.annualProfessionalTax,
+    required this.annualEligible80C,
+    required this.annualEmployeeNps,
+    required this.annualHealthInsurance,
     required this.employerName,
   });
 
@@ -20,13 +23,19 @@ class PayslipTaxPrefill {
   final int? annualBasicSalary;
   final int? annualHraReceived;
   final int? annualProfessionalTax;
+  final int? annualEligible80C;
+  final int? annualEmployeeNps;
+  final int? annualHealthInsurance;
   final String? employerName;
 
   bool get hasSalaryValues =>
       annualGrossSalary != null ||
       annualBasicSalary != null ||
       annualHraReceived != null ||
-      annualProfessionalTax != null;
+      annualProfessionalTax != null ||
+      annualEligible80C != null ||
+      annualEmployeeNps != null ||
+      annualHealthInsurance != null;
 
   UserProfile applyTo(UserProfile profile) {
     return profile.copyWith(
@@ -39,6 +48,15 @@ class PayslipTaxPrefill {
       actualHraReceived: annualHraReceived ?? profile.actualHraReceived,
       actualProfessionalTax:
           annualProfessionalTax ?? profile.actualProfessionalTax,
+      invested80C: annualEligible80C ?? profile.invested80C,
+      hasNPS:
+          annualEmployeeNps == null ? profile.hasNPS : annualEmployeeNps! > 0,
+      npsExtraContribution: annualEmployeeNps ?? profile.npsExtraContribution,
+      hasHealthInsuranceSelf: annualHealthInsurance == null
+          ? profile.hasHealthInsuranceSelf
+          : annualHealthInsurance! > 0,
+      healthInsuranceSelfPremium:
+          annualHealthInsurance ?? profile.healthInsuranceSelfPremium,
     );
   }
 }
@@ -68,6 +86,26 @@ PayslipTaxPrefill? payslipTaxPrefillFromDocuments(
   final basic = _sumClassified(earnings, 'basic_pay');
   final hra = _sumClassified(earnings, 'hra');
   final professionalTax = _sumClassified(deductions, 'professional_tax');
+  final eligible80C = _sumWhere(
+    deductions,
+    (row) =>
+        const {'employee_pf', 'voluntary_pf'}
+            .contains(row['classification']?.toString()) ||
+        _containsAny(
+          row,
+          const ['provident', 'cpf pc', 'vpf', 'life insurance', 'lic'],
+        ),
+  );
+  final employeeNps = _sumWhere(
+    deductions,
+    (row) => _containsAny(row, const ['nps', 'national pension']),
+  );
+  final healthInsurance = _sumWhere(
+    deductions,
+    (row) =>
+        row['classification']?.toString() == 'insurance' &&
+        _containsAny(row, const ['health', 'medical', 'mediclaim']),
+  );
 
   final prefill = PayslipTaxPrefill(
     documentId: document.id,
@@ -77,6 +115,9 @@ PayslipTaxPrefill? payslipTaxPrefillFromDocuments(
     annualBasicSalary: _annualize(basic, months),
     annualHraReceived: _annualize(hra, months),
     annualProfessionalTax: _annualize(professionalTax, months),
+    annualEligible80C: _annualize(eligible80C, months),
+    annualEmployeeNps: _annualize(employeeNps, months),
+    annualHealthInsurance: _annualize(healthInsurance, months),
     employerName: _text(fields['employerName']),
   );
   return prefill.hasSalaryValues ? prefill : null;
@@ -108,6 +149,20 @@ int? _sumClassified(List<Map<String, dynamic>> rows, String classification) {
   }).toList(growable: false);
   if (matched.isEmpty) return null;
   return _sum(matched);
+}
+
+int? _sumWhere(
+  List<Map<String, dynamic>> rows,
+  bool Function(Map<String, dynamic>) matches,
+) {
+  final matched = rows.where(matches).toList(growable: false);
+  return matched.isEmpty ? null : _sum(matched);
+}
+
+bool _containsAny(Map<String, dynamic> row, List<String> terms) {
+  final text =
+      '${row['label'] ?? ''} ${row['canonicalKey'] ?? ''}'.toLowerCase();
+  return terms.any(text.contains);
 }
 
 int? _annualize(int? monthlyValue, int months) =>

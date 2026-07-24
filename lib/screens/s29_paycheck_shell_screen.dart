@@ -581,11 +581,21 @@ class _PaycheckBreakdown extends StatelessWidget {
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'Gross earnings',
                 value: paycheck.grossReceived,
+                onTap: () => _openPayBreakdown(
+                  context,
+                  paycheck,
+                  _PayBreakdownKind.earnings,
+                ),
               ),
               _AmountLine(
                 icon: Icons.remove_circle_outline,
                 label: 'Deductions',
                 value: deductions,
+                onTap: () => _openPayBreakdown(
+                  context,
+                  paycheck,
+                  _PayBreakdownKind.deductions,
+                ),
               ),
               _AmountLine(
                 icon: Icons.verified_outlined,
@@ -593,6 +603,11 @@ class _PaycheckBreakdown extends StatelessWidget {
                 value: paycheck.netCredited,
                 color: PaycheckColors.matched,
                 last: true,
+                onTap: () => _openPayBreakdown(
+                  context,
+                  paycheck,
+                  _PayBreakdownKind.netPay,
+                ),
               ),
             ],
           ),
@@ -609,6 +624,7 @@ class _AmountLine extends StatelessWidget {
     required this.value,
     this.color = PaycheckColors.ink,
     this.last = false,
+    this.onTap,
   });
 
   final IconData icon;
@@ -616,27 +632,334 @@ class _AmountLine extends StatelessWidget {
   final int value;
   final Color color;
   final bool last;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        border: last
-            ? null
-            : const Border(bottom: BorderSide(color: PaycheckColors.line)),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          border: last
+              ? null
+              : const Border(bottom: BorderSide(color: PaycheckColors.line)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 19, color: PaycheckColors.inkSoft),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: PaycheckType.body())),
+            Text(_money(value), style: PaycheckType.money(color: color)),
+            if (onTap != null) ...[
+              const SizedBox(width: 7),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: PaycheckColors.inkSoft,
+              ),
+            ],
+          ],
+        ),
       ),
-      child: Row(
+    );
+  }
+}
+
+enum _PayBreakdownKind { earnings, deductions, netPay }
+
+Future<void> _openPayBreakdown(
+  BuildContext context,
+  PaycheckState paycheck,
+  _PayBreakdownKind kind,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: PaycheckColors.paper,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (context) => _PayBreakdownSheet(paycheck: paycheck, kind: kind),
+  );
+}
+
+class _PayBreakdownSheet extends StatelessWidget {
+  const _PayBreakdownSheet({required this.paycheck, required this.kind});
+
+  final PaycheckState paycheck;
+  final _PayBreakdownKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final earnings = paycheck.components
+        .where((item) => item.kind == PaycheckComponentKind.earning)
+        .toList(growable: false);
+    final deductions = paycheck.components
+        .where((item) => item.kind == PaycheckComponentKind.deduction)
+        .toList(growable: false);
+    final title = switch (kind) {
+      _PayBreakdownKind.earnings => 'Gross earnings',
+      _PayBreakdownKind.deductions => 'Deductions',
+      _PayBreakdownKind.netPay => 'Net pay calculation',
+    };
+
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.82,
+        minChildSize: 0.45,
+        maxChildSize: 0.96,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(title, style: PaycheckType.title())),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            if (kind == _PayBreakdownKind.netPay) ...[
+              _PayEquation(
+                earnings: earnings,
+                deductions: deductions,
+                result: paycheck.netCredited,
+              ),
+              const SizedBox(height: 24),
+              _BreakdownHeading(
+                label: 'Gross earnings',
+                value: paycheck.grossReceived,
+              ),
+              const SizedBox(height: 10),
+              _ComponentGroups(
+                components: earnings,
+                kind: PaycheckComponentKind.earning,
+              ),
+              const SizedBox(height: 24),
+              _BreakdownHeading(
+                label: 'Less: deductions',
+                value: paycheck.taxWithheld + paycheck.otherDeductions,
+              ),
+              const SizedBox(height: 10),
+              _ComponentGroups(
+                components: deductions,
+                kind: PaycheckComponentKind.deduction,
+              ),
+            ] else ...[
+              _PayEquation(
+                earnings:
+                    kind == _PayBreakdownKind.earnings ? earnings : const [],
+                deductions: kind == _PayBreakdownKind.deductions
+                    ? deductions
+                    : const [],
+                result: kind == _PayBreakdownKind.earnings
+                    ? paycheck.grossReceived
+                    : paycheck.taxWithheld + paycheck.otherDeductions,
+                singleSide: true,
+              ),
+              const SizedBox(height: 24),
+              _ComponentGroups(
+                components:
+                    kind == _PayBreakdownKind.earnings ? earnings : deductions,
+                kind: kind == _PayBreakdownKind.earnings
+                    ? PaycheckComponentKind.earning
+                    : PaycheckComponentKind.deduction,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayEquation extends StatelessWidget {
+  const _PayEquation({
+    required this.earnings,
+    required this.deductions,
+    required this.result,
+    this.singleSide = false,
+  });
+
+  final List<PaycheckComponent> earnings;
+  final List<PaycheckComponent> deductions;
+  final int result;
+  final bool singleSide;
+
+  String _terms(List<PaycheckComponent> rows) => rows.isEmpty
+      ? _money(0)
+      : rows.map((row) => '${row.label} ${_money(row.amount)}').join(' + ');
+
+  @override
+  Widget build(BuildContext context) {
+    final formula = singleSide
+        ? '[ ${_terms(earnings.isNotEmpty ? earnings : deductions)} ] = ${_money(result)}'
+        : '[ ${_terms(earnings)} ] − [ ${_terms(deductions)} ] = ${_money(result)}';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: PaycheckColors.canvas,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: PaycheckColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 19, color: PaycheckColors.inkSoft),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: PaycheckType.body())),
-          Text(_money(value), style: PaycheckType.money(color: color)),
+          Text('CALCULATION', style: PaycheckType.utility()),
+          const SizedBox(height: 8),
+          SelectableText(
+            formula,
+            style: PaycheckType.bodyStrong(),
+          ),
         ],
       ),
     );
   }
 }
+
+class _BreakdownHeading extends StatelessWidget {
+  const _BreakdownHeading({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(child: Text(label, style: PaycheckType.heading())),
+          Text(_money(value), style: PaycheckType.money()),
+        ],
+      );
+}
+
+class _ComponentGroups extends StatelessWidget {
+  const _ComponentGroups({required this.components, required this.kind});
+
+  final List<PaycheckComponent> components;
+  final PaycheckComponentKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    if (components.isEmpty) {
+      return Text(
+        'No component rows were confirmed.',
+        style: PaycheckType.body(color: PaycheckColors.inkSoft),
+      );
+    }
+    final groups = <String, List<PaycheckComponent>>{};
+    for (final component in components) {
+      final parent = _parentCategory(component.classification, kind);
+      groups.putIfAbsent(parent, () => []).add(component);
+    }
+    return Column(
+      children: groups.entries.map((entry) {
+        final total = entry.value.fold<int>(0, (sum, row) => sum + row.amount);
+        final semanticGroups = <String, List<PaycheckComponent>>{};
+        for (final row in entry.value) {
+          semanticGroups.putIfAbsent(row.canonicalKey, () => []).add(row);
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BreakdownHeading(label: entry.key, value: total),
+              const SizedBox(height: 5),
+              ...semanticGroups.entries.expand((semantic) {
+                final semanticTotal =
+                    semantic.value.fold<int>(0, (sum, row) => sum + row.amount);
+                return [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 9, bottom: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _semanticLabel(semantic.key),
+                            style: PaycheckType.utility(),
+                          ),
+                        ),
+                        Text(
+                          _money(semanticTotal),
+                          style: PaycheckType.utility(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...semantic.value.map(
+                    (row) => Container(
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: PaycheckColors.line),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(row.label, style: PaycheckType.body()),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _money(row.amount),
+                            style: PaycheckType.bodyStrong(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ];
+              }),
+            ],
+          ),
+        );
+      }).toList(growable: false),
+    );
+  }
+}
+
+String _parentCategory(
+  String classification,
+  PaycheckComponentKind kind,
+) {
+  if (kind == PaycheckComponentKind.earning) {
+    return switch (classification) {
+      'basic_pay' || 'hra' || 'allowance' => 'Contractual pay',
+      'bonus' || 'variable_pay' => 'Performance and variable pay',
+      'reimbursement' => 'Reimbursements',
+      _ => 'Adjustments and other earnings',
+    };
+  }
+  return switch (classification) {
+    'income_tax' || 'professional_tax' => 'Taxes',
+    'employee_pf' ||
+    'voluntary_pf' ||
+    'employee_esi' =>
+      'Retirement and social security',
+    'insurance' => 'Insurance and benefits',
+    'loan_repayment' ||
+    'housing_recovery' ||
+    'utility_recovery' ||
+    'cooperative_recovery' =>
+      'Recoveries and repayments',
+    'welfare_contribution' => 'Welfare contributions',
+    'salary_adjustment' => 'Payroll adjustments',
+    _ => 'Other deductions',
+  };
+}
+
+String _semanticLabel(String key) => key
+    .split('_')
+    .where((part) => part.isNotEmpty)
+    .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+    .join(' ');
 
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading({required this.title, required this.count});

@@ -78,6 +78,40 @@ void main() {
     expect(find.text('READY'), findsOneWidget);
   });
 
+  testWidgets('paycheck totals open categorized component breakdowns', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      sampleScope(const MaterialApp(home: PaycheckShellScreen())),
+    );
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('Gross earnings'));
+    await tester.tap(find.text('Gross earnings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Contractual pay'), findsOneWidget);
+    expect(find.text('Performance and variable pay'), findsOneWidget);
+    expect(find.textContaining('Basic pay'), findsWidgets);
+    expect(find.text('CALCULATION'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deductions'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Taxes'), findsOneWidget);
+    expect(find.text('Retirement and social security'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Net pay').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Net pay calculation'), findsOneWidget);
+    expect(find.textContaining('] − ['), findsOneWidget);
+  });
+
   testWidgets('confirmed payslip replaces empty home copy on a small phone', (
     tester,
   ) async {

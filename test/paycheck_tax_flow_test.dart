@@ -122,6 +122,30 @@ void main() {
               'amount': 200,
               'classification': 'professional_tax',
             },
+            {
+              'label': 'CPF PC',
+              'canonicalKey': 'employee_provident_fund',
+              'amount': 1102,
+              'classification': 'employee_pf',
+            },
+            {
+              'label': 'VPF',
+              'canonicalKey': 'voluntary_provident_fund',
+              'amount': 2500,
+              'classification': 'voluntary_pf',
+            },
+            {
+              'label': 'Employee NPS',
+              'canonicalKey': 'employee_nps',
+              'amount': 1000,
+              'classification': 'other',
+            },
+            {
+              'label': 'Health insurance',
+              'canonicalKey': 'health_insurance',
+              'amount': 750,
+              'classification': 'insurance',
+            },
           ],
           'grossEarnings': 38766.66,
         },
@@ -134,6 +158,9 @@ void main() {
     expect(prefill.annualBasicSalary, 231996);
     expect(prefill.annualHraReceived, 92796);
     expect(prefill.annualProfessionalTax, 2400);
+    expect(prefill.annualEligible80C, 43224);
+    expect(prefill.annualEmployeeNps, 12000);
+    expect(prefill.annualHealthInsurance, 9000);
 
     final profile = prefill.applyTo(const UserProfile(city: 'Durgapur'));
     expect(profile.employerName, 'Example Employer');
@@ -141,6 +168,11 @@ void main() {
     expect(profile.actualBasicSalary, 231996);
     expect(profile.actualHraReceived, 92796);
     expect(profile.actualProfessionalTax, 2400);
+    expect(profile.invested80C, 43224);
+    expect(profile.hasNPS, isTrue);
+    expect(profile.npsExtraContribution, 12000);
+    expect(profile.hasHealthInsuranceSelf, isTrue);
+    expect(profile.healthInsuranceSelfPremium, 9000);
   });
 
   test('payslip annualizes over a partial-year job duration', () {

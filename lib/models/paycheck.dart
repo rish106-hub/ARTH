@@ -1,5 +1,23 @@
 enum PaycheckItemStatus { matched, claimable, pending, deduction, review }
 
+enum PaycheckComponentKind { earning, deduction }
+
+class PaycheckComponent {
+  final String label;
+  final String canonicalKey;
+  final String classification;
+  final int amount;
+  final PaycheckComponentKind kind;
+
+  const PaycheckComponent({
+    required this.label,
+    required this.canonicalKey,
+    required this.classification,
+    required this.amount,
+    required this.kind,
+  });
+}
+
 class PaycheckItem {
   final String id;
   final String label;
@@ -69,6 +87,7 @@ class PaycheckState {
   final bool inboxConnected;
   final Set<String> preparedClaims;
   final List<PaycheckItem> items;
+  final List<PaycheckComponent> components;
   final List<PaycheckSource> sources;
   final List<PaycheckEvidence> evidence;
 
@@ -89,6 +108,7 @@ class PaycheckState {
     required this.inboxConnected,
     required this.preparedClaims,
     required this.items,
+    required this.components,
     required this.sources,
     required this.evidence,
   });
@@ -123,6 +143,7 @@ class PaycheckState {
     bool? inboxConnected,
     Set<String>? preparedClaims,
     List<PaycheckItem>? items,
+    List<PaycheckComponent>? components,
     List<PaycheckSource>? sources,
     List<PaycheckEvidence>? evidence,
   }) {
@@ -143,6 +164,7 @@ class PaycheckState {
       inboxConnected: inboxConnected ?? this.inboxConnected,
       preparedClaims: preparedClaims ?? this.preparedClaims,
       items: items ?? this.items,
+      components: components ?? this.components,
       sources: sources ?? this.sources,
       evidence: evidence ?? this.evidence,
     );
@@ -166,6 +188,7 @@ const emptyPaycheck = PaycheckState(
   inboxConnected: false,
   preparedClaims: {},
   items: [],
+  components: [],
   sources: [],
   evidence: [],
 );
@@ -232,6 +255,43 @@ const demoPaycheck = PaycheckState(
       amount: 3520,
       status: PaycheckItemStatus.review,
       dueLabel: 'Verify deposit',
+    ),
+  ],
+  components: [
+    PaycheckComponent(
+      label: 'Basic pay',
+      canonicalKey: 'basic_pay',
+      classification: 'basic_pay',
+      amount: 45000,
+      kind: PaycheckComponentKind.earning,
+    ),
+    PaycheckComponent(
+      label: 'House rent allowance',
+      canonicalKey: 'house_rent_allowance',
+      classification: 'hra',
+      amount: 5200,
+      kind: PaycheckComponentKind.earning,
+    ),
+    PaycheckComponent(
+      label: 'Performance pay',
+      canonicalKey: 'performance_pay',
+      classification: 'variable_pay',
+      amount: 2500,
+      kind: PaycheckComponentKind.earning,
+    ),
+    PaycheckComponent(
+      label: 'Income tax',
+      canonicalKey: 'income_tax',
+      classification: 'income_tax',
+      amount: 3260,
+      kind: PaycheckComponentKind.deduction,
+    ),
+    PaycheckComponent(
+      label: 'Provident fund',
+      canonicalKey: 'employee_provident_fund',
+      classification: 'employee_pf',
+      amount: 3520,
+      kind: PaycheckComponentKind.deduction,
     ),
   ],
   sources: [

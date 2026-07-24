@@ -396,14 +396,14 @@ export async function interpretPayslip(input: {
         store: false,
         systemInstruction: {
           parts: [{
-            text: 'Interpret Indian payslips, including bilingual and non-standard layouts. Read the whole document before classifying any row. Extract only values visible in the document. Keep current-month earnings, current-month deductions or recoveries, employer contributions, and cumulative or year-to-date values separate. Return every printed current-month row, including unfamiliar deductions, under exactly one section. Preserve printed negative adjustments as negative amounts. Never calculate tax, invent values, or treat annual CTC or cumulative gross as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
+            text: 'Interpret Indian payslips, including bilingual and non-standard layouts. Read the whole document before classifying any row. Extract only values visible in the document. Keep current-month earnings, current-month deductions or recoveries, employer contributions, and cumulative or year-to-date values separate. Return every printed current-month row, including unfamiliar deductions, under exactly one section. Classifications must be mutually exclusive and collectively exhaustive: choose exactly one allowed classification for every row, using other only when no specific class fits. Preserve printed negative adjustments as negative amounts. Never calculate tax, invent values, or treat annual CTC or cumulative gross as monthly salary. Return null for missing totals and ask a user question for every material uncertainty.',
           }],
         },
         contents: [{
           role: 'user',
           parts: [
             {
-              text: 'Extract pay period, attendance, every current-month earning, every current-month deduction or recovery, every cumulative or year-to-date row, gross earnings, total deductions, and net salary for user review. Use the printed monthly totals even when taxable and non-taxable labels differ. Preserve each source label. Give every earning and deduction a lowercase snake_case canonicalKey that represents its meaning. Use the same canonicalKey for aliases such as ITAX and income tax, but keep distinct concepts such as employee PF and voluntary PF separate. Do not return the same printed row twice even when OCR sources repeat it.',
+              text: 'Extract pay period, attendance, every current-month earning, every current-month deduction or recovery, every cumulative or year-to-date row, gross earnings, total deductions, and net salary for user review. Use the printed monthly totals even when taxable and non-taxable labels differ. Preserve each source label. Give every earning and deduction a lowercase snake_case canonicalKey that represents its semantic subcategory. Use the same canonicalKey for true aliases such as ITAX and income tax, but keep distinct concepts such as employee PF and voluntary PF separate. Assign exactly one classification to every row. Do not return the same printed row twice even when OCR sources repeat it.',
             },
             ...(input.documentText
               ? [{
