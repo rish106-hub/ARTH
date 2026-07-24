@@ -381,6 +381,7 @@ class FakeDb {
       doc.parse_status = 'parsed';
       doc.parse_summary = JSON.parse(params[2] as string);
       doc.confirmed_fields = JSON.parse(params[3] as string);
+      doc.document_type = params[4] as string;
       doc.review_status = 'reviewed';
       doc.reviewed_at = new Date();
       doc.updated_at = new Date();
@@ -1263,6 +1264,78 @@ describe('backend security harness', () => {
       storedSummary.confirmedFieldKeys,
       Object.keys(extractedFields),
     );
+
+    await app.close();
+  });
+
+  it('accepts validated manual details for an unparsed payslip', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const payslip = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000093',
+      document_type: 'payslip',
+      original_filename: 'salary.jpg',
+      mime_type: 'image/jpeg',
+      parse_status: 'metadata_ready',
+      parse_summary: {
+        parser: 'gemini-payslip-v1',
+        insight: 'Manual review is required.',
+      },
+    });
+    const fields = {
+      employerName: 'Example Steel Limited',
+      payPeriod: 'May 2023',
+      currency: 'INR',
+      earnings: [
+        {
+          label: 'Basic',
+          amount: 66703,
+          classification: 'other',
+          confidence: 'high',
+        },
+      ],
+      deductions: [
+        {
+          label: 'Total recoveries',
+          amount: 50969,
+          classification: 'other',
+          confidence: 'high',
+        },
+      ],
+      grossEarnings: 109412,
+      totalDeductions: 50969,
+      netSalary: 58443,
+    };
+
+    const confirm = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${payslip.id}/confirm`,
+      headers: bearer(alice.accessToken),
+      payload: { fields },
+    });
+    assert.equal(confirm.statusCode, 200);
+    assert.equal(confirm.json().document.parseStatus, 'parsed');
+    assert.equal(confirm.json().document.confirmedFields.netSalary, 58443);
+    assert.equal(confirm.json().document.parseSummary.manualEntry, true);
+
+    const invalid = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-000000000094',
+      document_type: 'payslip',
+      parse_status: 'metadata_ready',
+      parse_summary: { parser: 'gemini-payslip-v1' },
+    });
+    const rejected = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${invalid.id}/confirm`,
+      headers: bearer(alice.accessToken),
+      payload: {
+        fields: {
+          ...fields,
+          netSalary: 60000,
+        },
+      },
+    });
+    assert.equal(rejected.statusCode, 400);
 
     await app.close();
   });

@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -268,7 +269,8 @@ class DocumentChecklistScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${item.title} uploaded securely.')),
         );
-        if (uploaded.needsConfirmation) {
+        if (uploaded.needsConfirmation ||
+            (uploaded.isPayslip && uploaded.extractedFields.isEmpty)) {
           _showDocumentDetail(context, ref, uploaded);
         }
       }
@@ -312,7 +314,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
         var saving = false;
         String? error;
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (_, setSheetState) {
             Future<void> saveMetadata({
               String? vaultStatus,
               String? reviewStatus,
@@ -515,6 +517,49 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           fields: document.extractedFields,
                         ),
                       ],
+                      if (document.isPayslip &&
+                          document.extractedFields.isEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withValues(alpha: 0.08),
+                            borderRadius: AppRadius.card,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'No reliable details were found',
+                                style: AppTextStyles.bodyMedium(),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Enter the printed gross pay, deductions, and net pay. You can also add any salary rows shown on this payslip.',
+                                style: AppTextStyles.caption(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                style: AppButtons.outlineGold,
+                                onPressed: saving
+                                    ? null
+                                    : () {
+                                        Navigator.pop(sheetContext);
+                                        _showManualPayslipEditor(
+                                          context,
+                                          ref,
+                                          document,
+                                        );
+                                      },
+                                icon: const Icon(Icons.edit_note_outlined),
+                                label: const Text('Enter payslip details'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (error != null) ...[
                         const SizedBox(height: 10),
                         Text(
@@ -574,6 +619,350 @@ class DocumentChecklistScreen extends ConsumerWidget {
       },
     );
   }
+
+  Future<void> _showManualPayslipEditor(
+    BuildContext context,
+    WidgetRef ref,
+    TaxDocument document,
+  ) async {
+    final confirmed = await showModalBottomSheet<TaxDocument>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => _ManualPayslipEditor(
+        onConfirm: (fields) => ref
+            .read(taxDocumentProvider.notifier)
+            .confirmParsedFields(document.id, fields: fields),
+      ),
+    );
+    if (confirmed == null || !context.mounted) return;
+    final documents =
+        ref.read(taxDocumentProvider).asData?.value ?? <TaxDocument>[confirmed];
+    ref.read(paycheckProvider.notifier).syncDocuments(documents);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Payslip saved. Home is updated.')),
+    );
+  }
+}
+
+class _ManualPayslipEditor extends StatefulWidget {
+  const _ManualPayslipEditor({required this.onConfirm});
+
+  final Future<TaxDocument> Function(Map<String, dynamic> fields) onConfirm;
+
+  @override
+  State<_ManualPayslipEditor> createState() => _ManualPayslipEditorState();
+}
+
+class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
+  final _employer = TextEditingController();
+  final _payPeriod = TextEditingController();
+  final _gross = TextEditingController();
+  final _deductions = TextEditingController();
+  final _net = TextEditingController();
+  final List<_ManualPayRowControllers> _earnings = [];
+  final List<_ManualPayRowControllers> _deductionRows = [];
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _employer.dispose();
+    _payPeriod.dispose();
+    _gross.dispose();
+    _deductions.dispose();
+    _net.dispose();
+    for (final row in [..._earnings, ..._deductionRows]) {
+      row.dispose();
+    }
+    super.dispose();
+  }
+
+  double? _amount(TextEditingController controller) {
+    return double.tryParse(controller.text.replaceAll(',', '').trim());
+  }
+
+  Map<String, dynamic>? _fields() {
+    final gross = _amount(_gross);
+    final deductions = _amount(_deductions);
+    final net = _amount(_net);
+    if (gross == null || gross <= 0) {
+      _error = 'Enter the printed gross earnings.';
+      return null;
+    }
+    if (deductions == null || deductions < 0) {
+      _error = 'Enter total deductions. Use 0 if none are printed.';
+      return null;
+    }
+    if (net == null || net <= 0) {
+      _error = 'Enter the printed net salary.';
+      return null;
+    }
+    if ((gross - deductions - net).abs() > 1) {
+      _error = 'Gross minus deductions must equal net salary.';
+      return null;
+    }
+    List<Map<String, dynamic>> rows(
+      List<_ManualPayRowControllers> controllers,
+    ) {
+      return controllers
+          .where((row) =>
+              row.label.text.trim().isNotEmpty ||
+              row.amount.text.trim().isNotEmpty)
+          .map((row) {
+        final amount = _amount(row.amount);
+        if (row.label.text.trim().isEmpty || amount == null) {
+          throw const FormatException();
+        }
+        return {
+          'label': row.label.text.trim(),
+          'amount': amount,
+          'classification': 'other',
+          'confidence': 'high',
+        };
+      }).toList();
+    }
+
+    try {
+      return {
+        'employerName':
+            _employer.text.trim().isEmpty ? null : _employer.text.trim(),
+        'employeeName': null,
+        'payPeriod':
+            _payPeriod.text.trim().isEmpty ? null : _payPeriod.text.trim(),
+        'paymentDate': null,
+        'currency': 'INR',
+        'attendance': {
+          'actualPayableDays': null,
+          'totalWorkingDays': null,
+          'lossOfPayDays': null,
+          'daysPayable': null,
+        },
+        'earnings': rows(_earnings),
+        'deductions': rows(_deductionRows),
+        'grossEarnings': gross,
+        'totalDeductions': deductions,
+        'netSalary': net,
+        'warnings': ['Entered manually by the user.'],
+        'questionsForUser': <String>[],
+      };
+    } on FormatException {
+      _error = 'Each added row needs a label and a valid amount.';
+      return null;
+    }
+  }
+
+  Future<void> _submit() async {
+    setState(() => _error = null);
+    final fields = _fields();
+    if (fields == null) {
+      setState(() {});
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final confirmed = await widget.onConfirm(fields);
+      if (mounted) Navigator.pop(context, confirmed);
+    } catch (caught) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = caught is ServerApiException
+            ? caught.message
+            : 'Could not save payslip details.';
+      });
+    }
+  }
+
+  void _addRow(List<_ManualPayRowControllers> rows) {
+    setState(() => rows.add(_ManualPayRowControllers()));
+  }
+
+  void _removeRow(
+    List<_ManualPayRowControllers> rows,
+    _ManualPayRowControllers row,
+  ) {
+    setState(() => rows.remove(row));
+    row.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final numberFormatters = <TextInputFormatter>[
+      FilteringTextInputFormatter.allow(RegExp(r'[-0-9.,]')),
+    ];
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Enter payslip details', style: AppTextStyles.h2()),
+              const SizedBox(height: 8),
+              Text(
+                'Use the monthly printed totals. Do not use cumulative or year-to-date values.',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _employer,
+                decoration:
+                    const InputDecoration(labelText: 'Employer (optional)'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _payPeriod,
+                decoration:
+                    const InputDecoration(labelText: 'Pay period (optional)'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _gross,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: numberFormatters,
+                decoration: const InputDecoration(labelText: 'Gross earnings'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _deductions,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: numberFormatters,
+                decoration:
+                    const InputDecoration(labelText: 'Total deductions'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _net,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: numberFormatters,
+                decoration: const InputDecoration(labelText: 'Net salary'),
+              ),
+              const SizedBox(height: 20),
+              _ManualPayRows(
+                title: 'Earnings',
+                rows: _earnings,
+                formatters: numberFormatters,
+                onAdd: () => _addRow(_earnings),
+                onRemove: (row) => _removeRow(_earnings, row),
+              ),
+              const SizedBox(height: 18),
+              _ManualPayRows(
+                title: 'Deductions',
+                rows: _deductionRows,
+                formatters: numberFormatters,
+                onAdd: () => _addRow(_deductionRows),
+                onRemove: (row) => _removeRow(_deductionRows, row),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: AppTextStyles.caption(color: AppColors.alert),
+                ),
+              ],
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                style: AppButtons.primaryGold,
+                onPressed: _saving ? null : _submit,
+                icon: const Icon(Icons.fact_check_outlined),
+                label: Text(_saving ? 'Saving...' : 'Save payslip'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManualPayRowControllers {
+  final label = TextEditingController();
+  final amount = TextEditingController();
+
+  void dispose() {
+    label.dispose();
+    amount.dispose();
+  }
+}
+
+class _ManualPayRows extends StatelessWidget {
+  const _ManualPayRows({
+    required this.title,
+    required this.rows,
+    required this.formatters,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final String title;
+  final List<_ManualPayRowControllers> rows;
+  final List<TextInputFormatter> formatters;
+  final VoidCallback onAdd;
+  final ValueChanged<_ManualPayRowControllers> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
+            IconButton(
+              tooltip: 'Add ${title.toLowerCase()} row',
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+          ],
+        ),
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: row.label,
+                    decoration: const InputDecoration(labelText: 'Label'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: row.amount,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: formatters,
+                    decoration: const InputDecoration(labelText: 'Amount'),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Remove row',
+                  onPressed: () => onRemove(row),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _FriendlyExtractedFields extends StatelessWidget {
@@ -619,6 +1008,7 @@ class _FriendlyExtractedFields extends StatelessWidget {
     final attendance = _map('attendance');
     final earnings = _rows('earnings');
     final deductions = _rows('deductions');
+    final cumulative = _rows('cumulative');
     final components = _rows('components');
     final warnings = _strings('warnings');
     final questions = _strings('questionsForUser');
@@ -645,6 +1035,8 @@ class _FriendlyExtractedFields extends StatelessWidget {
         if (earnings.isNotEmpty) _amountSection('Earnings', earnings, 'amount'),
         if (deductions.isNotEmpty)
           _amountSection('Deductions', deductions, 'amount'),
+        if (cumulative.isNotEmpty)
+          _amountSection('Cumulative / year to date', cumulative, 'amount'),
         if (components.isNotEmpty)
           _amountSection('Pay components', components, 'annualAmount'),
         if (warnings.isNotEmpty)

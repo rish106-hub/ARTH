@@ -71,9 +71,12 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     ]);
   }
 
-  Future<TaxDocument> confirmParsedFields(String id) async {
+  Future<TaxDocument> confirmParsedFields(
+    String id, {
+    Map<String, dynamic>? fields,
+  }) async {
     final previous = state.asData?.value ?? const <TaxDocument>[];
-    final confirmed = await _service.confirmParsedFields(id);
+    final confirmed = await _service.confirmParsedFields(id, fields: fields);
     state = AsyncData([
       for (final doc in previous) doc.id == id ? confirmed : doc,
     ]);
