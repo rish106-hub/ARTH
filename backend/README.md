@@ -1,6 +1,7 @@
 # ARTH Backend
 
-This backend is the secure API layer between the Flutter app and Neon.
+This backend is the secure API layer between the Flutter app and its PostgreSQL
+data store. Neon remains active during the parallel CockroachDB migration.
 
 ## Responsibilities
 
@@ -14,6 +15,9 @@ This backend is the secure API layer between the Flutter app and Neon.
 - user profile storage
 - tax-result storage
 - done-gap storage
+- per-user envelope-encryption primitives
+- private GCS document-object storage
+- CockroachDB row-level security and ownership constraints
 
 ## Setup
 
@@ -76,6 +80,15 @@ npm run migrate
 
 Production startup runs the same migration command before accepting traffic.
 Applied files and checksums are recorded in `schema_migrations`.
+
+CockroachDB uses its own migration stream:
+
+```bash
+DB_DIALECT=cockroach npm run migrate
+DB_DIALECT=cockroach npm run verify:cockroach
+```
+
+See `../docs/database-architecture.md` before changing production credentials.
 
 If you already have a Neon API key, you can provision a project from the terminal:
 

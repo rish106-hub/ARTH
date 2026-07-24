@@ -106,4 +106,28 @@ describe('env validation', () => {
       /DOCUMENT_ENCRYPTION_KEY must be 32 base64-encoded bytes/,
     );
   });
+
+  it('requires verified TLS, KMS, GCS, and blind-index keys for CockroachDB', () => {
+    const cockroachEnv = {
+      ...baseEnv,
+      DB_DIALECT: 'cockroach',
+      DATABASE_URL: 'postgresql://user:pass@cluster.cockroachlabs.cloud:26257/arth?sslmode=verify-full',
+      GCP_KMS_KEY_NAME: 'projects/arth/locations/asia-south1/keyRings/app/cryptoKeys/user-data',
+      GCS_DOCUMENT_BUCKET: 'arth-private-documents',
+      GCS_LOCATION: 'asia-south1',
+      DATA_HMAC_KEY: 'prod-data-hmac-key-with-at-least-32-characters',
+    };
+    assert.equal(parseEnv(cockroachEnv).DB_DIALECT, 'cockroach');
+    assert.throws(
+      () => parseEnv({
+        ...cockroachEnv,
+        DATABASE_URL: 'postgresql://user:pass@cluster.cockroachlabs.cloud:26257/arth?sslmode=require',
+      }),
+      /sslmode=verify-full/,
+    );
+    assert.throws(
+      () => parseEnv({ ...cockroachEnv, DATA_HMAC_KEY: 'short' }),
+      /DATA_HMAC_KEY/,
+    );
+  });
 });
