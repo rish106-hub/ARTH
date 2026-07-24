@@ -224,8 +224,13 @@ const dataRateLimit = {
 };
 
 const documentUploadOptions = {
-  ...dataRateLimit,
   bodyLimit: 9 * 1024 * 1024,
+  config: {
+    rateLimit: {
+      max: 20,
+      timeWindow: '1 minute',
+    },
+  },
 };
 
 const readRateLimit = {

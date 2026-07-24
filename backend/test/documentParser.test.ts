@@ -240,7 +240,7 @@ describe('payslip interpretation', () => {
     process.env.GEMINI_API_KEY = 'test-gemini-key';
     globalThis.fetch = async (input, init) => {
       const url = String(input);
-      if (url.includes('generativelanguage.googleapis.com')) {
+      if (new URL(url).hostname === 'generativelanguage.googleapis.com') {
         const request = JSON.parse(String(init?.body));
         const parts = request.contents[0].parts as Array<{ text?: string }>;
         assert.match(parts[1].text ?? '', /SARVAM FULL DOCUMENT/);
