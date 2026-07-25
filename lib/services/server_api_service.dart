@@ -99,8 +99,12 @@ class ServerApiService {
     await _send('POST', path, body: body, bearerToken: bearerToken);
   }
 
-  Future<void> delete(String path, {String? bearerToken}) async {
-    await _send('DELETE', path, bearerToken: bearerToken);
+  Future<void> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
+  }) async {
+    await _send('DELETE', path, body: body, bearerToken: bearerToken);
   }
 
   Future<Map<String, dynamic>> uploadMultipart(

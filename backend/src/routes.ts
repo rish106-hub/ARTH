@@ -7,6 +7,7 @@ import { buildRevision } from './buildRevision.js';
 import { db, Queryable, runSerializableTransaction } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { categorizeTransactions } from './spendCategorizer.js';
+import { sendPushToUser } from './pushNotifications.js';
 import { env } from './config.js';
 import {
   createRefreshToken,
@@ -14,6 +15,7 @@ import {
   encryptDocument,
   encryptPan,
   type EncryptedSecret,
+  hashDeviceToken,
   hashPan,
   hashPassword,
   passwordNeedsRehash,
@@ -146,6 +148,12 @@ const spendMapSchema = z.object({
     income: z.number().int().min(0).max(1_000_000_000),
   })).max(24).default([]),
 });
+
+const deviceTokenSchema = z.object({
+  fcmToken: z.string().trim().min(20).max(4096),
+  platform: z.enum(['android', 'ios']),
+});
+const deviceTokenDeleteSchema = deviceTokenSchema.pick({ fcmToken: true });
 
 const categorizeRequestSchema = z.object({
   items: z.array(z.object({
@@ -1553,6 +1561,64 @@ export async function registerRoutes(app: FastifyInstance) {
         JSON.stringify(summary.spendByCategory),
         JSON.stringify(summary.monthlyTrend),
       ],
+    );
+
+    // Best-effort overspend alert. Fire-and-forget: never block or fail the
+    // sync just because a push could not be delivered.
+    if (summary.monthlyIncome > 0 && summary.monthlySpend > summary.monthlyIncome) {
+      const overBy = summary.monthlySpend - summary.monthlyIncome;
+      sendPushToUser(auth.userId, {
+        title: 'Spending is ahead of income this month',
+        body: `You're about ₹${overBy.toLocaleString('en-IN')} over your detected income. Tap to review.`,
+        data: { type: 'spend_overspend', screen: 'spend-map' },
+        dailyDedupeKey: 'spend_overspend',
+      }).catch(() => undefined);
+    }
+
+    return { ok: true };
+  });
+
+  // Register (or refresh) this device's FCM token for push notifications.
+  // Upserts on the token itself so re-installs / re-logins on the same device
+  // move ownership to the current user instead of erroring.
+  app.post('/devices', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { fcmToken, platform } = deviceTokenSchema.parse(request.body);
+    const encrypted = encryptDocument(Buffer.from(fcmToken, 'utf8'));
+    await db.query(
+      `insert into device_tokens (
+         user_id, token_fingerprint, token_ciphertext, token_iv,
+         token_auth_tag, platform, last_seen_at
+       )
+       values ($1, $2, $3, $4, $5, $6, now())
+       on conflict (token_fingerprint) do update set
+         user_id = excluded.user_id,
+         token_ciphertext = excluded.token_ciphertext,
+         token_iv = excluded.token_iv,
+         token_auth_tag = excluded.token_auth_tag,
+         platform = excluded.platform,
+         last_seen_at = now()`,
+      [
+        auth.userId,
+        hashDeviceToken(fcmToken),
+        encrypted.ciphertext,
+        encrypted.iv,
+        encrypted.authTag,
+        platform,
+      ],
+    );
+    return reply.code(201).send({ ok: true });
+  });
+
+  // Unregister a device token (e.g. on sign-out) so it stops receiving push.
+  app.delete('/devices', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { fcmToken } = deviceTokenDeleteSchema.parse(request.body);
+    await db.query(
+      'delete from device_tokens where user_id = $1 and token_fingerprint = $2',
+      [auth.userId, hashDeviceToken(fcmToken)],
     );
     return { ok: true };
   });

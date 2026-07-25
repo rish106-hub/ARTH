@@ -60,6 +60,7 @@ class FakeDb {
   private moneyGoals = new Map<string, Row>();
   private spendMaps = new Map<string, Row>();
   private employers = new Map<string, Row>();
+  private deviceTokens = new Map<string, Row>();
   private events: Row[] = [];
   private tombstones: Row[] = [];
   private ids = 0;
@@ -76,6 +77,7 @@ class FakeDb {
     this.moneyGoals.clear();
     this.spendMaps.clear();
     this.employers.clear();
+    this.deviceTokens.clear();
     this.events = [];
     this.tombstones = [];
     this.ids = 0;
@@ -92,6 +94,10 @@ class FakeDb {
 
   rawDocument(documentId: string) {
     return this.documents.get(documentId);
+  }
+
+  rawDeviceTokens() {
+    return [...this.deviceTokens.values()];
   }
 
   hasUser(userId: string) {
@@ -659,6 +665,33 @@ class FakeDb {
       return rows();
     }
 
+    if (normalized.startsWith('insert into device_tokens')) {
+      const fingerprint = params[1] as string;
+      const existing = this.deviceTokens.get(fingerprint);
+      const token = {
+        id: existing?.id ?? this.nextId('device'),
+        user_id: params[0],
+        token_fingerprint: fingerprint,
+        token_ciphertext: params[2],
+        token_iv: params[3],
+        token_auth_tag: params[4],
+        platform: params[5],
+        created_at: existing?.created_at ?? new Date(),
+        last_seen_at: new Date(),
+      };
+      this.deviceTokens.set(fingerprint, token);
+      return rows();
+    }
+
+    if (normalized.startsWith('delete from device_tokens where user_id = $1')) {
+      const fingerprint = params[1] as string;
+      const existing = this.deviceTokens.get(fingerprint);
+      if (existing?.user_id === params[0]) {
+        this.deviceTokens.delete(fingerprint);
+      }
+      return rows();
+    }
+
     if (normalized.startsWith('insert into user_events')) {
       this.events.push({
         user_id: params[0],
@@ -850,6 +883,58 @@ describe('backend security harness', () => {
       message: 'Service temporarily unavailable',
       retryable: true,
     });
+    await app.close();
+  });
+
+  it('stores encrypted device tokens and scopes unregister to the owner', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const fcmToken = 'test-fcm-token-that-is-long-enough-123456789';
+
+    const registerAlice = await app.inject({
+      method: 'POST',
+      url: '/v1/devices',
+      headers: bearer(alice.accessToken),
+      payload: { fcmToken, platform: 'android' },
+    });
+    assert.equal(registerAlice.statusCode, 201);
+
+    let stored = fakeDb.rawDeviceTokens();
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0].user_id, alice.user.id);
+    assert.equal(JSON.stringify(stored[0]).includes(fcmToken), false);
+    assert.equal(typeof stored[0].token_ciphertext, 'string');
+
+    const registerBob = await app.inject({
+      method: 'POST',
+      url: '/v1/devices',
+      headers: bearer(bob.accessToken),
+      payload: { fcmToken, platform: 'android' },
+    });
+    assert.equal(registerBob.statusCode, 201);
+    stored = fakeDb.rawDeviceTokens();
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0].user_id, bob.user.id);
+
+    const aliceCannotDeleteBobToken = await app.inject({
+      method: 'DELETE',
+      url: '/v1/devices',
+      headers: bearer(alice.accessToken),
+      payload: { fcmToken },
+    });
+    assert.equal(aliceCannotDeleteBobToken.statusCode, 200);
+    assert.equal(fakeDb.rawDeviceTokens().length, 1);
+
+    const unregisterBob = await app.inject({
+      method: 'DELETE',
+      url: '/v1/devices',
+      headers: bearer(bob.accessToken),
+      payload: { fcmToken },
+    });
+    assert.equal(unregisterBob.statusCode, 200);
+    assert.equal(fakeDb.rawDeviceTokens().length, 0);
+
     await app.close();
   });
 

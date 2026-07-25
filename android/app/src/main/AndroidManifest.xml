@@ -10,6 +10,8 @@
     <!-- On-device spend-map: read salary-credit & spend SMS. Parsed locally only. -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
+    <!-- Runtime-requested on Android 13+; push notifications (spend alerts, reminders). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- Required by url_launcher to open https:// links on Android 11+ -->
     <queries>
@@ -61,17 +63,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Firebase Cloud Messaging Service -->
-        <!-- Uncomment after Firebase setup: -->
-        <!--
-        <service
-            android:name="com.google.firebase.messaging.FirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
-            </intent-filter>
-        </service>
-        -->
+        <!-- Default notification channel for the firebase_messaging plugin.
+             The plugin registers its own FirebaseMessagingService via manifest
+             merge; no manual <service> declaration needed. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="arth_default"/>
 
     </application>
 

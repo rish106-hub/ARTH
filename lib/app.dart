@@ -37,7 +37,7 @@ String _initialLocation() {
   return platformRoute.startsWith('/') ? platformRoute : '/';
 }
 
-final _router = GoRouter(
+final appRouter = GoRouter(
   initialLocation: _initialLocation(),
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
@@ -194,7 +194,7 @@ class ArthApp extends ConsumerWidget {
       title: 'ARTH - Know your paycheck',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      routerConfig: _router,
+      routerConfig: appRouter,
     );
   }
 }

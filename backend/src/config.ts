@@ -31,6 +31,7 @@ const envSchema = z.object({
   SARVAM_API_BASE_URL: z.string().url().default('https://api.sarvam.ai'),
   SARVAM_DOCUMENT_LANGUAGE: z.string().regex(/^[a-z]{2,3}-[A-Z]{2}$/).default('hi-IN'),
   SARVAM_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(540_000).default(480_000),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(100).optional(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().endsWith('.apps.googleusercontent.com').optional(),
 }).superRefine((env, ctx) => {
   if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
