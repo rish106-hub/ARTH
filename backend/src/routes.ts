@@ -1050,8 +1050,18 @@ export async function registerRoutes(app: FastifyInstance) {
          ciphertext = excluded.ciphertext,
          iv = excluded.iv,
          auth_tag = excluded.auth_tag,
-         parse_status = excluded.parse_status,
-         parse_summary = excluded.parse_summary,
+         parse_status = case
+           when tax_documents.parse_status in ('needs_confirmation', 'parsed')
+             and excluded.parse_status not in ('needs_confirmation', 'parsed')
+           then tax_documents.parse_status
+           else excluded.parse_status
+         end,
+         parse_summary = case
+           when tax_documents.parse_status in ('needs_confirmation', 'parsed')
+             and excluded.parse_status not in ('needs_confirmation', 'parsed')
+           then tax_documents.parse_summary
+           else excluded.parse_summary
+         end,
          updated_at = now()
        returning id, fy, document_type, original_filename, mime_type, byte_size,
                  sha256_fingerprint, parse_status, parse_summary, user_label,

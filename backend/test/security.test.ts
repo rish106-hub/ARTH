@@ -400,6 +400,11 @@ class FakeDb {
       );
       const now = new Date();
       const id = existing?.id as string | undefined ?? this.nextId('doc');
+      const incomingParseStatus = params[10] as string;
+      const incomingParseSummary = JSON.parse(params[11] as string);
+      const preserveBetterParse = existing != null
+        && ['needs_confirmation', 'parsed'].includes(existing.parse_status as string)
+        && !['needs_confirmation', 'parsed'].includes(incomingParseStatus);
       const doc = {
         id,
         user_id: params[0],
@@ -412,8 +417,12 @@ class FakeDb {
         ciphertext: params[7],
         iv: params[8],
         auth_tag: params[9],
-        parse_status: params[10],
-        parse_summary: JSON.parse(params[11] as string),
+        parse_status: preserveBetterParse
+          ? existing.parse_status
+          : incomingParseStatus,
+        parse_summary: preserveBetterParse
+          ? existing.parse_summary
+          : incomingParseSummary,
         user_label: existing?.user_label ?? null,
         notes: existing?.notes ?? null,
         tags: existing?.tags ?? [],
@@ -1438,6 +1447,30 @@ describe('backend security harness', () => {
     assert.equal(listed.statusCode, 200);
     assert.equal(
       listed.json().documents[0].parseSummary.extractedFields.netSalary,
+      58443,
+    );
+
+    const transientReupload = await app.inject({
+      method: 'POST',
+      url: '/v1/documents',
+      headers: {
+        ...bearer(alice.accessToken),
+        'content-type': `multipart/form-data; boundary=${multipartBoundary}`,
+      },
+      payload: multipartPayload({
+        documentType: 'payslip',
+        filename: 'May payslip.jpg',
+        mimeType: 'image/jpeg',
+        bytes: payslipBytes,
+      }),
+    });
+    assert.equal(transientReupload.statusCode, 200);
+    assert.equal(
+      transientReupload.json().document.parseStatus,
+      'needs_confirmation',
+    );
+    assert.equal(
+      transientReupload.json().document.parseSummary.extractedFields.netSalary,
       58443,
     );
 
