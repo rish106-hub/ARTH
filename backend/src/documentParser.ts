@@ -29,6 +29,18 @@ type ParsedForm16Fields = {
   panMatchStatus: 'matches_vault' | 'differs_from_vault' | 'not_found' | 'not_checked';
 };
 
+type ExplicitPayslipFields = Pick<
+  PayslipInterpretation,
+  | 'employerName'
+  | 'employeeName'
+  | 'payPeriod'
+  | 'paymentDate'
+  | 'attendance'
+  | 'grossEarnings'
+  | 'totalDeductions'
+  | 'netSalary'
+>;
+
 const expectedSignalsByType: Record<string, { signals: string[]; insight: string }> = {
   offerLetter: {
     signals: ['employer', 'role', 'fixed pay', 'variable pay', 'benefits'],
@@ -110,7 +122,12 @@ export async function parseUploadedDocument(input: {
           mimeType: input.mimeType,
         });
     if (interpretation) {
-      const checked = withPayslipArithmeticChecks(interpretation);
+      const explicitFields = documentText
+        ? parseExplicitPayslipFields(documentText)
+        : null;
+      const checked = withPayslipArithmeticChecks(
+        supplementExplicitPayslipFields(interpretation, explicitFields),
+      );
       return {
         status: 'needs_confirmation',
         summary: {
@@ -446,6 +463,35 @@ function withPayslipArithmeticChecks(
   };
 }
 
+function supplementExplicitPayslipFields(
+  interpretation: PayslipInterpretation,
+  explicit: ExplicitPayslipFields | null,
+): PayslipInterpretation {
+  if (!explicit) return interpretation;
+
+  return {
+    ...interpretation,
+    employerName: interpretation.employerName ?? explicit.employerName,
+    employeeName: interpretation.employeeName ?? explicit.employeeName,
+    payPeriod: interpretation.payPeriod ?? explicit.payPeriod,
+    paymentDate: interpretation.paymentDate ?? explicit.paymentDate,
+    attendance: {
+      actualPayableDays: interpretation.attendance.actualPayableDays
+        ?? explicit.attendance.actualPayableDays,
+      totalWorkingDays: interpretation.attendance.totalWorkingDays
+        ?? explicit.attendance.totalWorkingDays,
+      lossOfPayDays: interpretation.attendance.lossOfPayDays
+        ?? explicit.attendance.lossOfPayDays,
+      daysPayable: interpretation.attendance.daysPayable
+        ?? explicit.attendance.daysPayable,
+    },
+    grossEarnings: interpretation.grossEarnings ?? explicit.grossEarnings,
+    totalDeductions: interpretation.totalDeductions
+      ?? explicit.totalDeductions,
+    netSalary: interpretation.netSalary ?? explicit.netSalary,
+  };
+}
+
 function combinePayslipTextSources(sources: {
   sarvam?: string;
   pdf?: string;
@@ -671,6 +717,7 @@ export function parseForm16Text(text: string, panVaultSuffix: PanVaultSuffix): P
 export function parsePayslipText(text: string): PayslipInterpretation | null {
   const normalized = normalizeText(text);
   if (normalized.replace(/\s/g, '').length < 40) return null;
+  const explicit = parseExplicitPayslipFields(normalized);
 
   const earnings = extractPayslipRows(
     normalized,
@@ -680,53 +727,64 @@ export function parsePayslipText(text: string): PayslipInterpretation | null {
     normalized,
     'deductions',
   ) as PayslipInterpretation['deductions'];
-  const grossEarnings = findMoneyDecimal(normalized, [
-    /total earnings(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /gross earnings\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /taxable gross pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /gross pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-  ]);
-  const totalDeductions = findMoneyDecimal(normalized, [
-    /total taxes\s*&\s*deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /total deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /non[\s-]*taxable deductions\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /total recoveries\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-  ]);
-  const netSalary = findMoneyDecimal(normalized, [
-    /net salary payable(?:\s*\([^)]+\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /net salary\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-    /net pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-  ]);
 
   const signalCount = earnings.length + deductions.length +
-    (grossEarnings == null ? 0 : 1) +
-    (totalDeductions == null ? 0 : 1) +
-    (netSalary == null ? 0 : 1);
+    (explicit.grossEarnings == null ? 0 : 1) +
+    (explicit.totalDeductions == null ? 0 : 1) +
+    (explicit.netSalary == null ? 0 : 1);
   if (signalCount < 3) return null;
 
+  return {
+    employerName: explicit.employerName,
+    employeeName: explicit.employeeName,
+    payPeriod: explicit.payPeriod,
+    paymentDate: explicit.paymentDate,
+    currency: 'INR',
+    attendance: explicit.attendance,
+    earnings,
+    deductions,
+    cumulative: [],
+    grossEarnings: explicit.grossEarnings,
+    totalDeductions: explicit.totalDeductions,
+    netSalary: explicit.netSalary,
+    warnings: [],
+    questionsForUser: [
+      ...(earnings.length === 0 ? ['Confirm earning line items manually.'] : []),
+      ...(deductions.length === 0 ? ['Confirm deduction line items manually.'] : []),
+    ],
+  };
+}
+
+function parseExplicitPayslipFields(text: string): ExplicitPayslipFields {
+  const normalized = normalizeText(text);
   return {
     employerName: extractPayslipEmployer(normalized) ?? null,
     employeeName: extractPayslipEmployee(normalized) ?? null,
     payPeriod: extractPayPeriod(normalized) ?? null,
     paymentDate: extractPaymentDate(normalized) ?? null,
-    currency: 'INR',
     attendance: {
       actualPayableDays: findNumberAfterLabel(normalized, /actual payable days/i),
       totalWorkingDays: findNumberAfterLabel(normalized, /total working days/i),
       lossOfPayDays: findNumberAfterLabel(normalized, /loss of pay days/i),
       daysPayable: findNumberAfterLabel(normalized, /days payable/i),
     },
-    earnings,
-    deductions,
-    cumulative: [],
-    grossEarnings: grossEarnings ?? null,
-    totalDeductions: totalDeductions ?? null,
-    netSalary: netSalary ?? null,
-    warnings: [],
-    questionsForUser: [
-      ...(earnings.length === 0 ? ['Confirm earning line items manually.'] : []),
-      ...(deductions.length === 0 ? ['Confirm deduction line items manually.'] : []),
-    ],
+    grossEarnings: findMoneyDecimal(normalized, [
+      /total earnings(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /gross earnings\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /taxable gross pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /gross pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    ]),
+    totalDeductions: findMoneyDecimal(normalized, [
+      /total taxes\s*&\s*deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /total deductions(?:\s*\([a-z]\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /non[\s-]*taxable deductions\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /total recoveries\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    ]),
+    netSalary: findMoneyDecimal(normalized, [
+      /net salary payable(?:\s*\([^)]+\))?\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /net salary\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /net pay\s*[:\-]?\s*(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+    ]),
   };
 }
 
