@@ -108,7 +108,7 @@ class AuthNotifier extends Notifier<UserAccount?> {
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final pushNotificationServiceProvider =
-    Provider<PushNotificationService>((ref) => PushNotificationService());
+    Provider<PushNotificationService>((ref) => pushNotificationService);
 
 final authProvider = NotifierProvider<AuthNotifier, UserAccount?>(
   AuthNotifier.new,

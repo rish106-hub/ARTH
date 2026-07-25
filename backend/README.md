@@ -51,6 +51,7 @@ Railway variables:
 - `SARVAM_API_BASE_URL` defaults to `https://api.sarvam.ai`
 - `SARVAM_DOCUMENT_LANGUAGE` defaults to `hi-IN`
 - `SARVAM_TIMEOUT_MS` defaults to `480000` (8 minutes) and stays below the mobile 10-minute upload timeout
+- `FIREBASE_SERVICE_ACCOUNT_JSON` as base64-encoded Firebase service-account JSON to enable Android push delivery
 
 Fail-fast checks reject wildcard production CORS, non-HTTPS production origins,
 matching JWT secrets, placeholder JWT secrets, and out-of-range token or DB

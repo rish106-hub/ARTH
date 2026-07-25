@@ -142,6 +142,13 @@ export function hashPan(pan: string): string {
   return createHmac('sha256', key).update(pan).digest('hex');
 }
 
+export function hashDeviceToken(token: string): string {
+  return createHmac('sha256', documentEncryptionKey())
+    .update('arth-device-token-v1\0')
+    .update(token)
+    .digest('hex');
+}
+
 function panEncryptionKey(): Buffer {
   const raw = env.PAN_ENCRYPTION_KEY;
   if (!raw) throw new Error('PAN_ENCRYPTION_KEY is not configured');

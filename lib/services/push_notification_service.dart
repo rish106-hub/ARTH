@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +11,15 @@ import 'server_api_service.dart';
 /// the app is backgrounded or terminated.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
+
+String? notificationRouteForData(Map<String, dynamic> data) {
+  return switch (data['screen']) {
+    'spend-map' => '/spend-map',
+    _ => null,
+  };
+}
+
+final pushNotificationService = PushNotificationService();
 
 /// Wraps FCM token lifecycle + local display of foreground pushes. Kept free
 /// of Riverpod so it can be constructed once in main() before the widget tree
@@ -29,11 +38,21 @@ class PushNotificationService {
   );
 
   String? _lastRegisteredToken;
+  String? _activeBearerToken;
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  void Function(String route)? _onOpenRoute;
+  String? _pendingRoute;
+  bool _initialized = false;
 
   /// Initializes local-notification display and background handling. Safe to
   /// call once at startup regardless of sign-in state; does not request
   /// permission or register a token (that happens per-user, see [syncToken]).
-  Future<void> init() async {
+  Future<void> init({
+    required void Function(String route) onOpenRoute,
+  }) async {
+    _onOpenRoute = onOpenRoute;
+    if (_initialized) return;
+    _initialized = true;
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     await _localNotifications.initialize(
@@ -41,6 +60,10 @@ class PushNotificationService {
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
+      onDidReceiveNotificationResponse: (response) {
+        final route = response.payload;
+        if (route != null && route.startsWith('/')) _openRoute(route);
+      },
     );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -50,6 +73,29 @@ class PushNotificationService {
     // Foreground messages don't auto-display on Android; show them via the
     // local-notifications channel so the user sees alerts while the app is open.
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      final route = notificationRouteForData(message.data);
+      if (route != null) _openRoute(route);
+    });
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    _pendingRoute = initialMessage == null
+        ? null
+        : notificationRouteForData(initialMessage.data);
+  }
+
+  void _openRoute(String route) {
+    final onOpenRoute = _onOpenRoute;
+    if (onOpenRoute == null) {
+      _pendingRoute = route;
+      return;
+    }
+    onOpenRoute(route);
+  }
+
+  void openPendingNotification() {
+    final route = _pendingRoute;
+    _pendingRoute = null;
+    if (route != null) _openRoute(route);
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
@@ -59,6 +105,7 @@ class PushNotificationService {
       id: notification.hashCode,
       title: notification.title,
       body: notification.body,
+      payload: notificationRouteForData(message.data),
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channel.id,
@@ -78,6 +125,7 @@ class PushNotificationService {
   /// errors so a push-registration failure never blocks sign-in.
   Future<void> syncToken(String bearerToken) async {
     try {
+      _activeBearerToken = bearerToken;
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
@@ -89,8 +137,12 @@ class PushNotificationService {
       if (token == null) return;
       await _registerToken(token, bearerToken);
 
-      FirebaseMessaging.instance.onTokenRefresh.listen((refreshed) {
-        _registerToken(refreshed, bearerToken);
+      _tokenRefreshSubscription ??=
+          FirebaseMessaging.instance.onTokenRefresh.listen((refreshed) {
+        final activeBearerToken = _activeBearerToken;
+        if (activeBearerToken != null) {
+          unawaited(_registerToken(refreshed, activeBearerToken));
+        }
       });
     } catch (error) {
       if (kDebugMode) debugPrint('[push] syncToken failed: $error');
@@ -105,7 +157,8 @@ class PushNotificationService {
         bearerToken: bearerToken,
         body: {
           'fcmToken': token,
-          'platform': Platform.isIOS ? 'ios' : 'android',
+          'platform':
+              defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
         },
       );
       _lastRegisteredToken = token;
@@ -116,6 +169,7 @@ class PushNotificationService {
 
   /// Unregisters this device's token, e.g. right before sign-out. Best-effort.
   Future<void> unregister(String bearerToken) async {
+    _activeBearerToken = null;
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;

@@ -30,10 +30,13 @@ void main() async {
     // Local-notification display + background handler registration. Per-user
     // token sync (permission request + backend registration) happens once
     // signed in, via authProvider (see push_notification_service.dart).
-    await PushNotificationService().init();
+    await pushNotificationService.init(onOpenRoute: appRouter.go);
   } catch (e) {
     if (kDebugMode) debugPrint('[main] Firebase init skipped: $e');
   }
 
   runApp(const ProviderScope(child: ArthApp()));
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    pushNotificationService.openPendingNotification();
+  });
 }

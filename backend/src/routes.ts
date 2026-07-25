@@ -15,6 +15,7 @@ import {
   encryptDocument,
   encryptPan,
   type EncryptedSecret,
+  hashDeviceToken,
   hashPan,
   hashPassword,
   passwordNeedsRehash,
@@ -1569,6 +1570,7 @@ export async function registerRoutes(app: FastifyInstance) {
         title: 'Spending is ahead of income this month',
         body: `You're about ${overBy.toLocaleString('en-IN')} over your detected income. Tap to review.`,
         data: { type: 'spend_overspend', screen: 'spend-map' },
+        dailyDedupeKey: 'spend_overspend',
       }).catch(() => undefined);
     }
 
@@ -1582,14 +1584,28 @@ export async function registerRoutes(app: FastifyInstance) {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
     const { fcmToken, platform } = deviceTokenSchema.parse(request.body);
+    const encrypted = encryptDocument(Buffer.from(fcmToken, 'utf8'));
     await db.query(
-      `insert into device_tokens (user_id, fcm_token, platform, last_seen_at)
-       values ($1, $2, $3, now())
-       on conflict (fcm_token) do update set
+      `insert into device_tokens (
+         user_id, token_fingerprint, token_ciphertext, token_iv,
+         token_auth_tag, platform, last_seen_at
+       )
+       values ($1, $2, $3, $4, $5, $6, now())
+       on conflict (token_fingerprint) do update set
          user_id = excluded.user_id,
+         token_ciphertext = excluded.token_ciphertext,
+         token_iv = excluded.token_iv,
+         token_auth_tag = excluded.token_auth_tag,
          platform = excluded.platform,
          last_seen_at = now()`,
-      [auth.userId, fcmToken, platform],
+      [
+        auth.userId,
+        hashDeviceToken(fcmToken),
+        encrypted.ciphertext,
+        encrypted.iv,
+        encrypted.authTag,
+        platform,
+      ],
     );
     return reply.code(201).send({ ok: true });
   });
@@ -1600,8 +1616,8 @@ export async function registerRoutes(app: FastifyInstance) {
     if (!auth) return;
     const { fcmToken } = z.object({ fcmToken: z.string().min(1).max(4096) }).parse(request.body);
     await db.query(
-      'delete from device_tokens where user_id = $1 and fcm_token = $2',
-      [auth.userId, fcmToken],
+      'delete from device_tokens where user_id = $1 and token_fingerprint = $2',
+      [auth.userId, hashDeviceToken(fcmToken)],
     );
     return { ok: true };
   });
