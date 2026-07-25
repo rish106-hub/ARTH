@@ -120,7 +120,7 @@ beforeEach(() => {
   fcmCalls = 0;
   fcmResponse = () => Response.json({ name: 'messages/test' });
   globalThis.fetch = async (input) => {
-    if (String(input).includes('oauth2.googleapis.com')) {
+    if (new URL(String(input)).hostname === 'oauth2.googleapis.com') {
       return Response.json({ access_token: 'test-access-token', expires_in: 3600 });
     }
     fcmCalls += 1;
