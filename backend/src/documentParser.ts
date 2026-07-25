@@ -110,7 +110,12 @@ export async function parseUploadedDocument(input: {
           mimeType: input.mimeType,
         });
     if (interpretation) {
-      const checked = withPayslipArithmeticChecks(interpretation);
+      const deterministic = documentText
+        ? parsePayslipText(documentText)
+        : null;
+      const checked = withPayslipArithmeticChecks(
+        supplementExplicitPayslipFields(interpretation, deterministic),
+      );
       return {
         status: 'needs_confirmation',
         summary: {
@@ -443,6 +448,35 @@ function withPayslipArithmeticChecks(
     earnings,
     deductions,
     warnings: [...new Set(warnings)].slice(0, 20),
+  };
+}
+
+function supplementExplicitPayslipFields(
+  interpretation: PayslipInterpretation,
+  deterministic: PayslipInterpretation | null,
+): PayslipInterpretation {
+  if (!deterministic) return interpretation;
+
+  return {
+    ...interpretation,
+    employerName: interpretation.employerName ?? deterministic.employerName,
+    employeeName: interpretation.employeeName ?? deterministic.employeeName,
+    payPeriod: interpretation.payPeriod ?? deterministic.payPeriod,
+    paymentDate: interpretation.paymentDate ?? deterministic.paymentDate,
+    attendance: {
+      actualPayableDays: interpretation.attendance.actualPayableDays
+        ?? deterministic.attendance.actualPayableDays,
+      totalWorkingDays: interpretation.attendance.totalWorkingDays
+        ?? deterministic.attendance.totalWorkingDays,
+      lossOfPayDays: interpretation.attendance.lossOfPayDays
+        ?? deterministic.attendance.lossOfPayDays,
+      daysPayable: interpretation.attendance.daysPayable
+        ?? deterministic.attendance.daysPayable,
+    },
+    grossEarnings: interpretation.grossEarnings ?? deterministic.grossEarnings,
+    totalDeductions: interpretation.totalDeductions
+      ?? deterministic.totalDeductions,
+    netSalary: interpretation.netSalary ?? deterministic.netSalary,
   };
 }
 

@@ -460,6 +460,83 @@ describe('payslip interpretation', () => {
     }
   });
 
+  it('fills Gemini totals only when they are explicitly labelled in OCR text', async () => {
+    const previousGeminiKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      candidates: [{
+        content: {
+          parts: [{
+            text: JSON.stringify({
+              employerName: 'SAIL',
+              employeeName: null,
+              payPeriod: null,
+              paymentDate: null,
+              currency: 'INR',
+              attendance: {
+                actualPayableDays: null,
+                totalWorkingDays: null,
+                lossOfPayDays: null,
+                daysPayable: null,
+              },
+              earnings: [{
+                label: 'BASIC',
+                canonicalKey: 'basic_pay',
+                amount: 66703,
+                classification: 'basic_pay',
+                confidence: 'high',
+              }],
+              deductions: [{
+                label: 'CPF PC',
+                canonicalKey: 'employee_provident_fund',
+                amount: 11022,
+                classification: 'employee_pf',
+                confidence: 'high',
+              }],
+              cumulative: [],
+              grossEarnings: null,
+              totalDeductions: null,
+              netSalary: null,
+              warnings: [],
+              questionsForUser: [],
+            }),
+          }],
+        },
+      }],
+    }), { status: 200 });
+
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'payslip',
+        mimeType: 'image/jpeg',
+        bytes: Buffer.from('synthetic payslip image'),
+        ocrText: `
+          PAYSLIP FOR MAY-2023 PAID IN JUN-2023
+          NAME/NAME: EXAMPLE EMPLOYEE
+          PAYMENTS (TAXABLE)
+          BASIC 66703
+          RECOVERIES (NON-TAXABLE)
+          CPF PC 11022
+          TAXABLE GROSS PAY: 109412
+          NON TAXABLE DEDUCTIONS: 50969
+          NET PAY: 58443
+        `,
+      });
+
+      const fields = result.summary.extractedFields as PayslipInterpretation;
+      assert.equal(fields.employeeName, 'EXAMPLE EMPLOYEE');
+      assert.equal(fields.payPeriod, 'MAY-2023');
+      assert.equal(fields.grossEarnings, 109412);
+      assert.equal(fields.totalDeductions, 50969);
+      assert.equal(fields.netSalary, 58443);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousGeminiKey) process.env.GEMINI_API_KEY = previousGeminiKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
   it('parses text payslip sections without Gemini', () => {
     const parsed = parsePayslipText(`
       SALARY DETAILS
