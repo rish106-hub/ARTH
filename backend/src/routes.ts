@@ -153,6 +153,7 @@ const deviceTokenSchema = z.object({
   fcmToken: z.string().trim().min(20).max(4096),
   platform: z.enum(['android', 'ios']),
 });
+const deviceTokenDeleteSchema = deviceTokenSchema.pick({ fcmToken: true });
 
 const categorizeRequestSchema = z.object({
   items: z.array(z.object({
@@ -1568,7 +1569,7 @@ export async function registerRoutes(app: FastifyInstance) {
       const overBy = summary.monthlySpend - summary.monthlyIncome;
       sendPushToUser(auth.userId, {
         title: 'Spending is ahead of income this month',
-        body: `You're about ${overBy.toLocaleString('en-IN')} over your detected income. Tap to review.`,
+        body: `You're about ₹${overBy.toLocaleString('en-IN')} over your detected income. Tap to review.`,
         data: { type: 'spend_overspend', screen: 'spend-map' },
         dailyDedupeKey: 'spend_overspend',
       }).catch(() => undefined);
@@ -1614,7 +1615,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.delete('/devices', dataRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
-    const { fcmToken } = z.object({ fcmToken: z.string().min(1).max(4096) }).parse(request.body);
+    const { fcmToken } = deviceTokenDeleteSchema.parse(request.body);
     await db.query(
       'delete from device_tokens where user_id = $1 and token_fingerprint = $2',
       [auth.userId, hashDeviceToken(fcmToken)],

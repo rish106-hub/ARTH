@@ -170,6 +170,7 @@ class PushNotificationService {
   /// Unregisters this device's token, e.g. right before sign-out. Best-effort.
   Future<void> unregister(String bearerToken) async {
     _activeBearerToken = null;
+    _lastRegisteredToken = null;
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
@@ -178,7 +179,6 @@ class PushNotificationService {
         body: {'fcmToken': token},
         bearerToken: bearerToken,
       );
-      _lastRegisteredToken = null;
     } catch (error) {
       if (kDebugMode) debugPrint('[push] unregister failed: $error');
     }

@@ -1,4 +1,5 @@
 import { createSign } from 'node:crypto';
+import { env } from './config.js';
 import { db } from './db.js';
 import { decryptDocument } from './security.js';
 
@@ -11,10 +12,11 @@ type FirebaseCredentials = {
 let credentials: FirebaseCredentials | null | undefined;
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
 let accessTokenRequest: Promise<string> | null = null;
+let lastClaimsPruneAt = 0;
 
 function getFirebaseCredentials(): FirebaseCredentials | null {
   if (credentials !== undefined) return credentials;
-  const encoded = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const encoded = env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!encoded) {
     console.warn('[push] FIREBASE_SERVICE_ACCOUNT_JSON not set; push disabled');
     credentials = null;
@@ -141,6 +143,21 @@ async function sendFcmMessage(
   throw new Error(errorCode ?? body.error?.status ?? `fcm_http_${response.status}`);
 }
 
+async function pruneExpiredDeliveryClaims(): Promise<void> {
+  const now = Date.now();
+  if (now - lastClaimsPruneAt < 24 * 60 * 60 * 1000) return;
+  lastClaimsPruneAt = now;
+  try {
+    await db.query(
+      `delete from push_delivery_claims
+       where created_at < now() - interval '90 days'`,
+    );
+  } catch (error) {
+    lastClaimsPruneAt = 0;
+    console.warn('[push] claim cleanup failed', (error as Error).message);
+  }
+}
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -166,6 +183,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 
   let deliveryClaimId: string | null = null;
   if (payload.dailyDedupeKey) {
+    await pruneExpiredDeliveryClaims();
     const claim = await db.query(
       `insert into push_delivery_claims (user_id, delivery_key, bucket_date)
        values ($1, $2, current_date)
@@ -209,4 +227,14 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   if (deliveryClaimId && delivered === 0) {
     await db.query('delete from push_delivery_claims where id = $1', [deliveryClaimId]);
   }
+}
+
+export function resetPushNotificationStateForTests(): void {
+  if (env.NODE_ENV !== 'test') {
+    throw new Error('resetPushNotificationStateForTests is only allowed in test');
+  }
+  credentials = undefined;
+  cachedAccessToken = null;
+  accessTokenRequest = null;
+  lastClaimsPruneAt = 0;
 }
