@@ -32,10 +32,12 @@ const TABLES: Array<{ name: string; conflict: string }> = [
   { name: 'tax_results', conflict: 'user_id, fy' },
   { name: 'done_gaps', conflict: 'user_id, fy, gap_id' },
   { name: 'tax_documents', conflict: 'id' },
-  { name: 'employer_catalog', conflict: 'id' },
+  { name: 'document_events', conflict: 'id' },
+  { name: 'employer_catalog', conflict: 'normalized_name' },
   { name: 'money_goals', conflict: 'id' },
   { name: 'spend_maps', conflict: 'user_id' },
   { name: 'user_events', conflict: 'id' },
+  { name: 'security_tombstones', conflict: 'deletion_id' },
 ];
 
 function quoteIdent(id: string): string {
@@ -52,6 +54,23 @@ async function columnsOf(client: pg.Client, table: string): Promise<string[]> {
   return r.rows.map((row) => row.column_name as string);
 }
 
+async function assertNoUserIdentityConflicts(source: pg.Client, target: pg.Client) {
+  const [sourceUsers, targetUsers] = await Promise.all([
+    source.query<{ id: string; email: string }>('select id::text, lower(email) as email from app_users'),
+    target.query<{ id: string; email: string }>('select id::text, lower(email) as email from app_users'),
+  ]);
+  const targetIdsByEmail = new Map(targetUsers.rows.map((row) => [row.email, row.id]));
+  const conflicts = sourceUsers.rows.filter((row) => {
+    const targetId = targetIdsByEmail.get(row.email);
+    return targetId !== undefined && targetId !== row.id;
+  });
+  if (conflicts.length > 0) {
+    throw new Error(
+      `Target has ${conflicts.length} email(s) assigned to different user IDs; resolve them before copying`,
+    );
+  }
+}
+
 async function main() {
   const source = new pg.Client({ connectionString: sourceUrl });
   const target = new pg.Client({ connectionString: targetUrl });
@@ -60,6 +79,8 @@ async function main() {
   console.log(`[migrate-data]${dryRun ? ' (dry-run)' : ''} start`);
 
   try {
+    await assertNoUserIdentityConflicts(source, target);
+
     for (const { name, conflict } of TABLES) {
       // Intersect columns so the copy is resilient to minor schema drift.
       const [srcCols, tgtCols] = await Promise.all([
