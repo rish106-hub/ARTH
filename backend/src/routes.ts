@@ -6,6 +6,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { buildRevision } from './buildRevision.js';
 import { db, Queryable } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
+import { categorizeTransactions } from './spendCategorizer.js';
 import { env } from './config.js';
 import {
   createRefreshToken,
@@ -117,10 +118,15 @@ const moneyGoalSchema = z.object({
   monthlyFamilySupport: z.number().int().min(0).max(100_000_000),
 });
 
+// Accept UTC ('Z'), zoned offset, and offset-less local timestamps. Dart's
+// DateTime.toIso8601String() on a local DateTime emits no timezone, which the
+// default (Z-only) datetime() would reject — silently 400ing the sync.
+const flexibleDatetime = () => z.string().datetime({ offset: true, local: true });
+
 const spendMapSchema = z.object({
-  windowStart: z.string().datetime(),
-  windowEnd: z.string().datetime(),
-  generatedAt: z.string().datetime(),
+  windowStart: flexibleDatetime(),
+  windowEnd: flexibleDatetime(),
+  generatedAt: flexibleDatetime(),
   monthlyIncome: z.number().int().min(0).max(1_000_000_000),
   monthlySpend: z.number().int().min(0).max(1_000_000_000),
   realisticMonthlySavings: z.number().int().min(0).max(1_000_000_000),
@@ -129,10 +135,18 @@ const spendMapSchema = z.object({
     z.number().int().min(0).max(1_000_000_000),
   ),
   monthlyTrend: z.array(z.object({
-    month: z.string().datetime(),
+    month: flexibleDatetime(),
     spent: z.number().int().min(0).max(1_000_000_000),
     income: z.number().int().min(0).max(1_000_000_000),
   })).max(24).default([]),
+});
+
+const categorizeRequestSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().min(1).max(64),
+    // Redacted SMS/merchant text. Never persisted; used only to call the model.
+    text: z.string().min(1).max(300),
+  })).min(1).max(40),
 });
 
 const employerSubmissionSchema = z.object({
@@ -1520,6 +1534,19 @@ export async function registerRoutes(app: FastifyInstance) {
       ],
     );
     return { ok: true };
+  });
+
+  // Hybrid categorization fallback: the client parses & categorizes on-device
+  // with rules, then sends only the transactions it could not confidently
+  // categorize (redacted text — no account/card numbers) for an AI pass. When
+  // Gemini is unconfigured or errors, returns an empty result set so the client
+  // simply keeps its on-device categories.
+  app.post('/spend-map/categorize', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { items } = categorizeRequestSchema.parse(request.body);
+    const results = await categorizeTransactions(items);
+    return { results: results ?? [] };
   });
 
   app.post('/money-goals', dataRateLimit, async (request, reply) => {

@@ -28,11 +28,11 @@ void main() {
   });
 
   group('recurring salary inference', () {
-    ({String sender, String body, DateTime date}) msg(
+    ({int? id, String sender, String body, DateTime date}) msg(
       String body,
       DateTime when,
     ) =>
-        (sender: 'BANK', body: body, date: when);
+        (id: null, sender: 'BANK', body: body, date: when);
 
     test('tags a same-size NEFT credit recurring across months as salary', () {
       final txns = parser.parseAll([
@@ -103,12 +103,12 @@ void main() {
   });
 
   group('dedup & amount coverage', () {
-    ({String sender, String body, DateTime date}) msg(
+    ({int? id, String sender, String body, DateTime date}) msg(
       String body,
       DateTime when, [
       String sender = 'BANK',
     ]) =>
-        (sender: sender, body: body, date: when);
+        (id: null, sender: sender, body: body, date: when);
 
     test('drops duplicate alerts (same amount, direction, day)', () {
       final txns = parser.parseAll([

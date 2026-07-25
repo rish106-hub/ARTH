@@ -175,9 +175,15 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         loading: false,
       );
 
+      // Hybrid pass: refine the transactions the on-device rules left as
+      // `other` using the AI fallback. Best-effort — the rules result already
+      // shows; this only upgrades categories when it succeeds.
+      final enriched = await _enrichCategoriesWithAi(map);
+      final finalMap = enriched ?? map;
+
       // Best-effort remote mirror; never blocks or fails the local flow.
       try {
-        await _sync.push(map);
+        await _sync.push(finalMap);
       } catch (_) {}
     } catch (error) {
       state = state.copyWith(loading: false, error: error.toString());
@@ -205,6 +211,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final txns = [...current.txns];
     txns[transactionIndex] = txns[transactionIndex].copyWith(
       category: category,
+      categorySource: CategorySource.manual,
     );
     final updated = SpendMap(
       txns: txns,
@@ -219,6 +226,89 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     try {
       await _sync.push(updated);
     } catch (_) {}
+  }
+
+  // Runs of 5+ digits (account/card numbers, phone numbers) stripped before any
+  // text leaves the device.
+  static final RegExp _longDigitRun = RegExp(r'\d{5,}');
+  // Currency amounts (Rs/INR/₹ 1,234.56). Not needed to categorize, so dropped.
+  static final RegExp _amountToken =
+      RegExp(r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
+          caseSensitive: false);
+
+  /// Builds the minimal text sent to the AI — only what categorization needs.
+  /// Prefers the merchant/payee alone (nothing else leaves the device); falls
+  /// back to the SMS body only when no merchant was extracted, and even then
+  /// strips amounts and long digit runs.
+  static String _redactForAi(FinanceTxn txn) {
+    final merchant = txn.merchant?.trim();
+    if (merchant != null && merchant.isNotEmpty) return merchant;
+    final body = txn.bodyPreview ?? '';
+    return body
+        .replaceAll(_amountToken, '')
+        .replaceAll(_longDigitRun, '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// Sends the still-`other` debit transactions to the AI fallback and merges
+  /// back any confident category/merchant. Returns an updated, persisted map,
+  /// or null when nothing changed (no candidates, signed out, AI unavailable).
+  Future<SpendMap?> _enrichCategoriesWithAi(SpendMap map) async {
+    // Only debits the rules could not place, that the user has not already
+    // corrected by hand.
+    final candidates = <int>[];
+    for (var i = 0; i < map.txns.length; i++) {
+      final t = map.txns[i];
+      if (t.direction == TxnDirection.debit &&
+          t.category == SpendCategory.other &&
+          t.categorySource == CategorySource.rules) {
+        candidates.add(i);
+      }
+    }
+    if (candidates.isEmpty) return null;
+
+    // Build minimal redacted items; drop any with nothing useful left to send.
+    // Cap per request; the backend also enforces a max.
+    final items = <({String id, String text})>[];
+    for (final i in candidates) {
+      final text = _redactForAi(map.txns[i]);
+      if (text.isEmpty) continue;
+      items.add((id: i.toString(), text: text));
+      if (items.length >= 40) break;
+    }
+    if (items.isEmpty) return null;
+
+    final guesses = await _sync.categorize(items);
+    if (guesses.isEmpty) return null;
+
+    final txns = [...map.txns];
+    var changed = false;
+    guesses.forEach((id, guess) {
+      final index = int.tryParse(id);
+      if (index == null || index < 0 || index >= txns.length) return;
+      if (guess.confidence == 'low') return; // keep 'other' when unsure
+      if (!SpendCategory.all.contains(guess.category)) return;
+      txns[index] = txns[index].copyWith(
+        category: guess.category,
+        merchant: guess.merchant?.isNotEmpty == true ? guess.merchant : null,
+        categorySource: CategorySource.ai,
+      );
+      changed = true;
+    });
+    if (!changed) return null;
+
+    final updated = SpendMap(
+      txns: txns,
+      windowStart: map.windowStart,
+      windowEnd: map.windowEnd,
+      generatedAt: map.generatedAt,
+    );
+    await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
+    state = state.copyWith(
+      map: updated.withFallbackIncome(_fallbackMonthlyIncome()),
+    );
+    return updated;
   }
 
   SpendMap _buildMap(List<FinanceTxn> txns, DateTime since) {

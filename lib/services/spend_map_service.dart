@@ -22,9 +22,10 @@ class SpendMapService {
       '/spend-map',
       bearerToken: token,
       body: {
-        'windowStart': map.windowStart.toIso8601String(),
-        'windowEnd': map.windowEnd.toIso8601String(),
-        'generatedAt': map.generatedAt.toIso8601String(),
+        // UTC so the ISO string carries a 'Z' offset the backend accepts.
+        'windowStart': map.windowStart.toUtc().toIso8601String(),
+        'windowEnd': map.windowEnd.toUtc().toIso8601String(),
+        'generatedAt': map.generatedAt.toUtc().toIso8601String(),
         'monthlyIncome': map.monthlyIncome,
         'incomeSource': map.incomeIsDetected
             ? 'detected'
@@ -36,7 +37,7 @@ class SpendMapService {
         'monthlyTrend': map.monthlyTrend
             .map(
               (point) => {
-                'month': point.month.toIso8601String(),
+                'month': point.month.toUtc().toIso8601String(),
                 'spent': point.spent,
                 'income': point.income,
               },
@@ -45,4 +46,59 @@ class SpendMapService {
       },
     );
   }
+
+  /// Hybrid categorization fallback. Sends only the transactions the on-device
+  /// rules could not categorize (as `{id, text}`, text already redacted by the
+  /// caller) and returns the AI's category/merchant guesses keyed by id.
+  ///
+  /// Returns an empty map when signed out, when the backend/Gemini is
+  /// unavailable, or on any error — callers keep their on-device categories.
+  Future<Map<String, AiCategoryGuess>> categorize(
+    List<({String id, String text})> items,
+  ) async {
+    if (items.isEmpty) return const {};
+    final token = await _auth.getValidAccessToken();
+    if (token == null) return const {};
+    try {
+      final response = await _api.postJson(
+        '/spend-map/categorize',
+        bearerToken: token,
+        body: {
+          'items': items
+              .map((it) => {'id': it.id, 'text': it.text})
+              .toList(growable: false),
+        },
+      );
+      final results = response['results'];
+      if (results is! List) return const {};
+      final out = <String, AiCategoryGuess>{};
+      for (final raw in results) {
+        if (raw is! Map) continue;
+        final id = raw['id']?.toString();
+        final category = raw['category']?.toString();
+        if (id == null || category == null) continue;
+        out[id] = AiCategoryGuess(
+          category: category,
+          merchant: raw['merchant']?.toString(),
+          confidence: raw['confidence']?.toString() ?? 'low',
+        );
+      }
+      return out;
+    } catch (_) {
+      return const {};
+    }
+  }
+}
+
+/// An AI-suggested category for one transaction.
+class AiCategoryGuess {
+  const AiCategoryGuess({
+    required this.category,
+    required this.confidence,
+    this.merchant,
+  });
+
+  final String category;
+  final String? merchant;
+  final String confidence; // high | medium | low
 }

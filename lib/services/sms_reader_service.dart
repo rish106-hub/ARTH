@@ -2,8 +2,9 @@ import 'dart:io' show Platform;
 
 import 'package:another_telephony/telephony.dart';
 
-/// A raw SMS reduced to the fields the parser needs.
-typedef RawSms = ({String sender, String body, DateTime date});
+/// A raw SMS reduced to the fields the parser needs. [id] is the Android SMS
+/// `_id`, retained so the UI can offer to open the exact original message.
+typedef RawSms = ({int? id, String sender, String body, DateTime date});
 
 /// Thin wrapper over `another_telephony` for reading the SMS inbox on Android.
 /// Kept deliberately free of parsing/business logic so it stays easy to reason
@@ -40,7 +41,12 @@ class SmsReaderService {
   /// memory.
   Future<List<RawSms>> readInbox({DateTime? since}) async {
     final messages = await _telephony.getInboxSms(
-      columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE],
+      columns: [
+        SmsColumn.ID,
+        SmsColumn.ADDRESS,
+        SmsColumn.BODY,
+        SmsColumn.DATE,
+      ],
       sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
     );
 
@@ -55,7 +61,7 @@ class SmsReaderService {
       if (since != null && date.isBefore(since)) break;
       final sender = message.address ?? 'unknown';
       if (!_isTransactionalSender(sender)) continue;
-      result.add((sender: sender, body: body, date: date));
+      result.add((id: message.id, sender: sender, body: body, date: date));
     }
     return result;
   }

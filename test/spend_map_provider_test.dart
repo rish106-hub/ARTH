@@ -30,6 +30,12 @@ class _FakeReader extends SmsReaderService {
 class _NoopSync extends SpendMapService {
   @override
   Future<void> push(SpendMap map) async {}
+
+  @override
+  Future<Map<String, AiCategoryGuess>> categorize(
+    List<({String id, String text})> items,
+  ) async =>
+      const {};
 }
 
 void main() {
@@ -37,32 +43,38 @@ void main() {
 
   List<RawSms> sampleMessages() => [
         (
+          id: null,
           sender: 'VMHDFCBK',
           body:
               'Rs.54,500.00 credited to a/c XX1234 on 01-07-26 towards SALARY. Avbl bal Rs 61200.',
           date: DateTime(2026, 7, 1),
         ),
         (
+          id: null,
           sender: 'VMHDFCBK',
           body: 'Rs 499 debited from a/c XX99 for UPI to SWIGGY on 05-07-26.',
           date: DateTime(2026, 7, 5),
         ),
         (
+          id: null,
           sender: 'VMICICI',
           body: 'Rs 1,299 spent on ICICI Card at AMAZON on 08-07-26.',
           date: DateTime(2026, 7, 8),
         ),
         (
+          id: null,
           sender: 'VMPAYTM',
           body: 'Rs 250 paid to UBER via UPI on 10-07-26.',
           date: DateTime(2026, 7, 10),
         ),
         (
+          id: null,
           sender: 'VMBESCOM',
           body: 'Rs 1500 debited for BESCOM electricity bill on 12-07-26.',
           date: DateTime(2026, 7, 12),
         ),
         (
+          id: null,
           sender: 'VMHDFCBK',
           body: '123456 is your OTP for Rs 5000 txn. Do not share.',
           date: DateTime(2026, 7, 13),
@@ -119,6 +131,7 @@ void main() {
     addTearDown(container.dispose);
     final reader = _FakeReader([
       (
+        id: null,
         sender: 'VMBANK',
         body: 'Rs 700 debited via UPI to LOCAL STORE.',
         date: DateTime.now(),
@@ -144,4 +157,79 @@ void main() {
       SpendCategory.groceries,
     );
   });
+
+  test('AI fallback upgrades an unclear debit; low-confidence is ignored',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VMBANK',
+        // No keyword match → parsed as category "other".
+        body: 'Rs 640 debited via UPI to QUIKPAY SERVICES.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _StubCategorizer({
+        '0': const AiCategoryGuess(
+          category: SpendCategory.entertainment,
+          confidence: 'high',
+          merchant: 'Quikpay',
+        ),
+      }),
+    );
+
+    await notifier.scan();
+    final txn = container.read(spendMapProvider).map!.txns.single;
+    expect(txn.category, SpendCategory.entertainment);
+    expect(txn.merchant, 'Quikpay');
+    expect(txn.categorySource, CategorySource.ai);
+  });
+
+  test('AI fallback keeps "other" when confidence is low', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 640 debited via UPI to QUIKPAY SERVICES.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _StubCategorizer({
+        '0': const AiCategoryGuess(
+          category: SpendCategory.entertainment,
+          confidence: 'low',
+        ),
+      }),
+    );
+
+    await notifier.scan();
+    final txn = container.read(spendMapProvider).map!.txns.single;
+    expect(txn.category, SpendCategory.other);
+    expect(txn.categorySource, CategorySource.rules);
+  });
+}
+
+/// Sync stub that returns canned AI category guesses keyed by transaction index.
+class _StubCategorizer extends SpendMapService {
+  _StubCategorizer(this.guesses);
+  final Map<String, AiCategoryGuess> guesses;
+
+  @override
+  Future<void> push(SpendMap map) async {}
+
+  @override
+  Future<Map<String, AiCategoryGuess>> categorize(
+    List<({String id, String text})> items,
+  ) async =>
+      guesses;
 }
