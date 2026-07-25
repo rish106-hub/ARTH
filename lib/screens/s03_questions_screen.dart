@@ -148,6 +148,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
   String? _appliedPayslipId;
   String? _appliedForm16Id;
   String? _appliedOfferId;
+  String? _appliedProofKey;
 
   List<_QStep> _currentSteps() {
     final p = ref.read(userProfileProvider);
@@ -280,6 +281,21 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
           ref
               .read(userProfileProvider.notifier)
               .applyConfirmedOfferLetter(offer);
+        });
+      }
+    }
+    // Proof documents fill any remaining gaps (rent, premium, loan interest,
+    // donation, 80C) without overriding the sources above.
+    final proofPrefill = ref.watch(proofPrefillProvider);
+    if (proofPrefill != null) {
+      final key = proofPrefill.values.toString();
+      if (_appliedProofKey != key) {
+        _appliedProofKey = key;
+        Future<void>.microtask(() {
+          if (!mounted) return;
+          ref
+              .read(userProfileProvider.notifier)
+              .applyProofPrefill(proofPrefill);
         });
       }
     }

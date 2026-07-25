@@ -256,6 +256,68 @@ export async function parseUploadedDocument(input: {
     };
   }
 
+  // Proof documents (rent receipts, 80C/80D/home-loan/education/donation
+  // proofs): extract a few structured amounts so the diagnostic can pre-fill
+  // the matching question. Values always land as `needs_confirmation` because
+  // receipt OCR is noisy — the user reviews before they are used.
+  if (PROOF_DOCUMENT_TYPES.has(input.documentType)) {
+    const base = metadataSummary(input.documentType, input.mimeType);
+    let text: string | undefined;
+    let parser = `deterministic-${input.documentType}-v1`;
+    let providerJobId: string | undefined;
+
+    if (input.mimeType === 'application/pdf') {
+      try {
+        text = await extractPdfText(input.bytes);
+      } catch {
+        // Scanned/locked PDF — fall through to Sarvam / device OCR.
+      }
+    }
+    if (!text || text.replace(/\s/g, '').length < 20) {
+      text = input.ocrText ?? text;
+    }
+    if (!text || text.replace(/\s/g, '').length < 20) {
+      const sarvam = await digitizeWithSarvam({
+        bytes: input.bytes,
+        mimeType: input.mimeType,
+      });
+      if (sarvam) {
+        text = sarvam.text;
+        parser = `sarvam-deterministic-${input.documentType}-v1`;
+        providerJobId = sarvam.jobId;
+      }
+    }
+
+    if (text && text.replace(/\s/g, '').length >= 20) {
+      const parsed = parseProofDocumentText(input.documentType, text);
+      const fieldCount = countParsedFields(parsed);
+      if (fieldCount >= 1) {
+        return {
+          status: 'needs_confirmation',
+          summary: {
+            ...base,
+            parser,
+            ...(providerJobId
+              ? { documentProvider: 'sarvam', providerJobId }
+              : {}),
+            llmUsed: false,
+            confidence: 'low',
+            insight:
+              'ARTH read an amount from this proof. Confirm it before it pre-fills your diagnostic.',
+            extractedFields: parsed,
+            confirmationStatus: 'pending',
+            reviewRequired: true,
+          },
+        };
+      }
+    }
+
+    return {
+      status: 'metadata_ready',
+      summary: base,
+    };
+  }
+
   if (input.documentType !== 'form16') {
     return {
       status: 'metadata_ready',
@@ -492,6 +554,86 @@ export function metadataSummary(documentType: string, mimeType: string) {
     expectedSignals: configured.signals,
     insight: configured.insight,
   };
+}
+
+/** Proof document types that carry a structured amount worth pre-filling. */
+export const PROOF_DOCUMENT_TYPES = new Set<string>([
+  'rentReceipts',
+  'investment80c',
+  'healthInsurance80d',
+  'homeLoanCertificate',
+  'educationLoanInterest',
+  'donationReceipts',
+]);
+
+const _amt = '([0-9][0-9,]*(?:\\.[0-9]{1,2})?)';
+const _cur = '(?:rs\\.?|inr|₹)\\s*';
+
+/**
+ * Extracts a small set of structured amounts from a proof document's text.
+ * Heuristic and lossy by nature (receipts vary wildly), so results are always
+ * surfaced as `needs_confirmation`. Emits numeric keys the Flutter profile
+ * prefill understands (monthlyRent, healthInsuranceSelfPremium, …).
+ */
+export function parseProofDocumentText(
+  documentType: string,
+  rawText: string,
+): Record<string, number> {
+  const text = normalizeText(rawText);
+  const money = (patterns: RegExp[]) => findMoney(text, patterns);
+  const interestPatterns = [new RegExp(`interest[^0-9]{0,20}${_cur}${_amt}`, 'i')];
+
+  switch (documentType) {
+    case 'rentReceipts':
+      return compactNumeric({
+        monthlyRent: money([
+          new RegExp(`monthly rent[^0-9]{0,12}${_cur}${_amt}`, 'i'),
+          new RegExp(`rent[^0-9]{0,12}${_cur}${_amt}\\s*(?:/|per\\s*)?month`, 'i'),
+          new RegExp(`rent(?:\\s*(?:paid|of|amount|received))?[^0-9]{0,12}${_cur}${_amt}`, 'i'),
+        ]),
+      });
+    case 'healthInsurance80d':
+      return compactNumeric({
+        healthInsuranceSelfPremium: money([
+          new RegExp(`(?:premium|amount paid)[^0-9]{0,15}${_cur}${_amt}`, 'i'),
+          new RegExp(`${_cur}${_amt}\\s*(?:as|towards)?\\s*premium`, 'i'),
+        ]),
+      });
+    case 'homeLoanCertificate':
+      return compactNumeric({
+        homeLoanInterest: money(interestPatterns),
+        homeLoanPrincipal: money([
+          new RegExp(`principal[^0-9]{0,20}${_cur}${_amt}`, 'i'),
+        ]),
+      });
+    case 'educationLoanInterest':
+      return compactNumeric({educationLoanInterest: money(interestPatterns)});
+    case 'donationReceipts':
+      return compactNumeric({
+        donationAmount: money([
+          new RegExp(`(?:donation|donated|contribution|amount)[^0-9]{0,15}${_cur}${_amt}`, 'i'),
+        ]),
+      });
+    case 'investment80c':
+      return compactNumeric({
+        invested80C: money([
+          new RegExp(`(?:total|invested|investment|amount|contribution)[^0-9]{0,15}${_cur}${_amt}`, 'i'),
+          new RegExp(`${_cur}${_amt}`, 'i'),
+        ]),
+      });
+    default:
+      return {};
+  }
+}
+
+function compactNumeric(
+  fields: Record<string, number | undefined>,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (typeof value === 'number' && value > 0) out[key] = value;
+  }
+  return out;
 }
 
 export function parseForm16Text(text: string, panVaultSuffix: PanVaultSuffix): ParsedForm16Fields {
@@ -816,7 +958,7 @@ function compactFields(fields: ParsedForm16Fields): ParsedForm16Fields {
   ) as ParsedForm16Fields;
 }
 
-function countParsedFields(fields: ParsedForm16Fields): number {
+function countParsedFields(fields: Record<string, unknown>): number {
   return Object.entries(fields)
     .filter(([key, value]) => key !== 'panMatchStatus' && value !== undefined && value !== '')
     .length;

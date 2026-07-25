@@ -110,7 +110,9 @@ Income → residential status → regime intent → (if old regime) employment b
   - Rates/limits live in the per-year rule JSON (`capital_gains`, `presumptive`, extra `deductions`). Model gained ~17 fields (residential status, CG buckets, rental, presumptive, disability levels, illness, EV, Agniveer). New gated steps: business (self-employed), other-income, extra-deductions. 8 engine tests. Files: `user_profile.dart`, `tax_rule_set.dart`, `tax_engine.dart`, both `fy_*.json`, `s03_questions_screen.dart`, `test/tax_rule_engine_test.dart`.
   - Simplifications (documented in code): surcharge marginal relief applied only on the no-CG path; presumptive income is additive; property grandfathering (20%-with-index option) left to the user's entered figure.
 - Decision recorded: **other income = full modeling** (Batch 5), **metro list in JSON** (done in Batch 1).
-- **Batch 6 — backend structured prefill (`documentParser.ts`) — PENDING.** Remaining.
+- **Batch 6 — backend structured prefill — ✅ DONE.** `documentParser.ts` now structure-parses the six proof types (rent receipts, 80C/80D proofs, home-loan / education-loan certificates, donation receipts) via `parseProofDocumentText` + a new branch in `parseUploadedDocument`, reusing the PDF→OCR→Sarvam text acquisition and `findMoney`. Results land as `needs_confirmation` (receipt OCR is noisy → user reviews). App side: `proof_prefill.dart` + `proofPrefillProvider` + `applyProofPrefill` gap-fill the profile (rent, premium, loan interest, donation, 80C) in s03 build **without overriding** payslip / Form 16 / user-typed values. 6 backend tests + 2 app tests. Files: `backend/src/documentParser.ts`, `backend/test/documentParser.test.ts`, `lib/models/proof_prefill.dart`, `tax_document_provider.dart`, `user_profile_provider.dart`, `s03_questions_screen.dart`, `test/tax_rule_engine_test.dart`.
+
+**All six batches complete.** Flutter: 100 tests pass. Backend: 19 tests pass. `flutter analyze` clean; backend `tsc --noEmit` clean.
 
 ### Original sequencing
 

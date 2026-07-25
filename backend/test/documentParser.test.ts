@@ -4,9 +4,62 @@ import { describe, it } from 'node:test';
 import {
   deduplicatePayrollRows,
   parsePayslipText,
+  parseProofDocumentText,
   parseUploadedDocument,
 } from '../src/documentParser.js';
 import { interpretPayslip } from '../src/geminiInterpreter.js';
+
+describe('proof document interpretation', () => {
+  it('extracts monthly rent from a rent receipt', () => {
+    const parsed = parseProofDocumentText(
+      'rentReceipts',
+      'Rent Receipt\nReceived monthly rent of Rs 25,000 for the month of June 2026.',
+    );
+    assert.equal(parsed.monthlyRent, 25000);
+  });
+
+  it('extracts a health-insurance premium (80D)', () => {
+    const parsed = parseProofDocumentText(
+      'healthInsurance80d',
+      'Tax Certificate\nPremium paid: Rs 18,500 towards health policy.',
+    );
+    assert.equal(parsed.healthInsuranceSelfPremium, 18500);
+  });
+
+  it('extracts home-loan interest and principal', () => {
+    const parsed = parseProofDocumentText(
+      'homeLoanCertificate',
+      'Provisional Certificate\nInterest Rs 2,10,000\nPrincipal Rs 1,40,000',
+    );
+    assert.equal(parsed.homeLoanInterest, 210000);
+    assert.equal(parsed.homeLoanPrincipal, 140000);
+  });
+
+  it('extracts a donation amount', () => {
+    const parsed = parseProofDocumentText(
+      'donationReceipts',
+      '80G Receipt\nDonation of Rs 5,000 received with thanks.',
+    );
+    assert.equal(parsed.donationAmount, 5000);
+  });
+
+  it('returns nothing when no amount is present', () => {
+    const parsed = parseProofDocumentText('rentReceipts', 'Thank you for your payment.');
+    assert.deepEqual(parsed, {});
+  });
+
+  it('surfaces extracted fields as needs_confirmation via parseUploadedDocument',
+    async () => {
+      const result = await parseUploadedDocument({
+        documentType: 'donationReceipts',
+        mimeType: 'text/plain',
+        bytes: Buffer.from('n/a'),
+        ocrText: '80G Receipt: Donation of Rs 7,500 received.',
+      });
+      assert.equal(result.status, 'needs_confirmation');
+      assert.equal(result.summary.extractedFields?.donationAmount, 7500);
+    });
+});
 
 describe('offer letter interpretation', () => {
   it('stores the document for manual review when Gemini is not configured', async () => {

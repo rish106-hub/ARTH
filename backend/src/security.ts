@@ -7,6 +7,7 @@ import {
   scrypt as scryptCallback,
   timingSafeEqual,
 } from 'node:crypto';
+import { Algorithm, hash as argonHash, verify as argonVerify } from '@node-rs/argon2';
 import { promisify } from 'node:util';
 import { SignJWT, jwtVerify } from 'jose';
 import { env } from './config.js';
@@ -16,35 +17,55 @@ const textEncoder = new TextEncoder();
 
 export type AuthUserToken = {
   sub: string;
-  email: string;
+  sid?: string;
+  sv: number;
   type: 'access';
 };
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('hex');
-  const derived = (await scrypt(password, salt, 64)) as Buffer;
-  return `${salt}:${derived.toString('hex')}`;
+  return argonHash(password, {
+    algorithm: Algorithm.Argon2id,
+    memoryCost: 65_536,
+    timeCost: 3,
+    parallelism: 1,
+    outputLen: 32,
+  });
+}
+
+async function verifyLegacyScryptPassword(
+  password: string,
+  storedHash: string,
+): Promise<boolean> {
+  const [storedSalt, existing] = storedHash.split(':');
+  if (!storedSalt || !existing) return false;
+  const derived = (await scrypt(password, storedSalt, 64)) as Buffer;
+  const existingBuffer = Buffer.from(existing, 'hex');
+  if (existingBuffer.length !== derived.length) return false;
+  return timingSafeEqual(existingBuffer, derived);
 }
 
 export async function verifyPassword(
   password: string,
   storedHash: string,
 ): Promise<boolean> {
-  const [salt, existing] = storedHash.split(':');
-  if (!salt || !existing) return false;
-  const derived = (await scrypt(password, salt, 64)) as Buffer;
-  const existingBuffer = Buffer.from(existing, 'hex');
-  if (existingBuffer.length !== derived.length) return false;
-  return timingSafeEqual(existingBuffer, derived);
+  if (storedHash.startsWith('$argon2')) {
+    return argonVerify(storedHash, password);
+  }
+  return verifyLegacyScryptPassword(password, storedHash);
+}
+
+export function passwordNeedsRehash(storedHash: string): boolean {
+  return !storedHash.startsWith('$argon2id$');
 }
 
 export async function signAccessToken(
   userId: string,
-  email: string,
+  sessionId?: string,
 ): Promise<string> {
   return new SignJWT({
     sub: userId,
-    email,
+    ...(sessionId ? { sid: sessionId } : {}),
+    sv: 1,
     type: 'access',
   })
     .setProtectedHeader({ alg: 'HS256' })

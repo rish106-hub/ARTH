@@ -11,6 +11,7 @@ process.env.REFRESH_TOKEN_TTL_DAYS = '30';
 process.env.CORS_ORIGIN = 'https://app.example.com';
 process.env.PAN_ENCRYPTION_KEY = Buffer.from('0123456789abcdef0123456789abcdef').toString('base64');
 process.env.PAN_HASH_KEY = 'test-pan-hash-key-32-characters-min';
+process.env.DATA_HMAC_KEY = 'test-data-hmac-key-32-characters-minimum';
 process.env.DOCUMENT_ENCRYPTION_KEY = Buffer.from('abcdef0123456789abcdef0123456789').toString('base64');
 
 type Row = Record<string, unknown>;
@@ -60,6 +61,7 @@ class FakeDb {
   private spendMaps = new Map<string, Row>();
   private employers = new Map<string, Row>();
   private events: Row[] = [];
+  private tombstones: Row[] = [];
   private ids = 0;
   private transientEmailLookupFailures = 0;
 
@@ -75,6 +77,7 @@ class FakeDb {
     this.spendMaps.clear();
     this.employers.clear();
     this.events = [];
+    this.tombstones = [];
     this.ids = 0;
     this.transientEmailLookupFailures = 0;
   }
@@ -89,6 +92,14 @@ class FakeDb {
 
   rawDocument(documentId: string) {
     return this.documents.get(documentId);
+  }
+
+  hasUser(userId: string) {
+    return this.users.has(userId);
+  }
+
+  tombstoneCount() {
+    return this.tombstones.length;
   }
 
   seedDocument(userId: string, overrides: Row = {}) {
@@ -183,15 +194,27 @@ class FakeDb {
 
     if (normalized.startsWith('insert into auth_refresh_sessions')) {
       const session: SessionRow = {
-        id: this.nextId('session'),
-        user_id: params[0] as string,
-        token_hash: params[1] as string,
-        expires_at: params[2] as Date,
+        id: params[0] as string,
+        user_id: params[1] as string,
+        token_hash: params[2] as string,
+        expires_at: params[3] as Date,
         revoked_at: null,
         created_at: new Date(),
       };
       this.sessions.set(session.id, session);
       return rows();
+    }
+
+    if (normalized.startsWith('select 1 from auth_refresh_sessions where id = $1')) {
+      const session = this.sessions.get(params[0] as string);
+      return rows(
+        session
+        && session.user_id === params[1]
+        && session.revoked_at === null
+        && session.expires_at.getTime() > Date.now()
+          ? [{ '?column?': 1 }]
+          : [],
+      );
     }
 
     if (normalized.startsWith('select s.id, s.user_id, s.expires_at, u.email, u.name, u.created_at')) {
@@ -227,6 +250,40 @@ class FakeDb {
           session.revoked_at = new Date();
         }
       }
+      return rows();
+    }
+
+    if (normalized.startsWith('update auth_refresh_sessions set revoked_at = now() where user_id = $1')) {
+      for (const session of this.sessions.values()) {
+        if (session.user_id === params[0] && session.revoked_at === null) {
+          session.revoked_at = new Date();
+        }
+      }
+      return rows();
+    }
+
+    if (normalized.startsWith('delete from app_users where id = $1 returning id')) {
+      const userId = params[0] as string;
+      if (!this.users.delete(userId)) return rows();
+      for (const [sessionId, session] of this.sessions) {
+        if (session.user_id === userId) this.sessions.delete(sessionId);
+      }
+      this.deleteByUser(this.profiles, userId);
+      this.deleteByUser(this.taxResults, userId);
+      this.deleteByUser(this.doneGaps, userId);
+      this.identities.delete(userId);
+      for (const [documentId, document] of this.documents) {
+        if (document.user_id === userId) this.documents.delete(documentId);
+      }
+      return rows([{ id: userId }]);
+    }
+
+    if (normalized.startsWith('insert into security_tombstones')) {
+      this.tombstones.push({
+        deletion_id: params[0],
+        anonymous_subject_hash: params[1],
+        backup_expires_at: params[2],
+      });
       return rows();
     }
 
@@ -758,6 +815,12 @@ describe('backend security harness', () => {
       payload: { refreshToken: refresh.json().refreshToken },
     });
     assert.equal(signOut.statusCode, 204);
+    const revokedAccess = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: bearer(refresh.json().accessToken),
+    });
+    assert.equal(revokedAccess.statusCode, 401);
 
     await app.close();
   });
@@ -778,6 +841,38 @@ describe('backend security harness', () => {
       message: 'Service temporarily unavailable',
       retryable: true,
     });
+    await app.close();
+  });
+
+  it('deletes the full account only with explicit confirmation', async () => {
+    const app = await buildApp();
+    const session = await createSession(app, 'Delete User', 'delete@example.com');
+
+    const rejected = await app.inject({
+      method: 'DELETE',
+      url: '/v1/account',
+      headers: bearer(session.accessToken),
+      payload: { confirmation: 'NO' },
+    });
+    assert.equal(rejected.statusCode, 400);
+    assert.equal(fakeDb.hasUser(session.user.id), true);
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: '/v1/account',
+      headers: bearer(session.accessToken),
+      payload: { confirmation: 'DELETE' },
+    });
+    assert.equal(deleted.statusCode, 204);
+    assert.equal(fakeDb.hasUser(session.user.id), false);
+    assert.equal(fakeDb.tombstoneCount(), 1);
+
+    const staleToken = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: bearer(session.accessToken),
+    });
+    assert.equal(staleToken.statusCode, 401);
     await app.close();
   });
 

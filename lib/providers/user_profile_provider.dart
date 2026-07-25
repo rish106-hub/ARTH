@@ -4,6 +4,7 @@ import '../models/user_account.dart';
 import '../models/user_profile.dart';
 import '../models/payslip_tax_prefill.dart';
 import '../models/form16_tax_prefill.dart';
+import '../models/proof_prefill.dart';
 import '../services/backend_sync_service.dart';
 import '../services/secure_storage_service.dart';
 import 'auth_provider.dart';
@@ -46,6 +47,11 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   }
 
   void applyForm16Prefill(Form16TaxPrefill prefill) {
+    state = prefill.applyTo(state);
+    _scheduleDraftSync();
+  }
+
+  void applyProofPrefill(ProofPrefill prefill) {
     state = prefill.applyTo(state);
     _scheduleDraftSync();
   }
