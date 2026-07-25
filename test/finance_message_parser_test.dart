@@ -322,4 +322,53 @@ void main() {
       expect(restored.txns.single.category, SpendCategory.food);
     });
   });
+
+  group('credit card bill payments are not mistaken for income', () {
+    test('"received...credited to your credit card" is a debit, not salary',
+        () {
+      final txn = parse(
+        'Payment of Rs 15,000 received towards your SBI Credit Card ending 1234 through UPI.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.debit);
+      expect(txn.isSalary, isFalse);
+      expect(txn.category, SpendCategory.bills);
+    });
+
+    test('recurring card bill payments never get inferred as salary', () {
+      final txns = parser.parseAll([
+        (
+          id: null,
+          sender: 'BANK',
+          body:
+              'Payment of Rs 25,000 received towards your HDFC Credit Card ending 5678.',
+          date: DateTime(2026, 5, 5),
+        ),
+        (
+          id: null,
+          sender: 'BANK',
+          body:
+              'Payment of Rs 25,000 received towards your HDFC Credit Card ending 5678.',
+          date: DateTime(2026, 6, 5),
+        ),
+      ]);
+      expect(txns.every((t) => t.direction == TxnDirection.debit), isTrue);
+      expect(txns.every((t) => !t.isSalary), isTrue);
+    });
+
+    test('a refund credited to a credit card is still a credit', () {
+      final txn = parse(
+        'Rs 500 refund credited to your ICICI Credit Card ending 9012.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.credit);
+    });
+
+    test('a normal card spend is still a debit in the right category', () {
+      final txn = parse('Rs 899 spent on your Axis Credit Card at SWIGGY.');
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.debit);
+      expect(txn.category, SpendCategory.food);
+    });
+  });
 }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/spend_map.dart';
+import '../providers/other_income_provider.dart';
 import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
@@ -15,6 +16,17 @@ class SpendInsightsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(spendMapProvider);
+
+    // Fires exactly once per transition into "awaiting answer" — right after
+    // SMS permission is granted for the first time. Shows the one-time
+    // follow-up question before the SMS read actually happens.
+    ref.listen(spendMapProvider, (previous, next) {
+      final wasAwaiting = previous?.awaitingOtherIncomeAnswer ?? false;
+      if (!wasAwaiting && next.awaitingOtherIncomeAnswer) {
+        _askOtherIncomeQuestion(context, ref);
+      }
+    });
+
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
       appBar: AppBar(
@@ -71,6 +83,194 @@ class SpendInsightsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One-time "any other income to add?" prompt shown right after SMS
+/// permission is granted, before the inbox is actually read. Answering either
+/// way (yes/no) marks the question asked and resumes the paused scan.
+Future<void> _askOtherIncomeQuestion(BuildContext context, WidgetRef ref) {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Any other income?'),
+      content: const Text(
+        'Besides your salary, do you have other income to factor into your '
+        "savings projection — freelance work, rent, a side business? It's "
+        'kept only on this device and never sent to our servers.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(dialogContext);
+            await ref.read(otherIncomeProvider.notifier).markAsked();
+            await ref
+                .read(spendMapProvider.notifier)
+                .resumeScanAfterOtherIncomeAnswer();
+          },
+          child: const Text('No, that\'s all'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            Navigator.pop(dialogContext);
+            await ref.read(otherIncomeProvider.notifier).markAsked();
+            if (context.mounted) {
+              await _editOtherIncome(context, ref);
+            }
+            if (context.mounted) {
+              await ref
+                  .read(spendMapProvider.notifier)
+                  .resumeScanAfterOtherIncomeAnswer();
+            }
+          },
+          child: const Text('Yes, add it'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Bottom sheet for adding/removing manual "other income" sources. Reusable
+/// both from the first-time follow-up question and from the persistent "Edit"
+/// affordance on the insights screen.
+Future<void> _editOtherIncome(BuildContext context, WidgetRef ref) {
+  final labelController = TextEditingController();
+  final amountController = TextEditingController();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Consumer(
+          builder: (context, ref, _) {
+            final sources = ref.watch(otherIncomeProvider);
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Other income', style: PaycheckType.title()),
+                      ),
+                      IconButton(
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.lock_outline,
+                          size: 14, color: PaycheckColors.inkSoft),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Stays on this device only — never sent to our servers.',
+                          style:
+                              PaycheckType.utility(color: PaycheckColors.inkSoft),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  for (final source in sources)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(source.label,
+                                style: PaycheckType.bodyStrong()),
+                          ),
+                          Text(money0(source.monthlyAmount),
+                              style: PaycheckType.body()),
+                          IconButton(
+                            tooltip: 'Remove',
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            onPressed: () => ref
+                                .read(otherIncomeProvider.notifier)
+                                .remove(source.id),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (sources.isNotEmpty) const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: labelController,
+                          decoration: const InputDecoration(
+                            labelText: 'Source (e.g. Freelance)',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: amountController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: '₹ / month',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final amount = int.tryParse(
+                          amountController.text.replaceAll(',', '').trim(),
+                        );
+                        if (labelController.text.trim().isEmpty ||
+                            amount == null ||
+                            amount <= 0) {
+                          return;
+                        }
+                        await ref
+                            .read(otherIncomeProvider.notifier)
+                            .add(labelController.text, amount);
+                        labelController.clear();
+                        amountController.clear();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add source'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ),
+  );
 }
 
 class _Loading extends StatelessWidget {
@@ -223,7 +423,6 @@ class _Insights extends ConsumerWidget {
               entry.$2.direction == TxnDirection.debit &&
               entry.$2.category == SpendCategory.other,
         )
-        .take(3)
         .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +448,24 @@ class _Insights extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                map.hasOtherIncome
+                    ? 'Includes ${money0(map.otherMonthlyIncome)}/mo other income'
+                    : 'Have other income to add?',
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _editOtherIncome(context, ref),
+              child: Text(map.hasOtherIncome ? 'Edit' : 'Add'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
         Text('Where it goes', style: PaycheckType.heading()),
         const SizedBox(height: 12),
         _CategoryPie(map: map),
@@ -294,7 +510,7 @@ class _Insights extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () => _reviewUnclear(context, ref, unclear),
+                  onPressed: () => _reviewUnclearSwipe(context, unclear),
                   icon: const Icon(Icons.rule_folder_outlined),
                   label: const Text('Review categories'),
                 ),
@@ -322,76 +538,269 @@ class _Insights extends ConsumerWidget {
   }
 }
 
-Future<void> _reviewUnclear(
+/// Full-screen, one-card-at-a-time review: swipe away to skip, tap a category
+/// to file it and advance. Designed to cut the cognitive load of categorizing
+/// several unclear transactions at once — one small decision at a time, with
+/// motion that makes progress feel tangible.
+Future<void> _reviewUnclearSwipe(
   BuildContext context,
-  WidgetRef ref,
   List<(int, FinanceTxn)> unclear,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => _SwipeReviewScreen(unclear: unclear),
     ),
-    builder: (context) => SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        children: [
-          Row(
+  );
+}
+
+class _SwipeReviewScreen extends ConsumerStatefulWidget {
+  const _SwipeReviewScreen({required this.unclear});
+  final List<(int, FinanceTxn)> unclear;
+
+  @override
+  ConsumerState<_SwipeReviewScreen> createState() => _SwipeReviewScreenState();
+}
+
+class _SwipeReviewScreenState extends ConsumerState<_SwipeReviewScreen> {
+  int _index = 0;
+  int _resolved = 0;
+
+  Future<void> _categorize(int txnIndex, String category) async {
+    await ref.read(spendMapProvider.notifier).recategorize(txnIndex, category);
+    _advance();
+  }
+
+  void _advance() {
+    setState(() {
+      _index += 1;
+      _resolved += 1;
+    });
+  }
+
+  void _skip() => setState(() => _index += 1);
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.unclear.length;
+    final done = _index >= total;
+    return Scaffold(
+      backgroundColor: PaycheckColors.canvas,
+      appBar: AppBar(
+        backgroundColor: PaycheckColors.canvas,
+        elevation: 0,
+        foregroundColor: PaycheckColors.ink,
+        title: Text('Review categories', style: PaycheckType.heading()),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
             children: [
+              if (!done) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _resolved / total,
+                          minHeight: 6,
+                          backgroundColor: PaycheckColors.line,
+                          color: PaycheckColors.matched,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('${_index + 1} of $total',
+                        style: PaycheckType.utility()),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Swipe to skip for now, or tap a category to file it.',
+                  style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                ),
+              ],
               Expanded(
-                child: Text('Review categories', style: PaycheckType.title()),
-              ),
-              IconButton(
-                tooltip: 'Close',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
+                child: Center(
+                  child: done
+                      ? _SwipeReviewDone(resolved: _resolved, total: total)
+                      : AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          transitionBuilder: (child, animation) =>
+                              SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.15, 0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            )),
+                            child: FadeTransition(
+                                opacity: animation, child: child),
+                          ),
+                          child: Dismissible(
+                            key: ValueKey(widget.unclear[_index].$1),
+                            direction: DismissDirection.horizontal,
+                            onDismissed: (_) => _skip(),
+                            background: const _SwipeHint(
+                              alignment: Alignment.centerLeft,
+                              icon: Icons.arrow_back_rounded,
+                            ),
+                            secondaryBackground: const _SwipeHint(
+                              alignment: Alignment.centerRight,
+                              icon: Icons.arrow_forward_rounded,
+                            ),
+                            child: _SwipeReviewCard(
+                              txn: widget.unclear[_index].$2,
+                              onCategory: (category) =>
+                                  _categorize(widget.unclear[_index].$1, category),
+                            ),
+                          ),
+                        ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...unclear.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.$2.merchant ?? entry.$2.sender ?? 'Unknown merchant',
-                    style: PaycheckType.bodyStrong(),
-                  ),
-                  Text(
-                    '${money0(entry.$2.amount)} · ${DateFormat('d MMM').format(entry.$2.date)}',
-                    style: PaycheckType.utility(),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: SpendCategory.all
-                        .where((category) => category != SpendCategory.other)
-                        .map(
-                          (category) => ActionChip(
-                            label: Text(SpendCategory.label(category)),
-                            onPressed: () async {
-                              await ref
-                                  .read(spendMapProvider.notifier)
-                                  .recategorize(entry.$1, category);
-                              if (context.mounted) Navigator.pop(context);
-                            },
-                          ),
-                        )
-                        .toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwipeHint extends StatelessWidget {
+  const _SwipeHint({required this.alignment, required this.icon});
+  final Alignment alignment;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: PaycheckColors.line,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Icon(icon, color: PaycheckColors.inkSoft),
+    );
+  }
+}
+
+class _SwipeReviewCard extends StatelessWidget {
+  const _SwipeReviewCard({required this.txn, required this.onCategory});
+  final FinanceTxn txn;
+  final ValueChanged<String> onCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: PaycheckColors.paper,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: PaycheckColors.line),
+              boxShadow: [
+                BoxShadow(
+                  color: PaycheckColors.ink.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(money0(txn.amount), style: PaycheckType.display()),
+                const SizedBox(height: 6),
+                Text(
+                  txn.merchant?.trim().isNotEmpty == true
+                      ? txn.merchant!
+                      : (txn.sender ?? 'Unknown'),
+                  style: PaycheckType.bodyStrong(),
+                ),
+                Text(
+                  '${DateFormat('d MMM, h:mm a').format(txn.date)} · ${txn.sender ?? 'unknown'}',
+                  style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                ),
+                if (txn.bodyPreview?.isNotEmpty == true) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: PaycheckColors.canvas,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(txn.bodyPreview!, style: PaycheckType.utility()),
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: SpendCategory.all
+                .where((category) => category != SpendCategory.other)
+                .map(
+                  (category) => ActionChip(
+                    avatar: Icon(_iconFor(category), size: 16),
+                    label: Text(SpendCategory.label(category)),
+                    onPressed: () => onCategory(category),
+                  ),
+                )
+                .toList(growable: false),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _SwipeReviewDone extends StatelessWidget {
+  const _SwipeReviewDone({required this.resolved, required this.total});
+  final int resolved;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            color: PaycheckColors.matchedSoft,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_rounded,
+              color: PaycheckColors.matched, size: 32),
+        ),
+        const SizedBox(height: 16),
+        Text('All caught up', style: PaycheckType.title()),
+        const SizedBox(height: 6),
+        Text(
+          resolved == total
+              ? 'Categorized all $total transactions.'
+              : 'Categorized $resolved of $total. The rest stay as Other for now.',
+          style: PaycheckType.body(color: PaycheckColors.inkSoft),
+        ),
+        const SizedBox(height: 20),
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Done'),
+        ),
+      ],
+    );
+  }
 }
 
 class _CategoryPie extends StatelessWidget {

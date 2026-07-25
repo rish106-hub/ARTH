@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:arth/models/spend_map.dart';
+import 'package:arth/providers/other_income_provider.dart';
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/services/sms_reader_service.dart';
 import 'package:arth/services/spend_map_service.dart';
@@ -90,6 +91,7 @@ void main() {
       reader: _FakeReader(sampleMessages()),
       sync: _NoopSync(),
     );
+    await container.read(otherIncomeProvider.notifier).markAsked();
 
     await notifier.scan();
 
@@ -139,6 +141,7 @@ void main() {
     ]);
     final notifier = container.read(spendMapProvider.notifier);
     notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+    await container.read(otherIncomeProvider.notifier).markAsked();
 
     notifier.selectPeriod(SpendScanPeriod.sixMonths);
     await notifier.scan();
@@ -182,6 +185,7 @@ void main() {
         ),
       }),
     );
+    await container.read(otherIncomeProvider.notifier).markAsked();
 
     await notifier.scan();
     final txn = container.read(spendMapProvider).map!.txns.single;
@@ -211,11 +215,84 @@ void main() {
         ),
       }),
     );
+    await container.read(otherIncomeProvider.notifier).markAsked();
 
     await notifier.scan();
     final txn = container.read(spendMapProvider).map!.txns.single;
     expect(txn.category, SpendCategory.other);
     expect(txn.categorySource, CategorySource.rules);
+  });
+
+  group('other-income follow-up', () {
+    test('first scan pauses for the question instead of reading the inbox',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final reader = _FakeReader(sampleMessages());
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+
+      await notifier.scan();
+
+      final state = container.read(spendMapProvider);
+      expect(state.awaitingOtherIncomeAnswer, isTrue);
+      expect(state.hasData, isFalse);
+      expect(reader.lastSince, isNull); // inbox never read yet
+    });
+
+    test('resuming after "no" proceeds with the paused scan', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final reader = _FakeReader(sampleMessages());
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+
+      await notifier.scan();
+      expect(container.read(spendMapProvider).awaitingOtherIncomeAnswer, isTrue);
+
+      await container.read(otherIncomeProvider.notifier).markAsked();
+      await notifier.resumeScanAfterOtherIncomeAnswer();
+
+      final state = container.read(spendMapProvider);
+      expect(state.awaitingOtherIncomeAnswer, isFalse);
+      expect(state.hasData, isTrue);
+      expect(reader.lastSince, isNotNull);
+    });
+
+    test('a returning user who already answered is never asked again',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final reader = _FakeReader(sampleMessages());
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+      await container.read(otherIncomeProvider.notifier).markAsked();
+
+      await notifier.scan();
+
+      final state = container.read(spendMapProvider);
+      expect(state.awaitingOtherIncomeAnswer, isFalse);
+      expect(state.hasData, isTrue);
+    });
+
+    test('manual other-income sources add into monthlyIncome, never into '
+        'the synced payload', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final reader = _FakeReader(sampleMessages());
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+      await container.read(otherIncomeProvider.notifier).markAsked();
+      await container.read(otherIncomeProvider.notifier).add('Freelance', 8000);
+
+      await notifier.scan();
+
+      final map = container.read(spendMapProvider).map!;
+      expect(map.primaryMonthlyIncome, 54500); // detected salary, unaffected
+      expect(map.otherMonthlyIncome, 8000);
+      expect(map.monthlyIncome, 54500 + 8000); // on-screen total includes it
+      expect(map.hasOtherIncome, isTrue);
+    });
   });
 }
 

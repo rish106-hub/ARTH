@@ -6,6 +6,7 @@ import '../services/secure_storage_service.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import 'auth_provider.dart';
+import 'other_income_provider.dart';
 import 'paycheck_provider.dart';
 import 'tax_document_provider.dart';
 import 'user_profile_provider.dart';
@@ -45,6 +46,7 @@ class SpendMapState {
     this.permissionDenied = false,
     this.selectedPeriod = SpendScanPeriod.threeMonths,
     this.error,
+    this.awaitingOtherIncomeAnswer = false,
   });
 
   final SpendMap? map;
@@ -52,6 +54,12 @@ class SpendMapState {
   final bool permissionDenied;
   final SpendScanPeriod selectedPeriod;
   final String? error;
+
+  /// True right after SMS permission is granted for the first time, until the
+  /// user answers the one-time "any other income to add?" question. The UI
+  /// shows the follow-up prompt while this is true and the actual SMS read
+  /// is held until [SpendMapNotifier.resumeScanAfterOtherIncomeAnswer] runs.
+  final bool awaitingOtherIncomeAnswer;
 
   bool get hasData => map != null && !map!.isEmpty;
 
@@ -61,6 +69,7 @@ class SpendMapState {
     bool? permissionDenied,
     SpendScanPeriod? selectedPeriod,
     Object? error = _unset,
+    bool? awaitingOtherIncomeAnswer,
   }) {
     return SpendMapState(
       map: map ?? this.map,
@@ -68,6 +77,8 @@ class SpendMapState {
       permissionDenied: permissionDenied ?? this.permissionDenied,
       selectedPeriod: selectedPeriod ?? this.selectedPeriod,
       error: identical(error, _unset) ? this.error : error as String?,
+      awaitingOtherIncomeAnswer:
+          awaitingOtherIncomeAnswer ?? this.awaitingOtherIncomeAnswer,
     );
   }
 
@@ -89,17 +100,22 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     if (sync != null) _sync = sync;
   }
 
+  SpendScanPeriod? _pendingPeriod;
+
   @override
   SpendMapState build() {
     Future.microtask(_loadCached);
     // Income falls back to payslip/CTC when no salary credit is detected in
     // SMS; re-derive it whenever a document, paycheck, or profile changes.
-    ref.listen(paycheckProvider, (_, __) => _refreshFallbackIncome());
-    ref.listen(payslipTaxPrefillProvider, (_, __) => _refreshFallbackIncome());
+    ref.listen(paycheckProvider, (_, __) => _refreshIncomeContext());
+    ref.listen(payslipTaxPrefillProvider, (_, __) => _refreshIncomeContext());
     ref.listen(
       userProfileProvider.select((p) => p.annualCTC),
-      (_, __) => _refreshFallbackIncome(),
+      (_, __) => _refreshIncomeContext(),
     );
+    // Other-income total (user-entered, local-only) also feeds the figures
+    // shown on screen — re-derive whenever the user adds/removes a source.
+    ref.listen(otherIncomeProvider, (_, __) => _refreshIncomeContext());
     return const SpendMapState();
   }
 
@@ -117,12 +133,20 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     return null;
   }
 
-  void _refreshFallbackIncome() {
+  /// Applies both transient income adjustments (payslip/CTC fallback + the
+  /// user-entered other-income total) to a map in one place, so every call
+  /// site stays in sync.
+  SpendMap _applyIncomeContext(SpendMap map) {
+    final otherIncome = ref.read(otherIncomeProvider.notifier).totalMonthly;
+    return map
+        .withFallbackIncome(_fallbackMonthlyIncome())
+        .withOtherIncome(otherIncome);
+  }
+
+  void _refreshIncomeContext() {
     final map = state.map;
     if (map == null) return;
-    state = state.copyWith(
-      map: map.withFallbackIncome(_fallbackMonthlyIncome()),
-    );
+    state = state.copyWith(map: _applyIncomeContext(map));
   }
 
   Future<void> _loadCached() async {
@@ -130,16 +154,17 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     if (json == null) return;
     try {
       state = state.copyWith(
-        map: SpendMap.fromJsonString(json)
-            .withFallbackIncome(_fallbackMonthlyIncome()),
+        map: _applyIncomeContext(SpendMap.fromJsonString(json)),
       );
     } catch (_) {
       // Corrupt cache — ignore, a rescan will overwrite it.
     }
   }
 
-  /// Requests SMS permission (if needed), reads the inbox, parses on-device,
-  /// builds and persists the spend map, and best-effort syncs a summary.
+  /// Requests SMS permission (if needed) and, once granted for the first
+  /// time, pauses before actually reading the inbox so the UI can ask the
+  /// one-time "any other income?" question — see [resumeScanAfterOtherIncomeAnswer].
+  /// Returning users who already answered skip straight to the real scan.
   Future<void> scan([SpendScanPeriod? period]) async {
     // Re-entrancy guard: ignore taps while a scan is already running.
     if (state.loading) return;
@@ -164,30 +189,60 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         return;
       }
 
-      final since = selected.since(DateTime.now());
-      final raw = await _reader.readInbox(since: since);
-      final txns = _parser.parseAll(raw);
+      final alreadyAsked = ref.read(otherIncomeProvider.notifier).hasAsked;
+      if (!alreadyAsked) {
+        _pendingPeriod = selected;
+        state = state.copyWith(
+          loading: false,
+          awaitingOtherIncomeAnswer: true,
+        );
+        return;
+      }
 
-      final map = _buildMap(txns, since);
-      await _storage.write(_spendMapKey(_uid()), map.toJsonString());
-      state = state.copyWith(
-        map: map.withFallbackIncome(_fallbackMonthlyIncome()),
-        loading: false,
-      );
-
-      // Hybrid pass: refine the transactions the on-device rules left as
-      // `other` using the AI fallback. Best-effort — the rules result already
-      // shows; this only upgrades categories when it succeeds.
-      final enriched = await _enrichCategoriesWithAi(map);
-      final finalMap = enriched ?? map;
-
-      // Best-effort remote mirror; never blocks or fails the local flow.
-      try {
-        await _sync.push(finalMap);
-      } catch (_) {}
+      await _performScan(selected);
     } catch (error) {
       state = state.copyWith(loading: false, error: error.toString());
     }
+  }
+
+  /// Called once the follow-up "any other income?" question has been
+  /// answered (either way) — proceeds with the SMS read that [scan] paused.
+  Future<void> resumeScanAfterOtherIncomeAnswer() async {
+    final period = _pendingPeriod ?? state.selectedPeriod;
+    _pendingPeriod = null;
+    state = state.copyWith(loading: true, awaitingOtherIncomeAnswer: false);
+    try {
+      await _performScan(period);
+    } catch (error) {
+      state = state.copyWith(loading: false, error: error.toString());
+    }
+  }
+
+  /// Reads the inbox, parses on-device, builds and persists the spend map,
+  /// runs the AI categorization fallback, and best-effort syncs a summary.
+  /// Assumes SMS permission is already granted.
+  Future<void> _performScan(SpendScanPeriod selected) async {
+    final since = selected.since(DateTime.now());
+    final raw = await _reader.readInbox(since: since);
+    final txns = _parser.parseAll(raw);
+
+    final map = _buildMap(txns, since);
+    await _storage.write(_spendMapKey(_uid()), map.toJsonString());
+    state = state.copyWith(
+      map: _applyIncomeContext(map),
+      loading: false,
+    );
+
+    // Hybrid pass: refine the transactions the on-device rules left as
+    // `other` using the AI fallback. Best-effort — the rules result already
+    // shows; this only upgrades categories when it succeeds.
+    final enriched = await _enrichCategoriesWithAi(map);
+    final finalMap = enriched ?? map;
+
+    // Best-effort remote mirror; never blocks or fails the local flow.
+    try {
+      await _sync.push(finalMap);
+    } catch (_) {}
   }
 
   /// Changes the scan window. If a map already exists, immediately re-scans so
@@ -220,9 +275,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       generatedAt: DateTime.now(),
     );
     await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
-    state = state.copyWith(
-      map: updated.withFallbackIncome(_fallbackMonthlyIncome()),
-    );
+    state = state.copyWith(map: _applyIncomeContext(updated));
     try {
       await _sync.push(updated);
     } catch (_) {}
@@ -305,9 +358,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       generatedAt: map.generatedAt,
     );
     await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
-    state = state.copyWith(
-      map: updated.withFallbackIncome(_fallbackMonthlyIncome()),
-    );
+    state = state.copyWith(map: _applyIncomeContext(updated));
     return updated;
   }
 

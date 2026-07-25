@@ -26,13 +26,16 @@ class SpendMapService {
         'windowStart': map.windowStart.toUtc().toIso8601String(),
         'windowEnd': map.windowEnd.toUtc().toIso8601String(),
         'generatedAt': map.generatedAt.toUtc().toIso8601String(),
-        'monthlyIncome': map.monthlyIncome,
+        // primaryMonthlyIncome (SMS salary / payslip / CTC), never the
+        // other-income-boosted total — user-entered other income is local-only
+        // and must never reach the server, even as part of an aggregate.
+        'monthlyIncome': map.primaryMonthlyIncome,
         'incomeSource': map.incomeIsDetected
             ? 'detected'
-            : (map.monthlyIncome > 0 ? 'fallback' : 'none'),
+            : (map.primaryMonthlyIncome > 0 ? 'fallback' : 'none'),
         'monthlySpend': map.monthlySpend,
         'monthlyEssentialSpend': map.monthlyEssentialSpend,
-        'realisticMonthlySavings': map.realisticMonthlySavings,
+        'realisticMonthlySavings': map.realisticMonthlySavingsExcludingOtherIncome,
         'spendByCategory': map.spendByCategory,
         'monthlyTrend': map.monthlyTrend
             .map(

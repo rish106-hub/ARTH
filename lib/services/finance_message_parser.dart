@@ -55,6 +55,24 @@ class FinanceMessageParser {
     'monthly sal',
   ];
 
+  // Credit-card BILL PAYMENTS read as a literal credit ("Payment of Rs X
+  // received... credited to your SBI Credit Card ending 1234") because the
+  // words "received"/"credited" appear before any debit verb. From the user's
+  // perspective this is money LEAVING their bank account to pay a card bill —
+  // an expense, not income. Matched on the phrase "credit card" appearing
+  // anywhere in the body; excludes refund/cashback SMS, where a credit TO the
+  // card really is money back and the normal credit-word heuristic is correct.
+  static final RegExp _creditCardMentionRe = RegExp(
+    r'\bcredit\s*card\b',
+    caseSensitive: false,
+  );
+  static const _cardCreditExceptions = ['refund', 'cashback', 'reversed', 'reversal'];
+
+  static bool _isCreditCardBillPayment(String lowerBody) {
+    if (!_creditCardMentionRe.hasMatch(lowerBody)) return false;
+    return !_cardCreditExceptions.any(lowerBody.contains);
+  }
+
   // Skip these outright — not real completed transactions.
   static const _skipWords = [
     'otp',
@@ -238,18 +256,33 @@ class FinanceMessageParser {
     final debitAt = _firstIndexOf(lower, _debitWords);
     final creditAt = _firstIndexOf(lower, _creditWords);
     if (debitAt == _noMatch && creditAt == _noMatch) return null;
-    final direction =
+    var direction =
         debitAt < creditAt ? TxnDirection.debit : TxnDirection.credit;
 
-    // 4. Salary detection (only meaningful for credits).
-    final isSalary =
-        direction == TxnDirection.credit && _salaryWords.any(lower.contains);
+    // A credit-card BILL PAYMENT ("Payment of Rs X received towards your HDFC
+    // Credit Card") only reaches here as a credit because "received"/"credited"
+    // literally appears — but it's money LEAVING the user's account, not
+    // income. Only reclassify when the heuristic above actually got it wrong
+    // (i.e. it picked credit); an ordinary card purchase ("spent on your
+    // Credit Card at SWIGGY") already resolves to debit and is untouched, so
+    // its merchant-based category isn't clobbered into "bills".
+    final isCardBillPayment =
+        direction == TxnDirection.credit && _isCreditCardBillPayment(lower);
+    if (isCardBillPayment) direction = TxnDirection.debit;
+
+    // 4. Salary detection (only meaningful for credits; a card bill payment
+    // is never salary even though it may contain "credited").
+    final isSalary = !isCardBillPayment &&
+        direction == TxnDirection.credit &&
+        _salaryWords.any(lower.contains);
 
     // 5. Category + merchant (only for spend).
     final merchant = _extractMerchant(body);
-    final category = direction == TxnDirection.debit
-        ? _categorize(lower, merchant)
-        : SpendCategory.other;
+    final category = isCardBillPayment
+        ? SpendCategory.bills
+        : direction == TxnDirection.debit
+            ? _categorize(lower, merchant)
+            : SpendCategory.other;
 
     return FinanceTxn(
       amount: amount,

@@ -219,6 +219,7 @@ class SpendMap {
     required this.windowEnd,
     required this.generatedAt,
     this.fallbackMonthlyIncome,
+    this.otherMonthlyIncome = 0,
   });
 
   final List<FinanceTxn> txns;
@@ -231,6 +232,12 @@ class SpendMap {
   /// persisted or synced (it is re-derived from live documents on read).
   final int? fallbackMonthlyIncome;
 
+  /// Aggregate of user-entered "other income" sources (freelance, rent, side
+  /// business, ...), see OtherIncomeNotifier. Transient — the individual
+  /// sources/labels never leave the device; only this rupee total contributes
+  /// to [monthlyIncome] so on-screen projections account for it.
+  final int otherMonthlyIncome;
+
   /// Returns a copy carrying [income] as the fallback monthly income.
   SpendMap withFallbackIncome(int? income) => SpendMap(
         txns: txns,
@@ -238,6 +245,17 @@ class SpendMap {
         windowEnd: windowEnd,
         generatedAt: generatedAt,
         fallbackMonthlyIncome: income,
+        otherMonthlyIncome: otherMonthlyIncome,
+      );
+
+  /// Returns a copy carrying [income] as the user-entered other-income total.
+  SpendMap withOtherIncome(int income) => SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: fallbackMonthlyIncome,
+        otherMonthlyIncome: income,
       );
 
   static SpendMap empty(DateTime now) => SpendMap(
@@ -339,14 +357,23 @@ class SpendMap {
   /// the payslip/CTC fallback). Lets the UI label the figure honestly.
   bool get incomeIsDetected => salaryCredited > 0;
 
-  /// Monthly income. Prefers salary credits detected in SMS (averaged over the
-  /// months those credits actually cover); when none are found, falls back to
-  /// payslip/CTC-derived income so income never collapses to zero for a user
-  /// with a confirmed payslip but no salary-credit SMS.
-  int get monthlyIncome {
+  /// Detected/estimated monthly income BEFORE adding other-income sources.
+  /// Prefers salary credits detected in SMS (averaged over the months those
+  /// credits actually cover); when none are found, falls back to payslip/CTC-
+  /// derived income so income never collapses to zero for a user with a
+  /// confirmed payslip but no salary-credit SMS.
+  int get primaryMonthlyIncome {
     if (salaryCredited > 0) return (salaryCredited / _salaryMonths).round();
     return fallbackMonthlyIncome ?? 0;
   }
+
+  /// Total monthly income used everywhere on screen: primary (SMS salary or
+  /// payslip/CTC fallback) plus any user-entered other-income total.
+  int get monthlyIncome => primaryMonthlyIncome + otherMonthlyIncome;
+
+  /// True when other-income has been added, so the UI can break the total
+  /// down instead of presenting one opaque number.
+  bool get hasOtherIncome => otherMonthlyIncome > 0;
 
   /// Signed monthly balance = income − spend. Positive means saving, negative
   /// means overspending. Unlike [realisticMonthlySavings] this is NOT floored,
@@ -379,6 +406,16 @@ class SpendMap {
   double get savingsRate {
     if (monthlyIncome <= 0) return 0;
     return realisticMonthlySavings / monthlyIncome;
+  }
+
+  /// Same as [realisticMonthlySavings] but computed from [primaryMonthlyIncome]
+  /// only. Used exclusively for the backend sync payload so that user-entered
+  /// other income — local-only and never transmitted — cannot influence any
+  /// number that reaches the server, even indirectly through a derived figure.
+  int get realisticMonthlySavingsExcludingOtherIncome {
+    if (primaryMonthlyIncome <= 0) return 0;
+    final diff = primaryMonthlyIncome - monthlySpend;
+    return diff < 0 ? 0 : diff;
   }
 
   // ---- Forecasting -------------------------------------------------------
