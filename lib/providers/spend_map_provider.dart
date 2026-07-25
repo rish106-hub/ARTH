@@ -232,9 +232,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   // text leaves the device.
   static final RegExp _longDigitRun = RegExp(r'\d{5,}');
   // Currency amounts (Rs/INR/₹ 1,234.56). Not needed to categorize, so dropped.
-  static final RegExp _amountToken =
-      RegExp(r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
-          caseSensitive: false);
+  static final RegExp _amountToken = RegExp(
+      r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
+      caseSensitive: false);
 
   /// Builds the minimal text sent to the AI — only what categorization needs.
   /// Prefers the merchant/payee alone (nothing else leaves the device); falls
