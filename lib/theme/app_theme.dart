@@ -17,6 +17,7 @@ class AppColors {
   static const Color readiness = Color(0xFF0A6B63);
   static const Color readinessSoft = Color(0xFFE2F2EF);
   static const Color risk = Color(0xFFD95746);
+  static const Color riskSoft = Color(0xFFFBE9E6);
   static const Color warning = Color(0xFFB9821F);
 
   static const Color bgPrimary = canvas;

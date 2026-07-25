@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 
+import 'app_theme.dart';
+
+/// Aliases [AppColors] under the names paycheck screens use. Two names for
+/// one palette, kept as a single source of truth so the two design surfaces
+/// (older app_theme screens, newer paycheck_theme screens) can never drift
+/// apart in color even though their type scales still differ intentionally.
 class PaycheckColors {
-  static const canvas = Color(0xFFF3F5F8);
-  static const paper = Color(0xFFFFFFFF);
-  static const ink = Color(0xFF11263D);
-  static const inkSoft = Color(0xFF5F6F7E);
-  static const line = Color(0xFFD9E0E6);
-  static const claim = Color(0xFFD95746);
-  static const claimSoft = Color(0xFFFBE9E6);
-  static const matched = Color(0xFF0A6B63);
-  static const matchedSoft = Color(0xFFE2F2EF);
-  static const contract = Color(0xFF315C78);
-  static const contractSoft = Color(0xFFE6EEF3);
-  static const pending = Color(0xFFB9821F);
+  static const canvas = AppColors.canvas;
+  static const paper = AppColors.surface;
+  static const ink = AppColors.ink;
+  static const inkSoft = AppColors.inkSecondary;
+  static const line = AppColors.divider;
+  static const claim = AppColors.risk;
+  static const claimSoft = AppColors.riskSoft;
+  static const matched = AppColors.readiness;
+  static const matchedSoft = AppColors.readinessSoft;
+  static const contract = AppColors.primary;
+  static const contractSoft = AppColors.primarySoft;
+  static const pending = AppColors.warning;
 }
 
 class PaycheckType {
