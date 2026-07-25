@@ -29,8 +29,10 @@ class FinanceMessageParser {
     'spent',
     'paid',
     'withdrawn',
+    'withdrawal',
     'purchase',
     'deducted',
+    'charged',
     'sent to',
     'txn of',
     'transferred',
@@ -90,6 +92,10 @@ class FinanceMessageParser {
       'cafe',
       'eatclub',
       'dineout',
+      'eatsure',
+      'faasos',
+      'behrouz',
+      'starbucks',
     ],
     SpendCategory.groceries: [
       'bigbasket',
@@ -100,6 +106,9 @@ class FinanceMessageParser {
       'jiomart',
       'instamart',
       'grocery',
+      'licious',
+      'country delight',
+      'milkbasket',
     ],
     SpendCategory.transport: [
       'uber',
@@ -114,6 +123,10 @@ class FinanceMessageParser {
       'metro',
       'fastag',
       'redbus',
+      'namma yatri',
+      'blusmart',
+      'yulu',
+      'indian oil',
     ],
     SpendCategory.shopping: [
       'amazon',
@@ -124,6 +137,10 @@ class FinanceMessageParser {
       'nykaa',
       'tatacliq',
       'reliance digital',
+      'croma',
+      'lenskart',
+      'decathlon',
+      'ikea',
     ],
     SpendCategory.entertainment: [
       'netflix',
@@ -135,6 +152,9 @@ class FinanceMessageParser {
       'inox',
       'youtube premium',
       'jiocinema',
+      'sonyliv',
+      'zee5',
+      'disney',
     ],
     SpendCategory.bills: [
       'recharge',
@@ -149,6 +169,11 @@ class FinanceMessageParser {
       'water bill',
       'dth',
       'postpaid',
+      'tata power',
+      'adani',
+      'act fibernet',
+      'bsnl',
+      'insurance premium',
     ],
     SpendCategory.health: [
       'pharmeasy',
@@ -159,6 +184,9 @@ class FinanceMessageParser {
       'clinic',
       'diagnostic',
       'medplus',
+      'practo',
+      'cult.fit',
+      'cultfit',
     ],
     SpendCategory.rent: [
       'rent',
@@ -174,6 +202,8 @@ class FinanceMessageParser {
       'nps',
       'ppf',
       'stock',
+      'indmoney',
+      'kuvera',
     ],
     SpendCategory.cash: [
       'atm',
@@ -182,10 +212,16 @@ class FinanceMessageParser {
     ],
   };
 
+  // Max characters of the original SMS body retained on a transaction for the
+  // in-app "view original" detail. Enough to identify the message; short enough
+  // to keep persisted storage lean.
+  static const _bodyPreviewMax = 180;
+
   FinanceTxn? parse({
     required String sender,
     required String body,
     required DateTime date,
+    int? smsId,
   }) {
     final lower = body.toLowerCase();
 
@@ -223,17 +259,31 @@ class FinanceMessageParser {
       isSalary: isSalary,
       merchant: merchant,
       sender: sender,
+      smsId: smsId,
+      bodyPreview: _preview(body),
     );
+  }
+
+  static String _preview(String body) {
+    final trimmed = body.trim().replaceAll(RegExp(r'\s+'), ' ');
+    return trimmed.length > _bodyPreviewMax
+        ? '${trimmed.substring(0, _bodyPreviewMax)}…'
+        : trimmed;
   }
 
   /// Parse a batch, dropping non-transactions and duplicate alerts, then infer
   /// recurring salary.
   List<FinanceTxn> parseAll(
-    Iterable<({String sender, String body, DateTime date})> messages,
+    Iterable<({int? id, String sender, String body, DateTime date})> messages,
   ) {
     final result = <FinanceTxn>[];
     for (final m in messages) {
-      final txn = parse(sender: m.sender, body: m.body, date: m.date);
+      final txn = parse(
+        sender: m.sender,
+        body: m.body,
+        date: m.date,
+        smsId: m.id,
+      );
       if (txn != null) result.add(txn);
     }
     return inferRecurringSalary(_deduplicate(result));

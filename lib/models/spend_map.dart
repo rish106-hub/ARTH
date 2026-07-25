@@ -81,6 +81,9 @@ class FinanceTxn {
     required this.isSalary,
     this.merchant,
     this.sender,
+    this.smsId,
+    this.bodyPreview,
+    this.categorySource = CategorySource.rules,
   });
 
   final int amount; // rupees, positive
@@ -91,14 +94,36 @@ class FinanceTxn {
   final String? merchant;
   final String? sender;
 
-  FinanceTxn copyWith({String? category, bool? isSalary}) => FinanceTxn(
+  /// Android SMS `_id` of the source message, kept so the UI can offer to open
+  /// the exact original SMS. Null when parsed from a source without an id.
+  final int? smsId;
+
+  /// Short excerpt of the original SMS body, retained so the user can identify
+  /// a transaction in-app without leaving the screen. Truncated at parse time.
+  final String? bodyPreview;
+
+  /// How [category] was assigned — on-device rules, an AI fallback, or a manual
+  /// user correction. Lets the UI show provenance and avoid re-sending
+  /// user-corrected items to the AI.
+  final CategorySource categorySource;
+
+  FinanceTxn copyWith({
+    String? category,
+    bool? isSalary,
+    String? merchant,
+    CategorySource? categorySource,
+  }) =>
+      FinanceTxn(
         amount: amount,
         direction: direction,
         date: date,
         category: category ?? this.category,
         isSalary: isSalary ?? this.isSalary,
-        merchant: merchant,
+        merchant: merchant ?? this.merchant,
         sender: sender,
+        smsId: smsId,
+        bodyPreview: bodyPreview,
+        categorySource: categorySource ?? this.categorySource,
       );
 
   Map<String, dynamic> toJson() => {
@@ -109,6 +134,9 @@ class FinanceTxn {
         'isSalary': isSalary,
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
+        if (smsId != null) 'smsId': smsId,
+        if (bodyPreview != null) 'bodyPreview': bodyPreview,
+        'categorySource': categorySource.name,
       };
 
   factory FinanceTxn.fromJson(Map<String, dynamic> json) => FinanceTxn(
@@ -122,7 +150,30 @@ class FinanceTxn {
         isSalary: json['isSalary'] == true,
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
+        smsId: (json['smsId'] as num?)?.toInt(),
+        bodyPreview: json['bodyPreview']?.toString(),
+        categorySource: CategorySource.fromName(
+          json['categorySource']?.toString(),
+        ),
       );
+}
+
+/// Provenance of a transaction's category.
+enum CategorySource {
+  rules,
+  ai,
+  manual;
+
+  static CategorySource fromName(String? name) {
+    switch (name) {
+      case 'ai':
+        return CategorySource.ai;
+      case 'manual':
+        return CategorySource.manual;
+      default:
+        return CategorySource.rules;
+    }
+  }
 }
 
 class MonthlySpendPoint {
@@ -135,6 +186,28 @@ class MonthlySpendPoint {
   final DateTime month;
   final int spent;
   final int income;
+}
+
+/// A category's latest-month spend compared with its prior-months average.
+class CategoryTrend {
+  const CategoryTrend({
+    required this.category,
+    required this.lastMonth,
+    required this.priorAverage,
+  });
+
+  final String category;
+  final int lastMonth;
+  final int priorAverage;
+
+  /// Signed change vs baseline (+0.3 = 30% higher than usual).
+  double get changeRatio =>
+      priorAverage <= 0 ? 0 : (lastMonth - priorAverage) / priorAverage;
+
+  bool get isUp => lastMonth > priorAverage;
+
+  /// Absolute rupee change, used to rank the biggest movers.
+  int get changeMagnitude => (lastMonth - priorAverage).abs();
 }
 
 /// Aggregated spend/income picture built from parsed transactions.
@@ -275,6 +348,26 @@ class SpendMap {
     return fallbackMonthlyIncome ?? 0;
   }
 
+  /// Signed monthly balance = income − spend. Positive means saving, negative
+  /// means overspending. Unlike [realisticMonthlySavings] this is NOT floored,
+  /// so the UI can honestly show a shortfall instead of collapsing it to zero.
+  /// Returns 0 when income is unknown (nothing meaningful to compare against).
+  int get monthlyNet {
+    if (monthlyIncome <= 0) return 0;
+    return monthlyIncome - monthlySpend;
+  }
+
+  /// True when observed spend exceeds income for the month.
+  bool get isOverspending => monthlyIncome > 0 && monthlyNet < 0;
+
+  /// Monthly shortfall (rupees) when overspending, else 0. The "waste" figure.
+  int get monthlyWaste => isOverspending ? -monthlyNet : 0;
+
+  /// True when income is a payslip/CTC estimate rather than a detected salary
+  /// credit AND we also have SMS spend — i.e. the net mixes two sources and
+  /// should be shown with a caveat.
+  bool get netMixesSources => !incomeIsDetected && totalSpent > 0;
+
   /// What can realistically be saved each month = income − observed spend,
   /// floored at 0. When no salary detected, falls back to 0 (unknown).
   int get realisticMonthlySavings {
@@ -286,6 +379,79 @@ class SpendMap {
   double get savingsRate {
     if (monthlyIncome <= 0) return 0;
     return realisticMonthlySavings / monthlyIncome;
+  }
+
+  // ---- Forecasting -------------------------------------------------------
+  // Predictive figures derived from the SMS time-series. These stay meaningful
+  // even when absolute capture is incomplete, because they compare the current
+  // month's pace against the user's own recent history rather than to a fixed
+  // "correct" total.
+
+  int _monthKey(DateTime d) => d.year * 12 + d.month;
+
+  /// Spend recorded so far in the reference (latest) month of the window.
+  int get currentMonthSpend {
+    final key = _monthKey(windowEnd);
+    return txns
+        .where((t) =>
+            t.direction == TxnDirection.debit && _monthKey(t.date) == key)
+        .fold(0, (sum, t) => sum + t.amount);
+  }
+
+  /// Projected total spend for the current month, extrapolating the run-rate so
+  /// far to the full month (days elapsed → days in month). Falls back to the
+  /// historical monthly average when the current month has no data yet.
+  int get projectedMonthlySpend {
+    final spentSoFar = currentMonthSpend;
+    if (spentSoFar <= 0) return monthlySpend;
+    final day = windowEnd.day;
+    final daysInMonth = DateTime(windowEnd.year, windowEnd.month + 1, 0).day;
+    if (day <= 0 || day >= daysInMonth) return spentSoFar;
+    return (spentSoFar / day * daysInMonth).round();
+  }
+
+  /// Projected month-end spend vs the historical monthly average, as a signed
+  /// ratio (+0.2 = on pace to spend 20% more than usual). 0 when no baseline.
+  double get spendPaceVsAverage {
+    final avg = monthlySpend;
+    if (avg <= 0) return 0;
+    return (projectedMonthlySpend - avg) / avg;
+  }
+
+  /// Monthly spend per category, oldest→newest, as a map of category → list of
+  /// (monthKey, amount). Used to derive per-category trends.
+  Map<String, Map<int, int>> get _monthlyByCategory {
+    final out = <String, Map<int, int>>{};
+    for (final t in txns.where((t) => t.direction == TxnDirection.debit)) {
+      final byMonth = out[t.category] ??= <int, int>{};
+      final key = _monthKey(t.date);
+      byMonth[key] = (byMonth[key] ?? 0) + t.amount;
+    }
+    return out;
+  }
+
+  /// Per-category trend: latest month's spend vs the average of prior months.
+  /// Only categories with at least two months of data and a non-zero baseline
+  /// are returned, sorted by the size of the change (biggest movers first).
+  List<CategoryTrend> get categoryTrends {
+    final trends = <CategoryTrend>[];
+    _monthlyByCategory.forEach((category, byMonth) {
+      if (byMonth.length < 2) return;
+      final months = byMonth.keys.toList()..sort();
+      final lastKey = months.last;
+      final last = byMonth[lastKey]!;
+      final priorKeys = months.sublist(0, months.length - 1);
+      final priorAvg =
+          priorKeys.fold<int>(0, (s, k) => s + byMonth[k]!) / priorKeys.length;
+      if (priorAvg <= 0) return;
+      trends.add(CategoryTrend(
+        category: category,
+        lastMonth: last,
+        priorAverage: priorAvg.round(),
+      ));
+    });
+    trends.sort((a, b) => b.changeMagnitude.compareTo(a.changeMagnitude));
+    return trends;
   }
 
   Map<String, dynamic> toJson() => {

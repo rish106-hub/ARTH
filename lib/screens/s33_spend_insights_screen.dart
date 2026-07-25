@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/spend_map.dart';
 import '../providers/spend_map_provider.dart';
@@ -258,11 +259,24 @@ class _Insights extends ConsumerWidget {
         Text('Month by month', style: PaycheckType.heading()),
         const SizedBox(height: 4),
         Text(
-          'Spend per month',
+          'Spend vs income per month',
           style: PaycheckType.utility(color: PaycheckColors.inkSoft),
         ),
         const SizedBox(height: 12),
         _MonthlyTrend(map: map),
+        const SizedBox(height: 24),
+        Text('Forecast', style: PaycheckType.heading()),
+        const SizedBox(height: 12),
+        _ForecastCard(map: map),
+        const SizedBox(height: 24),
+        Text('Transactions', style: PaycheckType.heading()),
+        const SizedBox(height: 4),
+        Text(
+          'Tap any row to read the original SMS.',
+          style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+        ),
+        const SizedBox(height: 12),
+        _TransactionList(map: map),
         if (unclear.isNotEmpty) ...[
           const SizedBox(height: 24),
           _Card(
@@ -476,52 +490,121 @@ class _MonthlyTrend extends StatelessWidget {
         style: PaycheckType.body(color: PaycheckColors.inkSoft),
       );
     }
+    // Scale both series against the combined peak so spend and income share a
+    // baseline and the comparison is honest.
     final max = points.fold<int>(
       1,
-      (value, point) => point.spent > value ? point.spent : value,
+      (value, point) =>
+          [value, point.spent, point.income].reduce((a, b) => a > b ? a : b),
     );
+    final hasIncome = points.any((p) => p.income > 0);
     return _Card(
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
-      child: SizedBox(
-        height: 180,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: points.map((point) {
-            final height = 112 * point.spent / max;
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      money0(point.spent),
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      style: PaycheckType.utility(),
-                    ),
-                    const SizedBox(height: 5),
-                    Container(
-                      height: height.clamp(4, 112),
-                      decoration: const BoxDecoration(
-                        color: PaycheckColors.claim,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(4),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 172,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: points.map((point) {
+                final spendH = (112 * point.spent / max).clamp(2, 112);
+                final incomeH = (112 * point.income / max).clamp(0, 112);
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          money0(point.spent),
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          style: PaycheckType.utility(),
                         ),
-                      ),
+                        const SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _Bar(
+                              height: spendH.toDouble(),
+                              color: PaycheckColors.claim,
+                            ),
+                            if (hasIncome) ...[
+                              const SizedBox(width: 3),
+                              _Bar(
+                                height: incomeH.toDouble(),
+                                color: PaycheckColors.contract,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          DateFormat('MMM').format(point.month),
+                          style: PaycheckType.utility(),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      DateFormat('MMM').format(point.month),
-                      style: PaycheckType.utility(),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(growable: false),
-        ),
+                  ),
+                );
+              }).toList(growable: false),
+            ),
+          ),
+          if (hasIncome) ...[
+            const SizedBox(height: 10),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _LegendDot(color: PaycheckColors.claim, label: 'Spend'),
+                SizedBox(width: 16),
+                _LegendDot(color: PaycheckColors.contract, label: 'Income'),
+              ],
+            ),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+class _Bar extends StatelessWidget {
+  const _Bar({required this.height, required this.color});
+  final double height;
+  final Color color;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+  final Color color;
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: PaycheckType.utility()),
+      ],
     );
   }
 }
@@ -531,33 +614,72 @@ class _SavingsHero extends StatelessWidget {
   final SpendMap map;
   @override
   Widget build(BuildContext context) {
-    final savings = map.realisticMonthlySavings;
+    final unknownIncome = map.monthlyIncome <= 0;
+    final overspending = map.isOverspending;
     final rate = (map.savingsRate * 100).round();
     final coaching = _coachingLine(map);
+
+    // Colour + copy switch on the sign of the net so a shortfall reads as a
+    // shortfall instead of a floored-to-zero "0 savings".
+    final accent = unknownIncome
+        ? PaycheckColors.inkSoft
+        : overspending
+            ? PaycheckColors.claim
+            : PaycheckColors.matched;
+    final softBg = unknownIncome
+        ? PaycheckColors.paper
+        : overspending
+            ? PaycheckColors.claim.withValues(alpha: 0.08)
+            : PaycheckColors.matchedSoft;
+    final headline = unknownIncome
+        ? 'MONTHLY BALANCE'
+        : overspending
+            ? 'MONTHLY OVERSPEND'
+            : 'REALISTIC MONTHLY SAVINGS';
+    final figure = unknownIncome ? '—' : money0(map.monthlyNet.abs());
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: PaycheckColors.matchedSoft,
+        color: softBg,
         borderRadius: BorderRadius.circular(8),
-        border:
-            Border.all(color: PaycheckColors.matched.withValues(alpha: 0.4)),
+        border: Border.all(color: accent.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('REALISTIC MONTHLY SAVINGS',
-              style: PaycheckType.utility(color: PaycheckColors.matched)),
+          Text(headline, style: PaycheckType.utility(color: accent)),
           const SizedBox(height: 6),
-          Text(money0(savings),
-              style: PaycheckType.display(color: PaycheckColors.ink)),
-          if (map.monthlyIncome > 0)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (overspending)
+                Text('− ',
+                    style: PaycheckType.display(color: PaycheckColors.claim)),
+              Text(figure,
+                  style: PaycheckType.display(color: PaycheckColors.ink)),
+            ],
+          ),
+          if (!unknownIncome)
             Text(
-              map.incomeIsDetected
-                  ? '$rate% of detected income'
-                  : '$rate% of estimated income (from your payslip)',
+              overspending
+                  ? '${(map.monthlyWaste / map.monthlyIncome * 100).round()}% more than you earn'
+                  : map.incomeIsDetected
+                      ? '$rate% of detected income'
+                      : '$rate% of estimated income (from your payslip)',
               style: PaycheckType.utility(),
             ),
+          if (map.netMixesSources) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Heads up: income here is a payslip estimate while spend comes '
+              'from SMS, so this balance mixes two sources. Rescan after payday '
+              'to detect your salary credit for an exact figure.',
+              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+            ),
+          ],
           const SizedBox(height: 10),
           Text(coaching, style: PaycheckType.body()),
         ],
@@ -641,6 +763,348 @@ class _StatTile extends StatelessWidget {
           Text(label.toUpperCase(), style: PaycheckType.utility(color: color)),
           const SizedBox(height: 6),
           Text(value, style: PaycheckType.title()),
+        ],
+      ),
+    );
+  }
+}
+
+class _ForecastCard extends StatelessWidget {
+  const _ForecastCard({required this.map});
+  final SpendMap map;
+
+  @override
+  Widget build(BuildContext context) {
+    final projected = map.projectedMonthlySpend;
+    final pace = map.spendPaceVsAverage;
+    final overPace = pace > 0.05;
+    final underPace = pace < -0.05;
+    final pacePct = (pace.abs() * 100).round();
+    final trends = map.categoryTrends.take(3).toList();
+
+    final paceLine = overPace
+        ? 'On pace to spend $pacePct% more than your usual month.'
+        : underPace
+            ? 'On pace to spend $pacePct% less than your usual month.'
+            : 'On pace with your usual monthly spend.';
+    final paceColor = overPace
+        ? PaycheckColors.claim
+        : underPace
+            ? PaycheckColors.matched
+            : PaycheckColors.inkSoft;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('PROJECTED THIS MONTH', style: PaycheckType.utility()),
+          const SizedBox(height: 6),
+          Text(money0(projected), style: PaycheckType.title()),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                overPace
+                    ? Icons.trending_up
+                    : underPace
+                        ? Icons.trending_down
+                        : Icons.trending_flat,
+                size: 18,
+                color: paceColor,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(paceLine,
+                    style: PaycheckType.utility(color: paceColor)),
+              ),
+            ],
+          ),
+          if (trends.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text('BIGGEST MOVERS', style: PaycheckType.utility()),
+            const SizedBox(height: 8),
+            for (final t in trends) _TrendRow(trend: t),
+          ] else ...[
+            const SizedBox(height: 10),
+            Text(
+              'Scan a longer window (3–6 months) to unlock per-category trends.',
+              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TrendRow extends StatelessWidget {
+  const _TrendRow({required this.trend});
+  final CategoryTrend trend;
+  @override
+  Widget build(BuildContext context) {
+    final up = trend.isUp;
+    final color = up ? PaycheckColors.claim : PaycheckColors.matched;
+    final pct = (trend.changeRatio.abs() * 100).round();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(_iconFor(trend.category),
+              size: 18, color: PaycheckColors.inkSoft),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(SpendCategory.label(trend.category),
+                style: PaycheckType.body()),
+          ),
+          Icon(up ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 14, color: color),
+          const SizedBox(width: 2),
+          Text('$pct%', style: PaycheckType.bodyStrong(color: color)),
+          const SizedBox(width: 8),
+          Text(money0(trend.lastMonth),
+              style: PaycheckType.utility(color: PaycheckColors.inkSoft)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionList extends StatefulWidget {
+  const _TransactionList({required this.map});
+  final SpendMap map;
+
+  @override
+  State<_TransactionList> createState() => _TransactionListState();
+}
+
+class _TransactionListState extends State<_TransactionList> {
+  static const _initialCount = 12;
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Most recent first.
+    final txns = [...widget.map.txns]..sort((a, b) => b.date.compareTo(a.date));
+    if (txns.isEmpty) {
+      return Text('No transactions detected yet.',
+          style: PaycheckType.body(color: PaycheckColors.inkSoft));
+    }
+    final shown = _expanded ? txns : txns.take(_initialCount).toList();
+    return _Card(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Column(
+        children: [
+          for (final txn in shown) _TransactionRow(txn: txn),
+          if (txns.length > _initialCount)
+            TextButton(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              child: Text(_expanded
+                  ? 'Show less'
+                  : 'Show all ${txns.length} transactions'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionRow extends StatelessWidget {
+  const _TransactionRow({required this.txn});
+  final FinanceTxn txn;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDebit = txn.direction == TxnDirection.debit;
+    final title = txn.merchant?.trim().isNotEmpty == true
+        ? txn.merchant!
+        : (txn.sender ?? 'Unknown');
+    return InkWell(
+      onTap: () => _showTxnDetail(context, txn),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: PaycheckColors.canvas,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isDebit ? _iconFor(txn.category) : Icons.south_west,
+                size: 18,
+                color:
+                    isDebit ? PaycheckColors.inkSoft : PaycheckColors.matched,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: PaycheckType.bodyStrong(),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${DateFormat('d MMM, h:mm a').format(txn.date)} · '
+                    '${txn.sender ?? 'unknown'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${isDebit ? '−' : '+'}${money0(txn.amount)}',
+                  style: PaycheckType.bodyStrong(
+                    color:
+                        isDebit ? PaycheckColors.ink : PaycheckColors.matched,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDebit
+                      ? SpendCategory.label(txn.category)
+                      : (txn.isSalary ? 'Salary' : 'Credit'),
+                  style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
+  final isDebit = txn.direction == TxnDirection.debit;
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${isDebit ? '−' : '+'}${money0(txn.amount)}',
+                    style: PaycheckType.display(
+                      color:
+                          isDebit ? PaycheckColors.ink : PaycheckColors.matched,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            _DetailRow(
+                label: 'When',
+                value: DateFormat('EEE, d MMM yyyy · h:mm a').format(txn.date)),
+            _DetailRow(label: 'Contact', value: txn.sender ?? 'Unknown'),
+            if (txn.merchant?.trim().isNotEmpty == true)
+              _DetailRow(label: 'Merchant', value: txn.merchant!),
+            _DetailRow(
+              label: 'Category',
+              value: isDebit
+                  ? SpendCategory.label(txn.category)
+                  : (txn.isSalary ? 'Salary' : 'Credit'),
+            ),
+            if (txn.bodyPreview?.isNotEmpty == true) ...[
+              const SizedBox(height: 14),
+              Text('ORIGINAL SMS', style: PaycheckType.utility()),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: PaycheckColors.canvas,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: PaycheckColors.line),
+                ),
+                child: Text(txn.bodyPreview!, style: PaycheckType.body()),
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openInMessages(context, txn),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open in Messages app'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Best-effort jump to the phone's SMS app. Opening one exact message by id is
+/// not portable across Android OEMs, so we open the messaging app scoped to the
+/// sender (the in-app "Original SMS" text above is the reliable path). Shows a
+/// snackbar if no SMS app can handle the intent.
+Future<void> _openInMessages(BuildContext context, FinanceTxn txn) async {
+  final sender = txn.sender;
+  final uri = Uri(scheme: 'sms', path: sender ?? '');
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      messenger.showSnackBar(const SnackBar(
+        content:
+            Text('No messaging app available. The SMS text is shown above.'),
+      ));
+    }
+  } catch (_) {
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Could not open the messaging app.'),
+    ));
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 84,
+            child: Text(label,
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft)),
+          ),
+          Expanded(child: Text(value, style: PaycheckType.body())),
         ],
       ),
     );
