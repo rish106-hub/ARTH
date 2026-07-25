@@ -51,7 +51,7 @@ void main() {
     expect(find.text('Needs your review'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const Key('paycheck_nav_evidence')));
+    await tester.tap(find.byKey(const Key('paycheck_nav_documents')));
     await tester.pumpAndSettle();
 
     expect(find.text('Documents behind your pay'), findsOneWidget);

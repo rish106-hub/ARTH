@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/paycheck.dart';
 import '../models/tax_document.dart';
 import '../providers/auth_provider.dart';
+import '../providers/paycheck_override_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../services/on_device_document_ocr_service.dart';
@@ -67,6 +68,7 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
       _PaycheckHome(
         paycheck: paycheck,
         onOpenEvidence: () => setState(() => _index = 1),
+        onOpenSettings: () => setState(() => _index = 3),
       ),
       _InboxView(
         paycheck: paycheck,
@@ -192,10 +194,12 @@ class _ExploreYouView extends StatelessWidget {
 class _PaycheckHome extends ConsumerWidget {
   final PaycheckState paycheck;
   final VoidCallback onOpenEvidence;
+  final VoidCallback onOpenSettings;
 
   const _PaycheckHome({
     required this.paycheck,
     required this.onOpenEvidence,
+    required this.onOpenSettings,
   });
 
   @override
@@ -216,8 +220,8 @@ class _PaycheckHome extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _TopBar(
-              period: paycheck.payPeriod,
               sample: paycheck.usingSampleData,
+              onOpenSettings: onOpenSettings,
             ),
             const SizedBox(height: 24),
             if (!hasPayslip)
@@ -684,14 +688,14 @@ Future<void> _openPayBreakdown(
   );
 }
 
-class _PayBreakdownSheet extends StatelessWidget {
+class _PayBreakdownSheet extends ConsumerWidget {
   const _PayBreakdownSheet({required this.paycheck, required this.kind});
 
   final PaycheckState paycheck;
   final _PayBreakdownKind kind;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final earnings = paycheck.components
         .where((item) => item.kind == PaycheckComponentKind.earning)
         .toList(growable: false);
@@ -717,6 +721,17 @@ class _PayBreakdownSheet extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(title, style: PaycheckType.title())),
+                if (kind != _PayBreakdownKind.netPay)
+                  IconButton(
+                    tooltip: 'Edit',
+                    onPressed: () => _openEditComponents(
+                      context,
+                      kind == _PayBreakdownKind.earnings
+                          ? PaycheckComponentKind.earning
+                          : PaycheckComponentKind.deduction,
+                    ),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
                 IconButton(
                   tooltip: 'Close',
                   onPressed: () => Navigator.of(context).pop(),
@@ -777,6 +792,255 @@ class _PayBreakdownSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Opens the editor for one side (earnings or deductions) of the breakdown.
+/// Net pay is derived from these, so it has no direct editor — see the
+/// CALCULATION formula in [_PayEquation].
+Future<void> _openEditComponents(
+  BuildContext context,
+  PaycheckComponentKind kind,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (_) => _EditComponentsSheet(kind: kind),
+  );
+}
+
+class _EditComponentsSheet extends ConsumerWidget {
+  const _EditComponentsSheet({required this.kind});
+  final PaycheckComponentKind kind;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final components = ref
+        .watch(paycheckProvider)
+        .components
+        .where((c) => c.kind == kind)
+        .toList(growable: false);
+    final title = kind == PaycheckComponentKind.earning
+        ? 'Edit earnings'
+        : 'Edit deductions';
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text(title, style: PaycheckType.title())),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Add categories the parser missed, or correct an amount.',
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      for (final component in components)
+                        _EditComponentRow(component: component),
+                      if (components.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            'Nothing here yet.',
+                            style: PaycheckType.body(
+                                color: PaycheckColors.inkSoft),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _openAddComponent(context, ref, kind),
+                icon: const Icon(Icons.add),
+                label: Text(kind == PaycheckComponentKind.earning
+                    ? 'Add earning'
+                    : 'Add deduction'),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditComponentRow extends ConsumerWidget {
+  const _EditComponentRow({required this.component});
+  final PaycheckComponent component;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => _openEditSingleComponent(context, ref, component),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(component.label,
+                          style: PaycheckType.bodyStrong()),
+                    ),
+                    Text(_money(component.amount), style: PaycheckType.body()),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Remove',
+            icon: const Icon(Icons.delete_outline, size: 20),
+            onPressed: () => ref
+                .read(paycheckOverrideProvider.notifier)
+                .removeComponent(component.canonicalKey, component.kind),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _openEditSingleComponent(
+  BuildContext context,
+  WidgetRef ref,
+  PaycheckComponent component,
+) {
+  final labelController = TextEditingController(text: component.label);
+  final amountController =
+      TextEditingController(text: component.amount.toString());
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Edit line item'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: labelController,
+            decoration: const InputDecoration(labelText: 'Label'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: '₹ amount'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final amount =
+                int.tryParse(amountController.text.replaceAll(',', '').trim());
+            if (amount != null && amount >= 0) {
+              ref.read(paycheckOverrideProvider.notifier).editComponent(
+                    component.canonicalKey,
+                    labelController.text,
+                    amount,
+                    component.kind,
+                  );
+            }
+            Navigator.pop(dialogContext);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _openAddComponent(
+  BuildContext context,
+  WidgetRef ref,
+  PaycheckComponentKind kind,
+) {
+  final labelController = TextEditingController();
+  final amountController = TextEditingController();
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(kind == PaycheckComponentKind.earning
+          ? 'Add earning'
+          : 'Add deduction'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: labelController,
+            decoration: const InputDecoration(labelText: 'Label'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: '₹ amount'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final amount =
+                int.tryParse(amountController.text.replaceAll(',', '').trim());
+            if (labelController.text.trim().isNotEmpty &&
+                amount != null &&
+                amount > 0) {
+              ref
+                  .read(paycheckOverrideProvider.notifier)
+                  .addComponent(labelController.text, amount, kind);
+            }
+            Navigator.pop(dialogContext);
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _PayEquation extends StatelessWidget {
@@ -1071,7 +1335,7 @@ class _EvidenceStatus extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text('Evidence', style: PaycheckType.heading())),
+            Expanded(child: Text('Documents', style: PaycheckType.heading())),
             TextButton(
               onPressed: onOpenEvidence,
               child: Text(
@@ -1439,7 +1703,7 @@ class _InboxViewState extends ConsumerState<_InboxView> {
       for (final document in documents) document.id: document
     };
     return _PageFrame(
-      eyebrow: 'Evidence',
+      eyebrow: 'Documents',
       title: 'Documents behind your pay',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2068,7 +2332,7 @@ class _TaxOverviewView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _PageFrame(
-      eyebrow: 'Tax',
+      eyebrow: 'Filing',
       title: 'Plan with confirmed numbers.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2162,10 +2426,10 @@ class _TaxSummaryLine extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  final String period;
   final bool sample;
+  final VoidCallback onOpenSettings;
 
-  const _TopBar({required this.period, required this.sample});
+  const _TopBar({required this.sample, required this.onOpenSettings});
 
   @override
   Widget build(BuildContext context) {
@@ -2176,14 +2440,8 @@ class _TopBar extends StatelessWidget {
           spacing: 9,
           wordmarkStyle: PaycheckType.heading(),
         ),
-        const SizedBox(width: 10),
-        Container(width: 1, height: 18, color: PaycheckColors.line),
-        const SizedBox(width: 10),
-        Flexible(
-          child: Text(period, style: PaycheckType.utility()),
-        ),
         const Spacer(),
-        if (sample)
+        if (sample) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
@@ -2195,6 +2453,15 @@ class _TopBar extends StatelessWidget {
               style: PaycheckType.utility(color: PaycheckColors.contract),
             ),
           ),
+          const SizedBox(width: 6),
+        ],
+        IconButton(
+          tooltip: 'Settings',
+          onPressed: onOpenSettings,
+          icon: const Icon(Icons.settings_outlined,
+              color: PaycheckColors.inkSoft),
+          visualDensity: VisualDensity.compact,
+        ),
       ],
     );
   }
@@ -2438,11 +2705,11 @@ class _PaycheckNav extends StatelessWidget {
     (
       Icons.account_balance_wallet_outlined,
       Icons.account_balance_wallet_rounded,
-      'Pay'
+      'Home'
     ),
-    (Icons.description_outlined, Icons.description_rounded, 'Evidence'),
-    (Icons.calculate_outlined, Icons.calculate_rounded, 'Tax'),
-    (Icons.person_outline_rounded, Icons.person_rounded, 'You'),
+    (Icons.description_outlined, Icons.description_rounded, 'Documents'),
+    (Icons.calculate_outlined, Icons.calculate_rounded, 'Filing'),
+    (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
 
   @override

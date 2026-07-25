@@ -2,11 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/paycheck.dart';
 import '../models/tax_document.dart';
+import 'paycheck_override_provider.dart';
 import 'tax_document_provider.dart';
 import 'user_profile_provider.dart';
 
 class PaycheckNotifier extends Notifier<PaycheckState> {
   PaycheckState? _realState;
+
+  /// The parsed state BEFORE user overrides are layered on — cached so
+  /// overrides can be re-applied whenever they change without needing to
+  /// re-parse documents. Starts at [emptyPaycheck] so overrides work even
+  /// before any document has been confirmed (fully manual entry).
+  PaycheckState _baseState = emptyPaycheck;
 
   @override
   PaycheckState build() {
@@ -22,11 +29,109 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       (_, profile) => Future<void>.microtask(() {
         if (!state.usingSampleData && profile.employerName.trim().isNotEmpty) {
           state = state.copyWith(employer: profile.employerName.trim());
+          _baseState = _baseState.copyWith(employer: profile.employerName.trim());
         }
       }),
       fireImmediately: true,
     );
-    return emptyPaycheck;
+    // Manual edits/additions/removals — re-apply on top of the last parsed
+    // base state whenever the user changes an override. No fireImmediately:
+    // this only needs to react to FUTURE changes, since the initial overrides
+    // (if any already exist) are folded into the value build() returns below
+    // via a plain read — mutating `state` synchronously during build() isn't
+    // allowed, so that seed has to happen through the return value instead.
+    ref.listen(paycheckOverrideProvider, (_, __) {
+      if (!state.usingSampleData) state = _applyOverrides(_baseState);
+    });
+    return _applyOverrides(_baseState);
+  }
+
+  /// Merges user overrides on top of [base] (the freshly-parsed state):
+  /// edits replace a component's label/amount, removals hide it, and manual
+  /// additions are appended. Aggregate totals (gross/net/tax/other
+  /// deductions) are recomputed from the merged component list so the pay
+  /// equation always stays internally consistent.
+  PaycheckState _applyOverrides(PaycheckState base) {
+    final overrides = ref.read(paycheckOverrideProvider);
+    if (overrides.isEmpty) return base;
+
+    final overrideByKey = {for (final o in overrides) o.canonicalKey: o};
+    final merged = <PaycheckComponent>[];
+    for (final component in base.components) {
+      final override = overrideByKey[component.canonicalKey];
+      if (override == null) {
+        merged.add(component);
+      } else if (!override.removed) {
+        merged.add(PaycheckComponent(
+          label: override.label,
+          canonicalKey: component.canonicalKey,
+          classification: component.classification,
+          amount: override.amount,
+          kind: component.kind,
+        ));
+      }
+    }
+    for (final override in overrides) {
+      if (override.isManualAdd && !override.removed) {
+        merged.add(PaycheckComponent(
+          label: override.label,
+          canonicalKey: override.canonicalKey,
+          classification: 'other',
+          amount: override.amount,
+          kind: override.kind,
+        ));
+      }
+    }
+
+    final earnings =
+        merged.where((c) => c.kind == PaycheckComponentKind.earning).toList();
+    final deductions = merged
+        .where((c) => c.kind == PaycheckComponentKind.deduction)
+        .toList();
+    final gross = earnings.fold<int>(0, (sum, c) => sum + c.amount);
+    final totalDeductions =
+        deductions.fold<int>(0, (sum, c) => sum + c.amount);
+    final incomeTax = deductions
+        .where((c) => c.classification == 'income_tax')
+        .fold<int>(0, (sum, c) => sum + c.amount);
+    final net =
+        gross > 0 ? (gross - totalDeductions).clamp(0, gross).toInt() : 0;
+
+    String detailFor(String canonicalKey, bool isDeduction) {
+      final override = overrideByKey[canonicalKey];
+      if (override != null && override.isManualAdd) return 'Added by you';
+      if (override != null) return 'Edited by you';
+      return isDeduction
+          ? 'Deducted in the confirmed payslip'
+          : 'Recorded from confirmed payslip';
+    }
+
+    final items = <PaycheckItem>[
+      ...earnings.map((c) => PaycheckItem(
+            id: 'earning-${c.canonicalKey}',
+            label: c.label,
+            detail: detailFor(c.canonicalKey, false),
+            amount: c.amount,
+            status: PaycheckItemStatus.matched,
+          )),
+      ...deductions.map((c) => PaycheckItem(
+            id: 'deduction-${c.canonicalKey}',
+            label: c.label,
+            detail: detailFor(c.canonicalKey, true),
+            amount: c.amount,
+            status: PaycheckItemStatus.deduction,
+          )),
+    ];
+
+    return base.copyWith(
+      components: merged,
+      items: items,
+      grossReceived: gross,
+      netCredited: net,
+      taxWithheld: incomeTax,
+      otherDeductions:
+          (totalDeductions - incomeTax).clamp(0, totalDeductions).toInt(),
+    );
   }
 
   void syncDocuments(List<TaxDocument> documents) {
@@ -95,7 +200,7 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       ),
     ];
 
-    state = emptyPaycheck.copyWith(
+    final base = emptyPaycheck.copyWith(
       employeeName: _text(pay['employeeName']) ?? state.employeeName,
       employer: _text(pay['employerName']) ??
           _text(offer['employerName']) ??
@@ -134,6 +239,8 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       evidence: evidence,
       preparedClaims: state.preparedClaims,
     );
+    _baseState = base;
+    state = _applyOverrides(base);
   }
 
   void useSampleData() {
@@ -149,6 +256,7 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
   void clearUserData() {
     state = emptyPaycheck;
     _realState = null;
+    _baseState = emptyPaycheck;
   }
 
   void markOfferLetterAdded() {

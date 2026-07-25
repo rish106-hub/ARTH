@@ -33,22 +33,22 @@ class ArthBottomNav extends StatelessWidget {
     _NavItem(
       icon: Icons.account_balance_wallet_outlined,
       activeIcon: Icons.account_balance_wallet_rounded,
-      label: 'Pay',
+      label: 'Home',
     ),
     _NavItem(
       icon: Icons.description_outlined,
       activeIcon: Icons.description_rounded,
-      label: 'Evidence',
+      label: 'Documents',
     ),
     _NavItem(
       icon: Icons.calculate_outlined,
       activeIcon: Icons.calculate_rounded,
-      label: 'Tax',
+      label: 'Filing',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
-      label: 'You',
+      label: 'Profile',
     ),
   ];
 
