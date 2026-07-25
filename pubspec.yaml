@@ -23,6 +23,9 @@ dependencies:
   # Firebase Remote Config
   firebase_core: ^4.11.0
   firebase_remote_config: ^6.5.5
+  # Push notifications
+  firebase_messaging: ^16.0.4
+  flutter_local_notifications: ^22.2.0
   # Animations
   flutter_animate: ^4.5.0
   lottie: ^3.5.1

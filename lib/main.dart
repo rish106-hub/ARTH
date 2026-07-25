@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Local-notification display + background handler registration. Per-user
+    // token sync (permission request + backend registration) happens once
+    // signed in, via authProvider (see push_notification_service.dart).
+    await PushNotificationService().init();
   } catch (e) {
     if (kDebugMode) debugPrint('[main] Firebase init skipped: $e');
   }
