@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/user_profile_provider.dart';
+import '../services/on_device_document_ocr_service.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 import '../widgets/job_duration_selector.dart';
@@ -40,11 +41,55 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
         'jpg' || 'jpeg' => 'image/jpeg',
         _ => 'application/octet-stream',
       };
+      final rawBytes = await file.readAsBytes();
+      if (rawBytes.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('That file looks empty. Try another.')),
+        );
+        return;
+      }
+
+      // Downscale/compress images before upload so a large phone photo doesn't
+      // exceed the server upload limit ("body too large"). PDFs pass through.
+      List<int> uploadBytes = rawBytes;
+      var uploadFilename = file.name;
+      var uploadMimeType = mimeType;
+      String? ocrText;
+      if (mimeType.startsWith('image/')) {
+        final ocr = OnDeviceDocumentOcrService();
+        try {
+          final prepared = await ocr.prepareForUploadAsync(
+            bytes: rawBytes,
+            filename: file.name,
+          );
+          uploadBytes = prepared.bytes;
+          uploadFilename = prepared.filename;
+          uploadMimeType = prepared.mimeType;
+          ocrText = await ocr.extractLatinTextFromPreparedImage(prepared);
+        } catch (_) {
+          // Fall back to the raw image; upload still allows manual review.
+        }
+      }
+      if (!mounted) return;
+      if (uploadBytes.length > 10 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'That file is too large (max 10 MB). Try a photo or a smaller PDF.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
       await ref.read(taxDocumentProvider.notifier).upload(
             documentType: documentType,
-            filename: file.name,
-            mimeType: mimeType,
-            bytes: await file.readAsBytes(),
+            filename: uploadFilename,
+            mimeType: uploadMimeType,
+            bytes: uploadBytes,
+            ocrText: ocrText,
           );
       if (!mounted) return;
       if (documentType == 'offerLetter') {

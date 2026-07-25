@@ -33,7 +33,10 @@ export async function buildApp() {
   await app.register(multipart, {
     limits: {
       files: 1,
-      fileSize: 8 * 1024 * 1024,
+      // 10MB is the largest that reliably encrypts + stores; bigger files 500
+      // downstream, so cap here for a clean 413. The client downscales photos
+      // before upload, so typical bodies are well under 1MB.
+      fileSize: 10 * 1024 * 1024,
       fields: 8,
     },
   });

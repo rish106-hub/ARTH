@@ -1,5 +1,15 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import { env } from './config.js';
+
+// CockroachDB types every INTEGER column as INT8, which node-postgres returns
+// as a STRING to avoid precision loss. Clients (Flutter) parse these fields as
+// int, so leaving them as strings throws "String is not a subtype of int".
+// Parse INT8 (OID 20) back to a JS number when it fits safely; keep genuinely
+// huge values (e.g. unique_rowid ids) as strings so precision is never lost.
+types.setTypeParser(20, (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : value;
+});
 
 type QueryResultLike = {
   rowCount: number | null;

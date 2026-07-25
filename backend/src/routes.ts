@@ -271,7 +271,8 @@ const dataRateLimit = {
 };
 
 const documentUploadOptions = {
-  bodyLimit: 9 * 1024 * 1024,
+  // Must exceed the multipart fileSize limit (10MB) plus form-field overhead.
+  bodyLimit: 12 * 1024 * 1024,
   config: {
     rateLimit: {
       max: 20,
