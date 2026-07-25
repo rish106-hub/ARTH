@@ -1,8 +1,8 @@
 # Logic Audit Results
 
-Generated: 2026-07-23T11:31:27.244697
+Generated: 2026-07-25T18:21:20.340021
 Rule set: FY2025-26 Filing / AY 2026-27
-Runtime: 37s
+Runtime: 42s
 
 ## Sweep Scope
 
@@ -24,11 +24,11 @@ Total profiles audited: 16200000
 
 - Invariant failures: 0
 - Monotonicity failures: 0
-- Profiles with zero tax in both regimes: 2240500
-- Profiles with non-zero and different tax in both regimes: 12956580
-- Old regime better: 912030
-- New regime better: 13044050
-- Equal tax in both regimes: 2243920
+- Profiles with zero tax in both regimes: 2170900
+- Profiles with non-zero and different tax in both regimes: 12956710
+- Old regime better: 986760
+- New regime better: 13039050
+- Equal tax in both regimes: 2174190
 
 ## Notable Findings
 
