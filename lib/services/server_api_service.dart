@@ -178,6 +178,20 @@ class ServerApiService {
         code: 'network_unreachable',
         retryable: true,
       );
+    } on HandshakeException {
+      throw const ServerApiException(
+        0,
+        'Could not establish a secure connection to ARTH. Please try again.',
+        code: 'secure_connection_failed',
+        retryable: true,
+      );
+    } on HttpException {
+      throw const ServerApiException(
+        0,
+        'The upload connection closed unexpectedly. Please try again.',
+        code: 'upload_connection_closed',
+        retryable: true,
+      );
     }
   }
 

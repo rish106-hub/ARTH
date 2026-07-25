@@ -50,7 +50,7 @@ Railway variables:
 - `SARVAM_API_KEY` to enable Sarvam Document Intelligence for complex scans
 - `SARVAM_API_BASE_URL` defaults to `https://api.sarvam.ai`
 - `SARVAM_DOCUMENT_LANGUAGE` defaults to `hi-IN`
-- `SARVAM_TIMEOUT_MS` defaults to `25000` and must stay below the mobile upload timeout
+- `SARVAM_TIMEOUT_MS` defaults to `480000` (8 minutes) and stays below the mobile 10-minute upload timeout
 
 Fail-fast checks reject wildcard production CORS, non-HTTPS production origins,
 matching JWT secrets, placeholder JWT secrets, and out-of-range token or DB

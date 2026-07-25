@@ -31,13 +31,13 @@ describe('Sarvam document digitization', () => {
         return jsonResponse({
           upload_urls: {
             'document-images.zip': {
-              file_url: 'https://upload.example/document-images.zip',
+              file_url: 'https://arth.blob.core.windows.net/document-images.zip',
               headers: { 'x-upload-token': 'token' },
             },
           },
         });
       }
-      if (url === 'https://upload.example/document-images.zip') {
+      if (url === 'https://arth.blob.core.windows.net/document-images.zip') {
         return new Response(null, { status: 200 });
       }
       if (url.endsWith('/job-123/start')) {
@@ -86,7 +86,7 @@ describe('Sarvam document digitization', () => {
       });
 
       const upload = calls.find((call) =>
-        call.url === 'https://upload.example/document-images.zip');
+        call.url === 'https://arth.blob.core.windows.net/document-images.zip');
       assert.ok(upload);
       const uploadBody = upload.init?.body as Buffer;
       assert.equal(uploadBody[0], 0x50);
@@ -94,6 +94,10 @@ describe('Sarvam document digitization', () => {
       assert.equal(
         (upload.init?.headers as Record<string, string>)['x-upload-token'],
         'token',
+      );
+      assert.equal(
+        (upload.init?.headers as Record<string, string>)['x-ms-blob-type'],
+        'BlockBlob',
       );
     } finally {
       if (previousKey) process.env.SARVAM_API_KEY = previousKey;

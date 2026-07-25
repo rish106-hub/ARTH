@@ -43,9 +43,9 @@ export async function digitizeWithSarvam(input: {
   const language = process.env.SARVAM_DOCUMENT_LANGUAGE || 'hi-IN';
   const timeoutMs = boundedNumber(
     process.env.SARVAM_TIMEOUT_MS,
-    25_000,
+    480_000,
     5_000,
-    45_000,
+    540_000,
   );
   const deadline = Date.now() + timeoutMs;
   const headers = {
@@ -274,19 +274,32 @@ async function uploadBytes(
   bytes: Uint8Array,
   deadline: number,
 ) {
+  const headers = uploadHeaders(target);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await fetchWithDeadline(fetchImpl, target.url, {
       method: 'PUT',
-      headers: target.headers,
+      headers,
       body: Buffer.from(bytes),
     }, deadline);
     if (response.ok) return;
     if (!isTransient(response.status) || attempt === 2) {
-      throw new Error(`upload_http_${response.status}`);
+      const body = (await response.text()).replace(/\s+/g, ' ').slice(0, 300);
+      throw new Error(`upload_http_${response.status}:${body}`);
     }
     await sleep(Math.min(300 * (2 ** attempt), Math.max(deadline - Date.now(), 0)));
   }
   throw new Error('upload_retry_exhausted');
+}
+
+function uploadHeaders(target: { url: string; headers: Record<string, string> }) {
+  const headers = { ...target.headers };
+  const hostname = new URL(target.url).hostname.toLowerCase();
+  const hasBlobType = Object.keys(headers)
+    .some((name) => name.toLowerCase() === 'x-ms-blob-type');
+  if (hostname.endsWith('.blob.core.windows.net') && !hasBlobType) {
+    headers['x-ms-blob-type'] = 'BlockBlob';
+  }
+  return headers;
 }
 
 function linkForFile(links: Record<string, unknown>, filename: string) {
