@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 class ArthBrandMark extends StatelessWidget {
   final double size;
@@ -32,8 +32,8 @@ class ArthBrandMark extends StatelessWidget {
     }
 
     final effectiveWordmarkStyle = wordmarkStyle ??
-        AppTextStyles.h3(
-          color: AppColors.textPrimary,
+        PaycheckType.h3(
+          color: PaycheckColors.textPrimary,
         ).copyWith(
           fontWeight: FontWeight.w600,
           letterSpacing: 0,
@@ -67,7 +67,7 @@ class _ArthGlyphPainter extends CustomPainter {
 
     canvas.drawRRect(
       shell,
-      Paint()..color = AppColors.ink,
+      Paint()..color = PaycheckColors.ink,
     );
 
     final letterPaint = Paint()
@@ -89,7 +89,7 @@ class _ArthGlyphPainter extends CustomPainter {
     );
 
     final reconcilePaint = Paint()
-      ..color = AppColors.readiness
+      ..color = PaycheckColors.readiness
       ..style = PaintingStyle.stroke
       ..strokeWidth = shortest * 0.09
       ..strokeCap = StrokeCap.round;

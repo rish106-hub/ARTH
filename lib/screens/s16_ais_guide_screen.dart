@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -25,7 +26,7 @@ class AisGuideScreen extends StatelessWidget {
               tooltip: 'Back',
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -37,7 +38,7 @@ class AisGuideScreen extends StatelessWidget {
                   PremiumGlassPanel(
                     elevated: true,
                     borderRadius: BorderRadius.circular(28),
-                    tint: AppColors.teal,
+                    tint: PaycheckColors.teal,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -48,7 +49,7 @@ class AisGuideScreen extends StatelessWidget {
                             TrustBadge(
                               icon: Icons.visibility_off_outlined,
                               label: 'No AIS import',
-                              color: AppColors.teal,
+                              color: PaycheckColors.teal,
                             ),
                             TrustBadge(
                               icon: Icons.verified_user_outlined,
@@ -59,13 +60,13 @@ class AisGuideScreen extends StatelessWidget {
                         const SizedBox(height: 18),
                         Text(
                           'Use AIS and 26AS before filing.',
-                          style: AppTextStyles.h1(),
+                          style: PaycheckType.h1(),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'ARTH does not fetch AIS, ask for income-tax OTP, or store official statements. This guide tells you what to inspect in the official Income Tax portal or AIS app.',
-                          style: AppTextStyles.body(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.body(
+                            color: PaycheckColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -121,12 +122,12 @@ class AisGuideScreen extends StatelessWidget {
                       child: Column(
                         children: [
                           _RiskRow('Employer TDS lower than salary tax due'),
-                          Divider(color: AppColors.divider),
+                          Divider(color: PaycheckColors.divider),
                           _RiskRow(
                               'Bank interest present but not planned in return'),
-                          Divider(color: AppColors.divider),
+                          Divider(color: PaycheckColors.divider),
                           _RiskRow('High-value transactions not understood'),
-                          Divider(color: AppColors.divider),
+                          Divider(color: PaycheckColors.divider),
                           _RiskRow(
                               'Refund claimed without matching tax credit'),
                         ],
@@ -163,18 +164,18 @@ class _GuideStep extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(number, style: AppTextStyles.h3(color: AppColors.gold)),
+            Text(number, style: PaycheckType.h3(color: PaycheckColors.gold)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.bodyMedium()),
+                  Text(title, style: PaycheckType.bodyMedium()),
                   const SizedBox(height: 4),
                   Text(
                     body,
                     style:
-                        AppTextStyles.caption(color: AppColors.textSecondary),
+                        PaycheckType.caption(color: PaycheckColors.textSecondary),
                   ),
                 ],
               ),
@@ -198,12 +199,12 @@ class _RiskRow extends StatelessWidget {
       child: Row(
         children: [
           const Icon(Icons.warning_amber_rounded,
-              color: AppColors.amber, size: 19),
+              color: PaycheckColors.amber, size: 19),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+              style: PaycheckType.caption(color: PaycheckColors.textSecondary),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/gap_card_widget.dart';
 import '../widgets/animated_number.dart';
@@ -20,7 +21,7 @@ class DeductionCardsScreen extends ConsumerWidget {
     final doneMap = ref.watch(gapStateProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: ArthAppBar(
         title: 'Deduction Opportunities',
         actions: [
@@ -28,7 +29,7 @@ class DeductionCardsScreen extends ConsumerWidget {
             onPressed: () => context.push('/action-plan'),
             child: Text(
               'Action Plan',
-              style: AppTextStyles.caption(color: AppColors.gold),
+              style: PaycheckType.caption(color: PaycheckColors.gold),
             ),
           ),
         ],
@@ -126,8 +127,8 @@ class _GapSummaryHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        border: Border(bottom: BorderSide(color: AppColors.divider)),
+        color: PaycheckColors.bgCard,
+        border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
       ),
       child: Column(
         children: [
@@ -138,12 +139,12 @@ class _GapSummaryHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total opportunity', style: AppTextStyles.micro()),
+                    Text('Total opportunity', style: PaycheckType.micro()),
                     Text(
                       formatRupeesCompact(totalGap),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h2(color: AppColors.gold),
+                      style: PaycheckType.h2(color: PaycheckColors.gold),
                     ),
                   ],
                 ),
@@ -153,13 +154,13 @@ class _GapSummaryHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Still open', style: AppTextStyles.micro()),
+                    Text('Still open', style: PaycheckType.micro()),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
-                      style: AppTextStyles.h2(color: AppColors.amber),
+                      style: PaycheckType.h2(color: PaycheckColors.amber),
                     ),
                   ],
                 ),
@@ -179,16 +180,16 @@ class _GapSummaryHeader extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 6,
-                    backgroundColor: AppColors.bgSurface,
+                    backgroundColor: PaycheckColors.bgSurface,
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.success,
+                      PaycheckColors.success,
                     ),
                   ),
                 ),
               ),
               Text(
                 '$doneCount of $totalCount done',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
             ],
           ),
@@ -212,18 +213,18 @@ class _EmptyGapsView extends StatelessWidget {
             const Icon(
               Icons.verified_outlined,
               size: 64,
-              color: AppColors.gold,
+              color: PaycheckColors.gold,
             ),
             const SizedBox(height: 20),
             Text(
               'No gaps found!',
-              style: AppTextStyles.h2(color: AppColors.gold),
+              style: PaycheckType.h2(color: PaycheckColors.gold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               'Your deductions appear fully optimised. Consider reviewing in old regime.',
-              style: AppTextStyles.body(color: AppColors.textSecondary),
+              style: PaycheckType.body(color: PaycheckColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],

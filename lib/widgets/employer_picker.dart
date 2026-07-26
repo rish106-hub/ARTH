@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/employer_catalog_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 const commonEmployers = <String>[
   'Accenture',
@@ -164,11 +164,11 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Select your employer', style: AppTextStyles.h2()),
+              Text('Select your employer', style: PaycheckType.h2()),
               const SizedBox(height: 6),
               Text(
                 'This is saved to your profile. It does not connect to the company.',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 14),
               TextField(
@@ -192,7 +192,7 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
                         title: Text(employer),
                         trailing: employer == widget.currentValue
                             ? const Icon(Icons.check_rounded,
-                                color: AppColors.teal)
+                                color: PaycheckColors.teal)
                             : null,
                         onTap: () => Navigator.pop(context, employer),
                       ),

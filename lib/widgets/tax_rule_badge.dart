@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tax_result.dart';
 import '../models/tax_rule_set.dart';
 import '../providers/tax_year_provider.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import 'premium_ui.dart';
 
 class TaxRuleBadge extends StatelessWidget {
@@ -21,12 +21,12 @@ class TaxRuleBadge extends StatelessWidget {
         TrustBadge(
           icon: Icons.gavel_outlined,
           label: result.ruleSetLabel,
-          color: AppColors.info,
+          color: PaycheckColors.info,
         ),
         TrustBadge(
           icon: Icons.event_available_outlined,
           label: result.assessmentYear,
-          color: AppColors.teal,
+          color: PaycheckColors.teal,
         ),
       ],
     );
@@ -41,7 +41,7 @@ class TaxYearSelector extends ConsumerWidget {
     final active = ref.watch(activeTaxYearProvider);
     return PremiumGlassPanel(
       padding: const EdgeInsets.all(10),
-      tint: AppColors.info,
+      tint: PaycheckColors.info,
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -83,7 +83,7 @@ class _TaxYearChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.gold : AppColors.textSecondary;
+    final color = selected ? PaycheckColors.gold : PaycheckColors.textSecondary;
     return ChoiceChip(
       selected: selected,
       onSelected: (_) => onSelected(),
@@ -92,10 +92,10 @@ class _TaxYearChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(taxYear.displayLabel, style: AppTextStyles.micro(color: color)),
+          Text(taxYear.displayLabel, style: PaycheckType.micro(color: color)),
           Text(
             taxYear.assessmentYear,
-            style: AppTextStyles.micro(color: AppColors.textMuted),
+            style: PaycheckType.micro(color: PaycheckColors.textMuted),
           ),
         ],
       ),

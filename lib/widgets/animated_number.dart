@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 /// Animates counting from 0 to [value] over [duration].
 class AnimatedRupeeNumber extends StatefulWidget {
@@ -52,7 +52,7 @@ class _AnimatedRupeeNumberState extends State<AnimatedRupeeNumber>
 
   @override
   Widget build(BuildContext context) {
-    final style = widget.style ?? AppTextStyles.display(color: AppColors.gold);
+    final style = widget.style ?? PaycheckType.display(color: PaycheckColors.gold);
 
     return AnimatedBuilder(
       animation: _anim,
@@ -86,7 +86,7 @@ class RupeeText extends StatelessWidget {
     final fmt = NumberFormat('#,##,##0', 'en_IN');
     return Text(
       '$prefix ${fmt.format(amount)}',
-      style: style ?? AppTextStyles.h2(color: AppColors.gold),
+      style: style ?? PaycheckType.h2(color: PaycheckColors.gold),
     );
   }
 }

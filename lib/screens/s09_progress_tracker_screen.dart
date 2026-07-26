@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_year_provider.dart';
@@ -22,7 +23,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
     final documentPercent = ref.watch(documentReadinessPercentProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Progress Tracker'),
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 2,
@@ -72,7 +73,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // Key deadlines
-                      Text('Key Deadlines', style: AppTextStyles.h3()),
+                      Text('Key Deadlines', style: PaycheckType.h3()),
                       const SizedBox(height: 12),
                       const _DeadlineTimeline(),
                       const SizedBox(height: 24),
@@ -81,7 +82,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // Gap status grid
-                      Text('Gap Status', style: AppTextStyles.h3()),
+                      Text('Gap Status', style: PaycheckType.h3()),
                       const SizedBox(height: 12),
                       ...gaps.map((gap) {
                         final done = doneMap[gap.id] ?? false;
@@ -144,15 +145,15 @@ class _ReadinessProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumGlassPanel(
-      tint: AppColors.teal,
+      tint: PaycheckColors.teal,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Filing readiness', style: AppTextStyles.h3()),
+          Text('Filing readiness', style: PaycheckType.h3()),
           const SizedBox(height: 8),
           Text(
             'Document checklist is $documentPercent% ready. Keep AIS/26AS review separate and use official records before filing.',
-            style: AppTextStyles.caption(color: AppColors.textSecondary),
+            style: PaycheckType.caption(color: PaycheckColors.textSecondary),
           ),
           const SizedBox(height: 14),
           Row(
@@ -199,9 +200,9 @@ class _FYTimeline extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +213,7 @@ class _FYTimeline extends ConsumerWidget {
               Expanded(
                 child: Text(
                   activeYear.displayLabel,
-                  style: AppTextStyles.h3(),
+                  style: PaycheckType.h3(),
                 ),
               ),
               const SizedBox(width: 8),
@@ -224,16 +225,16 @@ class _FYTimeline extends ConsumerWidget {
                   ),
                   decoration: BoxDecoration(
                     color: daysLeft <= 30
-                        ? AppColors.alert.withValues(alpha: 0.15)
-                        : AppColors.amber.withValues(alpha: 0.15),
+                        ? PaycheckColors.alert.withValues(alpha: 0.15)
+                        : PaycheckColors.amber.withValues(alpha: 0.15),
                     borderRadius: AppRadius.pill,
                   ),
                   child: Text(
                     '$daysLeft days left',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.micro(
-                      color: daysLeft <= 30 ? AppColors.alert : AppColors.amber,
+                    style: PaycheckType.micro(
+                      color: daysLeft <= 30 ? PaycheckColors.alert : PaycheckColors.amber,
                     ),
                   ),
                 ),
@@ -246,9 +247,9 @@ class _FYTimeline extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: AppColors.bgSurface,
+              backgroundColor: PaycheckColors.bgSurface,
               valueColor: AlwaysStoppedAnimation<Color>(
-                daysLeft <= 30 ? AppColors.alert : AppColors.amber,
+                daysLeft <= 30 ? PaycheckColors.alert : PaycheckColors.amber,
               ),
             ),
           ),
@@ -258,11 +259,11 @@ class _FYTimeline extends ConsumerWidget {
               Expanded(
                 child: Text(
                   _monthYear(fyStart),
-                  style: AppTextStyles.micro(),
+                  style: PaycheckType.micro(),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(_dateLabel(fyEnd), style: AppTextStyles.micro()),
+              Text(_dateLabel(fyEnd), style: PaycheckType.micro()),
             ],
           ),
         ],
@@ -318,12 +319,12 @@ class _OverallProgress extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.gold.withValues(alpha: 0.08), AppColors.bgCard],
+          colors: [PaycheckColors.gold.withValues(alpha: 0.08), PaycheckColors.bgCard],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+        border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
@@ -335,15 +336,15 @@ class _OverallProgress extends StatelessWidget {
                   children: [
                     Text(
                       'Addressed so far',
-                      style: AppTextStyles.micro(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.micro(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                     Text(
                       formatRupeesCompact(claimed),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h2(color: AppColors.success),
+                      style: PaycheckType.h2(color: PaycheckColors.success),
                     ),
                   ],
                 ),
@@ -354,8 +355,8 @@ class _OverallProgress extends StatelessWidget {
                   children: [
                     Text(
                       'Still open',
-                      style: AppTextStyles.micro(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.micro(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                     Text(
@@ -363,7 +364,7 @@ class _OverallProgress extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
-                      style: AppTextStyles.h2(color: AppColors.gold),
+                      style: PaycheckType.h2(color: PaycheckColors.gold),
                     ),
                   ],
                 ),
@@ -376,16 +377,16 @@ class _OverallProgress extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 10,
-              backgroundColor: AppColors.bgSurface,
+              backgroundColor: PaycheckColors.bgSurface,
               valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.success,
+                PaycheckColors.success,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '$doneCount of $totalCount opportunities addressed • $ruleLabel',
-            style: AppTextStyles.caption(color: AppColors.textSecondary),
+            style: PaycheckType.caption(color: PaycheckColors.textSecondary),
           ),
         ],
       ),
@@ -418,9 +419,9 @@ class _DeadlineTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(
         children: _deadlines.map((d) => _DeadlineRow(deadline: d)).toList(),
@@ -446,11 +447,11 @@ class _DeadlineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = deadline.isUrgent ? AppColors.alert : AppColors.amber;
+    final color = deadline.isUrgent ? PaycheckColors.alert : PaycheckColors.amber;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.divider)),
+        border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,8 +467,8 @@ class _DeadlineRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(deadline.label, style: AppTextStyles.caption()),
-                Text(deadline.date, style: AppTextStyles.micro(color: color)),
+                Text(deadline.label, style: PaycheckType.caption()),
+                Text(deadline.date, style: PaycheckType.micro(color: color)),
               ],
             ),
           ),
@@ -498,12 +499,12 @@ class _GapStatusRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
         border: Border.all(
           color: isDone
-              ? AppColors.success.withValues(alpha: 0.3)
-              : AppColors.border,
+              ? PaycheckColors.success.withValues(alpha: 0.3)
+              : PaycheckColors.border,
         ),
       ),
       child: Row(
@@ -513,9 +514,9 @@ class _GapStatusRow extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDone ? AppColors.success : AppColors.bgSurface,
+              color: isDone ? PaycheckColors.success : PaycheckColors.bgSurface,
               border: Border.all(
-                color: isDone ? AppColors.success : AppColors.border,
+                color: isDone ? PaycheckColors.success : PaycheckColors.border,
               ),
             ),
             child: isDone
@@ -527,10 +528,10 @@ class _GapStatusRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.caption()),
+                Text(title, style: PaycheckType.caption()),
                 Text(
                   section,
-                  style: AppTextStyles.micro(color: AppColors.gold),
+                  style: PaycheckType.micro(color: PaycheckColors.gold),
                 ),
               ],
             ),
@@ -540,13 +541,13 @@ class _GapStatusRow extends StatelessWidget {
             children: [
               Text(
                 formatRupees(amount),
-                style: AppTextStyles.caption(
-                  color: isDone ? AppColors.success : AppColors.textPrimary,
+                style: PaycheckType.caption(
+                  color: isDone ? PaycheckColors.success : PaycheckColors.textPrimary,
                 ),
               ),
               Text(
                 deadline,
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
             ],
           ),

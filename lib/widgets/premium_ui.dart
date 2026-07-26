@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import 'arth_bottom_nav.dart';
 import 'ui_policy.dart';
 
@@ -22,7 +23,7 @@ class ArthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       bottomNavigationBar: bottomNavigationBar,
       body: SafeArea(
         bottom: bottomNavigationBar == null,
@@ -87,8 +88,8 @@ class ArthPremiumAppBar extends StatelessWidget {
                 if (eyebrow != null) ...[
                   Text(
                     eyebrow!.toUpperCase(),
-                    style: AppTextStyles.micro(
-                      color: AppColors.gold,
+                    style: PaycheckType.micro(
+                      color: PaycheckColors.gold,
                     ).copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 3),
@@ -97,7 +98,7 @@ class ArthPremiumAppBar extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.h2(),
+                  style: PaycheckType.h2(),
                 ),
               ],
             ),
@@ -129,7 +130,7 @@ class PremiumHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumGlassPanel(
       elevated: true,
-      tint: AppColors.gold,
+      tint: PaycheckColors.gold,
       padding: const EdgeInsets.all(18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,11 +139,11 @@ class PremiumHeader extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.14),
+              color: PaycheckColors.gold.withValues(alpha: 0.14),
               borderRadius: AppRadius.card,
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.26)),
+              border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.26)),
             ),
-            child: Icon(icon, color: AppColors.gold),
+            child: Icon(icon, color: PaycheckColors.gold),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -151,15 +152,15 @@ class PremiumHeader extends StatelessWidget {
               children: [
                 Text(
                   eyebrow.toUpperCase(),
-                  style: AppTextStyles.micro(color: AppColors.gold)
+                  style: PaycheckType.micro(color: PaycheckColors.gold)
                       .copyWith(fontWeight: FontWeight.w700, letterSpacing: 0),
                 ),
                 const SizedBox(height: 6),
-                Text(title, style: AppTextStyles.h1()),
+                Text(title, style: PaycheckType.h1()),
                 const SizedBox(height: 8),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -193,10 +194,10 @@ class PremiumGlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor =
-        tint == Colors.white ? AppColors.border : tint.withValues(alpha: 0.34);
+        tint == Colors.white ? PaycheckColors.border : tint.withValues(alpha: 0.34);
 
     return Material(
-      color: elevated ? AppColors.bgCardHover : AppColors.bgCard,
+      color: elevated ? PaycheckColors.bgCardHover : PaycheckColors.bgCard,
       elevation: elevated ? 1 : 0,
       shadowColor: Colors.black.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(
@@ -218,7 +219,7 @@ class TrustBadge extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
-    this.color = AppColors.gold,
+    this.color = PaycheckColors.gold,
   });
 
   @override
@@ -240,7 +241,7 @@ class TrustBadge extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.micro(color: AppColors.textPrimary)
+              style: PaycheckType.micro(color: PaycheckColors.textPrimary)
                   .copyWith(fontWeight: FontWeight.w600),
             ),
           ),
@@ -259,7 +260,7 @@ class StatusPill extends StatelessWidget {
     super.key,
     required this.label,
     required this.icon,
-    this.color = AppColors.gold,
+    this.color = PaycheckColors.gold,
   });
 
   @override
@@ -281,7 +282,7 @@ class StatusPill extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.micro(color: AppColors.textPrimary)
+              style: PaycheckType.micro(color: PaycheckColors.textPrimary)
                   .copyWith(fontWeight: FontWeight.w700),
             ),
           ),
@@ -368,7 +369,7 @@ class StoryPanel extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
-    this.color = AppColors.gold,
+    this.color = PaycheckColors.gold,
     this.trailing,
   });
 
@@ -386,11 +387,11 @@ class StoryPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 4),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -415,7 +416,7 @@ class ArthMetricCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.helper,
-    this.color = AppColors.gold,
+    this.color = PaycheckColors.gold,
   });
 
   @override
@@ -434,7 +435,7 @@ class ArthMetricCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ),
             ],
@@ -444,7 +445,7 @@ class ArthMetricCard extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.h2(color: color),
+            style: PaycheckType.h2(color: color),
           ),
           if (helper != null) ...[
             const SizedBox(height: 4),
@@ -452,7 +453,7 @@ class ArthMetricCard extends StatelessWidget {
               helper!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.micro(color: AppColors.textSecondary),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary),
             ),
           ],
         ],
@@ -485,8 +486,8 @@ class ArthSection extends StatelessWidget {
             Expanded(
               child: Text(
                 title.toUpperCase(),
-                style: AppTextStyles.sectionLabel(
-                  color: AppColors.textSecondary,
+                style: PaycheckType.sectionLabel(
+                  color: PaycheckColors.textSecondary,
                 ).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
@@ -552,7 +553,7 @@ class _PremiumSkeletonState extends State<PremiumSkeleton>
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
-        color: AppColors.textMuted.withValues(alpha: alpha + 0.08),
+        color: PaycheckColors.textMuted.withValues(alpha: alpha + 0.08),
         borderRadius: widget.borderRadius,
       ),
     );
@@ -585,18 +586,18 @@ class ArthStatePanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: AppColors.gold, size: 36),
+              Icon(icon, color: PaycheckColors.gold, size: 36),
               const SizedBox(height: 16),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.h2(),
+                style: PaycheckType.h2(),
               ),
               const SizedBox(height: 8),
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.body(color: AppColors.textSecondary),
+                style: PaycheckType.body(color: PaycheckColors.textSecondary),
               ),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: 18),
@@ -645,7 +646,7 @@ class ArthLoadingPanel extends StatelessWidget {
               padding: EdgeInsets.all(22),
               child: Icon(
                 Icons.auto_awesome_rounded,
-                color: AppColors.gold,
+                color: PaycheckColors.gold,
                 size: 34,
               ),
             )
@@ -662,12 +663,12 @@ class ArthLoadingPanel extends StatelessWidget {
                   duration: 900.ms,
                 ),
             const SizedBox(height: 22),
-            Text(title, textAlign: TextAlign.center, style: AppTextStyles.h2()),
+            Text(title, textAlign: TextAlign.center, style: PaycheckType.h2()),
             const SizedBox(height: 8),
             Text(
               insights.first,
               textAlign: TextAlign.center,
-              style: AppTextStyles.body(color: AppColors.textSecondary),
+              style: PaycheckType.body(color: PaycheckColors.textSecondary),
             ),
             const SizedBox(height: 22),
             const PremiumSkeleton(height: 8, width: 180),

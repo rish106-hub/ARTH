@@ -14,6 +14,7 @@ import '../providers/user_profile_provider.dart';
 import '../services/server_api_service.dart';
 import '../services/on_device_document_ocr_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -57,7 +58,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                 tooltip: 'AIS guide',
                 onPressed: () => context.push('/ais-guide'),
                 icon: const Icon(Icons.account_balance_outlined),
-                color: AppColors.textSecondary,
+                color: PaycheckColors.textSecondary,
               ),
             ],
           ),
@@ -153,7 +154,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
     final accepted = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: PaycheckColors.bgCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -169,32 +170,32 @@ class DocumentChecklistScreen extends ConsumerWidget {
                   width: 40,
                   height: 4,
                   decoration: const BoxDecoration(
-                    color: AppColors.border,
+                    color: PaycheckColors.border,
                     borderRadius: AppRadius.pill,
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              Text('Upload ${item.title}', style: AppTextStyles.h2()),
+              Text('Upload ${item.title}', style: PaycheckType.h2()),
               const SizedBox(height: 8),
               Text(
                 'Choose a PDF, JPG or PNG up to 8 MB. You can review extracted details before using them.',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   const Icon(
                     Icons.description_outlined,
-                    color: AppColors.gold,
+                    color: PaycheckColors.gold,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'PDF · JPG · PNG   Maximum 8 MB',
-                      style: AppTextStyles.caption(
-                        color: AppColors.textPrimary,
+                      style: PaycheckType.caption(
+                        color: PaycheckColors.textPrimary,
                       ).copyWith(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -329,7 +330,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: PaycheckColors.bgCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -471,7 +472,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(document.displayName, style: AppTextStyles.h2()),
+                      Text(document.displayName, style: PaycheckType.h2()),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -481,13 +482,13 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           StatusPill(
                             label: formatFileSize(document.byteSize),
                             icon: Icons.storage_outlined,
-                            color: AppColors.teal,
+                            color: PaycheckColors.teal,
                           ),
                           if (document.archived)
                             const StatusPill(
                               label: 'Archived',
                               icon: Icons.archive_outlined,
-                              color: AppColors.amber,
+                              color: PaycheckColors.amber,
                             ),
                         ],
                       ),
@@ -526,13 +527,13 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           document.isPayslip
                               ? 'Check your payslip details'
                               : 'Check extracted details',
-                          style: AppTextStyles.h3(),
+                          style: PaycheckType.h3(),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Confirm only if these details match the document.',
-                          style: AppTextStyles.caption(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.caption(
+                            color: PaycheckColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -546,7 +547,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppColors.info.withValues(alpha: 0.08),
+                            color: PaycheckColors.info.withValues(alpha: 0.08),
                             borderRadius: AppRadius.card,
                           ),
                           child: Column(
@@ -554,13 +555,13 @@ class DocumentChecklistScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 'No reliable details were found',
-                                style: AppTextStyles.bodyMedium(),
+                                style: PaycheckType.bodyMedium(),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 'Enter the printed gross pay, deductions, and net pay. You can also add any salary rows shown on this payslip.',
-                                style: AppTextStyles.caption(
-                                  color: AppColors.textSecondary,
+                                style: PaycheckType.caption(
+                                  color: PaycheckColors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -587,7 +588,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         const SizedBox(height: 10),
                         Text(
                           error!,
-                          style: AppTextStyles.caption(color: AppColors.alert),
+                          style: PaycheckType.caption(color: PaycheckColors.alert),
                         ),
                       ],
                       const SizedBox(height: 18),
@@ -651,7 +652,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
     final confirmed = await showModalBottomSheet<TaxDocument>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: PaycheckColors.bgCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -830,11 +831,11 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Enter payslip details', style: AppTextStyles.h2()),
+              Text('Enter payslip details', style: PaycheckType.h2()),
               const SizedBox(height: 8),
               Text(
                 'Use the monthly printed totals. Do not use cumulative or year-to-date values.',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 18),
               TextField(
@@ -893,7 +894,7 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: AppTextStyles.caption(color: AppColors.alert),
+                  style: PaycheckType.caption(color: PaycheckColors.alert),
                 ),
               ],
               const SizedBox(height: 18),
@@ -943,7 +944,7 @@ class _ManualPayRows extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
+            Expanded(child: Text(title, style: PaycheckType.bodyMedium())),
             IconButton(
               tooltip: 'Add ${title.toLowerCase()} row',
               onPressed: onAdd,
@@ -1047,7 +1048,7 @@ class _FriendlyExtractedFields extends StatelessWidget {
             ),
         if (attendance.isNotEmpty) ...[
           const SizedBox(height: 14),
-          Text('Attendance', style: AppTextStyles.bodyMedium()),
+          Text('Attendance', style: PaycheckType.bodyMedium()),
           const SizedBox(height: 6),
           for (final entry in attendance.entries)
             _ParsedFieldRow(
@@ -1066,13 +1067,13 @@ class _FriendlyExtractedFields extends StatelessWidget {
           _messageSection(
             'Check before confirming',
             warnings,
-            AppColors.amber.withValues(alpha: 0.12),
+            PaycheckColors.amber.withValues(alpha: 0.12),
           ),
         if (questions.isNotEmpty)
           _messageSection(
             'Details ARTH could not confirm',
             questions,
-            AppColors.info.withValues(alpha: 0.10),
+            PaycheckColors.info.withValues(alpha: 0.10),
           ),
       ],
     );
@@ -1088,7 +1089,7 @@ class _FriendlyExtractedFields extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: AppTextStyles.bodyMedium()),
+          Text(title, style: PaycheckType.bodyMedium()),
           const SizedBox(height: 6),
           for (final row in rows)
             _ParsedFieldRow(
@@ -1110,14 +1111,14 @@ class _FriendlyExtractedFields extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.bodyMedium()),
+          Text(title, style: PaycheckType.bodyMedium()),
           const SizedBox(height: 4),
           for (final message in messages)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 '• $message',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
             ),
         ],
@@ -1175,12 +1176,12 @@ class _VaultSummary extends StatelessWidget {
       children: [
         Text(
           message,
-          style: AppTextStyles.h1().copyWith(fontSize: 32, height: 1.08),
+          style: PaycheckType.h1().copyWith(fontSize: 32, height: 1.08),
         ),
         const SizedBox(height: 14),
         Text(
           '${summary.active} uploaded · ${summary.needsReview} need review',
-          style: AppTextStyles.caption(color: AppColors.textSecondary),
+          style: PaycheckType.caption(color: PaycheckColors.textSecondary),
         ),
         const SizedBox(height: 18),
         ClipRRect(
@@ -1188,8 +1189,8 @@ class _VaultSummary extends StatelessWidget {
           child: LinearProgressIndicator(
             value: percent / 100,
             minHeight: 4,
-            backgroundColor: AppColors.surfaceMuted,
-            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+            backgroundColor: PaycheckColors.surfaceMuted,
+            valueColor: const AlwaysStoppedAnimation(PaycheckColors.primary),
           ),
         ),
       ],
@@ -1214,9 +1215,9 @@ class VaultHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
+        border: Border.fromBorderSide(BorderSide(color: PaycheckColors.border)),
       ),
       child: Row(
         children: [
@@ -1229,11 +1230,11 @@ class VaultHero extends StatelessWidget {
                 CircularProgressIndicator(
                   value: percent / 100,
                   strokeWidth: 7,
-                  backgroundColor: AppColors.bgSurface,
-                  color: percent == 100 ? AppColors.success : AppColors.gold,
+                  backgroundColor: PaycheckColors.bgSurface,
+                  color: percent == 100 ? PaycheckColors.success : PaycheckColors.gold,
                   strokeCap: StrokeCap.round,
                 ),
-                Text('$percent%', style: AppTextStyles.bodyMedium()),
+                Text('$percent%', style: PaycheckType.bodyMedium()),
               ],
             ),
           ),
@@ -1242,18 +1243,18 @@ class VaultHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Proof readiness', style: AppTextStyles.h3()),
+                Text('Proof readiness', style: PaycheckType.h3()),
                 const SizedBox(height: 4),
                 Text(
                   '$yearLabel · ${summary.active} uploaded · ${summary.needsReview} to review',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 7),
                 Text(
                   percent == 100
                       ? 'Your document checklist is complete.'
                       : 'Add proofs as you collect them.',
-                  style: AppTextStyles.micro(color: AppColors.gold)
+                  style: PaycheckType.micro(color: PaycheckColors.gold)
                       .copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -1278,11 +1279,11 @@ class _VaultSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(title, style: AppTextStyles.h3())),
+        Expanded(child: Text(title, style: PaycheckType.h3())),
         if (helper != null)
           Text(
             helper!,
-            style: AppTextStyles.micro(color: AppColors.textSecondary),
+            style: PaycheckType.micro(color: PaycheckColors.textSecondary),
           ),
       ],
     );
@@ -1340,17 +1341,17 @@ class _NeededDocumentsPanel extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
-          color: AppColors.goldLight,
+          color: PaycheckColors.goldLight,
           borderRadius: AppRadius.card,
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, color: AppColors.success),
+            const Icon(Icons.check_circle_rounded, color: PaycheckColors.success),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Every expected document has been added.',
-                style: AppTextStyles.bodyMedium(),
+                style: PaycheckType.bodyMedium(),
               ),
             ),
           ],
@@ -1359,10 +1360,10 @@ class _NeededDocumentsPanel extends StatelessWidget {
     }
 
     return Material(
-      color: AppColors.bgCard,
+      color: PaycheckColors.bgCard,
       shape: const RoundedRectangleBorder(
         borderRadius: AppRadius.card,
-        side: BorderSide(color: AppColors.border),
+        side: BorderSide(color: PaycheckColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1414,19 +1415,19 @@ class _NeededDocumentRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.title, style: AppTextStyles.bodyMedium()),
+                Text(item.title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 2),
                 Text(
                   item.subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 if (ready) ...[
                   const SizedBox(height: 3),
                   Text(
                     'Marked ready',
-                    style: AppTextStyles.micro(color: AppColors.success),
+                    style: PaycheckType.micro(color: PaycheckColors.success),
                   ),
                 ],
               ],
@@ -1436,7 +1437,7 @@ class _NeededDocumentRow extends StatelessWidget {
             tooltip: 'Upload ${item.title}',
             onPressed: busy ? null : onUpload,
             icon: const Icon(Icons.upload_file_rounded),
-            color: AppColors.gold,
+            color: PaycheckColors.gold,
           ),
         ],
       ),
@@ -1452,7 +1453,7 @@ class _EmptyUploads extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: AppColors.bgSurface,
+        color: PaycheckColors.bgSurface,
         borderRadius: AppRadius.card,
       ),
       child: Row(
@@ -1461,12 +1462,12 @@ class _EmptyUploads extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: const BoxDecoration(
-              color: AppColors.bgCard,
+              color: PaycheckColors.bgCard,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.folder_open_outlined,
-              color: AppColors.gold,
+              color: PaycheckColors.gold,
             ),
           ),
           const SizedBox(width: 13),
@@ -1474,11 +1475,11 @@ class _EmptyUploads extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('No uploads yet', style: AppTextStyles.bodyMedium()),
+                Text('No uploads yet', style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 2),
                 Text(
                   'Use the upload icon beside any document to begin.',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1502,7 +1503,7 @@ class DocumentStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.bgCard,
+      color: PaycheckColors.bgCard,
       shape: RoundedRectangleBorder(
         borderRadius: AppRadius.card,
         side: BorderSide(
@@ -1527,7 +1528,7 @@ class DocumentStatusCard extends StatelessWidget {
                       document.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodyMedium(),
+                      style: PaycheckType.bodyMedium(),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -1535,7 +1536,7 @@ class DocumentStatusCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          AppTextStyles.micro(color: AppColors.textSecondary),
+                          PaycheckType.micro(color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -1547,7 +1548,7 @@ class DocumentStatusCard extends StatelessWidget {
                           StatusPill(
                             label: tag,
                             icon: Icons.sell_outlined,
-                            color: AppColors.info,
+                            color: PaycheckColors.info,
                           ),
                       ],
                     ),
@@ -1556,7 +1557,7 @@ class DocumentStatusCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textMuted),
+                  color: PaycheckColors.textMuted),
             ],
           ),
         ),
@@ -1580,7 +1581,7 @@ class _ParserTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Parser timeline', style: AppTextStyles.h3()),
+          Text('Parser timeline', style: PaycheckType.h3()),
           const SizedBox(height: 10),
           const _TimelineRow(
             done: true,
@@ -1624,7 +1625,7 @@ class _TimelineRow extends StatelessWidget {
         children: [
           Icon(
             done ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-            color: done ? AppColors.success : AppColors.textMuted,
+            color: done ? PaycheckColors.success : PaycheckColors.textMuted,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -1632,11 +1633,11 @@ class _TimelineRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 2),
                 Text(
                   body,
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1666,7 +1667,7 @@ class _ParsedFieldRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+              style: PaycheckType.caption(color: PaycheckColors.textSecondary),
             ),
           ),
           const SizedBox(width: 12),
@@ -1674,7 +1675,7 @@ class _ParsedFieldRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: AppTextStyles.bodyMedium(),
+              style: PaycheckType.bodyMedium(),
             ),
           ),
         ],
@@ -1696,8 +1697,8 @@ StatusPill _statusPill(TaxDocument document) {
 }
 
 Color _statusColor(TaxDocument document) {
-  if (document.reviewed) return AppColors.success;
-  if (document.needsReview) return AppColors.amber;
-  if (document.unsupported) return AppColors.alert;
-  return AppColors.teal;
+  if (document.reviewed) return PaycheckColors.success;
+  if (document.needsReview) return PaycheckColors.amber;
+  if (document.unsupported) return PaycheckColors.alert;
+  return PaycheckColors.teal;
 }

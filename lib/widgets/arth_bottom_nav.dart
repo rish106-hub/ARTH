@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 void goToArthTab(BuildContext context, int index) {
   switch (index) {
@@ -58,8 +59,8 @@ class ArthBottomNav extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(10, 7, 10, bottomPad + 7),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+        color: PaycheckColors.surface,
+        border: Border(top: BorderSide(color: PaycheckColors.divider)),
       ),
       child: Row(
         children: List.generate(_items.length, (i) {
@@ -84,14 +85,14 @@ class ArthBottomNav extends StatelessWidget {
                         width: 32,
                         height: 26,
                         decoration: BoxDecoration(
-                          color: selected ? AppColors.ink : Colors.transparent,
+                          color: selected ? PaycheckColors.ink : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           selected ? item.activeIcon : item.icon,
                           color: selected
-                              ? AppColors.surface
-                              : AppColors.textSecondary,
+                              ? PaycheckColors.surface
+                              : PaycheckColors.textSecondary,
                           size: 20,
                         ),
                       ),
@@ -100,10 +101,10 @@ class ArthBottomNav extends StatelessWidget {
                         item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.micro(
+                        style: PaycheckType.micro(
                           color: selected
-                              ? AppColors.ink
-                              : AppColors.textSecondary,
+                              ? PaycheckColors.ink
+                              : PaycheckColors.textSecondary,
                         ).copyWith(
                             fontWeight:
                                 selected ? FontWeight.w600 : FontWeight.w500),

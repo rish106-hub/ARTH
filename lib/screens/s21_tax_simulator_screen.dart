@@ -8,6 +8,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -56,7 +57,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -138,7 +139,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                             PremiumGlassPanel(
                               elevated: true,
                               borderRadius: BorderRadius.circular(28),
-                              tint: AppColors.gold,
+                              tint: PaycheckColors.gold,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -148,12 +149,12 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text('Try a tax-saving move',
-                                      style: AppTextStyles.h1()),
+                                      style: PaycheckType.h1()),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Change 80C, NPS, and 80D values without touching your saved diagnostic.',
-                                    style: AppTextStyles.body(
-                                      color: AppColors.textSecondary,
+                                    style: PaycheckType.body(
+                                      color: PaycheckColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 14),
@@ -180,7 +181,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                     helper:
                                         '${simulated.confidenceScore}% confidence',
                                     icon: Icons.compare_arrows_rounded,
-                                    color: AppColors.teal,
+                                    color: PaycheckColors.teal,
                                   ),
                                 ),
                               ],
@@ -211,17 +212,17 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                             ),
                             const SizedBox(height: 18),
                             PremiumGlassPanel(
-                              tint: AppColors.teal,
+                              tint: PaycheckColors.teal,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('Assumption guardrail',
-                                      style: AppTextStyles.h3()),
+                                      style: PaycheckType.h3()),
                                   const SizedBox(height: 6),
                                   Text(
                                     'This does not file ITR and does not change your profile unless you apply it. Tax shown follows the active rule set and current profile assumptions.',
-                                    style: AppTextStyles.caption(
-                                      color: AppColors.textSecondary,
+                                    style: PaycheckType.caption(
+                                      color: PaycheckColors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -298,10 +299,10 @@ class _SimulatorSlider extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text(title, style: AppTextStyles.bodyMedium())),
+              Expanded(child: Text(title, style: PaycheckType.bodyMedium())),
               Text(
                 formatRupeesCompact(value.round()),
-                style: AppTextStyles.caption(color: AppColors.gold),
+                style: PaycheckType.caption(color: PaycheckColors.gold),
               ),
             ],
           ),

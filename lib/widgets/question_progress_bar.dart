@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 class QuestionProgressBar extends StatelessWidget {
   final int current; // 0-indexed
@@ -22,12 +23,12 @@ class QuestionProgressBar extends StatelessWidget {
           children: [
             Text(
               '${current + 1} of $total',
-              style: AppTextStyles.micro(color: AppColors.textSecondary),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary),
             ),
             const Spacer(),
             Text('TAX PLAN',
-                style: AppTextStyles.sectionLabel(
-                  color: AppColors.textSecondary,
+                style: PaycheckType.sectionLabel(
+                  color: PaycheckColors.textSecondary,
                 )),
           ],
         ),
@@ -37,8 +38,8 @@ class QuestionProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 3,
-            backgroundColor: AppColors.surfaceMuted,
-            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+            backgroundColor: PaycheckColors.surfaceMuted,
+            valueColor: const AlwaysStoppedAnimation(PaycheckColors.primary),
           ),
         ),
       ],
@@ -79,10 +80,10 @@ class SelectChip extends StatelessWidget {
             width: fullWidth ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? AppColors.primarySoft : AppColors.bgCard,
+              color: selected ? PaycheckColors.primarySoft : PaycheckColors.bgCard,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: selected ? AppColors.primary : AppColors.border,
+                color: selected ? PaycheckColors.primary : PaycheckColors.border,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -95,16 +96,16 @@ class SelectChip extends StatelessWidget {
                     height: 32,
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.primarySoft
-                          : AppColors.bgSurface,
+                          ? PaycheckColors.primarySoft
+                          : PaycheckColors.bgSurface,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       icon!,
                       size: 18,
                       color: selected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
+                          ? PaycheckColors.primary
+                          : PaycheckColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 11),
@@ -115,10 +116,10 @@ class SelectChip extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.left,
-                    style: AppTextStyles.bodyMedium(
+                    style: PaycheckType.bodyMedium(
                       color: selected
-                          ? AppColors.primaryDark
-                          : AppColors.textPrimary,
+                          ? PaycheckColors.primaryDark
+                          : PaycheckColors.textPrimary,
                     ),
                   ),
                 ),
@@ -126,7 +127,7 @@ class SelectChip extends StatelessWidget {
                 Icon(
                   selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   size: 19,
-                  color: selected ? AppColors.primary : AppColors.border,
+                  color: selected ? PaycheckColors.primary : PaycheckColors.border,
                 ),
               ],
             ),
@@ -165,11 +166,11 @@ class MultiSelectChip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.gold.withValues(alpha: 0.10)
-                  : AppColors.bgCard,
+                  ? PaycheckColors.gold.withValues(alpha: 0.10)
+                  : PaycheckColors.bgCard,
               borderRadius: AppRadius.card,
               border: Border.all(
-                color: selected ? AppColors.gold : AppColors.border,
+                color: selected ? PaycheckColors.gold : PaycheckColors.border,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -181,14 +182,14 @@ class MultiSelectChip extends StatelessWidget {
                       ? Icons.check_box_rounded
                       : Icons.check_box_outline_blank_rounded,
                   size: 16,
-                  color: selected ? AppColors.gold : AppColors.textMuted,
+                  color: selected ? PaycheckColors.gold : PaycheckColors.textMuted,
                 ),
                 const SizedBox(width: 7),
                 Flexible(
                   child: Text(
                     label,
-                    style: AppTextStyles.caption(
-                      color: selected ? AppColors.gold : AppColors.textPrimary,
+                    style: PaycheckType.caption(
+                      color: selected ? PaycheckColors.gold : PaycheckColors.textPrimary,
                     ),
                   ),
                 ),
@@ -222,21 +223,21 @@ class ArthAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       elevation: 0,
       leading: showBack
           ? IconButton(
               icon: const Icon(
                 Icons.arrow_back_ios_rounded,
                 size: 20,
-                color: AppColors.textPrimary,
+                color: PaycheckColors.textPrimary,
               ),
               onPressed: onBack ?? () => Navigator.of(context).pop(),
             )
           : null,
       title: Text(
         title,
-        style: AppTextStyles.bodyMedium(color: AppColors.textPrimary),
+        style: PaycheckType.bodyMedium(color: PaycheckColors.textPrimary),
       ),
       centerTitle: true,
       actions: actions,

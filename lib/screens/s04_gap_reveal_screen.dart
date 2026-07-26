@@ -7,6 +7,7 @@ import '../models/gap_card.dart';
 import '../models/tax_result.dart';
 import '../providers/tax_result_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -103,7 +104,7 @@ class _TaxCockpit extends StatelessWidget {
                   tooltip: 'Back to tax planning',
                   onPressed: () => context.go('/tax-plan'),
                   icon: const Icon(Icons.arrow_back_rounded),
-                  color: AppColors.textSecondary,
+                  color: PaycheckColors.textSecondary,
                 )
               : null,
           actions: [
@@ -111,7 +112,7 @@ class _TaxCockpit extends StatelessWidget {
               tooltip: 'Share',
               onPressed: () => context.push('/share'),
               icon: const Icon(Icons.ios_share_rounded, size: 20),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
             if (paycheckMode)
               TextButton(
@@ -141,7 +142,7 @@ class _TaxCockpit extends StatelessWidget {
                         value: '${result.gapCount - doneCount}',
                         helper: '$doneCount completed',
                         icon: Icons.radar_rounded,
-                        color: AppColors.amber,
+                        color: PaycheckColors.amber,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -151,7 +152,7 @@ class _TaxCockpit extends StatelessWidget {
                         value: 'Cloud',
                         helper: 'Profile saved',
                         icon: Icons.cloud_done_rounded,
-                        color: AppColors.teal,
+                        color: PaycheckColors.teal,
                       ),
                     ),
                   ],
@@ -197,7 +198,7 @@ class _HeroCockpitCard extends StatelessWidget {
     return PremiumGlassPanel(
       elevated: true,
       padding: const EdgeInsets.all(22),
-      tint: AppColors.gold,
+      tint: PaycheckColors.gold,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -221,7 +222,7 @@ class _HeroCockpitCard extends StatelessWidget {
             hasGap
                 ? 'Potential deduction opportunity'
                 : 'Your profile looks tight',
-            style: AppTextStyles.body(color: AppColors.textSecondary),
+            style: PaycheckType.body(color: PaycheckColors.textSecondary),
           ),
           const SizedBox(height: 12),
           FittedBox(
@@ -230,7 +231,7 @@ class _HeroCockpitCard extends StatelessWidget {
             child: AnimatedRupeeNumber(
               value: result.deductionOpportunity,
               duration: const Duration(milliseconds: 1400),
-              style: AppTextStyles.display(),
+              style: PaycheckType.display(color: PaycheckColors.gold),
             ),
           ),
           const SizedBox(height: 12),
@@ -238,13 +239,13 @@ class _HeroCockpitCard extends StatelessWidget {
             hasGap
                 ? '${result.gapCount} opportunities ranked by impact. Estimated tax benefit: ${formatRupeesCompact(result.estimatedTaxBenefit)}.'
                 : 'Keep documents ready and re-check when income changes.',
-            style: AppTextStyles.body(color: AppColors.textSecondary),
+            style: PaycheckType.body(color: PaycheckColors.textSecondary),
           ),
           if (result.assumptions.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               '${result.assumptions.length} calculation assumption${result.assumptions.length == 1 ? '' : 's'} active. Add exact inputs to tighten the result.',
-              style: AppTextStyles.micro(color: AppColors.amber),
+              style: PaycheckType.micro(color: PaycheckColors.amber),
             ),
           ],
           const SizedBox(height: 20),
@@ -252,12 +253,12 @@ class _HeroCockpitCard extends StatelessWidget {
             children: [
               Text(
                 'Action progress',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
               const Spacer(),
               Text(
                 '${(progress * 100).round()}%',
-                style: AppTextStyles.micro(color: AppColors.success)
+                style: PaycheckType.micro(color: PaycheckColors.success)
                     .copyWith(fontWeight: FontWeight.w700),
               ),
             ],
@@ -268,9 +269,9 @@ class _HeroCockpitCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 7,
-              backgroundColor: AppColors.bgSurface,
+              backgroundColor: PaycheckColors.bgSurface,
               valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.success,
+                PaycheckColors.success,
               ),
             ),
           ),
@@ -302,15 +303,15 @@ class _NextActionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('NEXT BEST ACTION', style: AppTextStyles.sectionLabel()),
+          Text('NEXT BEST ACTION', style: PaycheckType.sectionLabel()),
           const SizedBox(height: 10),
-          Text(gap.title, style: AppTextStyles.h2()),
+          Text(gap.title, style: PaycheckType.h2()),
           const SizedBox(height: 8),
           Text(
             gap.message,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.body(color: AppColors.textSecondary),
+            style: PaycheckType.body(color: PaycheckColors.textSecondary),
           ),
           const SizedBox(height: 16),
           Row(
@@ -320,7 +321,7 @@ class _NextActionCard extends StatelessWidget {
                   'Opportunity ${formatRupees(gap.gapAmount)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.h3(color: AppColors.gold),
+                  style: PaycheckType.h3(color: PaycheckColors.gold),
                 ),
               ),
               ElevatedButton(
@@ -347,19 +348,19 @@ class _RegimeInsightCard extends StatelessWidget {
     return PremiumGlassPanel(
       child: Row(
         children: [
-          const Icon(Icons.compare_arrows_rounded, color: AppColors.info),
+          const Icon(Icons.compare_arrows_rounded, color: PaycheckColors.info),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Best regime today', style: AppTextStyles.micro()),
+                Text('Best regime today', style: PaycheckType.micro()),
                 const SizedBox(height: 3),
                 Text(
                   '$regime regime saves ${formatRupeesCompact(result.regimeSavings.round())}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.h3(),
+                  style: PaycheckType.h3(),
                 ),
               ],
             ),
@@ -368,7 +369,7 @@ class _RegimeInsightCard extends StatelessWidget {
             tooltip: 'Compare regimes',
             onPressed: () => context.push('/regime-comparison'),
             icon: const Icon(Icons.arrow_forward_rounded),
-            color: AppColors.gold,
+            color: PaycheckColors.gold,
           ),
         ],
       ),
@@ -393,17 +394,17 @@ class _FutureModuleTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 21),
+          Icon(icon, color: PaycheckColors.textSecondary, size: 21),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.h3()),
+                Text(title, style: PaycheckType.h3()),
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -411,7 +412,7 @@ class _FutureModuleTile extends StatelessWidget {
           const SizedBox(width: 8),
           const Icon(
             Icons.lock_clock_outlined,
-            color: AppColors.info,
+            color: PaycheckColors.info,
             size: 18,
           ),
         ],

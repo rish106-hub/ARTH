@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/tax_result_provider.dart';
 // user_profile_provider not needed here;
 import '../widgets/animated_number.dart';
@@ -54,7 +55,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
     final resultAsync = ref.watch(taxResultProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Share Opportunity'),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
@@ -85,8 +86,8 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                     children: [
                       Text(
                         'Your shareable card',
-                        style: AppTextStyles.caption(
-                          color: AppColors.textSecondary,
+                        style: PaycheckType.caption(
+                          color: PaycheckColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -105,8 +106,8 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
 
                       Text(
                         'Tap Share to post on WhatsApp, Instagram, or LinkedIn.\nNo PAN, no salary — only section names and amounts.',
-                        style: AppTextStyles.micro(
-                          color: AppColors.textSecondary,
+                        style: PaycheckType.micro(
+                          color: PaycheckColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -129,7 +130,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.bgPrimary,
+                              color: PaycheckColors.bgPrimary,
                             ),
                           )
                         : const Icon(Icons.ios_share_rounded, size: 18),
@@ -168,10 +169,10 @@ class _ShareCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        color: PaycheckColors.bgPrimary,
         borderRadius: AppRadius.card,
         border: Border.all(
-          color: AppColors.gold.withValues(alpha: 0.4),
+          color: PaycheckColors.gold.withValues(alpha: 0.4),
           width: 1.5,
         ),
       ),
@@ -182,21 +183,21 @@ class _ShareCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.divider)),
+              border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
             ),
             child: Row(
               children: [
                 Text(
                   'ARTH',
-                  style: AppTextStyles.h3(
-                    color: AppColors.gold,
+                  style: PaycheckType.h3(
+                    color: PaycheckColors.gold,
                   ).copyWith(fontSize: 20, letterSpacing: 0),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Tax Readiness Cockpit',
-                    style: AppTextStyles.micro(color: AppColors.textSecondary),
+                    style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                     textAlign: TextAlign.right,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -214,26 +215,26 @@ class _ShareCard extends StatelessWidget {
               children: [
                 Text(
                   'Deduction opportunities',
-                  style: AppTextStyles.body(color: AppColors.textSecondary),
+                  style: PaycheckType.body(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '₹ ${_fmtFull(totalGap)}',
-                  style: AppTextStyles.display(
-                    color: AppColors.gold,
+                  style: PaycheckType.display(
+                    color: PaycheckColors.gold,
                   ).copyWith(fontSize: 48, height: 1),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   ruleLabel,
-                  style: AppTextStyles.body(color: AppColors.textPrimary),
+                  style: PaycheckType.body(color: PaycheckColors.textPrimary),
                 ),
               ],
             ),
           ),
 
           // Divider
-          Container(height: 1, color: AppColors.divider),
+          Container(height: 1, color: PaycheckColors.divider),
 
           // Section breakdown
           Padding(
@@ -250,23 +251,23 @@ class _ShareCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.bgCard,
+                color: PaycheckColors.bgCard,
                 borderRadius: AppRadius.card,
                 border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.25),
+                  color: PaycheckColors.gold.withValues(alpha: 0.25),
                 ),
               ),
               child: Column(
                 children: [
                   Text(
                     'Build yours →',
-                    style: AppTextStyles.bodyMedium(color: AppColors.gold),
+                    style: PaycheckType.bodyMedium(color: PaycheckColors.gold),
                     textAlign: TextAlign.center,
                   ),
                   Text(
                     'arth-website.vercel.app',
-                    style: AppTextStyles.caption(
-                      color: AppColors.textSecondary,
+                    style: PaycheckType.caption(
+                      color: PaycheckColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -312,15 +313,15 @@ class _ShareItemRow extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withValues(alpha: 0.1),
+                      color: PaycheckColors.gold.withValues(alpha: 0.1),
                       borderRadius: AppRadius.pill,
                       border: Border.all(
-                        color: AppColors.gold.withValues(alpha: 0.3),
+                        color: PaycheckColors.gold.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
                       item.section,
-                      style: AppTextStyles.sectionLabel(),
+                      style: PaycheckType.sectionLabel(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -331,7 +332,7 @@ class _ShareItemRow extends StatelessWidget {
                   compact
                       ? '₹ ${formatRupeesCompact(item.amount)}'
                       : '₹ ${_fmtFull(item.amount)}',
-                  style: AppTextStyles.bodyMedium(color: AppColors.textPrimary),
+                  style: PaycheckType.bodyMedium(color: PaycheckColors.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

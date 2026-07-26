@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/tax_year_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -34,7 +35,7 @@ class HelpCenterScreen extends ConsumerWidget {
               tooltip: 'Back',
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -46,7 +47,7 @@ class HelpCenterScreen extends ConsumerWidget {
                   PremiumGlassPanel(
                     elevated: true,
                     borderRadius: BorderRadius.circular(28),
-                    tint: AppColors.gold,
+                    tint: PaycheckColors.gold,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -55,12 +56,12 @@ class HelpCenterScreen extends ConsumerWidget {
                           label: 'Human support',
                         ),
                         const SizedBox(height: 16),
-                        Text('Need help with ARTH?', style: AppTextStyles.h1()),
+                        Text('Need help with ARTH?', style: PaycheckType.h1()),
                         const SizedBox(height: 8),
                         Text(
                           'Use this for product issues, tax-readiness questions, and data/privacy help. ARTH does not provide official tax filing or legal advice.',
-                          style: AppTextStyles.body(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.body(
+                            color: PaycheckColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -99,13 +100,13 @@ class HelpCenterScreen extends ConsumerWidget {
                             label: 'Contact person',
                             value: _supportName,
                           ),
-                          Divider(color: AppColors.divider),
+                          Divider(color: PaycheckColors.divider),
                           _ContactRow(
                             icon: Icons.mail_outline_rounded,
                             label: 'Email',
                             value: _supportEmail,
                           ),
-                          Divider(color: AppColors.divider),
+                          Divider(color: PaycheckColors.divider),
                           _ContactRow(
                             icon: Icons.call_outlined,
                             label: 'Phone',
@@ -180,19 +181,19 @@ class HelpCenterScreen extends ConsumerWidget {
                             answer:
                                 'No. This version prepares your tax view, checklist, gaps, and handoff readiness.',
                           ),
-                          Divider(color: AppColors.divider, height: 1),
+                          Divider(color: PaycheckColors.divider, height: 1),
                           _FaqTile(
                             question: 'Do I need to add PAN?',
                             answer:
                                 'No. PAN is optional and stays in Profile only. The diagnostic works without it.',
                           ),
-                          Divider(color: AppColors.divider, height: 1),
+                          Divider(color: PaycheckColors.divider, height: 1),
                           _FaqTile(
                             question: 'Are documents uploaded?',
                             answer:
                                 'Only if you choose. ARTH stores supported PDFs/images in an encrypted server vault.',
                           ),
-                          Divider(color: AppColors.divider, height: 1),
+                          Divider(color: PaycheckColors.divider, height: 1),
                           _FaqTile(
                             question: 'What data can I delete?',
                             answer:
@@ -248,15 +249,15 @@ class _ContactRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.gold, size: 20),
+          Icon(icon, color: PaycheckColors.gold, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTextStyles.micro()),
+                Text(label, style: PaycheckType.micro()),
                 const SizedBox(height: 2),
-                Text(value, style: AppTextStyles.bodyMedium()),
+                Text(value, style: PaycheckType.bodyMedium()),
               ],
             ),
           ),
@@ -285,11 +286,11 @@ class _SupportTopic extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.teal),
-        title: Text(title, style: AppTextStyles.bodyMedium()),
+        leading: Icon(icon, color: PaycheckColors.teal),
+        title: Text(title, style: PaycheckType.bodyMedium()),
         subtitle: Text(
           body,
-          style: AppTextStyles.caption(color: AppColors.textSecondary),
+          style: PaycheckType.caption(color: PaycheckColors.textSecondary),
         ),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
@@ -313,16 +314,16 @@ class _FaqTile extends StatelessWidget {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        collapsedIconColor: AppColors.textSecondary,
-        iconColor: AppColors.gold,
-        title: Text(question, style: AppTextStyles.bodyMedium()),
+        collapsedIconColor: PaycheckColors.textSecondary,
+        iconColor: PaycheckColors.gold,
+        title: Text(question, style: PaycheckType.bodyMedium()),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               answer,
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+              style: PaycheckType.caption(color: PaycheckColors.textSecondary),
             ),
           ),
         ],

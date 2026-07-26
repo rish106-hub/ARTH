@@ -3,6 +3,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 class TaxJourneyScene extends StatefulWidget {
   final int step;
@@ -85,11 +86,11 @@ class _TaxJourneySceneState extends State<TaxJourneyScene>
               border: Border.all(
                 color: _showWhy
                     ? widget.accent.withValues(alpha: 0.55)
-                    : AppColors.border,
+                    : PaycheckColors.border,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.06),
+                  color: PaycheckColors.textPrimary.withValues(alpha: 0.06),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -164,7 +165,7 @@ class _ChapterPill extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: AppTextStyles.micro(color: AppColors.textPrimary).copyWith(
+        style: PaycheckType.micro(color: PaycheckColors.textPrimary).copyWith(
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -557,7 +558,7 @@ class _QuestionScenePainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
         text: value,
-        style: AppTextStyles.bodyMedium(
+        style: PaycheckType.bodyMedium(
           color: color,
         ).copyWith(
           fontSize: size,
@@ -610,13 +611,13 @@ class _SnapshotStrip extends StatelessWidget {
                   snapshot.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(color: Colors.white70),
+                  style: PaycheckType.micro(color: Colors.white70),
                 ),
                 Text(
                   snapshot.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.bodyMedium(color: Colors.white),
+                  style: PaycheckType.bodyMedium(color: Colors.white),
                 ),
               ],
             ),
@@ -672,14 +673,14 @@ class _WhyOverlay extends StatelessWidget {
             const Spacer(),
             Text(
               'Why $chapter matters',
-              style: AppTextStyles.h3().copyWith(color: Colors.white),
+              style: PaycheckType.h3().copyWith(color: Colors.white),
             ),
             const SizedBox(height: 7),
             Text(
               helper,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.caption(color: Colors.white70),
+              style: PaycheckType.caption(color: Colors.white70),
             ),
           ],
         ),
@@ -723,7 +724,7 @@ class _SnapshotPanel extends StatelessWidget {
                         chapter.toUpperCase(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.sectionLabel(color: accent)
+                        style: PaycheckType.sectionLabel(color: accent)
                             .copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -737,7 +738,7 @@ class _SnapshotPanel extends StatelessWidget {
                 const Spacer(),
                 Text(
                   snapshot.label,
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 SizedBox(
@@ -750,7 +751,7 @@ class _SnapshotPanel extends StatelessWidget {
                       child: Text(
                         snapshot.value,
                         maxLines: 1,
-                        style: AppTextStyles.h2().copyWith(fontSize: 20),
+                        style: PaycheckType.h2().copyWith(fontSize: 20),
                       ),
                     ),
                   ),
@@ -763,7 +764,7 @@ class _SnapshotPanel extends StatelessWidget {
             width: 102,
             height: 124,
             decoration: const BoxDecoration(
-              color: AppColors.bgSurface,
+              color: PaycheckColors.bgSurface,
               borderRadius: AppRadius.card,
             ),
             child: _StepVisual(
@@ -830,7 +831,7 @@ class _IncomeBars extends StatelessWidget {
         Text(
           '₹',
           style:
-              AppTextStyles.bodyStrong(color: AppColors.textPrimary).copyWith(
+              PaycheckType.bodyStrong(color: PaycheckColors.textPrimary).copyWith(
             fontSize: 25,
           ),
         ),
@@ -861,9 +862,9 @@ class _Bar extends StatelessWidget {
         child: Container(
           height: height,
           decoration: BoxDecoration(
-            color: dark ? AppColors.textPrimary : AppColors.bgCard,
+            color: dark ? PaycheckColors.textPrimary : PaycheckColors.bgCard,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-            border: dark ? null : Border.all(color: AppColors.border),
+            border: dark ? null : Border.all(color: PaycheckColors.border),
           ),
         ),
       );
@@ -883,9 +884,9 @@ class _EmploymentCard extends StatelessWidget {
             height: 88,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
+              color: PaycheckColors.bgCard,
               borderRadius: AppRadius.card,
-              border: Border.all(color: AppColors.textPrimary, width: 1.5),
+              border: Border.all(color: PaycheckColors.textPrimary, width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -895,9 +896,9 @@ class _EmploymentCard extends StatelessWidget {
                   size: 24,
                 ),
                 const Spacer(),
-                Container(height: 5, color: AppColors.textPrimary),
+                Container(height: 5, color: PaycheckColors.textPrimary),
                 const SizedBox(height: 5),
-                Container(width: 32, height: 4, color: AppColors.border),
+                Container(width: 32, height: 4, color: PaycheckColors.border),
               ],
             ),
           ),
@@ -931,8 +932,8 @@ class _CityLine extends StatelessWidget {
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: dark ? AppColors.textPrimary : AppColors.bgCard,
-          border: Border.all(color: AppColors.textPrimary),
+          color: dark ? PaycheckColors.textPrimary : PaycheckColors.bgCard,
+          border: Border.all(color: PaycheckColors.textPrimary),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
         ),
       );
@@ -950,7 +951,7 @@ class _HouseKey extends StatelessWidget {
         children: [
           Icon(Icons.house_outlined,
               size: 74,
-              color: active ? AppColors.textPrimary : AppColors.textMuted),
+              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
           Positioned(
             right: 0,
             bottom: 10,
@@ -958,7 +959,7 @@ class _HouseKey extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: const BoxDecoration(
-                  color: AppColors.textPrimary, shape: BoxShape.circle),
+                  color: PaycheckColors.textPrimary, shape: BoxShape.circle),
               child: Icon(loan ? Icons.percent_rounded : Icons.key_rounded,
                   color: Colors.white, size: 18),
             ),
@@ -982,8 +983,8 @@ class _ReceiptCheck extends StatelessWidget {
               height: 86,
               padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
-                  color: AppColors.bgCard,
-                  border: Border.all(color: AppColors.border)),
+                  color: PaycheckColors.bgCard,
+                  border: Border.all(color: PaycheckColors.border)),
               child: Column(
                   children: List.generate(
                       4,
@@ -992,8 +993,8 @@ class _ReceiptCheck extends StatelessWidget {
                             child: Container(
                                 height: 4,
                                 color: i == 0
-                                    ? AppColors.textPrimary
-                                    : AppColors.border),
+                                    ? PaycheckColors.textPrimary
+                                    : PaycheckColors.border),
                           ))),
             ),
             Positioned(
@@ -1024,14 +1025,14 @@ class _LimitRing extends StatelessWidget {
             value: progress,
             strokeWidth: 9,
             strokeCap: StrokeCap.round,
-            backgroundColor: AppColors.bgCard,
-            color: AppColors.textPrimary,
+            backgroundColor: PaycheckColors.bgCard,
+            color: PaycheckColors.textPrimary,
           ),
         ),
         Text(
           '${(progress * 100).round()}%',
           style:
-              AppTextStyles.bodyStrong(color: AppColors.textPrimary).copyWith(
+              PaycheckType.bodyStrong(color: PaycheckColors.textPrimary).copyWith(
             fontSize: 17,
           ),
         ),
@@ -1051,7 +1052,7 @@ class _CoinStack extends StatelessWidget {
         children: [
           Icon(Icons.savings_outlined,
               size: 48,
-              color: active ? AppColors.textPrimary : AppColors.textMuted),
+              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
           const SizedBox(height: 8),
           ...List.generate(
               3,
@@ -1061,9 +1062,9 @@ class _CoinStack extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 3),
                     decoration: BoxDecoration(
                         color:
-                            i == 0 ? AppColors.textPrimary : AppColors.bgCard,
+                            i == 0 ? PaycheckColors.textPrimary : PaycheckColors.bgCard,
                         borderRadius: AppRadius.pill,
-                        border: Border.all(color: AppColors.textPrimary)),
+                        border: Border.all(color: PaycheckColors.textPrimary)),
                   )),
         ],
       );
@@ -1081,7 +1082,7 @@ class _ShieldCover extends StatelessWidget {
           children: [
             Icon(Icons.shield_outlined,
                 size: 82,
-                color: active ? AppColors.textPrimary : AppColors.textMuted),
+                color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
             const Icon(Icons.add_rounded, size: 30),
           ],
         ),
@@ -1099,11 +1100,11 @@ class _EducationStack extends StatelessWidget {
         children: [
           Icon(Icons.school_outlined,
               size: 49,
-              color: active ? AppColors.textPrimary : AppColors.textMuted),
+              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
           const SizedBox(height: 8),
-          Container(width: 70, height: 9, color: AppColors.textPrimary),
+          Container(width: 70, height: 9, color: PaycheckColors.textPrimary),
           const SizedBox(height: 4),
-          Container(width: 58, height: 8, color: AppColors.bgCard),
+          Container(width: 58, height: 8, color: PaycheckColors.bgCard),
         ],
       );
 }
@@ -1119,16 +1120,16 @@ class _GivingReceipt extends StatelessWidget {
           width: 66,
           height: 94,
           decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              border: Border.all(color: AppColors.textPrimary)),
+              color: PaycheckColors.bgCard,
+              border: Border.all(color: PaycheckColors.textPrimary)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(active ? Icons.favorite : Icons.favorite_border, size: 32),
               const SizedBox(height: 11),
-              Container(width: 36, height: 5, color: AppColors.textPrimary),
+              Container(width: 36, height: 5, color: PaycheckColors.textPrimary),
               const SizedBox(height: 5),
-              Container(width: 26, height: 4, color: AppColors.border),
+              Container(width: 26, height: 4, color: PaycheckColors.border),
             ],
           ),
         ),
@@ -1146,7 +1147,7 @@ class _FinalCheck extends StatelessWidget {
           width: 76,
           height: 76,
           decoration: const BoxDecoration(
-              color: AppColors.textPrimary, shape: BoxShape.circle),
+              color: PaycheckColors.textPrimary, shape: BoxShape.circle),
           child: Icon(icon, color: Colors.white, size: 38),
         ),
       );
@@ -1197,7 +1198,7 @@ class _WhyPanel extends StatelessWidget {
                         'Why $chapter matters',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.h3().copyWith(fontSize: 16),
+                        style: PaycheckType.h3().copyWith(fontSize: 16),
                       ),
                     ),
                     Icon(Icons.close_rounded, size: 17, color: accent),
@@ -1208,8 +1209,8 @@ class _WhyPanel extends StatelessWidget {
                   helper,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(
-                    color: AppColors.textSecondary,
+                  style: PaycheckType.micro(
+                    color: PaycheckColors.textSecondary,
                   ),
                 ),
               ],

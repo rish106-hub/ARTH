@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/tax_result_provider.dart';
 
 class BudgetAlertScreen extends ConsumerWidget {
@@ -13,7 +14,7 @@ class BudgetAlertScreen extends ConsumerWidget {
     return PopScope(
       canPop: false, // Force user to tap CTA — intentional friction
       child: Scaffold(
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: PaycheckColors.bgPrimary,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -35,15 +36,15 @@ class BudgetAlertScreen extends ConsumerWidget {
                         height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.alert.withValues(alpha: 0.12),
+                          color: PaycheckColors.alert.withValues(alpha: 0.12),
                           border: Border.all(
-                            color: AppColors.alert.withValues(alpha: 0.5),
+                            color: PaycheckColors.alert.withValues(alpha: 0.5),
                             width: 1.5,
                           ),
                         ),
                         child: const Icon(
                           Icons.campaign_rounded,
-                          color: AppColors.alert,
+                          color: PaycheckColors.alert,
                           size: 36,
                         ),
                       )
@@ -55,7 +56,7 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       Text(
                         'Planning rules\nare ready for\nFY2026-27.',
-                        style: AppTextStyles.h1().copyWith(
+                        style: PaycheckType.h1().copyWith(
                           fontSize: compact ? 28 : 32,
                           height: 1.2,
                         ),
@@ -69,8 +70,8 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       Text(
                         'ARTH now separates filing-year calculations from planning-year estimates.',
-                        style: AppTextStyles.body(
-                          color: AppColors.textSecondary,
+                        style: PaycheckType.body(
+                          color: PaycheckColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ).animate(delay: 500.ms).fadeIn(duration: 500.ms),
@@ -84,15 +85,15 @@ class BudgetAlertScreen extends ConsumerWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.alert.withValues(alpha: 0.1),
+                          color: PaycheckColors.alert.withValues(alpha: 0.1),
                           borderRadius: AppRadius.pill,
                           border: Border.all(
-                            color: AppColors.alert.withValues(alpha: 0.3),
+                            color: PaycheckColors.alert.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
                           'Finance Act 2026 planning context',
-                          style: AppTextStyles.caption(color: AppColors.alert),
+                          style: PaycheckType.caption(color: PaycheckColors.alert),
                           textAlign: TextAlign.center,
                         ),
                       ).animate(delay: 700.ms).fadeIn(),
@@ -123,7 +124,7 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       Text(
                         'Default diagnostic view uses FY2026-27 / AY2027-28 planning rules.',
-                        style: AppTextStyles.micro(color: AppColors.textMuted),
+                        style: PaycheckType.micro(color: PaycheckColors.textMuted),
                         textAlign: TextAlign.center,
                       ).animate(delay: 1100.ms).fadeIn(),
 

@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../models/tax_rule_set.dart';
 import '../models/tax_result.dart';
 import '../providers/tax_result_provider.dart';
@@ -21,7 +22,7 @@ class RegimeComparisonScreen extends ConsumerWidget {
     final resultAsync = ref.watch(taxResultProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: const ArthAppBar(title: 'Old vs New Regime'),
       body: resultAsync.when(
         loading: () => const ArthLoadingPanel(
@@ -63,12 +64,12 @@ class _RegimeContent extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Based on your profile:',
-                style: AppTextStyles.caption(color: AppColors.textSecondary),
+                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
                 '${result.betterRegimeLabel} saves you more money.',
-                style: AppTextStyles.h2(color: AppColors.gold),
+                style: PaycheckType.h2(color: PaycheckColors.gold),
               ),
               const SizedBox(height: 24),
               (useStackedCards
@@ -144,9 +145,9 @@ class _RegimeContent extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.bgCard,
+                  color: PaycheckColors.bgCard,
                   borderRadius: AppRadius.card,
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: PaycheckColors.border),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +155,7 @@ class _RegimeContent extends StatelessWidget {
                     const Icon(
                       Icons.info_outline_rounded,
                       size: 14,
-                      color: AppColors.textSecondary,
+                      color: PaycheckColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -162,8 +163,8 @@ class _RegimeContent extends StatelessWidget {
                         result.isOldBetter
                             ? 'This comparison uses amounts you entered plus modeled rent/HRA. Health-insurance and bank-interest deductions are not auto-applied without rupee inputs.'
                             : 'This comparison is conservative: it uses entered amounts plus modeled rent/HRA, and does not auto-claim insurance or bank-interest deductions.',
-                        style: AppTextStyles.micro(
-                          color: AppColors.textSecondary,
+                        style: PaycheckType.micro(
+                          color: PaycheckColors.textSecondary,
                         ),
                       ),
                     ),
@@ -194,11 +195,11 @@ class _RegimeContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('General Guidance by Income', style: AppTextStyles.h3()),
+              Text('General Guidance by Income', style: PaycheckType.h3()),
               const SizedBox(height: 12),
               const _IncomeGuidance(),
               const SizedBox(height: 24),
-              Text('Old Regime Deduction Stack', style: AppTextStyles.h3()),
+              Text('Old Regime Deduction Stack', style: PaycheckType.h3()),
               const SizedBox(height: 12),
               _DeductionBreakdown(result: result),
             ],
@@ -219,14 +220,14 @@ class _AssumptionsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.amber.withValues(alpha: 0.08),
+        color: PaycheckColors.amber.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
+        border: Border.all(color: PaycheckColors.amber.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Calculation assumptions', style: AppTextStyles.h3()),
+          Text('Calculation assumptions', style: PaycheckType.h3()),
           const SizedBox(height: 8),
           ...assumptions.take(4).map(
             (item) {
@@ -236,13 +237,13 @@ class _AssumptionsPanel extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: caution
-                      ? AppColors.amber.withValues(alpha: 0.10)
-                      : AppColors.bgSurface.withValues(alpha: 0.55),
+                      ? PaycheckColors.amber.withValues(alpha: 0.10)
+                      : PaycheckColors.bgSurface.withValues(alpha: 0.55),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
                     color: caution
-                        ? AppColors.amber.withValues(alpha: 0.32)
-                        : AppColors.border,
+                        ? PaycheckColors.amber.withValues(alpha: 0.32)
+                        : PaycheckColors.border,
                   ),
                 ),
                 child: Row(
@@ -253,16 +254,16 @@ class _AssumptionsPanel extends StatelessWidget {
                           ? Icons.warning_amber_rounded
                           : Icons.info_outline_rounded,
                       size: 15,
-                      color: caution ? AppColors.amber : AppColors.textMuted,
+                      color: caution ? PaycheckColors.amber : PaycheckColors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${item.title}: ${item.detail}',
-                        style: AppTextStyles.micro(
+                        style: PaycheckType.micro(
                           color: caution
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary,
+                              ? PaycheckColors.textPrimary
+                              : PaycheckColors.textSecondary,
                         ),
                       ),
                     ),
@@ -274,7 +275,7 @@ class _AssumptionsPanel extends StatelessWidget {
           if (assumptions.length > 4)
             Text(
               '+${assumptions.length - 4} more assumption${assumptions.length - 4 == 1 ? '' : 's'} affect this estimate.',
-              style: AppTextStyles.micro(color: AppColors.textSecondary),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary),
             ),
         ],
       ),
@@ -306,16 +307,16 @@ class _RegimeCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
         border: Border.all(
-          color: isBetter ? AppColors.gold : AppColors.border,
+          color: isBetter ? PaycheckColors.gold : PaycheckColors.border,
           width: isBetter ? 1.5 : 1,
         ),
         boxShadow: isBetter
             ? [
                 BoxShadow(
-                  color: AppColors.gold.withValues(alpha: 0.08),
+                  color: PaycheckColors.gold.withValues(alpha: 0.08),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -330,8 +331,8 @@ class _RegimeCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: isBetter
-                  ? AppColors.gold.withValues(alpha: 0.1)
-                  : AppColors.bgSurface,
+                  ? PaycheckColors.gold.withValues(alpha: 0.1)
+                  : PaycheckColors.bgSurface,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
@@ -340,15 +341,15 @@ class _RegimeCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppTextStyles.caption(
-                    color: isBetter ? AppColors.gold : AppColors.textSecondary,
+                  style: PaycheckType.caption(
+                    color: isBetter ? PaycheckColors.gold : PaycheckColors.textSecondary,
                   ),
                 ),
                 if (isBetter) ...[
                   const SizedBox(height: 2),
                   Text(
                     'Better for you',
-                    style: AppTextStyles.micro(color: AppColors.gold),
+                    style: PaycheckType.micro(color: PaycheckColors.gold),
                   ),
                 ],
               ],
@@ -361,13 +362,13 @@ class _RegimeCard extends StatelessWidget {
               children: [
                 Text(
                   'Tax payable',
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 AnimatedRupeeNumber(
                   value: tax.round(),
-                  style: AppTextStyles.h2(
-                    color: isBetter ? AppColors.success : AppColors.textPrimary,
+                  style: PaycheckType.h2(
+                    color: isBetter ? PaycheckColors.success : PaycheckColors.textPrimary,
                   ),
                   duration: const Duration(milliseconds: 1200),
                 ),
@@ -384,20 +385,20 @@ class _RegimeCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
+                      color: PaycheckColors.success.withValues(alpha: 0.1),
                       borderRadius: AppRadius.pill,
                     ),
                     child: Column(
                       children: [
                         Text(
                           'Save more by',
-                          style: AppTextStyles.micro(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.micro(
+                            color: PaycheckColors.textSecondary,
                           ),
                         ),
                         RupeeText(
                           amount: savings!.round(),
-                          style: AppTextStyles.h3(color: AppColors.success),
+                          style: PaycheckType.h3(color: PaycheckColors.success),
                         ),
                       ],
                     ),
@@ -423,13 +424,13 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Text(label, style: AppTextStyles.micro(), softWrap: true),
+          child: Text(label, style: PaycheckType.micro(), softWrap: true),
         ),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
             formatRupeesCompact(value),
-            style: AppTextStyles.micro(color: AppColors.textPrimary),
+            style: PaycheckType.micro(color: PaycheckColors.textPrimary),
             textAlign: TextAlign.right,
             overflow: TextOverflow.ellipsis,
           ),
@@ -458,21 +459,21 @@ class _SavingsCallout extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.gold.withValues(alpha: 0.1),
-            AppColors.gold.withValues(alpha: 0.03),
+            PaycheckColors.gold.withValues(alpha: 0.1),
+            PaycheckColors.gold.withValues(alpha: 0.03),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.lightbulb_outline_rounded,
-            color: AppColors.gold,
+            color: PaycheckColors.gold,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -482,20 +483,20 @@ class _SavingsCallout extends StatelessWidget {
               children: [
                 Text(
                   '$betterRegime saves you',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 Text(
                   formatRupeesCompact(savings.round()),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: (isCompact
-                          ? AppTextStyles.h3(color: AppColors.gold)
-                          : AppTextStyles.h2(color: AppColors.gold))
+                          ? PaycheckType.h3(color: PaycheckColors.gold)
+                          : PaycheckType.h2(color: PaycheckColors.gold))
                       .copyWith(height: 1.1),
                 ),
                 Text(
                   'more every year.',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -527,21 +528,21 @@ class _DeductionBreakdown extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: const BoxDecoration(
-          color: AppColors.bgCard,
+          color: PaycheckColors.bgCard,
           borderRadius: AppRadius.card,
         ),
         child: Text(
           'No gaps found in old regime deductions.',
-          style: AppTextStyles.caption(color: AppColors.textSecondary),
+          style: PaycheckType.caption(color: PaycheckColors.textSecondary),
         ),
       );
     }
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(
         children: items
@@ -549,7 +550,7 @@ class _DeductionBreakdown extends StatelessWidget {
               (item) => Column(
                 children: [
                   item,
-                  const Divider(height: 1, color: AppColors.divider),
+                  const Divider(height: 1, color: PaycheckColors.divider),
                 ],
               ),
             )
@@ -580,14 +581,14 @@ class _DeductionRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.1),
+              color: PaycheckColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
-            child: Text(section, style: AppTextStyles.sectionLabel()),
+            child: Text(section, style: PaycheckType.sectionLabel()),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(label, style: AppTextStyles.caption(), softWrap: true),
+            child: Text(label, style: PaycheckType.caption(), softWrap: true),
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -595,7 +596,7 @@ class _DeductionRow extends StatelessWidget {
               formatRupeesCompact(amount),
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.caption(color: AppColors.gold),
+              style: PaycheckType.caption(color: PaycheckColors.gold),
             ),
           ),
         ],
@@ -612,25 +613,25 @@ class _IncomeGuidance extends StatelessWidget {
       range: 'Up to ₹12.75L salary',
       rec: 'New Regime',
       reason: 'Rebate plus standard deduction can make tax zero',
-      color: AppColors.success,
+      color: PaycheckColors.success,
     ),
     _GuidanceItem(
       range: '₹12.75L – ₹24L',
       rec: 'Usually New',
       reason: 'Lower slabs help unless old-regime deductions are strong',
-      color: AppColors.success,
+      color: PaycheckColors.success,
     ),
     _GuidanceItem(
       range: '₹24L – ₹50L',
       rec: 'Compare both',
       reason: 'Old can win with HRA, 80C, NPS, insurance, or home loan',
-      color: AppColors.gold,
+      color: PaycheckColors.gold,
     ),
     _GuidanceItem(
       range: 'Above ₹50L',
       rec: 'Consult CA',
       reason: 'Surcharge impact matters',
-      color: AppColors.textSecondary,
+      color: PaycheckColors.textSecondary,
     ),
   ];
 
@@ -638,9 +639,9 @@ class _IncomeGuidance extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(
         children: _items.map((item) => _GuidanceRow(item: item)).toList(),
@@ -672,13 +673,13 @@ class _GuidanceRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.divider)),
+        border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
       ),
       child: isCompact
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.range, style: AppTextStyles.caption()),
+                Text(item.range, style: PaycheckType.caption()),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -695,10 +696,10 @@ class _GuidanceRow extends StatelessWidget {
                       ),
                       child: Text(
                         item.rec,
-                        style: AppTextStyles.micro(color: item.color),
+                        style: PaycheckType.micro(color: item.color),
                       ),
                     ),
-                    Text(item.reason, style: AppTextStyles.micro()),
+                    Text(item.reason, style: PaycheckType.micro()),
                   ],
                 ),
               ],
@@ -707,7 +708,7 @@ class _GuidanceRow extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 3,
-                  child: Text(item.range, style: AppTextStyles.caption()),
+                  child: Text(item.range, style: PaycheckType.caption()),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -720,7 +721,7 @@ class _GuidanceRow extends StatelessWidget {
                   ),
                   child: Text(
                     item.rec,
-                    style: AppTextStyles.micro(color: item.color),
+                    style: PaycheckType.micro(color: item.color),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -728,7 +729,7 @@ class _GuidanceRow extends StatelessWidget {
                   flex: 3,
                   child: Text(
                     item.reason,
-                    style: AppTextStyles.micro(),
+                    style: PaycheckType.micro(),
                     textAlign: TextAlign.right,
                   ),
                 ),

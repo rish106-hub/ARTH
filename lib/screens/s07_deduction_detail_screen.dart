@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../models/gap_card.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
@@ -23,7 +24,7 @@ class DeductionDetailScreen extends ConsumerWidget {
         .round();
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: ArthAppBar(title: gap.section),
       body: SingleChildScrollView(
         child: Column(
@@ -38,21 +39,21 @@ class DeductionDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Section code + title
-                  Text(gap.title, style: AppTextStyles.h2()),
+                  Text(gap.title, style: PaycheckType.h2()),
                   const SizedBox(height: 4),
                   Text(
                     gap.shortDesc,
-                    style: AppTextStyles.caption(
-                      color: AppColors.textSecondary,
+                    style: PaycheckType.caption(
+                      color: PaycheckColors.textSecondary,
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
                   // Plain English explanation
-                  Text('What is this?', style: AppTextStyles.h3()),
+                  Text('What is this?', style: PaycheckType.h3()),
                   const SizedBox(height: 8),
-                  Text(gap.message, style: AppTextStyles.body()),
+                  Text(gap.message, style: PaycheckType.body()),
 
                   const SizedBox(height: 20),
 
@@ -71,7 +72,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                         child: _MetricCard(
                           label: 'Tax saved if you act',
                           value: taxSaved,
-                          color: AppColors.success,
+                          color: PaycheckColors.success,
                         ),
                       ),
                     ],
@@ -85,7 +86,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // Actions
-                  Text('Take Action', style: AppTextStyles.h3()),
+                  Text('Take Action', style: PaycheckType.h3()),
                   const SizedBox(height: 12),
                   ...gap.actions.map(
                     (action) => _ActionButton(
@@ -102,18 +103,18 @@ class DeductionDetailScreen extends ConsumerWidget {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDone
-                            ? AppColors.bgSurface
-                            : AppColors.success.withValues(alpha: 0.15),
+                            ? PaycheckColors.bgSurface
+                            : PaycheckColors.success.withValues(alpha: 0.15),
                         foregroundColor: isDone
-                            ? AppColors.textSecondary
-                            : AppColors.success,
+                            ? PaycheckColors.textSecondary
+                            : PaycheckColors.success,
                         elevation: 0,
                         shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(
                           color: isDone
-                              ? AppColors.border
-                              : AppColors.success.withValues(alpha: 0.5),
+                              ? PaycheckColors.border
+                              : PaycheckColors.success.withValues(alpha: 0.5),
                         ),
                       ),
                       onPressed: () {
@@ -123,11 +124,11 @@ class DeductionDetailScreen extends ConsumerWidget {
                             SnackBar(
                               content: Text(
                                 'Marked done. Gap recalculated.',
-                                style: AppTextStyles.caption(
-                                  color: AppColors.textPrimary,
+                                style: PaycheckType.caption(
+                                  color: PaycheckColors.textPrimary,
                                 ),
                               ),
-                              backgroundColor: AppColors.bgCard,
+                              backgroundColor: PaycheckColors.bgCard,
                               duration: const Duration(seconds: 2),
                             ),
                           );
@@ -149,7 +150,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   Center(
                     child: Text(
                       'Modeled with ARTH versioned tax rules. Confirm proof eligibility before filing.',
-                      style: AppTextStyles.micro(color: AppColors.textMuted),
+                      style: PaycheckType.micro(color: PaycheckColors.textMuted),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -176,7 +177,7 @@ class _HeroBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         border: Border(
           bottom: BorderSide(color: gap.accentColor.withValues(alpha: 0.3)),
           top: BorderSide(color: gap.accentColor, width: 3),
@@ -205,7 +206,7 @@ class _HeroBanner extends StatelessWidget {
                     gap.section,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.sectionLabel(color: gap.accentColor),
+                    style: PaycheckType.sectionLabel(color: gap.accentColor),
                   ),
                 ),
               ),
@@ -217,7 +218,7 @@ class _HeroBanner extends StatelessWidget {
                     Icon(
                       gap.difficultyIcon,
                       size: 14,
-                      color: AppColors.textSecondary,
+                      color: PaycheckColors.textSecondary,
                     ),
                     const SizedBox(width: 4),
                     Flexible(
@@ -225,8 +226,8 @@ class _HeroBanner extends StatelessWidget {
                         gap.difficultyLabel,
                         softWrap: true,
                         textAlign: TextAlign.right,
-                        style: AppTextStyles.micro(
-                          color: AppColors.textSecondary,
+                        style: PaycheckType.micro(
+                          color: PaycheckColors.textSecondary,
                         ),
                       ),
                     ),
@@ -238,15 +239,15 @@ class _HeroBanner extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             isDone ? 'Marked as addressed' : 'Deduction opportunity',
-            style: AppTextStyles.caption(
-              color: isDone ? AppColors.success : AppColors.textSecondary,
+            style: PaycheckType.caption(
+              color: isDone ? PaycheckColors.success : PaycheckColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
           AnimatedRupeeNumber(
             value: gap.gapAmount,
-            style: AppTextStyles.display(
-              color: isDone ? AppColors.success : gap.accentColor,
+            style: PaycheckType.display(
+              color: isDone ? PaycheckColors.success : gap.accentColor,
             ).copyWith(fontSize: 52, height: 1),
             duration: const Duration(milliseconds: 1200),
           ),
@@ -256,7 +257,7 @@ class _HeroBanner extends StatelessWidget {
               const Icon(
                 Icons.calendar_today_outlined,
                 size: 12,
-                color: AppColors.textSecondary,
+                color: PaycheckColors.textSecondary,
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -264,7 +265,7 @@ class _HeroBanner extends StatelessWidget {
                   'Deadline: ${gap.deadline}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro(),
+                  style: PaycheckType.micro(),
                 ),
               ),
             ],
@@ -298,11 +299,11 @@ class _MetricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.micro()),
+          Text(label, style: PaycheckType.micro()),
           const SizedBox(height: 4),
           RupeeText(
             amount: value,
-            style: AppTextStyles.h3(color: color),
+            style: PaycheckType.h3(color: color),
           ),
         ],
       ),
@@ -322,7 +323,7 @@ class _DetailSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Key Points', style: AppTextStyles.h3()),
+        Text('Key Points', style: PaycheckType.h3()),
         const SizedBox(height: 10),
         ...details.map(
           (d) => Padding(
@@ -330,8 +331,8 @@ class _DetailSection extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('•  ', style: AppTextStyles.body(color: AppColors.gold)),
-                Expanded(child: Text(d, style: AppTextStyles.body())),
+                Text('•  ', style: PaycheckType.body(color: PaycheckColors.gold)),
+                Expanded(child: Text(d, style: PaycheckType.body())),
               ],
             ),
           ),

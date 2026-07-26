@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 class RetryErrorState extends StatelessWidget {
   final String message;
@@ -24,13 +24,13 @@ class RetryErrorState extends StatelessWidget {
             children: [
               const Icon(
                 Icons.cloud_off_rounded,
-                color: AppColors.gold,
+                color: PaycheckColors.gold,
                 size: 32,
               ),
               const SizedBox(height: 14),
               Text(
                 message,
-                style: AppTextStyles.body(color: AppColors.textPrimary),
+                style: PaycheckType.body(color: PaycheckColors.textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -41,8 +41,8 @@ class RetryErrorState extends StatelessWidget {
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Retry'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.gold,
-                    side: const BorderSide(color: AppColors.gold),
+                    foregroundColor: PaycheckColors.gold,
+                    side: const BorderSide(color: PaycheckColors.gold),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

@@ -6,7 +6,7 @@ import '../models/tax_readiness.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -37,7 +37,7 @@ class TaxDossierScreen extends ConsumerWidget {
               tooltip: 'Back',
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -69,7 +69,7 @@ class TaxDossierScreen extends ConsumerWidget {
                           PremiumGlassPanel(
                             elevated: true,
                             borderRadius: BorderRadius.circular(28),
-                            tint: AppColors.gold,
+                            tint: PaycheckColors.gold,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -80,13 +80,13 @@ class TaxDossierScreen extends ConsumerWidget {
                                 const SizedBox(height: 16),
                                 Text(
                                   'Tax Readiness Dossier',
-                                  style: AppTextStyles.h1(),
+                                  style: PaycheckType.h1(),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'A single view of your income profile, regime insight, missing proofs, and filing handoff readiness.',
-                                  style: AppTextStyles.body(
-                                    color: AppColors.textSecondary,
+                                  style: PaycheckType.body(
+                                    color: PaycheckColors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 14),
@@ -115,7 +115,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                   helper:
                                       '$readyDocs/${taxDocumentItems.length} ready',
                                   icon: Icons.folder_copy_outlined,
-                                  color: AppColors.teal,
+                                  color: PaycheckColors.teal,
                                 ),
                               ),
                             ],
@@ -129,8 +129,8 @@ class TaxDossierScreen extends ConsumerWidget {
                                 : '${result.assumptions.length} assumption notes',
                             icon: Icons.verified_outlined,
                             color: result.confidenceScore >= 85
-                                ? AppColors.success
-                                : AppColors.gold,
+                                ? PaycheckColors.success
+                                : PaycheckColors.gold,
                           ),
                           const SizedBox(height: 20),
                           ArthSection(
@@ -144,7 +144,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                     body:
                                         '${result.ruleSetLabel}, ${result.assessmentYear}.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _DossierRow(
                                     icon: Icons.verified_outlined,
                                     title: 'Accuracy',
@@ -152,28 +152,28 @@ class TaxDossierScreen extends ConsumerWidget {
                                         ? 'High-confidence calculation based on the current profile inputs.'
                                         : '${result.confidenceLabel}. ARTH is still using assumptions for ${result.assumptions.first.title.toLowerCase()}.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _DossierRow(
                                     icon: Icons.person_outline_rounded,
                                     title: 'Income profile',
                                     body:
                                         '${profile.employmentType.name}, ${formatRupeesCompact(profile.annualCTC)} CTC, ${profile.city}',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _DossierRow(
                                     icon: Icons.compare_arrows_rounded,
                                     title: 'Regime insight',
                                     body:
                                         '${result.betterRegime.name} regime currently looks better by ${formatRupeesCompact(result.regimeSavings.round())}.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _DossierRow(
                                     icon: Icons.folder_copy_outlined,
                                     title: 'Proof readiness',
                                     body:
                                         '$readyDocs documents ready · $docPercent% complete.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   const _DossierRow(
                                     icon: Icons.verified_outlined,
                                     title: 'Filing handoff',
@@ -296,17 +296,17 @@ class _DossierRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.gold, size: 20),
+          Icon(icon, color: PaycheckColors.gold, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -336,11 +336,11 @@ class _DossierAction extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.teal),
-        title: Text(title, style: AppTextStyles.bodyMedium()),
+        leading: Icon(icon, color: PaycheckColors.teal),
+        title: Text(title, style: PaycheckType.bodyMedium()),
         subtitle: Text(
           body,
-          style: AppTextStyles.caption(color: AppColors.textSecondary),
+          style: PaycheckType.caption(color: PaycheckColors.textSecondary),
         ),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,

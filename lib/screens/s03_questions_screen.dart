@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../models/user_profile.dart';
 import '../models/tax_rule_set.dart';
 import '../models/payslip_tax_prefill.dart';
@@ -332,7 +333,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
                           icon: const Icon(
                             Icons.arrow_back_ios_rounded,
                             size: 18,
-                            color: AppColors.textSecondary,
+                            color: PaycheckColors.textSecondary,
                           ),
                           onPressed: _prev,
                           padding: EdgeInsets.zero,
@@ -476,7 +477,7 @@ class _DiagnosticMeta {
         return const _DiagnosticMeta(
           title: 'Income profile',
           helper: 'First, the shape of your income.',
-          color: AppColors.gold,
+          color: PaycheckColors.gold,
         );
       case _QStep.city:
       case _QStep.rent:
@@ -484,7 +485,7 @@ class _DiagnosticMeta {
         return const _DiagnosticMeta(
           title: 'Housing and rent',
           helper: 'Next, where and how you live.',
-          color: AppColors.teal,
+          color: PaycheckColors.teal,
         );
       case _QStep.eightyC:
       case _QStep.homeLoan:
@@ -496,13 +497,13 @@ class _DiagnosticMeta {
         return const _DiagnosticMeta(
           title: 'Deductions scan',
           helper: 'Now we check the deductions that apply to you.',
-          color: AppColors.info,
+          color: PaycheckColors.info,
         );
       case _QStep.age:
         return const _DiagnosticMeta(
           title: 'Final checks',
           helper: 'A few final details before the result.',
-          color: AppColors.amber,
+          color: PaycheckColors.amber,
         );
     }
   }
@@ -532,8 +533,8 @@ class _ChapterMarker extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(meta.title,
-                  style: AppTextStyles.sectionLabel(
-                    color: AppColors.textPrimary,
+                  style: PaycheckType.sectionLabel(
+                    color: PaycheckColors.textPrimary,
                   )),
               const SizedBox(height: 4),
               AnimatedSwitcher(
@@ -541,8 +542,8 @@ class _ChapterMarker extends StatelessWidget {
                 child: Text(
                   meta.helper,
                   key: ValueKey(step ~/ 3),
-                  style: AppTextStyles.caption(
-                    color: AppColors.textSecondary,
+                  style: PaycheckType.caption(
+                    color: PaycheckColors.textSecondary,
                   ),
                 ),
               ),
@@ -598,7 +599,7 @@ class _BuildingPlanScreenState extends State<_BuildingPlanScreen>
                   const Spacer(),
                   Text(
                     'Building your first plan.',
-                    style: AppTextStyles.h1().copyWith(fontSize: 40),
+                    style: PaycheckType.h1().copyWith(fontSize: 40),
                   ),
                   const SizedBox(height: 34),
                   _BuildStep(
@@ -641,17 +642,17 @@ class _BuildStep extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: complete ? AppColors.primary : AppColors.surfaceMuted,
+              color: complete ? PaycheckColors.primary : PaycheckColors.surfaceMuted,
               shape: BoxShape.circle,
             ),
             child: Icon(
               complete ? Icons.check_rounded : Icons.more_horiz_rounded,
               size: 17,
-              color: complete ? Colors.white : AppColors.textMuted,
+              color: complete ? Colors.white : PaycheckColors.textMuted,
             ),
           ),
           const SizedBox(width: 14),
-          Text(label, style: AppTextStyles.bodyMedium()),
+          Text(label, style: PaycheckType.bodyMedium()),
         ],
       ),
     );
@@ -701,22 +702,22 @@ class _Q00NameState extends ConsumerState<_Q00Name> {
           hintText: 'Enter your name',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: PaycheckColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: PaycheckColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.gold, width: 2),
+            borderSide: const BorderSide(color: PaycheckColors.gold, width: 2),
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
-        style: AppTextStyles.body(
-          color: AppColors.textPrimary,
+        style: PaycheckType.body(
+          color: PaycheckColors.textPrimary,
         ).copyWith(fontSize: 16),
-        cursorColor: AppColors.gold,
+        cursorColor: PaycheckColors.gold,
       ),
       onNext: widget.onNext,
       canProceed: _textCtrl.text.trim().isNotEmpty,
@@ -772,22 +773,22 @@ class _Q00EmailState extends ConsumerState<_Q00Email> {
           hintText: 'your.email@domain.com',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: PaycheckColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: PaycheckColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.gold, width: 2),
+            borderSide: const BorderSide(color: PaycheckColors.gold, width: 2),
           ),
           contentPadding: const EdgeInsets.all(16),
         ),
-        style: AppTextStyles.body(
-          color: AppColors.textPrimary,
+        style: PaycheckType.body(
+          color: PaycheckColors.textPrimary,
         ).copyWith(fontSize: 16),
-        cursorColor: AppColors.gold,
+        cursorColor: PaycheckColors.gold,
       ),
       onNext: widget.onNext,
       canProceed: _isValidEmail(_textCtrl.text.trim()),
@@ -830,13 +831,13 @@ class _QLayout extends StatelessWidget {
         children: [
           Text(
             question,
-            style: AppTextStyles.h1().copyWith(fontSize: 32, height: 1.08),
+            style: PaycheckType.h1().copyWith(fontSize: 32, height: 1.08),
           ),
           if (microCopy != null) ...[
             const SizedBox(height: 8),
             Text(
               microCopy!,
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+              style: PaycheckType.caption(color: PaycheckColors.textSecondary),
             ),
           ],
           const SizedBox(height: 16),
@@ -906,7 +907,7 @@ class _ResponsiveAmount extends StatelessWidget {
         child: Text(
           value,
           maxLines: 1,
-          style: AppTextStyles.displaySmall(color: AppColors.gold),
+          style: PaycheckType.displaySmall(color: PaycheckColors.gold),
         ),
       ),
     );
@@ -925,16 +926,16 @@ class _PayslipSourceNote extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.08),
+        color: PaycheckColors.success.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+        border: Border.all(color: PaycheckColors.success.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.verified_outlined,
-            color: AppColors.success,
+            color: PaycheckColors.success,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -942,11 +943,11 @@ class _PayslipSourceNote extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 3),
                 Text(
                   detail,
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1075,7 +1076,7 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
                 const SizedBox(height: 6),
                 Text(
                   'Gross Annual Salary (CTC)',
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1087,33 +1088,33 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
           TextField(
             controller: _textCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: AppTextStyles.body(),
+            style: PaycheckType.body(),
             decoration: InputDecoration(
               labelText: 'Enter in Lakhs',
-              labelStyle: AppTextStyles.caption(color: AppColors.textSecondary),
+              labelStyle: PaycheckType.caption(color: PaycheckColors.textSecondary),
               suffixText: 'L',
-              suffixStyle: AppTextStyles.body(color: AppColors.gold),
+              suffixStyle: PaycheckType.body(color: PaycheckColors.gold),
               hintText: '15.0',
-              hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+              hintStyle: PaycheckType.body(color: PaycheckColors.textMuted),
               helperText: 'Type 15 for ₹15 Lakhs  (min ₹1L)',
-              helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
+              helperStyle: PaycheckType.micro(color: PaycheckColors.textMuted),
               filled: true,
-              fillColor: AppColors.bgCard,
+              fillColor: PaycheckColors.bgCard,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: const BorderSide(color: PaycheckColors.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: const BorderSide(color: PaycheckColors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -1139,8 +1140,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('₹1L', style: AppTextStyles.micro()),
-              Text('₹60L', style: AppTextStyles.micro()),
+              Text('₹1L', style: PaycheckType.micro()),
+              Text('₹60L', style: PaycheckType.micro()),
             ],
           ),
 
@@ -1162,16 +1163,16 @@ class _SlabIndicator extends StatelessWidget {
     Color color;
     if (ctcLakhs <= 7.5) {
       bracket = 'New regime: likely zero tax (rebate applies)';
-      color = AppColors.success;
+      color = PaycheckColors.success;
     } else if (ctcLakhs <= 12) {
       bracket = 'New regime: 87A rebate may apply. Compare both regimes.';
-      color = AppColors.teal;
+      color = PaycheckColors.teal;
     } else if (ctcLakhs <= 15) {
       bracket = 'Close call — old vs new regime depends on deductions';
-      color = AppColors.amber;
+      color = PaycheckColors.amber;
     } else {
       bracket = 'Old regime likely better if you have deductions';
-      color = AppColors.gold;
+      color = PaycheckColors.gold;
     }
 
     return Container(
@@ -1186,7 +1187,7 @@ class _SlabIndicator extends StatelessWidget {
           Icon(Icons.lightbulb_outline_rounded, size: 14, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(bracket, style: AppTextStyles.micro(color: color)),
+            child: Text(bracket, style: PaycheckType.micro(color: color)),
           ),
         ],
       ),
@@ -1323,7 +1324,7 @@ class _QRegime extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.07),
+                color: PaycheckColors.gold.withValues(alpha: 0.07),
                 borderRadius: AppRadius.card,
               ),
               child: Text(
@@ -1332,7 +1333,7 @@ class _QRegime extends ConsumerWidget {
                         'skip the deduction questions entirely.'
                     : 'At your income the old regime can still win with strong '
                         'deductions, so we will ask a few targeted questions.',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
             ),
           ],
@@ -1416,28 +1417,28 @@ class _Q03CityState extends ConsumerState<_Q03City> {
         children: [
           TextField(
             controller: _search,
-            style: AppTextStyles.body(),
+            style: PaycheckType.body(),
             decoration: InputDecoration(
               hintText: 'Search city...',
-              hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+              hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
               prefixIcon: const Icon(
                 Icons.search_rounded,
-                color: AppColors.textSecondary,
+                color: PaycheckColors.textSecondary,
                 size: 20,
               ),
               filled: true,
-              fillColor: AppColors.bgCard,
+              fillColor: PaycheckColors.bgCard,
               border: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
               enabledBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
               focusedBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.card,
-                borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: (v) => setState(() => _query = v),
@@ -1465,11 +1466,11 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                   ),
                   decoration: BoxDecoration(
                     color: selected
-                        ? AppColors.gold.withValues(alpha: 0.1)
-                        : AppColors.bgCard,
+                        ? PaycheckColors.gold.withValues(alpha: 0.1)
+                        : PaycheckColors.bgCard,
                     borderRadius: AppRadius.card,
                     border: Border.all(
-                      color: selected ? AppColors.gold : AppColors.border,
+                      color: selected ? PaycheckColors.gold : PaycheckColors.border,
                       width: selected ? 1.5 : 1,
                     ),
                   ),
@@ -1478,10 +1479,10 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                       Expanded(
                         child: Text(
                           city,
-                          style: AppTextStyles.body(
+                          style: PaycheckType.body(
                             color: selected
-                                ? AppColors.gold
-                                : AppColors.textPrimary,
+                                ? PaycheckColors.gold
+                                : PaycheckColors.textPrimary,
                           ),
                         ),
                       ),
@@ -1492,12 +1493,12 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.teal.withValues(alpha: 0.15),
+                            color: PaycheckColors.teal.withValues(alpha: 0.15),
                             borderRadius: AppRadius.pill,
                           ),
                           child: Text(
                             'Metro',
-                            style: AppTextStyles.micro(color: AppColors.teal),
+                            style: PaycheckType.micro(color: PaycheckColors.teal),
                           ),
                         ),
                     ],
@@ -1634,7 +1635,7 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
           ),
           if (_paysRent == true) ...[
             const SizedBox(height: 28),
-            Text('How much rent per month?', style: AppTextStyles.h3()),
+            Text('How much rent per month?', style: PaycheckType.h3()),
             const SizedBox(height: 8),
             Builder(
               builder: (context) {
@@ -1654,36 +1655,36 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: AppTextStyles.body(),
+              style: PaycheckType.body(),
               decoration: InputDecoration(
                 labelText: 'Enter in Thousands',
-                labelStyle: AppTextStyles.caption(
-                  color: AppColors.textSecondary,
+                labelStyle: PaycheckType.caption(
+                  color: PaycheckColors.textSecondary,
                 ),
                 suffixText: 'K / mo',
-                suffixStyle: AppTextStyles.body(color: AppColors.gold),
+                suffixStyle: PaycheckType.body(color: PaycheckColors.gold),
                 hintText: '15',
-                hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+                hintStyle: PaycheckType.body(color: PaycheckColors.textMuted),
                 helperText: 'Type 15 for ₹15,000/month',
-                helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
+                helperStyle: PaycheckType.micro(color: PaycheckColors.textMuted),
                 filled: true,
-                fillColor: AppColors.bgCard,
+                fillColor: PaycheckColors.bgCard,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: PaycheckColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: PaycheckColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(
-                    color: AppColors.gold,
+                    color: PaycheckColors.gold,
                     width: 1.5,
                   ),
                 ),
@@ -1707,8 +1708,8 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('₹1K', style: AppTextStyles.micro()),
-                Text('₹2,00,000', style: AppTextStyles.micro()),
+                Text('₹1K', style: PaycheckType.micro()),
+                Text('₹2,00,000', style: PaycheckType.micro()),
               ],
             ),
           ],
@@ -1770,13 +1771,13 @@ class _Q05HRA extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
+              color: PaycheckColors.bgCard,
               borderRadius: AppRadius.card,
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: PaycheckColors.border),
             ),
             child: Text(
               'If you don\'t receive HRA but pay rent, you may still be able to claim deduction under Section 80GG.',
-              style: AppTextStyles.micro(color: AppColors.textSecondary),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary),
             ),
           ),
         ],
@@ -1874,18 +1875,18 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
               children: [
                 Text(
                   '₹ ${_fmt.format(_invested)} invested',
-                  style: AppTextStyles.h2(color: AppColors.gold),
+                  style: PaycheckType.h2(color: PaycheckColors.gold),
                 ),
                 const SizedBox(height: 4),
                 if (_remaining > 0)
                   Text(
                     '₹ ${_fmt.format(_remaining)} remaining in 80C limit',
-                    style: AppTextStyles.caption(color: AppColors.amber),
+                    style: PaycheckType.caption(color: PaycheckColors.amber),
                   )
                 else
                   Text(
                     '80C fully utilised',
-                    style: AppTextStyles.caption(color: AppColors.success),
+                    style: PaycheckType.caption(color: PaycheckColors.success),
                   ),
               ],
             ),
@@ -1896,33 +1897,33 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
           TextField(
             controller: _textCtrl,
             keyboardType: TextInputType.number,
-            style: AppTextStyles.body(),
+            style: PaycheckType.body(),
             decoration: InputDecoration(
               labelText: 'Enter amount in ₹',
-              labelStyle: AppTextStyles.caption(color: AppColors.textSecondary),
+              labelStyle: PaycheckType.caption(color: PaycheckColors.textSecondary),
               prefixText: '₹ ',
-              prefixStyle: AppTextStyles.body(color: AppColors.gold),
+              prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
               hintText: '1,50,000',
-              hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+              hintStyle: PaycheckType.body(color: PaycheckColors.textMuted),
               helperText: 'Max ₹1,50,000 under 80C',
-              helperStyle: AppTextStyles.micro(color: AppColors.textMuted),
+              helperStyle: PaycheckType.micro(color: PaycheckColors.textMuted),
               filled: true,
-              fillColor: AppColors.bgCard,
+              fillColor: PaycheckColors.bgCard,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: const BorderSide(color: PaycheckColors.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: const BorderSide(color: PaycheckColors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+                borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -1945,8 +1946,8 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('₹0', style: AppTextStyles.micro()),
-              Text('₹1,50,000', style: AppTextStyles.micro()),
+              Text('₹0', style: PaycheckType.micro()),
+              Text('₹1,50,000', style: PaycheckType.micro()),
             ],
           ),
           const SizedBox(height: 16),
@@ -1971,9 +1972,9 @@ class _EightyCBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('80C utilisation', style: AppTextStyles.micro()),
+            Text('80C utilisation', style: PaycheckType.micro()),
             const Spacer(),
-            Text('₹1,50,000 limit', style: AppTextStyles.micro()),
+            Text('₹1,50,000 limit', style: PaycheckType.micro()),
           ],
         ),
         const SizedBox(height: 6),
@@ -1982,9 +1983,9 @@ class _EightyCBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: pct,
             minHeight: 6,
-            backgroundColor: AppColors.bgSurface,
+            backgroundColor: PaycheckColors.bgSurface,
             valueColor: AlwaysStoppedAnimation<Color>(
-              pct >= 1.0 ? AppColors.success : AppColors.gold,
+              pct >= 1.0 ? PaycheckColors.success : PaycheckColors.gold,
             ),
           ),
         ),
@@ -2090,7 +2091,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               const SizedBox(height: 24),
               Text(
                 'Is the property self-occupied or let out?',
-                style: AppTextStyles.h3(),
+                style: PaycheckType.h3(),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2130,7 +2131,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               const SizedBox(height: 20),
               Text(
                 'Annual home loan interest paid?',
-                style: AppTextStyles.h3(),
+                style: PaycheckType.h3(),
               ),
               const SizedBox(height: 8),
               _ResponsiveAmount(
@@ -2140,30 +2141,30 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               TextField(
                 controller: _interestTextCtrl,
                 keyboardType: TextInputType.number,
-                style: AppTextStyles.body(),
+                style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
-                  prefixStyle: AppTextStyles.body(color: AppColors.gold),
+                  prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
-                  fillColor: AppColors.bgCard,
+                  fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: AppColors.gold,
+                      color: PaycheckColors.gold,
                       width: 1.5,
                     ),
                   ),
@@ -2300,10 +2301,10 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withValues(alpha: 0.07),
+                  color: PaycheckColors.gold.withValues(alpha: 0.07),
                   borderRadius: AppRadius.card,
                   border: Border.all(
-                    color: AppColors.gold.withValues(alpha: 0.3),
+                    color: PaycheckColors.gold.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -2311,13 +2312,13 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   children: [
                     Text(
                       'What is NPS?',
-                      style: AppTextStyles.bodyMedium(color: AppColors.gold),
+                      style: PaycheckType.bodyMedium(color: PaycheckColors.gold),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'National Pension System (NPS) is a government-backed retirement savings scheme. Opening an NPS Tier-1 account and contributing ₹50,000/year gives you an EXTRA ₹50,000 deduction under Section 80CCD(1B) — over and above your 80C limit.',
-                      style: AppTextStyles.micro(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.micro(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                   ],
@@ -2328,12 +2329,12 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               const SizedBox(height: 20),
               Text(
                 'How much extra did you contribute beyond 80C?',
-                style: AppTextStyles.h3(),
+                style: PaycheckType.h3(),
               ),
               const SizedBox(height: 4),
               Text(
                 '(Voluntary contribution over and above 80CCE limit)',
-                style: AppTextStyles.micro(),
+                style: PaycheckType.micro(),
               ),
               const SizedBox(height: 12),
               _ResponsiveAmount('₹ ${(_extraK * 1000).round()} extra'),
@@ -2341,30 +2342,30 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               TextField(
                 controller: _npsTextCtrl,
                 keyboardType: TextInputType.number,
-                style: AppTextStyles.body(),
+                style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
-                  prefixStyle: AppTextStyles.body(color: AppColors.gold),
+                  prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
-                  fillColor: AppColors.bgCard,
+                  fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: AppColors.gold,
+                      color: PaycheckColors.gold,
                       width: 1.5,
                     ),
                   ),
@@ -2463,38 +2464,38 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.h3()),
+        Text(label, style: PaycheckType.h3()),
         if (helper != null) ...[
           const SizedBox(height: 4),
           Text(helper,
-              style: AppTextStyles.micro(color: AppColors.textSecondary)),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary)),
         ],
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: AppTextStyles.body(),
+          style: PaycheckType.body(),
           decoration: InputDecoration(
             hintText: 'Annual premium (₹)',
-            hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+            hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
             prefixText: '₹ ',
-            prefixStyle: AppTextStyles.body(color: AppColors.gold),
+            prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
             filled: true,
-            fillColor: AppColors.bgCard,
+            fillColor: PaycheckColors.bgCard,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: PaycheckColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: PaycheckColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+              borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => _update(),
@@ -2513,7 +2514,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Tap to select:', style: AppTextStyles.caption()),
+            Text('Tap to select:', style: PaycheckType.caption()),
             const SizedBox(height: 16),
             Wrap(
               spacing: 10,
@@ -2566,7 +2567,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             ],
             if (_parents) ...[
               const SizedBox(height: 24),
-              Text('Are your parents above 60?', style: AppTextStyles.h3()),
+              Text('Are your parents above 60?', style: PaycheckType.h3()),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -2705,13 +2706,13 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               const SizedBox(height: 24),
               Text(
                 'Which year of repayment are you in?',
-                style: AppTextStyles.h3(),
+                style: PaycheckType.h3(),
               ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
                   'Year ${_year.round()} of 8',
-                  style: AppTextStyles.h2(color: AppColors.gold),
+                  style: PaycheckType.h2(color: PaycheckColors.gold),
                 ),
               ),
               Slider(
@@ -2732,12 +2733,12 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               const SizedBox(height: 16),
               Text(
                 'Approximate annual interest paid?',
-                style: AppTextStyles.h3(),
+                style: PaycheckType.h3(),
               ),
               const SizedBox(height: 4),
               Text(
                 '80E allows full interest deduction — no upper limit!',
-                style: AppTextStyles.micro(color: AppColors.success),
+                style: PaycheckType.micro(color: PaycheckColors.success),
               ),
               const SizedBox(height: 8),
               _ResponsiveAmount('₹ ${(_interestK * 1000).round()} / year'),
@@ -2745,30 +2746,30 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               TextField(
                 controller: _edLoanTextCtrl,
                 keyboardType: TextInputType.number,
-                style: AppTextStyles.body(),
+                style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
-                  prefixStyle: AppTextStyles.body(color: AppColors.gold),
+                  prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
-                  fillColor: AppColors.bgCard,
+                  fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: AppColors.gold,
+                      color: PaycheckColors.gold,
                       width: 1.5,
                     ),
                   ),
@@ -2896,44 +2897,44 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             ),
             if (_hasDonations == true) ...[
               const SizedBox(height: 24),
-              Text('Amount donated', style: AppTextStyles.h3()),
+              Text('Amount donated', style: PaycheckType.h3()),
               const SizedBox(height: 8),
               TextField(
                 controller: _donationTextCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTextStyles.body(),
+                style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
-                  prefixStyle: AppTextStyles.body(color: AppColors.gold),
+                  prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
-                  fillColor: AppColors.bgCard,
+                  fillColor: PaycheckColors.bgCard,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: PaycheckColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide:
-                        const BorderSide(color: AppColors.gold, width: 1.5),
+                        const BorderSide(color: PaycheckColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: (_) => setState(_update),
               ),
               const SizedBox(height: 20),
-              Text('What kind of donation?', style: AppTextStyles.h3()),
+              Text('What kind of donation?', style: PaycheckType.h3()),
               const SizedBox(height: 4),
               Text(
                 'This decides how much is deductible under 80G.',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 12),
               ..._categoryOptions.map(
@@ -2951,7 +2952,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text('How did you pay?', style: AppTextStyles.h3()),
+              Text('How did you pay?', style: PaycheckType.h3()),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -2985,13 +2986,13 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.alert.withValues(alpha: 0.1),
+                    color: PaycheckColors.alert.withValues(alpha: 0.1),
                     borderRadius: AppRadius.card,
                   ),
                   child: Text(
                     'Cash donations above ₹2,000 are not eligible for 80G. '
                     'Pay digitally or by cheque to claim this deduction.',
-                    style: AppTextStyles.micro(color: AppColors.alert),
+                    style: PaycheckType.micro(color: PaycheckColors.alert),
                   ),
                 ),
               ],
@@ -3021,38 +3022,38 @@ class _AmountField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.bodyMedium()),
+        Text(label, style: PaycheckType.bodyMedium()),
         if (helper != null) ...[
           const SizedBox(height: 2),
           Text(helper!,
-              style: AppTextStyles.micro(color: AppColors.textSecondary)),
+              style: PaycheckType.micro(color: PaycheckColors.textSecondary)),
         ],
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: AppTextStyles.body(),
+          style: PaycheckType.body(),
           decoration: InputDecoration(
             hintText: 'Amount (₹)',
-            hintStyle: AppTextStyles.body(color: AppColors.textSecondary),
+            hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
             prefixText: '₹ ',
-            prefixStyle: AppTextStyles.body(color: AppColors.gold),
+            prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
             filled: true,
-            fillColor: AppColors.bgCard,
+            fillColor: PaycheckColors.bgCard,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: PaycheckColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: PaycheckColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
+              borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => onChanged(),
@@ -3154,7 +3155,7 @@ class _QBusinessState extends ConsumerState<_QBusiness> {
               const SizedBox(height: 10),
               Text(
                 'Taxable business income ≈ ₹${NumberFormat('#,##,##0', 'en_IN').format(presumptive)}',
-                style: AppTextStyles.micro(color: AppColors.textSecondary),
+                style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
             ],
           ],
@@ -3295,7 +3296,7 @@ class _QOtherIncomeState extends ConsumerState<_QOtherIncome> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Residential status', style: AppTextStyles.bodyMedium()),
+        Text('Residential status', style: PaycheckType.bodyMedium()),
         const SizedBox(height: 8),
         Wrap(
           children: [
@@ -3372,7 +3373,7 @@ class _QExtraDeductionsState extends ConsumerState<_QExtraDeductions> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppTextStyles.bodyMedium()),
+        Text(title, style: PaycheckType.bodyMedium()),
         const SizedBox(height: 8),
         Wrap(children: [
           chip(DisabilityLevel.none, 'None'),

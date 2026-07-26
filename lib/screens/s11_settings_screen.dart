@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../models/user_profile.dart';
 import '../providers/user_profile_provider.dart';
 import '../providers/tax_result_provider.dart';
@@ -40,7 +41,7 @@ class SettingsScreen extends ConsumerWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.gold.withValues(alpha: 0.06),
+                    PaycheckColors.gold.withValues(alpha: 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -189,14 +190,14 @@ class SettingsScreen extends ConsumerWidget {
                           children: [
                             _PrivacyRow(
                               icon: Icons.cloud_done_rounded,
-                              iconColor: AppColors.teal,
+                              iconColor: PaycheckColors.teal,
                               label: 'Server Sync',
                               description:
                                   'Your data is encrypted and stored securely on ARTH servers.',
                             ),
                             _PrivacyRow(
                               icon: Icons.lock_outline_rounded,
-                              iconColor: AppColors.gold,
+                              iconColor: PaycheckColors.gold,
                               label: 'Encryption',
                               description:
                                   'AES-256 encryption at rest. We never share your data with third parties.',
@@ -211,8 +212,8 @@ class SettingsScreen extends ConsumerWidget {
                           icon: Icons.delete_forever_rounded,
                           label: 'Clear All Data',
                           subtitle: 'Permanently wipe profile and calculations',
-                          iconColor: AppColors.alert,
-                          labelColor: AppColors.alert,
+                          iconColor: PaycheckColors.alert,
+                          labelColor: PaycheckColors.alert,
                           onTap: () => _confirmClear(context, ref),
                         ),
 
@@ -243,7 +244,7 @@ class SettingsScreen extends ConsumerWidget {
         title: 'Sign Out?',
         body: 'This will remove your account from this device.',
         confirmLabel: 'Sign Out',
-        confirmColor: AppColors.alert,
+        confirmColor: PaycheckColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
           await signOutDeviceAndRouteToAuth(context, ref);
@@ -260,7 +261,7 @@ class SettingsScreen extends ConsumerWidget {
         body:
             'Your tax profile and all calculated gaps will be permanently deleted.',
         confirmLabel: 'Clear Data',
-        confirmColor: AppColors.alert,
+        confirmColor: PaycheckColors.alert,
         onConfirm: () async {
           Navigator.pop(ctx);
           HapticFeedback.heavyImpact();
@@ -292,8 +293,8 @@ class _SettingsHeader extends StatelessWidget {
         children: [
           Text(
             'Settings',
-            style: AppTextStyles.h2(
-              color: AppColors.textPrimary,
+            style: PaycheckType.h2(
+              color: PaycheckColors.textPrimary,
             ).copyWith(
               fontSize: compact ? 24 : 26,
               fontWeight: FontWeight.w700,
@@ -303,14 +304,14 @@ class _SettingsHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.12),
+              color: PaycheckColors.gold.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+              border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.3)),
             ),
             child: Text(
               'FY2025-26 Filing',
-              style: AppTextStyles.micro(
-                color: AppColors.gold,
+              style: PaycheckType.micro(
+                color: PaycheckColors.gold,
               ).copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -358,13 +359,13 @@ class _AccountHeroCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.gold.withValues(alpha: 0.12),
+                PaycheckColors.gold.withValues(alpha: 0.12),
                 Colors.white.withValues(alpha: 0.04),
               ],
             ),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppColors.gold.withValues(alpha: 0.3),
+              color: PaycheckColors.gold.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -384,14 +385,14 @@ class _AccountHeroCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [AppColors.gold, Color(0xFFD4A017)],
+                        colors: [PaycheckColors.gold, Color(0xFFD4A017)],
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Text(
                         initials,
-                        style: AppTextStyles.bodyMedium(
+                        style: PaycheckType.bodyMedium(
                           color: Colors.black,
                         ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
@@ -404,16 +405,16 @@ class _AccountHeroCard extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.textPrimary,
+                          style: PaycheckType.bodyMedium(
+                            color: PaycheckColors.textPrimary,
                           ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           account.email,
-                          style: AppTextStyles.caption(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.caption(
+                            color: PaycheckColors.textSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -429,10 +430,10 @@ class _AccountHeroCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.teal.withValues(alpha: 0.15),
+                      color: PaycheckColors.teal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.teal.withValues(alpha: 0.4),
+                        color: PaycheckColors.teal.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Row(
@@ -441,13 +442,13 @@ class _AccountHeroCard extends StatelessWidget {
                         const Icon(
                           Icons.cloud_done_rounded,
                           size: 11,
-                          color: AppColors.teal,
+                          color: PaycheckColors.teal,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Synced',
-                          style: AppTextStyles.caption(
-                            color: AppColors.teal,
+                          style: PaycheckType.caption(
+                            color: PaycheckColors.teal,
                           ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -495,9 +496,9 @@ class _GuestCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Row(
         children: [
@@ -505,13 +506,13 @@ class _GuestCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
+              color: PaycheckColors.bgSurface,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: PaycheckColors.border),
             ),
             child: const Icon(
               Icons.person_outline_rounded,
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
               size: 22,
             ),
           ),
@@ -520,10 +521,10 @@ class _GuestCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Not signed in', style: AppTextStyles.bodyMedium()),
+                Text('Not signed in', style: PaycheckType.bodyMedium()),
                 Text(
                   'Sign in to sync your data',
-                  style: AppTextStyles.micro(color: AppColors.textSecondary),
+                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -558,7 +559,7 @@ class _HeroButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDanger ? AppColors.alert : AppColors.gold;
+    final color = isDanger ? PaycheckColors.alert : PaycheckColors.gold;
     final compact = MediaQuery.sizeOf(context).width < 360;
     return GestureDetector(
       onTap: onTap,
@@ -579,7 +580,7 @@ class _HeroButton extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: AppTextStyles.bodyMedium(
+                  style: PaycheckType.bodyMedium(
                     color: color,
                   ).copyWith(
                     fontSize: compact ? 11 : 12,
@@ -667,13 +668,13 @@ class _SnapCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
       decoration: BoxDecoration(
         color: highlight
-            ? AppColors.gold.withValues(alpha: 0.08)
-            : AppColors.bgCard,
+            ? PaycheckColors.gold.withValues(alpha: 0.08)
+            : PaycheckColors.bgCard,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: highlight
-              ? AppColors.gold.withValues(alpha: 0.3)
-              : AppColors.border,
+              ? PaycheckColors.gold.withValues(alpha: 0.3)
+              : PaycheckColors.border,
         ),
       ),
       child: Column(
@@ -682,20 +683,20 @@ class _SnapCell extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: highlight ? AppColors.gold : AppColors.textSecondary,
+            color: highlight ? PaycheckColors.gold : PaycheckColors.textSecondary,
           ),
           const SizedBox(height: 6),
           Text(
             value,
-            style: AppTextStyles.bodyStrong(
-              color: highlight ? AppColors.gold : AppColors.textPrimary,
+            style: PaycheckType.bodyStrong(
+              color: highlight ? PaycheckColors.gold : PaycheckColors.textPrimary,
             ).copyWith(fontSize: 14),
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: AppTextStyles.micro(color: AppColors.textSecondary),
+            style: PaycheckType.micro(color: PaycheckColors.textSecondary),
           ),
         ],
       ),
@@ -716,7 +717,7 @@ class _SnapshotSkeleton extends StatelessWidget {
             height: 72,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
+              color: PaycheckColors.bgCard,
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -737,7 +738,7 @@ class _AccountSecurityTile extends StatelessWidget {
       children: [
         _PrivacyRow(
           icon: Icons.lock_outline_rounded,
-          iconColor: AppColors.teal,
+          iconColor: PaycheckColors.teal,
           label: 'Data Privacy',
           description:
               'Your tax profile is encrypted and synced to ARTH servers. Only you can access it.',
@@ -757,9 +758,9 @@ class _GlassSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: PaycheckColors.bgCard,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(children: children),
     );
@@ -789,19 +790,19 @@ class _ProfileDetailRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: AppColors.textSecondary),
+              Icon(icon, size: 16, color: PaycheckColors.textSecondary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   label,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ),
               const SizedBox(width: 12),
               Flexible(
                 child: Text(
                   value,
-                  style: AppTextStyles.bodyMedium().copyWith(
+                  style: PaycheckType.bodyMedium().copyWith(
                     fontSize: compact ? 13 : null,
                   ),
                   maxLines: 1,
@@ -816,7 +817,7 @@ class _ProfileDetailRow extends StatelessWidget {
           const Divider(
             indent: 42,
             endIndent: 0,
-            color: AppColors.divider,
+            color: PaycheckColors.divider,
             height: 1,
           ),
       ],
@@ -863,12 +864,12 @@ class _PrivacyRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: AppTextStyles.bodyMedium()),
+                    Text(label, style: PaycheckType.bodyMedium()),
                     const SizedBox(height: 2),
                     Text(
                       description,
-                      style: AppTextStyles.micro(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.micro(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                   ],
@@ -881,7 +882,7 @@ class _PrivacyRow extends StatelessWidget {
           const Divider(
             indent: 64,
             endIndent: 0,
-            color: AppColors.divider,
+            color: PaycheckColors.divider,
             height: 1,
           ),
       ],
@@ -904,17 +905,17 @@ class _ActionTile extends StatelessWidget {
     required this.label,
     required this.subtitle,
     required this.onTap,
-    this.iconColor = AppColors.gold,
+    this.iconColor = PaycheckColors.gold,
     this.labelColor,
     this.badge,
   });
 
   @override
   Widget build(BuildContext context) {
-    final lColor = labelColor ?? AppColors.textPrimary;
+    final lColor = labelColor ?? PaycheckColors.textPrimary;
     final compact = MediaQuery.sizeOf(context).width < 360;
     return Material(
-      color: AppColors.bgCard,
+      color: PaycheckColors.bgCard,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -923,7 +924,7 @@ class _ActionTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: PaycheckColors.border),
           ),
           child: Row(
             children: [
@@ -948,7 +949,7 @@ class _ActionTile extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          style: AppTextStyles.bodyMedium().copyWith(
+                          style: PaycheckType.bodyMedium().copyWith(
                             color: lColor,
                             fontSize: compact ? 14 : null,
                           ),
@@ -960,13 +961,13 @@ class _ActionTile extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.gold.withValues(alpha: 0.15),
+                              color: PaycheckColors.gold.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               badge!,
-                              style: AppTextStyles.micro(
-                                color: AppColors.gold,
+                              style: PaycheckType.micro(
+                                color: PaycheckColors.gold,
                               ).copyWith(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -979,8 +980,8 @@ class _ActionTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: AppTextStyles.micro(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.micro(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                   ],
@@ -988,7 +989,7 @@ class _ActionTile extends StatelessWidget {
               ),
               const Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textMuted,
+                color: PaycheckColors.textMuted,
                 size: 18,
               ),
             ],
@@ -1008,8 +1009,8 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: AppTextStyles.micro(
-        color: AppColors.textMuted,
+      style: PaycheckType.micro(
+        color: PaycheckColors.textMuted,
       ).copyWith(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0),
     );
   }
@@ -1030,29 +1031,29 @@ class _AppFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Divider(color: AppColors.divider.withValues(alpha: 0.5)),
+        Divider(color: PaycheckColors.divider.withValues(alpha: 0.5)),
         const SizedBox(height: 16),
         GestureDetector(
           onTap: _openWebsite,
           child: ArthBrandMark(
             size: 24,
             spacing: 8,
-            wordmarkStyle: AppTextStyles.h3(
-              color: AppColors.textSecondary,
+            wordmarkStyle: PaycheckType.h3(
+              color: PaycheckColors.textSecondary,
             ).copyWith(fontSize: 14),
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'v1.0  |  Dual-year rules  |  FY2026-27 planning first',
-          style: AppTextStyles.micro(color: AppColors.textMuted),
+          style: PaycheckType.micro(color: PaycheckColors.textMuted),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           'Not a rupee less. Not a rupee more.',
-          style: AppTextStyles.micro(
-            color: AppColors.textMuted,
+          style: PaycheckType.micro(
+            color: PaycheckColors.textMuted,
           ).copyWith(fontStyle: FontStyle.italic),
           textAlign: TextAlign.center,
         ),
@@ -1063,10 +1064,10 @@ class _AppFooter extends StatelessWidget {
           spacing: 5,
           runSpacing: 4,
           children: [
-            const Icon(Icons.shield_outlined, size: 11, color: AppColors.teal),
+            const Icon(Icons.shield_outlined, size: 11, color: PaycheckColors.teal),
             Text(
               'Secured on ARTH Cloud  |  AES-256 Encrypted',
-              style: AppTextStyles.micro(color: AppColors.textMuted),
+              style: PaycheckType.micro(color: PaycheckColors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1082,29 +1083,29 @@ class _AppFooter extends StatelessWidget {
               onTap: _openWebsite,
               child: Text(
                 'Privacy Policy',
-                style: AppTextStyles.micro(color: AppColors.gold),
+                style: PaycheckType.micro(color: PaycheckColors.gold),
               ),
             ),
             Text(
               '·',
-              style: AppTextStyles.micro(color: AppColors.textMuted),
+              style: PaycheckType.micro(color: PaycheckColors.textMuted),
             ),
             GestureDetector(
               onTap: _openWebsite,
               child: Text(
                 'Terms of Use',
-                style: AppTextStyles.micro(color: AppColors.gold),
+                style: PaycheckType.micro(color: PaycheckColors.gold),
               ),
             ),
             Text(
               '·',
-              style: AppTextStyles.micro(color: AppColors.textMuted),
+              style: PaycheckType.micro(color: PaycheckColors.textMuted),
             ),
             GestureDetector(
               onTap: _openWebsite,
               child: Text(
                 'Visit Website',
-                style: AppTextStyles.micro(color: AppColors.gold),
+                style: PaycheckType.micro(color: PaycheckColors.gold),
               ),
             ),
           ],
@@ -1133,29 +1134,29 @@ class _ArthDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.bgCard,
+      backgroundColor: PaycheckColors.bgCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: AppColors.border),
+        side: const BorderSide(color: PaycheckColors.border),
       ),
-      title: Text(title, style: AppTextStyles.h3()),
+      title: Text(title, style: PaycheckType.h3()),
       content: Text(
         body,
-        style: AppTextStyles.body(color: AppColors.textSecondary),
+        style: PaycheckType.body(color: PaycheckColors.textSecondary),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(
             'Cancel',
-            style: AppTextStyles.body(color: AppColors.textSecondary),
+            style: PaycheckType.body(color: PaycheckColors.textSecondary),
           ),
         ),
         TextButton(
           onPressed: onConfirm,
           child: Text(
             confirmLabel,
-            style: AppTextStyles.body(color: confirmColor),
+            style: PaycheckType.body(color: confirmColor),
           ),
         ),
       ],

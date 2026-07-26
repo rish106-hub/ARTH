@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 
 enum GapDifficulty { easy, medium, complex }
 
@@ -62,9 +62,9 @@ class GapCard {
       );
 
   Color get accentColor {
-    if (gapAmount >= 50000) return AppColors.gold;
-    if (gapAmount >= 10000) return AppColors.amber;
-    return AppColors.teal;
+    if (gapAmount >= 50000) return PaycheckColors.gold;
+    if (gapAmount >= 10000) return PaycheckColors.amber;
+    return PaycheckColors.teal;
   }
 
   IconData get difficultyIcon {

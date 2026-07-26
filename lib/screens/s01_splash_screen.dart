@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/auth_provider.dart';
 import '../utils/session_cleanup.dart';
 import '../widgets/premium_ui.dart';
@@ -99,8 +99,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             // App name
             Text(
               'ARTH',
-              style: AppTextStyles.h1(
-                color: AppColors.textPrimary,
+              style: PaycheckType.h1(
+                color: PaycheckColors.textPrimary,
               ).copyWith(letterSpacing: 0, fontSize: 32),
             )
                 .animate(delay: 600.ms)
@@ -111,7 +111,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             // Tagline
             Text(
               'Know what your paycheck still owes you.',
-              style: AppTextStyles.caption(color: AppColors.textSecondary),
+              style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               textAlign: TextAlign.center,
             ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
             const SizedBox(height: 18),

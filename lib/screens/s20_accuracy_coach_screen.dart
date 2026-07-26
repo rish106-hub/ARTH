@@ -7,6 +7,7 @@ import '../models/product_insights.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
@@ -37,7 +38,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -72,7 +73,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                       PremiumGlassPanel(
                         elevated: true,
                         borderRadius: BorderRadius.circular(28),
-                        tint: AppColors.gold,
+                        tint: PaycheckColors.gold,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -82,12 +83,12 @@ class AccuracyCoachScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 16),
                             Text('Tighten your estimate',
-                                style: AppTextStyles.h1()),
+                                style: PaycheckType.h1()),
                             const SizedBox(height: 8),
                             Text(
                               'Replace assumptions with exact payslip, proof, and interest values. This can change old/new regime comparison.',
-                              style: AppTextStyles.body(
-                                color: AppColors.textSecondary,
+                              style: PaycheckType.body(
+                                color: PaycheckColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -98,8 +99,8 @@ class AccuracyCoachScreen extends ConsumerWidget {
                                   : '${result.confidenceScore}% ${result.confidenceLabel.toLowerCase()}',
                               color:
                                   result != null && result.confidenceScore >= 85
-                                      ? AppColors.success
-                                      : AppColors.gold,
+                                      ? PaycheckColors.success
+                                      : PaycheckColors.gold,
                             ),
                           ],
                         ),
@@ -147,21 +148,21 @@ class _AccuracyTaskCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return PremiumGlassPanel(
       padding: const EdgeInsets.all(16),
-      tint: AppColors.teal,
+      tint: PaycheckColors.teal,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(task.icon, color: AppColors.gold, size: 24),
+          Icon(task.icon, color: PaycheckColors.gold, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(task.title, style: AppTextStyles.bodyMedium()),
+                Text(task.title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 4),
                 Text(
                   task.body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -290,10 +291,10 @@ class _AccuracyInputSheetState extends State<_AccuracyInputSheet> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.graphite,
+                color: PaycheckColors.graphite,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.28),
+                  color: PaycheckColors.gold.withValues(alpha: 0.28),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -308,12 +309,12 @@ class _AccuracyInputSheetState extends State<_AccuracyInputSheet> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(task.fieldLabel, style: AppTextStyles.h2()),
+                    Text(task.fieldLabel, style: PaycheckType.h2()),
                     const SizedBox(height: 8),
                     Text(
                       task.body,
-                      style: AppTextStyles.caption(
-                        color: AppColors.textSecondary,
+                      style: PaycheckType.caption(
+                        color: PaycheckColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 16),

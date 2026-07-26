@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/gap_card.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import 'animated_number.dart';
 
 class GapCardWidget extends StatelessWidget {
@@ -18,9 +19,9 @@ class GapCardWidget extends StatelessWidget {
   });
 
   Color _cardAccent() {
-    if (gap.gapAmount >= 50000) return AppColors.gold;
-    if (gap.gapAmount >= 10000) return AppColors.amber;
-    return AppColors.teal;
+    if (gap.gapAmount >= 50000) return PaycheckColors.gold;
+    if (gap.gapAmount >= 10000) return PaycheckColors.amber;
+    return PaycheckColors.teal;
   }
 
   @override
@@ -35,10 +36,10 @@ class GapCardWidget extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.bgCard,
+            color: PaycheckColors.bgCard,
             borderRadius: AppRadius.card,
             border: Border.all(
-              color: isDone ? AppColors.border : accent.withValues(alpha: 0.35),
+              color: isDone ? PaycheckColors.border : accent.withValues(alpha: 0.35),
               width: 1,
             ),
           ),
@@ -49,7 +50,7 @@ class GapCardWidget extends StatelessWidget {
               Container(
                 height: 3,
                 decoration: BoxDecoration(
-                  color: isDone ? AppColors.success : accent,
+                  color: isDone ? PaycheckColors.success : accent,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
@@ -78,13 +79,13 @@ class GapCardWidget extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.success.withValues(alpha: 0.15),
+                              color: PaycheckColors.success.withValues(alpha: 0.15),
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text(
                               'Done',
-                              style: AppTextStyles.micro(
-                                color: AppColors.success,
+                              style: PaycheckType.micro(
+                                color: PaycheckColors.success,
                               ),
                             ),
                           )
@@ -97,7 +98,7 @@ class GapCardWidget extends StatelessWidget {
                                 Icon(
                                   gap.difficultyIcon,
                                   size: 11,
-                                  color: AppColors.textSecondary,
+                                  color: PaycheckColors.textSecondary,
                                 ),
                                 const SizedBox(width: 3),
                                 Flexible(
@@ -105,8 +106,8 @@ class GapCardWidget extends StatelessWidget {
                                     gap.difficultyLabel,
                                     softWrap: true,
                                     textAlign: TextAlign.right,
-                                    style: AppTextStyles.micro(
-                                      color: AppColors.textSecondary,
+                                    style: PaycheckType.micro(
+                                      color: PaycheckColors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -118,9 +119,9 @@ class GapCardWidget extends StatelessWidget {
                     const SizedBox(height: 10),
 
                     // Title
-                    Text(gap.title, style: AppTextStyles.h3()),
+                    Text(gap.title, style: PaycheckType.h3()),
                     const SizedBox(height: 2),
-                    Text(gap.shortDesc, style: AppTextStyles.caption()),
+                    Text(gap.shortDesc, style: PaycheckType.caption()),
                     const SizedBox(height: 12),
 
                     // Gap amount
@@ -133,8 +134,8 @@ class GapCardWidget extends StatelessWidget {
                             children: [
                               Text(
                                 'Deduction opportunity',
-                                style: AppTextStyles.micro(
-                                  color: AppColors.textSecondary,
+                                style: PaycheckType.micro(
+                                  color: PaycheckColors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -142,8 +143,8 @@ class GapCardWidget extends StatelessWidget {
                                 formatRupeesCompact(gap.gapAmount),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.displaySmall(
-                                  color: isDone ? AppColors.success : accent,
+                                style: PaycheckType.displaySmall(
+                                  color: isDone ? PaycheckColors.success : accent,
                                 ),
                               ),
                             ],
@@ -175,12 +176,12 @@ class GapCardWidget extends StatelessWidget {
                         const Icon(
                           Icons.calendar_today_outlined,
                           size: 12,
-                          color: AppColors.textSecondary,
+                          color: PaycheckColors.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Deadline: ${gap.deadline}',
-                          style: AppTextStyles.micro(),
+                          style: PaycheckType.micro(),
                         ),
                       ],
                     ),
@@ -211,17 +212,17 @@ class _SectionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: (isDone ? AppColors.success : accent).withValues(alpha: 0.12),
+        color: (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.12),
         borderRadius: AppRadius.pill,
         border: Border.all(
-          color: (isDone ? AppColors.success : accent).withValues(alpha: 0.4),
+          color: (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.4),
           width: 1,
         ),
       ),
       child: Text(
         section,
-        style: AppTextStyles.sectionLabel(
-          color: isDone ? AppColors.success : accent,
+        style: PaycheckType.sectionLabel(
+          color: isDone ? PaycheckColors.success : accent,
         ),
       ),
     );
@@ -250,7 +251,7 @@ class ActionListItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.divider)),
+          border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
         ),
         child: Row(
           children: [
@@ -262,10 +263,10 @@ class ActionListItem extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: isDone ? AppColors.success : Colors.transparent,
+                  color: isDone ? PaycheckColors.success : Colors.transparent,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isDone ? AppColors.success : AppColors.border,
+                    color: isDone ? PaycheckColors.success : PaycheckColors.border,
                     width: 1.5,
                   ),
                 ),
@@ -283,16 +284,16 @@ class ActionListItem extends StatelessWidget {
                 children: [
                   Text(
                     gap.title,
-                    style: AppTextStyles.bodyMedium(
+                    style: PaycheckType.bodyMedium(
                       color: isDone
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
+                          ? PaycheckColors.textSecondary
+                          : PaycheckColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     gap.section,
-                    style: AppTextStyles.micro(color: AppColors.textGold),
+                    style: PaycheckType.micro(color: PaycheckColors.textGold),
                   ),
                 ],
               ),
@@ -304,14 +305,14 @@ class ActionListItem extends StatelessWidget {
               children: [
                 Text(
                   formatRupees(gap.gapAmount),
-                  style: AppTextStyles.bodyMedium(
-                    color: isDone ? AppColors.success : gap.accentColor,
+                  style: PaycheckType.bodyMedium(
+                    color: isDone ? PaycheckColors.success : gap.accentColor,
                   ),
                 ),
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: AppColors.textSecondary,
+                  color: PaycheckColors.textSecondary,
                 ),
               ],
             ),

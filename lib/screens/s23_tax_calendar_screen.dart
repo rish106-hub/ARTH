@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../models/product_insights.dart';
 import '../providers/tax_year_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 
@@ -35,7 +36,7 @@ class TaxCalendarScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -47,7 +48,7 @@ class TaxCalendarScreen extends ConsumerWidget {
                   PremiumGlassPanel(
                     elevated: true,
                     borderRadius: BorderRadius.circular(28),
-                    tint: AppColors.gold,
+                    tint: PaycheckColors.gold,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -57,12 +58,12 @@ class TaxCalendarScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(activeYear.displayLabel,
-                            style: AppTextStyles.h1()),
+                            style: PaycheckType.h1()),
                         const SizedBox(height: 8),
                         Text(
                           'A readiness timeline for proofs, official-record review, accuracy cleanup, and filing handoff. No reminders or push notifications yet.',
-                          style: AppTextStyles.body(
-                            color: AppColors.textSecondary,
+                          style: PaycheckType.body(
+                            color: PaycheckColors.textSecondary,
                           ),
                         ),
                       ],
@@ -100,15 +101,15 @@ class _CalendarMilestone extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumGlassPanel(
       padding: const EdgeInsets.all(16),
-      tint: index.isEven ? AppColors.teal : AppColors.gold,
+      tint: index.isEven ? PaycheckColors.teal : PaycheckColors.gold,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: AppColors.gold.withValues(alpha: 0.15),
+            backgroundColor: PaycheckColors.gold.withValues(alpha: 0.15),
             child: Text('$index',
-                style: AppTextStyles.caption(color: AppColors.gold)),
+                style: PaycheckType.caption(color: PaycheckColors.gold)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -120,19 +121,19 @@ class _CalendarMilestone extends StatelessWidget {
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(item.icon, color: AppColors.gold, size: 18),
-                    Text(item.title, style: AppTextStyles.h3()),
+                    Icon(item.icon, color: PaycheckColors.gold, size: 18),
+                    Text(item.title, style: PaycheckType.h3()),
                     TrustBadge(
                       icon: Icons.schedule_rounded,
                       label: item.date,
-                      color: AppColors.teal,
+                      color: PaycheckColors.teal,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   item.body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -161,7 +162,7 @@ class _TimelineConnector extends StatelessWidget {
         margin: const EdgeInsets.only(left: 34),
         width: 1,
         height: 18,
-        color: AppColors.border,
+        color: PaycheckColors.border,
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/retry_error_state.dart';
@@ -41,7 +42,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -90,7 +91,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                               PremiumGlassPanel(
                                 elevated: true,
                                 borderRadius: BorderRadius.circular(28),
-                                tint: AppColors.gold,
+                                tint: PaycheckColors.gold,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -101,13 +102,13 @@ class FilingAssistantScreen extends ConsumerWidget {
                                     const SizedBox(height: 16),
                                     Text(
                                       'CA-ready Filing Pack',
-                                      style: AppTextStyles.h1(),
+                                      style: PaycheckType.h1(),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       'Prepare the numbers, documents, assumptions, and missing items you would hand to a CA, employer portal, or the official tax portal.',
-                                      style: AppTextStyles.body(
-                                        color: AppColors.textSecondary,
+                                      style: PaycheckType.body(
+                                        color: PaycheckColors.textSecondary,
                                       ),
                                     ),
                                     const SizedBox(height: 14),
@@ -128,7 +129,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                                             '${result.confidenceScore}% • ${result.confidenceLabel}',
                                         ready: result.confidenceScore >= 85,
                                       ),
-                                      const Divider(color: AppColors.divider),
+                                      const Divider(color: PaycheckColors.divider),
                                       _ReadinessRow(
                                         icon: Icons.folder_copy_outlined,
                                         title: 'Proof checklist',
@@ -137,7 +138,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                                         ready: readyDocs >=
                                             taxDocumentItems.length,
                                       ),
-                                      const Divider(color: AppColors.divider),
+                                      const Divider(color: PaycheckColors.divider),
                                       _ReadinessRow(
                                         icon: Icons.document_scanner_outlined,
                                         title: 'Confirmed parsed documents',
@@ -145,7 +146,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                                             '$confirmedDocs confirmed. Upload Form 16 as a text PDF for deterministic parsing.',
                                         ready: confirmedDocs > 0,
                                       ),
-                                      const Divider(color: AppColors.divider),
+                                      const Divider(color: PaycheckColors.divider),
                                       const _ReadinessRow(
                                         icon: Icons.account_balance_outlined,
                                         title: 'AIS / 26AS review',
@@ -162,8 +163,8 @@ class FilingAssistantScreen extends ConsumerWidget {
                                 title: 'Pack contents',
                                 child: PremiumGlassPanel(
                                   tint: entitlement.isPremiumDemo
-                                      ? AppColors.gold
-                                      : AppColors.textSecondary,
+                                      ? PaycheckColors.gold
+                                      : PaycheckColors.textSecondary,
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -176,8 +177,8 @@ class FilingAssistantScreen extends ConsumerWidget {
                                             ? 'Premium demo unlocked'
                                             : 'Premium demo locked',
                                         color: entitlement.isPremiumDemo
-                                            ? AppColors.gold
-                                            : AppColors.textSecondary,
+                                            ? PaycheckColors.gold
+                                            : PaycheckColors.textSecondary,
                                       ),
                                       const SizedBox(height: 12),
                                       const _PackLine(
@@ -291,7 +292,7 @@ class _ReadinessRow extends StatelessWidget {
         children: [
           Icon(
             ready ? Icons.check_circle_rounded : icon,
-            color: ready ? AppColors.success : AppColors.gold,
+            color: ready ? PaycheckColors.success : PaycheckColors.gold,
             size: 22,
           ),
           const SizedBox(width: 12),
@@ -299,11 +300,11 @@ class _ReadinessRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -332,7 +333,7 @@ class _PackLine extends StatelessWidget {
         children: [
           const Icon(
             Icons.check_rounded,
-            color: AppColors.teal,
+            color: PaycheckColors.teal,
             size: 18,
           ),
           const SizedBox(width: 8),
@@ -340,11 +341,11 @@ class _PackLine extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 2),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

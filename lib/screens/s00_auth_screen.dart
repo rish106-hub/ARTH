@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/auth_provider.dart';
 import '../services/server_api_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../utils/session_cleanup.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/arth_brand_mark.dart';
@@ -212,7 +213,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 28),
                     Text(
                       headline,
-                      style: AppTextStyles.h1().copyWith(
+                      style: PaycheckType.h1().copyWith(
                         fontSize: 40,
                         height: 1.04,
                       ),
@@ -220,7 +221,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 12),
                     Text(
                       subhead,
-                      style: AppTextStyles.body(color: AppColors.textSecondary),
+                      style: PaycheckType.body(color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 28),
                     Form(
@@ -255,7 +256,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     const EdgeInsets.symmetric(horizontal: 12),
                                 child: Text(
                                   'or use email',
-                                  style: AppTextStyles.micro(),
+                                  style: PaycheckType.micro(),
                                 ),
                               ),
                               const Expanded(child: Divider()),
@@ -310,7 +311,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 _obscurePassword
                                     ? Icons.visibility_off_rounded
                                     : Icons.visibility_rounded,
-                                color: AppColors.textSecondary,
+                                color: PaycheckColors.textSecondary,
                               ),
                             ),
                             validator: (v) {
@@ -343,7 +344,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       'ARTH stores your answers so you can continue later.',
                       textAlign: TextAlign.center,
                       style:
-                          AppTextStyles.micro(color: AppColors.textSecondary),
+                          PaycheckType.micro(color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 28),
                   ],
@@ -387,7 +388,7 @@ class _ModeSwitch extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: PaycheckColors.surfaceMuted,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -432,13 +433,13 @@ class _ModeButton extends StatelessWidget {
         duration: AppMotion.fast,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.gold : Colors.transparent,
+          color: selected ? PaycheckColors.gold : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
-          style: AppTextStyles.bodyMedium(
-            color: selected ? Colors.white : AppColors.textSecondary,
+          style: PaycheckType.bodyMedium(
+            color: selected ? Colors.white : PaycheckColors.textSecondary,
           ),
         ),
       ),
@@ -474,40 +475,40 @@ class _InputField extends StatelessWidget {
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       obscureText: obscureText,
-      style: AppTextStyles.bodyMedium(),
-      cursorColor: AppColors.gold,
+      style: PaycheckType.bodyMedium(),
+      cursorColor: PaycheckColors.gold,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         suffixIcon: suffixIcon,
-        labelStyle: AppTextStyles.caption(color: AppColors.textSecondary),
-        hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+        labelStyle: PaycheckType.caption(color: PaycheckColors.textSecondary),
+        hintStyle: PaycheckType.body(color: PaycheckColors.textMuted),
         filled: true,
-        fillColor: AppColors.bgCard,
+        fillColor: PaycheckColors.bgCard,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: PaycheckColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: PaycheckColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.gold, width: 1.4),
+          borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.alert),
+          borderSide: const BorderSide(color: PaycheckColors.alert),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.alert, width: 1.4),
+          borderSide: const BorderSide(color: PaycheckColors.alert, width: 1.4),
         ),
-        errorStyle: AppTextStyles.micro(color: AppColors.alert),
+        errorStyle: PaycheckType.micro(color: PaycheckColors.alert),
       ),
     );
   }
@@ -529,14 +530,14 @@ class _AuthErrorText extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.alert.withValues(alpha: 0.10),
+                color: PaycheckColors.alert.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
                 border:
-                    Border.all(color: AppColors.alert.withValues(alpha: 0.24)),
+                    Border.all(color: PaycheckColors.alert.withValues(alpha: 0.24)),
               ),
               child: Text(
                 message!,
-                style: AppTextStyles.caption(color: AppColors.alert),
+                style: PaycheckType.caption(color: PaycheckColors.alert),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -557,9 +558,9 @@ class _GoogleButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: loading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
-          backgroundColor: AppColors.surface,
-          side: const BorderSide(color: AppColors.border),
+          foregroundColor: PaycheckColors.textPrimary,
+          backgroundColor: PaycheckColors.surface,
+          side: const BorderSide(color: PaycheckColors.border),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         icon: Image.asset(
@@ -567,7 +568,7 @@ class _GoogleButton extends StatelessWidget {
           width: 20,
           height: 20,
         ),
-        label: Text('Continue with Google', style: AppTextStyles.bodyMedium()),
+        label: Text('Continue with Google', style: PaycheckType.bodyMedium()),
       ),
     );
   }
@@ -591,9 +592,9 @@ class _SubmitButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.gold,
+          backgroundColor: PaycheckColors.gold,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.42),
+          disabledBackgroundColor: PaycheckColors.gold.withValues(alpha: 0.42),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -603,10 +604,10 @@ class _SubmitButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: AppColors.ink,
+                  color: PaycheckColors.ink,
                 ),
               )
-            : Text(label, style: AppTextStyles.button(color: Colors.white)),
+            : Text(label, style: PaycheckType.button(color: Colors.white)),
       ),
     );
   }

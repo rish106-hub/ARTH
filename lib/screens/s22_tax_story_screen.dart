@@ -11,6 +11,7 @@ import '../providers/tax_result_provider.dart';
 import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/arth_bottom_nav.dart';
 import '../widgets/premium_ui.dart';
@@ -43,7 +44,7 @@ class TaxStoryScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
           ),
           Expanded(
@@ -124,7 +125,7 @@ class TaxStoryScreen extends ConsumerWidget {
                                   value: '$docPercent%',
                                   helper: 'proof readiness',
                                   icon: Icons.folder_copy_outlined,
-                                  color: AppColors.teal,
+                                  color: PaycheckColors.teal,
                                 ),
                               ),
                             ],
@@ -136,7 +137,7 @@ class TaxStoryScreen extends ConsumerWidget {
                             helper:
                                 'Estimated advantage ${formatRupeesCompact(result.regimeSavings.round())}',
                             icon: Icons.compare_arrows_rounded,
-                            color: AppColors.gold,
+                            color: PaycheckColors.gold,
                           ),
                           const SizedBox(height: 20),
                           ArthSection(
@@ -150,8 +151,8 @@ class TaxStoryScreen extends ConsumerWidget {
                                   body:
                                       '$docPercent% proof readiness. ${vaultSummary.needsReview} document(s) need review and ${vaultSummary.ready} are confirmed.',
                                   color: vaultSummary.needsReview > 0
-                                      ? AppColors.amber
-                                      : AppColors.teal,
+                                      ? PaycheckColors.amber
+                                      : PaycheckColors.teal,
                                   trailing: IconButton(
                                     tooltip: 'Open Vault',
                                     onPressed: () => context.push('/documents'),
@@ -166,7 +167,7 @@ class TaxStoryScreen extends ConsumerWidget {
                                   title: 'AIS / 26AS check',
                                   body:
                                       'Use official records to compare TDS, interest, dividends, and reported income before filing handoff.',
-                                  color: AppColors.info,
+                                  color: PaycheckColors.info,
                                   trailing: IconButton(
                                     tooltip: 'Open guide',
                                     onPressed: () => context.push('/ais-guide'),
@@ -190,21 +191,21 @@ class TaxStoryScreen extends ConsumerWidget {
                                     body:
                                         '${result.confidenceScore}% • ${result.confidenceLabel}',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _StoryLine(
                                     icon: Icons.savings_outlined,
                                     title: 'Deduction opportunity',
                                     body:
                                         '${formatRupeesCompact(result.deductionOpportunity)} opportunity, ${formatRupeesCompact(result.estimatedTaxBenefit)} estimated tax benefit.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _StoryLine(
                                     icon: Icons.folder_copy_outlined,
                                     title: 'Proof readiness',
                                     body:
                                         '$docPercent% of your document checklist is ready.',
                                   ),
-                                  const Divider(color: AppColors.divider),
+                                  const Divider(color: PaycheckColors.divider),
                                   _StoryLine(
                                     icon: Icons.warning_amber_outlined,
                                     title: 'Assumptions',
@@ -220,12 +221,12 @@ class TaxStoryScreen extends ConsumerWidget {
                           ArthSection(
                             title: 'Next move',
                             child: PremiumGlassPanel(
-                              tint: AppColors.teal,
+                              tint: PaycheckColors.teal,
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(next.icon,
-                                      color: AppColors.gold, size: 26),
+                                      color: PaycheckColors.gold, size: 26),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -233,12 +234,12 @@ class TaxStoryScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(next.title,
-                                            style: AppTextStyles.h3()),
+                                            style: PaycheckType.h3()),
                                         const SizedBox(height: 4),
                                         Text(
                                           next.body,
-                                          style: AppTextStyles.caption(
-                                            color: AppColors.textSecondary,
+                                          style: PaycheckType.caption(
+                                            color: PaycheckColors.textSecondary,
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -290,17 +291,17 @@ class _StoryLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.gold, size: 20),
+          Icon(icon, color: PaycheckColors.gold, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.bodyMedium()),
+                Text(title, style: PaycheckType.bodyMedium()),
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary),
+                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

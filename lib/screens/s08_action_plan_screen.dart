@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
+import '../theme/paycheck_theme.dart';
 import '../providers/tax_result_provider.dart';
 import '../widgets/animated_number.dart';
 import '../widgets/gap_card_widget.dart';
@@ -21,7 +22,7 @@ class ActionPlanScreen extends ConsumerWidget {
     final doneMap = ref.watch(gapStateProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: PaycheckColors.bgPrimary,
       appBar: ArthAppBar(
         title: 'Tax plan',
         actions: [
@@ -29,7 +30,7 @@ class ActionPlanScreen extends ConsumerWidget {
             icon: const Icon(
               Icons.ios_share_rounded,
               size: 20,
-              color: AppColors.textSecondary,
+              color: PaycheckColors.textSecondary,
             ),
             onPressed: () => context.push('/share'),
           ),
@@ -105,7 +106,7 @@ class ActionPlanScreen extends ConsumerWidget {
                         _SectionHeader(
                           title: 'To Do',
                           count: pending.length,
-                          color: AppColors.amber,
+                          color: PaycheckColors.amber,
                         ),
                         ...pending.asMap().entries.map((e) {
                           final gap = e.value;
@@ -132,7 +133,7 @@ class ActionPlanScreen extends ConsumerWidget {
                         _SectionHeader(
                           title: 'Done',
                           count: done.length,
-                          color: AppColors.success,
+                          color: PaycheckColors.success,
                         ),
                         ...done.map(
                           (gap) => ActionListItem(
@@ -153,7 +154,7 @@ class ActionPlanScreen extends ConsumerWidget {
                             child: Icon(
                               Icons.verified_outlined,
                               size: 64,
-                              color: AppColors.gold,
+                              color: PaycheckColors.gold,
                             ),
                           ),
                         ),
@@ -219,7 +220,7 @@ class _ActionShortcut extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: DecoratedBox(
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.divider)),
+          border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
         ),
         child: ListTile(
           minTileHeight: 72,
@@ -228,15 +229,15 @@ class _ActionShortcut extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: const BoxDecoration(
-              color: AppColors.primarySoft,
+              color: PaycheckColors.primarySoft,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.primary, size: 20),
+            child: Icon(icon, color: PaycheckColors.primary, size: 20),
           ),
-          title: Text(title, style: AppTextStyles.bodyMedium()),
+          title: Text(title, style: PaycheckType.bodyMedium()),
           subtitle: Text(
             body,
-            style: AppTextStyles.caption(color: AppColors.textSecondary),
+            style: PaycheckType.caption(color: PaycheckColors.textSecondary),
           ),
           trailing: const Icon(Icons.arrow_forward_rounded, size: 18),
           onTap: onTap,
@@ -267,7 +268,7 @@ class _ActionPlanHeader extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       decoration: BoxDecoration(
-        color: AppColors.ink,
+        color: PaycheckColors.ink,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -275,7 +276,7 @@ class _ActionPlanHeader extends StatelessWidget {
         children: [
           Text(
             'YOUR OPEN PLAN',
-            style: AppTextStyles.sectionLabel(
+            style: PaycheckType.sectionLabel(
               color: Colors.white60,
             ).copyWith(fontWeight: FontWeight.w700),
           ),
@@ -289,13 +290,13 @@ class _ActionPlanHeader extends StatelessWidget {
                   children: [
                     Text(
                       'Possible deductions',
-                      style: AppTextStyles.micro(color: Colors.white60),
+                      style: PaycheckType.micro(color: Colors.white60),
                     ),
                     Text(
                       formatRupeesCompact(totalGap),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h2(color: Colors.white),
+                      style: PaycheckType.h2(color: Colors.white),
                     ),
                   ],
                 ),
@@ -307,14 +308,14 @@ class _ActionPlanHeader extends StatelessWidget {
                   children: [
                     Text(
                       'Still to review',
-                      style: AppTextStyles.micro(color: Colors.white60),
+                      style: PaycheckType.micro(color: Colors.white60),
                     ),
                     Text(
                       formatRupeesCompact(remaining),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
-                      style: AppTextStyles.h2(color: Colors.white),
+                      style: PaycheckType.h2(color: Colors.white),
                     ),
                   ],
                 ),
@@ -332,7 +333,7 @@ class _ActionPlanHeader extends StatelessWidget {
                     minHeight: 8,
                     backgroundColor: Colors.white24,
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.success,
+                      PaycheckColors.success,
                     ),
                   ),
                 ),
@@ -340,7 +341,7 @@ class _ActionPlanHeader extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '$doneCount of $totalCount done',
-                style: AppTextStyles.caption(color: Colors.white70),
+                style: PaycheckType.caption(color: Colors.white70),
               ),
             ],
           ),
@@ -376,7 +377,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(title, style: AppTextStyles.h3()),
+          Text(title, style: PaycheckType.h3()),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -384,7 +385,7 @@ class _SectionHeader extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               borderRadius: AppRadius.pill,
             ),
-            child: Text('$count', style: AppTextStyles.micro(color: color)),
+            child: Text('$count', style: PaycheckType.micro(color: color)),
           ),
         ],
       ),
