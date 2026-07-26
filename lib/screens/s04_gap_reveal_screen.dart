@@ -404,7 +404,8 @@ class _FutureModuleTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

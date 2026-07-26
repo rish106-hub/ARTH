@@ -66,7 +66,12 @@ class FinanceMessageParser {
     r'\bcredit\s*card\b',
     caseSensitive: false,
   );
-  static const _cardCreditExceptions = ['refund', 'cashback', 'reversed', 'reversal'];
+  static const _cardCreditExceptions = [
+    'refund',
+    'cashback',
+    'reversed',
+    'reversal'
+  ];
 
   static bool _isCreditCardBillPayment(String lowerBody) {
     if (!_creditCardMentionRe.hasMatch(lowerBody)) return false;

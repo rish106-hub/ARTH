@@ -35,7 +35,8 @@ class SpendMapService {
             : (map.primaryMonthlyIncome > 0 ? 'fallback' : 'none'),
         'monthlySpend': map.monthlySpend,
         'monthlyEssentialSpend': map.monthlyEssentialSpend,
-        'realisticMonthlySavings': map.realisticMonthlySavingsExcludingOtherIncome,
+        'realisticMonthlySavings':
+            map.realisticMonthlySavingsExcludingOtherIncome,
         'spendByCategory': map.spendByCategory,
         'monthlyTrend': map.monthlyTrend
             .map(

@@ -159,7 +159,8 @@ Future<void> _editOtherIncome(BuildContext context, WidgetRef ref) {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Other income', style: PaycheckType.title()),
+                        child:
+                            Text('Other income', style: PaycheckType.title()),
                       ),
                       IconButton(
                         tooltip: 'Close',
@@ -177,8 +178,8 @@ Future<void> _editOtherIncome(BuildContext context, WidgetRef ref) {
                       Expanded(
                         child: Text(
                           'Stays on this device only — never sent to our servers.',
-                          style:
-                              PaycheckType.utility(color: PaycheckColors.inkSoft),
+                          style: PaycheckType.utility(
+                              color: PaycheckColors.inkSoft),
                         ),
                       ),
                     ],
@@ -653,8 +654,8 @@ class _SwipeReviewScreenState extends ConsumerState<_SwipeReviewScreen> {
                             ),
                             child: _SwipeReviewCard(
                               txn: widget.unclear[_index].$2,
-                              onCategory: (category) =>
-                                  _categorize(widget.unclear[_index].$1, category),
+                              onCategory: (category) => _categorize(
+                                  widget.unclear[_index].$1, category),
                             ),
                           ),
                         ),
@@ -736,7 +737,8 @@ class _SwipeReviewCard extends StatelessWidget {
                       color: PaycheckColors.canvas,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(txn.bodyPreview!, style: PaycheckType.utility()),
+                    child:
+                        Text(txn.bodyPreview!, style: PaycheckType.utility()),
                   ),
                 ],
               ],

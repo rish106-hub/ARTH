@@ -57,8 +57,7 @@ class TaxCalendarScreen extends ConsumerWidget {
                           label: 'Local milestones',
                         ),
                         const SizedBox(height: 16),
-                        Text(activeYear.displayLabel,
-                            style: PaycheckType.h1()),
+                        Text(activeYear.displayLabel, style: PaycheckType.h1()),
                         const SizedBox(height: 8),
                         Text(
                           'A readiness timeline for proofs, official-record review, accuracy cleanup, and filing handoff. No reminders or push notifications yet.',
@@ -133,7 +132,8 @@ class _CalendarMilestone extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   item.body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

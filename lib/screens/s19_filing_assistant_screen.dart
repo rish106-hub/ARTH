@@ -129,7 +129,8 @@ class FilingAssistantScreen extends ConsumerWidget {
                                             '${result.confidenceScore}% • ${result.confidenceLabel}',
                                         ready: result.confidenceScore >= 85,
                                       ),
-                                      const Divider(color: PaycheckColors.divider),
+                                      const Divider(
+                                          color: PaycheckColors.divider),
                                       _ReadinessRow(
                                         icon: Icons.folder_copy_outlined,
                                         title: 'Proof checklist',
@@ -138,7 +139,8 @@ class FilingAssistantScreen extends ConsumerWidget {
                                         ready: readyDocs >=
                                             taxDocumentItems.length,
                                       ),
-                                      const Divider(color: PaycheckColors.divider),
+                                      const Divider(
+                                          color: PaycheckColors.divider),
                                       _ReadinessRow(
                                         icon: Icons.document_scanner_outlined,
                                         title: 'Confirmed parsed documents',
@@ -146,7 +148,8 @@ class FilingAssistantScreen extends ConsumerWidget {
                                             '$confirmedDocs confirmed. Upload Form 16 as a text PDF for deterministic parsing.',
                                         ready: confirmedDocs > 0,
                                       ),
-                                      const Divider(color: PaycheckColors.divider),
+                                      const Divider(
+                                          color: PaycheckColors.divider),
                                       const _ReadinessRow(
                                         icon: Icons.account_balance_outlined,
                                         title: 'AIS / 26AS review',
@@ -304,7 +307,8 @@ class _ReadinessRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -345,7 +349,8 @@ class _PackLine extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

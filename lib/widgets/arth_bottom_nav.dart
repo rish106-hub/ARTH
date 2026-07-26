@@ -85,7 +85,9 @@ class ArthBottomNav extends StatelessWidget {
                         width: 32,
                         height: 26,
                         decoration: BoxDecoration(
-                          color: selected ? PaycheckColors.ink : Colors.transparent,
+                          color: selected
+                              ? PaycheckColors.ink
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(

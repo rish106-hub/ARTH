@@ -162,7 +162,8 @@ class _AccuracyTaskCard extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   task.body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

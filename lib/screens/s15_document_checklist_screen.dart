@@ -180,7 +180,8 @@ class DocumentChecklistScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 'Choose a PDF, JPG or PNG up to 8 MB. You can review extracted details before using them.',
-                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                style:
+                    PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 16),
               Row(
@@ -588,7 +589,8 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         const SizedBox(height: 10),
                         Text(
                           error!,
-                          style: PaycheckType.caption(color: PaycheckColors.alert),
+                          style:
+                              PaycheckType.caption(color: PaycheckColors.alert),
                         ),
                       ],
                       const SizedBox(height: 18),
@@ -835,7 +837,8 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
               const SizedBox(height: 8),
               Text(
                 'Use the monthly printed totals. Do not use cumulative or year-to-date values.',
-                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                style:
+                    PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 18),
               TextField(
@@ -1118,7 +1121,8 @@ class _FriendlyExtractedFields extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 '• $message',
-                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                style:
+                    PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
             ),
         ],
@@ -1231,7 +1235,9 @@ class VaultHero extends StatelessWidget {
                   value: percent / 100,
                   strokeWidth: 7,
                   backgroundColor: PaycheckColors.bgSurface,
-                  color: percent == 100 ? PaycheckColors.success : PaycheckColors.gold,
+                  color: percent == 100
+                      ? PaycheckColors.success
+                      : PaycheckColors.gold,
                   strokeCap: StrokeCap.round,
                 ),
                 Text('$percent%', style: PaycheckType.bodyMedium()),
@@ -1247,7 +1253,8 @@ class VaultHero extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '$yearLabel · ${summary.active} uploaded · ${summary.needsReview} to review',
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 7),
                 Text(
@@ -1346,7 +1353,8 @@ class _NeededDocumentsPanel extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, color: PaycheckColors.success),
+            const Icon(Icons.check_circle_rounded,
+                color: PaycheckColors.success),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -1421,7 +1429,8 @@ class _NeededDocumentRow extends StatelessWidget {
                   item.subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 if (ready) ...[
                   const SizedBox(height: 3),
@@ -1479,7 +1488,8 @@ class _EmptyUploads extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Use the upload icon beside any document to begin.',
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1535,8 +1545,8 @@ class DocumentStatusCard extends StatelessWidget {
                       '${formatFileSize(document.byteSize)} • ${document.originalFilename}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          PaycheckType.micro(color: PaycheckColors.textSecondary),
+                      style: PaycheckType.micro(
+                          color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -1637,7 +1647,8 @@ class _TimelineRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   body,
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

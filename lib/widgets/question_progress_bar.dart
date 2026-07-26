@@ -80,10 +80,12 @@ class SelectChip extends StatelessWidget {
             width: fullWidth ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? PaycheckColors.primarySoft : PaycheckColors.bgCard,
+              color:
+                  selected ? PaycheckColors.primarySoft : PaycheckColors.bgCard,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: selected ? PaycheckColors.primary : PaycheckColors.border,
+                color:
+                    selected ? PaycheckColors.primary : PaycheckColors.border,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -127,7 +129,8 @@ class SelectChip extends StatelessWidget {
                 Icon(
                   selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   size: 19,
-                  color: selected ? PaycheckColors.primary : PaycheckColors.border,
+                  color:
+                      selected ? PaycheckColors.primary : PaycheckColors.border,
                 ),
               ],
             ),
@@ -182,14 +185,17 @@ class MultiSelectChip extends StatelessWidget {
                       ? Icons.check_box_rounded
                       : Icons.check_box_outline_blank_rounded,
                   size: 16,
-                  color: selected ? PaycheckColors.gold : PaycheckColors.textMuted,
+                  color:
+                      selected ? PaycheckColors.gold : PaycheckColors.textMuted,
                 ),
                 const SizedBox(width: 7),
                 Flexible(
                   child: Text(
                     label,
                     style: PaycheckType.caption(
-                      color: selected ? PaycheckColors.gold : PaycheckColors.textPrimary,
+                      color: selected
+                          ? PaycheckColors.gold
+                          : PaycheckColors.textPrimary,
                     ),
                   ),
                 ),

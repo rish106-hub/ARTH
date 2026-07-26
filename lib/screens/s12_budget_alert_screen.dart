@@ -93,7 +93,8 @@ class BudgetAlertScreen extends ConsumerWidget {
                         ),
                         child: Text(
                           'Finance Act 2026 planning context',
-                          style: PaycheckType.caption(color: PaycheckColors.alert),
+                          style:
+                              PaycheckType.caption(color: PaycheckColors.alert),
                           textAlign: TextAlign.center,
                         ),
                       ).animate(delay: 700.ms).fadeIn(),
@@ -124,7 +125,8 @@ class BudgetAlertScreen extends ConsumerWidget {
 
                       Text(
                         'Default diagnostic view uses FY2026-27 / AY2027-28 planning rules.',
-                        style: PaycheckType.micro(color: PaycheckColors.textMuted),
+                        style:
+                            PaycheckType.micro(color: PaycheckColors.textMuted),
                         textAlign: TextAlign.center,
                       ).animate(delay: 1100.ms).fadeIn(),
 

@@ -197,7 +197,8 @@ class _ShareCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Tax Readiness Cockpit',
-                    style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                    style:
+                        PaycheckType.micro(color: PaycheckColors.textSecondary),
                     textAlign: TextAlign.right,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -332,7 +333,8 @@ class _ShareItemRow extends StatelessWidget {
                   compact
                       ? '₹ ${formatRupeesCompact(item.amount)}'
                       : '₹ ${_fmtFull(item.amount)}',
-                  style: PaycheckType.bodyMedium(color: PaycheckColors.textPrimary),
+                  style: PaycheckType.bodyMedium(
+                      color: PaycheckColors.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

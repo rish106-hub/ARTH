@@ -642,7 +642,9 @@ class _BuildStep extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: complete ? PaycheckColors.primary : PaycheckColors.surfaceMuted,
+              color: complete
+                  ? PaycheckColors.primary
+                  : PaycheckColors.surfaceMuted,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -928,7 +930,8 @@ class _PayslipSourceNote extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaycheckColors.success.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
-        border: Border.all(color: PaycheckColors.success.withValues(alpha: 0.25)),
+        border:
+            Border.all(color: PaycheckColors.success.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,7 +950,8 @@ class _PayslipSourceNote extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   detail,
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1076,7 +1080,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
                 const SizedBox(height: 6),
                 Text(
                   'Gross Annual Salary (CTC)',
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -1091,7 +1096,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
             style: PaycheckType.body(),
             decoration: InputDecoration(
               labelText: 'Enter in Lakhs',
-              labelStyle: PaycheckType.caption(color: PaycheckColors.textSecondary),
+              labelStyle:
+                  PaycheckType.caption(color: PaycheckColors.textSecondary),
               suffixText: 'L',
               suffixStyle: PaycheckType.body(color: PaycheckColors.gold),
               hintText: '15.0',
@@ -1114,7 +1120,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
+                borderSide:
+                    const BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -1470,7 +1477,9 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                         : PaycheckColors.bgCard,
                     borderRadius: AppRadius.card,
                     border: Border.all(
-                      color: selected ? PaycheckColors.gold : PaycheckColors.border,
+                      color: selected
+                          ? PaycheckColors.gold
+                          : PaycheckColors.border,
                       width: selected ? 1.5 : 1,
                     ),
                   ),
@@ -1498,7 +1507,8 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                           ),
                           child: Text(
                             'Metro',
-                            style: PaycheckType.micro(color: PaycheckColors.teal),
+                            style:
+                                PaycheckType.micro(color: PaycheckColors.teal),
                           ),
                         ),
                     ],
@@ -1666,7 +1676,8 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                 hintText: '15',
                 hintStyle: PaycheckType.body(color: PaycheckColors.textMuted),
                 helperText: 'Type 15 for ₹15,000/month',
-                helperStyle: PaycheckType.micro(color: PaycheckColors.textMuted),
+                helperStyle:
+                    PaycheckType.micro(color: PaycheckColors.textMuted),
                 filled: true,
                 fillColor: PaycheckColors.bgCard,
                 contentPadding: const EdgeInsets.symmetric(
@@ -1900,7 +1911,8 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
             style: PaycheckType.body(),
             decoration: InputDecoration(
               labelText: 'Enter amount in ₹',
-              labelStyle: PaycheckType.caption(color: PaycheckColors.textSecondary),
+              labelStyle:
+                  PaycheckType.caption(color: PaycheckColors.textSecondary),
               prefixText: '₹ ',
               prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
               hintText: '1,50,000',
@@ -1923,7 +1935,8 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
+                borderSide:
+                    const BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -2144,7 +2157,8 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                 style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
+                  hintStyle:
+                      PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
@@ -2312,7 +2326,8 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   children: [
                     Text(
                       'What is NPS?',
-                      style: PaycheckType.bodyMedium(color: PaycheckColors.gold),
+                      style:
+                          PaycheckType.bodyMedium(color: PaycheckColors.gold),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -2345,7 +2360,8 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                 style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
+                  hintStyle:
+                      PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
@@ -2495,7 +2511,8 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
+              borderSide:
+                  const BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => _update(),
@@ -2749,7 +2766,8 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                 style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
+                  hintStyle:
+                      PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
@@ -2906,7 +2924,8 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 style: PaycheckType.body(),
                 decoration: InputDecoration(
                   hintText: 'Enter amount (₹)',
-                  hintStyle: PaycheckType.body(color: PaycheckColors.textSecondary),
+                  hintStyle:
+                      PaycheckType.body(color: PaycheckColors.textSecondary),
                   prefixText: '₹ ',
                   prefixStyle: PaycheckType.body(color: PaycheckColors.gold),
                   filled: true,
@@ -2923,8 +2942,8 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide:
-                        const BorderSide(color: PaycheckColors.gold, width: 1.5),
+                    borderSide: const BorderSide(
+                        color: PaycheckColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: (_) => setState(_update),
@@ -3053,7 +3072,8 @@ class _AmountField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.5),
+              borderSide:
+                  const BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => onChanged(),

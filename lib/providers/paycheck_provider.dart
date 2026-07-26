@@ -29,7 +29,8 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       (_, profile) => Future<void>.microtask(() {
         if (!state.usingSampleData && profile.employerName.trim().isNotEmpty) {
           state = state.copyWith(employer: profile.employerName.trim());
-          _baseState = _baseState.copyWith(employer: profile.employerName.trim());
+          _baseState =
+              _baseState.copyWith(employer: profile.employerName.trim());
         }
       }),
       fireImmediately: true,
@@ -85,12 +86,10 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
 
     final earnings =
         merged.where((c) => c.kind == PaycheckComponentKind.earning).toList();
-    final deductions = merged
-        .where((c) => c.kind == PaycheckComponentKind.deduction)
-        .toList();
+    final deductions =
+        merged.where((c) => c.kind == PaycheckComponentKind.deduction).toList();
     final gross = earnings.fold<int>(0, (sum, c) => sum + c.amount);
-    final totalDeductions =
-        deductions.fold<int>(0, (sum, c) => sum + c.amount);
+    final totalDeductions = deductions.fold<int>(0, (sum, c) => sum + c.amount);
     final incomeTax = deductions
         .where((c) => c.classification == 'income_tax')
         .fold<int>(0, (sum, c) => sum + c.amount);

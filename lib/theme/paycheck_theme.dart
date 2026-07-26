@@ -186,8 +186,7 @@ class PaycheckType {
         color: color,
       );
 
-  static TextStyle caption({Color color = PaycheckColors.inkSoft}) =>
-      TextStyle(
+  static TextStyle caption({Color color = PaycheckColors.inkSoft}) => TextStyle(
         fontFamily: 'Anek',
         fontSize: 13,
         height: 1.4,

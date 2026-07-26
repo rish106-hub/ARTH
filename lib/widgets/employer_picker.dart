@@ -168,7 +168,8 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
               const SizedBox(height: 6),
               Text(
                 'This is saved to your profile. It does not connect to the company.',
-                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                style:
+                    PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 14),
               TextField(

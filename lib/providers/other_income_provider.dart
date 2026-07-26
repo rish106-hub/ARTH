@@ -39,7 +39,8 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   }
 
   Future<void> _persist() async {
-    await _storage.write(_sourcesKey(_uid()), OtherIncomeSource.encodeList(state));
+    await _storage.write(
+        _sourcesKey(_uid()), OtherIncomeSource.encodeList(state));
   }
 
   Future<void> add(String label, int monthlyAmount) async {

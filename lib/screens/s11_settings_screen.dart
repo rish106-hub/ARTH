@@ -306,7 +306,8 @@ class _SettingsHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: PaycheckColors.gold.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: PaycheckColors.gold.withValues(alpha: 0.3)),
             ),
             child: Text(
               'FY2025-26 Filing',
@@ -524,7 +525,8 @@ class _GuestCard extends StatelessWidget {
                 Text('Not signed in', style: PaycheckType.bodyMedium()),
                 Text(
                   'Sign in to sync your data',
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -683,13 +685,15 @@ class _SnapCell extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: highlight ? PaycheckColors.gold : PaycheckColors.textSecondary,
+            color:
+                highlight ? PaycheckColors.gold : PaycheckColors.textSecondary,
           ),
           const SizedBox(height: 6),
           Text(
             value,
             style: PaycheckType.bodyStrong(
-              color: highlight ? PaycheckColors.gold : PaycheckColors.textPrimary,
+              color:
+                  highlight ? PaycheckColors.gold : PaycheckColors.textPrimary,
             ).copyWith(fontSize: 14),
             overflow: TextOverflow.ellipsis,
           ),
@@ -795,7 +799,8 @@ class _ProfileDetailRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ),
               const SizedBox(width: 12),
@@ -961,7 +966,8 @@ class _ActionTile extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: PaycheckColors.gold.withValues(alpha: 0.15),
+                              color:
+                                  PaycheckColors.gold.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1064,7 +1070,8 @@ class _AppFooter extends StatelessWidget {
           spacing: 5,
           runSpacing: 4,
           children: [
-            const Icon(Icons.shield_outlined, size: 11, color: PaycheckColors.teal),
+            const Icon(Icons.shield_outlined,
+                size: 11, color: PaycheckColors.teal),
             Text(
               'Secured on ARTH Cloud  |  AES-256 Encrypted',
               style: PaycheckType.micro(color: PaycheckColors.textMuted),

@@ -39,7 +39,9 @@ class GapCardWidget extends StatelessWidget {
             color: PaycheckColors.bgCard,
             borderRadius: AppRadius.card,
             border: Border.all(
-              color: isDone ? PaycheckColors.border : accent.withValues(alpha: 0.35),
+              color: isDone
+                  ? PaycheckColors.border
+                  : accent.withValues(alpha: 0.35),
               width: 1,
             ),
           ),
@@ -79,7 +81,8 @@ class GapCardWidget extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: PaycheckColors.success.withValues(alpha: 0.15),
+                              color: PaycheckColors.success
+                                  .withValues(alpha: 0.15),
                               borderRadius: AppRadius.pill,
                             ),
                             child: Text(
@@ -144,7 +147,8 @@ class GapCardWidget extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: PaycheckType.displaySmall(
-                                  color: isDone ? PaycheckColors.success : accent,
+                                  color:
+                                      isDone ? PaycheckColors.success : accent,
                                 ),
                               ),
                             ],
@@ -212,10 +216,12 @@ class _SectionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.12),
+        color:
+            (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.12),
         borderRadius: AppRadius.pill,
         border: Border.all(
-          color: (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.4),
+          color:
+              (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -266,7 +272,8 @@ class ActionListItem extends StatelessWidget {
                   color: isDone ? PaycheckColors.success : Colors.transparent,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isDone ? PaycheckColors.success : PaycheckColors.border,
+                    color:
+                        isDone ? PaycheckColors.success : PaycheckColors.border,
                     width: 1.5,
                   ),
                 ),

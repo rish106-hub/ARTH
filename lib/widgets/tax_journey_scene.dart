@@ -738,7 +738,8 @@ class _SnapshotPanel extends StatelessWidget {
                 const Spacer(),
                 Text(
                   snapshot.label,
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 SizedBox(
@@ -830,8 +831,8 @@ class _IncomeBars extends StatelessWidget {
       children: [
         Text(
           '₹',
-          style:
-              PaycheckType.bodyStrong(color: PaycheckColors.textPrimary).copyWith(
+          style: PaycheckType.bodyStrong(color: PaycheckColors.textPrimary)
+              .copyWith(
             fontSize: 25,
           ),
         ),
@@ -951,7 +952,9 @@ class _HouseKey extends StatelessWidget {
         children: [
           Icon(Icons.house_outlined,
               size: 74,
-              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
+              color: active
+                  ? PaycheckColors.textPrimary
+                  : PaycheckColors.textMuted),
           Positioned(
             right: 0,
             bottom: 10,
@@ -1031,8 +1034,8 @@ class _LimitRing extends StatelessWidget {
         ),
         Text(
           '${(progress * 100).round()}%',
-          style:
-              PaycheckType.bodyStrong(color: PaycheckColors.textPrimary).copyWith(
+          style: PaycheckType.bodyStrong(color: PaycheckColors.textPrimary)
+              .copyWith(
             fontSize: 17,
           ),
         ),
@@ -1052,7 +1055,9 @@ class _CoinStack extends StatelessWidget {
         children: [
           Icon(Icons.savings_outlined,
               size: 48,
-              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
+              color: active
+                  ? PaycheckColors.textPrimary
+                  : PaycheckColors.textMuted),
           const SizedBox(height: 8),
           ...List.generate(
               3,
@@ -1061,8 +1066,9 @@ class _CoinStack extends StatelessWidget {
                     height: 9,
                     margin: const EdgeInsets.only(top: 3),
                     decoration: BoxDecoration(
-                        color:
-                            i == 0 ? PaycheckColors.textPrimary : PaycheckColors.bgCard,
+                        color: i == 0
+                            ? PaycheckColors.textPrimary
+                            : PaycheckColors.bgCard,
                         borderRadius: AppRadius.pill,
                         border: Border.all(color: PaycheckColors.textPrimary)),
                   )),
@@ -1082,7 +1088,9 @@ class _ShieldCover extends StatelessWidget {
           children: [
             Icon(Icons.shield_outlined,
                 size: 82,
-                color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
+                color: active
+                    ? PaycheckColors.textPrimary
+                    : PaycheckColors.textMuted),
             const Icon(Icons.add_rounded, size: 30),
           ],
         ),
@@ -1100,7 +1108,9 @@ class _EducationStack extends StatelessWidget {
         children: [
           Icon(Icons.school_outlined,
               size: 49,
-              color: active ? PaycheckColors.textPrimary : PaycheckColors.textMuted),
+              color: active
+                  ? PaycheckColors.textPrimary
+                  : PaycheckColors.textMuted),
           const SizedBox(height: 8),
           Container(width: 70, height: 9, color: PaycheckColors.textPrimary),
           const SizedBox(height: 4),
@@ -1127,7 +1137,8 @@ class _GivingReceipt extends StatelessWidget {
             children: [
               Icon(active ? Icons.favorite : Icons.favorite_border, size: 32),
               const SizedBox(height: 11),
-              Container(width: 36, height: 5, color: PaycheckColors.textPrimary),
+              Container(
+                  width: 36, height: 5, color: PaycheckColors.textPrimary),
               const SizedBox(height: 5),
               Container(width: 26, height: 4, color: PaycheckColors.border),
             ],

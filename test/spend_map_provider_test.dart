@@ -248,7 +248,8 @@ void main() {
       notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
 
       await notifier.scan();
-      expect(container.read(spendMapProvider).awaitingOtherIncomeAnswer, isTrue);
+      expect(
+          container.read(spendMapProvider).awaitingOtherIncomeAnswer, isTrue);
 
       await container.read(otherIncomeProvider.notifier).markAsked();
       await notifier.resumeScanAfterOtherIncomeAnswer();
@@ -275,7 +276,8 @@ void main() {
       expect(state.hasData, isTrue);
     });
 
-    test('manual other-income sources add into monthlyIncome, never into '
+    test(
+        'manual other-income sources add into monthlyIncome, never into '
         'the synced payload', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);

@@ -52,7 +52,8 @@ class _AnimatedRupeeNumberState extends State<AnimatedRupeeNumber>
 
   @override
   Widget build(BuildContext context) {
-    final style = widget.style ?? PaycheckType.display(color: PaycheckColors.gold);
+    final style =
+        widget.style ?? PaycheckType.display(color: PaycheckColors.gold);
 
     return AnimatedBuilder(
       animation: _anim,

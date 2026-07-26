@@ -221,7 +221,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 12),
                     Text(
                       subhead,
-                      style: PaycheckType.body(color: PaycheckColors.textSecondary),
+                      style: PaycheckType.body(
+                          color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 28),
                     Form(
@@ -343,8 +344,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     Text(
                       'ARTH stores your answers so you can continue later.',
                       textAlign: TextAlign.center,
-                      style:
-                          PaycheckType.micro(color: PaycheckColors.textSecondary),
+                      style: PaycheckType.micro(
+                          color: PaycheckColors.textSecondary),
                     ),
                     const SizedBox(height: 28),
                   ],
@@ -532,8 +533,8 @@ class _AuthErrorText extends StatelessWidget {
               decoration: BoxDecoration(
                 color: PaycheckColors.alert.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: PaycheckColors.alert.withValues(alpha: 0.24)),
+                border: Border.all(
+                    color: PaycheckColors.alert.withValues(alpha: 0.24)),
               ),
               child: Text(
                 message!,

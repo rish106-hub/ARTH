@@ -174,8 +174,8 @@ class _GuideStep extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     body,
-                    style:
-                        PaycheckType.caption(color: PaycheckColors.textSecondary),
+                    style: PaycheckType.caption(
+                        color: PaycheckColors.textSecondary),
                   ),
                 ],
               ),

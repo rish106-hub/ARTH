@@ -64,7 +64,8 @@ class _RegimeContent extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Based on your profile:',
-                style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                style:
+                    PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
@@ -254,7 +255,9 @@ class _AssumptionsPanel extends StatelessWidget {
                           ? Icons.warning_amber_rounded
                           : Icons.info_outline_rounded,
                       size: 15,
-                      color: caution ? PaycheckColors.amber : PaycheckColors.textMuted,
+                      color: caution
+                          ? PaycheckColors.amber
+                          : PaycheckColors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -342,7 +345,9 @@ class _RegimeCard extends StatelessWidget {
                 Text(
                   title,
                   style: PaycheckType.caption(
-                    color: isBetter ? PaycheckColors.gold : PaycheckColors.textSecondary,
+                    color: isBetter
+                        ? PaycheckColors.gold
+                        : PaycheckColors.textSecondary,
                   ),
                 ),
                 if (isBetter) ...[
@@ -362,13 +367,16 @@ class _RegimeCard extends StatelessWidget {
               children: [
                 Text(
                   'Tax payable',
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 AnimatedRupeeNumber(
                   value: tax.round(),
                   style: PaycheckType.h2(
-                    color: isBetter ? PaycheckColors.success : PaycheckColors.textPrimary,
+                    color: isBetter
+                        ? PaycheckColors.success
+                        : PaycheckColors.textPrimary,
                   ),
                   duration: const Duration(milliseconds: 1200),
                 ),
@@ -483,7 +491,8 @@ class _SavingsCallout extends StatelessWidget {
               children: [
                 Text(
                   '$betterRegime saves you',
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 Text(
                   formatRupeesCompact(savings.round()),
@@ -496,7 +505,8 @@ class _SavingsCallout extends StatelessWidget {
                 ),
                 Text(
                   'more every year.',
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),

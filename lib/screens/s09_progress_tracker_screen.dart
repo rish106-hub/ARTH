@@ -234,7 +234,9 @@ class _FYTimeline extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: PaycheckType.micro(
-                      color: daysLeft <= 30 ? PaycheckColors.alert : PaycheckColors.amber,
+                      color: daysLeft <= 30
+                          ? PaycheckColors.alert
+                          : PaycheckColors.amber,
                     ),
                   ),
                 ),
@@ -319,7 +321,10 @@ class _OverallProgress extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [PaycheckColors.gold.withValues(alpha: 0.08), PaycheckColors.bgCard],
+          colors: [
+            PaycheckColors.gold.withValues(alpha: 0.08),
+            PaycheckColors.bgCard
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -447,7 +452,8 @@ class _DeadlineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = deadline.isUrgent ? PaycheckColors.alert : PaycheckColors.amber;
+    final color =
+        deadline.isUrgent ? PaycheckColors.alert : PaycheckColors.amber;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: const BoxDecoration(
@@ -542,7 +548,9 @@ class _GapStatusRow extends StatelessWidget {
               Text(
                 formatRupees(amount),
                 style: PaycheckType.caption(
-                  color: isDone ? PaycheckColors.success : PaycheckColors.textPrimary,
+                  color: isDone
+                      ? PaycheckColors.success
+                      : PaycheckColors.textPrimary,
                 ),
               ),
               Text(

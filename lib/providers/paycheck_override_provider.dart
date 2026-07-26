@@ -28,7 +28,8 @@ class PaycheckOverrideNotifier extends Notifier<List<PaycheckOverride>> {
   }
 
   Future<void> _persist() async {
-    await _storage.write(_overridesKey(_uid()), PaycheckOverride.encodeList(state));
+    await _storage.write(
+        _overridesKey(_uid()), PaycheckOverride.encodeList(state));
   }
 
   /// Overrides the amount/label of an existing (parsed or previously-added)

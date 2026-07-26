@@ -38,7 +38,8 @@ void main() {
         reviewedAt: DateTime(2026, 7, 22),
       );
 
-  test('editing a parsed component updates gross/net without touching '
+  test(
+      'editing a parsed component updates gross/net without touching '
       'other components', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -90,8 +91,7 @@ void main() {
     );
   });
 
-  test('removing a parsed component hides it and excludes it from totals',
-      () {
+  test('removing a parsed component hides it and excludes it from totals', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
@@ -115,7 +115,8 @@ void main() {
     expect(paycheck.grossReceived, 40000);
   });
 
-  test('removing a manually-added component deletes it entirely (does not '
+  test(
+      'removing a manually-added component deletes it entirely (does not '
       'linger as a hidden override)', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -174,9 +175,8 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    container
-        .read(paycheckOverrideProvider.notifier)
-        .addComponent('Consulting income', 20000, PaycheckComponentKind.earning);
+    container.read(paycheckOverrideProvider.notifier).addComponent(
+        'Consulting income', 20000, PaycheckComponentKind.earning);
     container.read(paycheckOverrideProvider.notifier).addComponent(
           'Professional tax',
           200,

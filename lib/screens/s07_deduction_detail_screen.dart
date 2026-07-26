@@ -150,7 +150,8 @@ class DeductionDetailScreen extends ConsumerWidget {
                   Center(
                     child: Text(
                       'Modeled with ARTH versioned tax rules. Confirm proof eligibility before filing.',
-                      style: PaycheckType.micro(color: PaycheckColors.textMuted),
+                      style:
+                          PaycheckType.micro(color: PaycheckColors.textMuted),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -240,7 +241,9 @@ class _HeroBanner extends StatelessWidget {
           Text(
             isDone ? 'Marked as addressed' : 'Deduction opportunity',
             style: PaycheckType.caption(
-              color: isDone ? PaycheckColors.success : PaycheckColors.textSecondary,
+              color: isDone
+                  ? PaycheckColors.success
+                  : PaycheckColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -331,7 +334,8 @@ class _DetailSection extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('•  ', style: PaycheckType.body(color: PaycheckColors.gold)),
+                Text('•  ',
+                    style: PaycheckType.body(color: PaycheckColors.gold)),
                 Expanded(child: Text(d, style: PaycheckType.body())),
               ],
             ),

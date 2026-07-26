@@ -141,7 +141,8 @@ class PremiumHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: PaycheckColors.gold.withValues(alpha: 0.14),
               borderRadius: AppRadius.card,
-              border: Border.all(color: PaycheckColors.gold.withValues(alpha: 0.26)),
+              border: Border.all(
+                  color: PaycheckColors.gold.withValues(alpha: 0.26)),
             ),
             child: Icon(icon, color: PaycheckColors.gold),
           ),
@@ -160,7 +161,8 @@ class PremiumHeader extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -193,8 +195,9 @@ class PremiumGlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor =
-        tint == Colors.white ? PaycheckColors.border : tint.withValues(alpha: 0.34);
+    final borderColor = tint == Colors.white
+        ? PaycheckColors.border
+        : tint.withValues(alpha: 0.34);
 
     return Material(
       color: elevated ? PaycheckColors.bgCardHover : PaycheckColors.bgCard,
@@ -391,7 +394,8 @@ class StoryPanel extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   body,
-                  style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
               ],
             ),
@@ -435,7 +439,8 @@ class ArthMetricCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+                  style:
+                      PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
               ),
             ],
