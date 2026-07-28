@@ -222,6 +222,7 @@ class SpendMap {
     this.otherMonthlyIncome = 0,
     this.manualPrimaryMonthlyIncome,
     this.manualMonthlySpend,
+    this.trustedSalarySourceId,
   });
 
   final List<FinanceTxn> txns;
@@ -246,6 +247,11 @@ class SpendMap {
   /// User override for average monthly spend. Local-only.
   final int? manualMonthlySpend;
 
+  /// SMS sender selected by the user as the salary source to trust.
+  /// Transient and local-only. Null keeps the legacy behavior of using every
+  /// detected salary credit until the user makes a choice.
+  final String? trustedSalarySourceId;
+
   /// Returns a copy carrying [income] as the fallback monthly income.
   SpendMap withFallbackIncome(int? income) => SpendMap(
         txns: txns,
@@ -256,6 +262,7 @@ class SpendMap {
         otherMonthlyIncome: otherMonthlyIncome,
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: trustedSalarySourceId,
       );
 
   /// Returns a copy carrying [income] as the user-entered other-income total.
@@ -268,6 +275,7 @@ class SpendMap {
         otherMonthlyIncome: income,
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: trustedSalarySourceId,
       );
 
   SpendMap withAdjustments({
@@ -283,6 +291,19 @@ class SpendMap {
         otherMonthlyIncome: otherMonthlyIncome,
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: trustedSalarySourceId,
+      );
+
+  SpendMap withTrustedSalarySource(String? sourceId) => SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: fallbackMonthlyIncome,
+        otherMonthlyIncome: otherMonthlyIncome,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: sourceId,
       );
 
   static SpendMap empty(DateTime now) => SpendMap(
@@ -313,8 +334,7 @@ class SpendMap {
   /// Distinct months containing a salary credit / any debit — each series is
   /// averaged over its own coverage so income and spend stay on the same
   /// per-month basis regardless of which months each happens to touch.
-  int get _salaryMonths =>
-      _distinctMonths((t) => t.direction == TxnDirection.credit && t.isSalary);
+  int get _salaryMonths => _distinctMonths(isTrustedSalaryTransaction);
   int get _spendMonths =>
       _distinctMonths((t) => t.direction == TxnDirection.debit);
 
@@ -322,9 +342,18 @@ class SpendMap {
       .where((t) => t.direction == TxnDirection.debit)
       .fold(0, (sum, t) => sum + t.amount);
 
-  int get salaryCredited => txns
-      .where((t) => t.direction == TxnDirection.credit && t.isSalary)
-      .fold(0, (sum, t) => sum + t.amount);
+  bool isTrustedSalaryTransaction(FinanceTxn txn) {
+    if (txn.direction != TxnDirection.credit || !txn.isSalary) return false;
+    final trusted = trustedSalarySourceId;
+    if (trusted == null || trusted.isEmpty) return true;
+    return (txn.sender ?? '').trim().toUpperCase() == trusted;
+  }
+
+  List<FinanceTxn> get trustedSalaryTransactions =>
+      txns.where(isTrustedSalaryTransaction).toList(growable: false);
+
+  int get salaryCredited =>
+      trustedSalaryTransactions.fold(0, (sum, t) => sum + t.amount);
 
   int get otherCredited => txns
       .where((t) => t.direction == TxnDirection.credit && !t.isSalary)
@@ -356,10 +385,8 @@ class SpendMap {
         month: month,
         spent: current.spent +
             (txn.direction == TxnDirection.debit ? txn.amount : 0),
-        income: current.income +
-            (txn.direction == TxnDirection.credit && txn.isSalary
-                ? txn.amount
-                : 0),
+        income:
+            current.income + (isTrustedSalaryTransaction(txn) ? txn.amount : 0),
       );
     }
     final result = values.values.toList()

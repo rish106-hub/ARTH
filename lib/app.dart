@@ -32,6 +32,7 @@ import 'screens/s33_spend_insights_screen.dart';
 import 'models/gap_card.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
+import 'features/spend_completeness/screens/spend_completeness_screen.dart';
 
 String _initialLocation() {
   final platformRoute =
@@ -182,6 +183,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/spend-map',
       builder: (_, __) => const SpendInsightsScreen(),
+    ),
+    GoRoute(
+      path: '/spend-map/coverage',
+      builder: (_, __) => const SpendCompletenessScreen(),
     ),
     GoRoute(
       path: '/recovery',

@@ -11,11 +11,12 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.documentChecklist(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendMap(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendMapAdjustments(uid)));
+    expect(keys, contains(UserScopedStorageKeys.spendCompleteness(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncome(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncomeAsked(uid)));
     expect(keys, contains(UserScopedStorageKeys.paycheckOverrides(uid)));
     expect(keys, contains(UserScopedStorageKeys.syncQueue(uid)));
     expect(keys, contains(UserScopedStorageKeys.recovery(uid)));
-    expect(keys.length, 11);
+    expect(keys.length, 12);
   });
 }

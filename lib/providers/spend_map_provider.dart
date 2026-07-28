@@ -7,6 +7,7 @@ import '../services/secure_storage_service.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
+import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
 import 'other_income_provider.dart';
 import 'paycheck_provider.dart';
@@ -120,6 +121,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     // shown on screen — re-derive whenever the user adds/removes a source.
     ref.listen(otherIncomeProvider, (_, __) => _refreshUserContext());
     ref.listen(spendMapAdjustmentsProvider, (_, __) => _refreshUserContext());
+    ref.listen(spendCompletenessProvider, (_, __) => _refreshUserContext());
     return const SpendMapState();
   }
 
@@ -142,19 +144,22 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   SpendMap _applyUserContext(SpendMap map) {
     final otherIncome = ref.read(otherIncomeProvider.notifier).totalMonthly;
     final adjustments = ref.read(spendMapAdjustmentsProvider);
+    final completeness = ref.read(spendCompletenessProvider);
     return map
         .withFallbackIncome(_fallbackMonthlyIncome())
         .withOtherIncome(otherIncome)
         .withAdjustments(
           manualPrimaryMonthlyIncome: adjustments.manualPrimaryMonthlyIncome,
           manualMonthlySpend: adjustments.manualMonthlySpend,
-        );
+        )
+        .withTrustedSalarySource(completeness.trustedSalarySourceId);
   }
 
   void _refreshUserContext() {
     final map = state.map;
     if (map == null) return;
     state = state.copyWith(map: _applyUserContext(map));
+    _bridgeSalarySms(state.map);
   }
 
   void _bridgeSalarySms(SpendMap? map) {

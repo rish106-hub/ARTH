@@ -13,6 +13,7 @@ class UserScopedStorageKeys {
   static String spendMap(String uid) => 'arth_spend_map_$uid';
   static String spendMapAdjustments(String uid) =>
       'arth_spend_map_adjustments_$uid';
+  static String spendCompleteness(String uid) => 'arth_spend_completeness_$uid';
   static String otherIncome(String uid) => 'arth_other_income_$uid';
   static String otherIncomeAsked(String uid) => 'arth_other_income_asked_$uid';
   static String paycheckOverrides(String uid) => 'arth_paycheck_overrides_$uid';
@@ -26,6 +27,7 @@ class UserScopedStorageKeys {
         documentChecklist(uid),
         spendMap(uid),
         spendMapAdjustments(uid),
+        spendCompleteness(uid),
         otherIncome(uid),
         otherIncomeAsked(uid),
         paycheckOverrides(uid),
