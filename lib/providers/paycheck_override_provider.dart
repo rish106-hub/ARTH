@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/paycheck.dart';
 import '../models/paycheck_override.dart';
 import '../services/secure_storage_service.dart';
+import '../services/user_scoped_storage.dart';
 import 'auth_provider.dart';
 
-String _overridesKey(String uid) => 'arth_paycheck_overrides_$uid';
+String _overridesKey(String uid) =>
+    UserScopedStorageKeys.paycheckOverrides(uid);
 
 /// User edits to the parsed paycheck breakdown — editing an amount, adding a
 /// category the parser missed, or removing a line item entirely. Persisted
@@ -103,6 +105,16 @@ class PaycheckOverrideNotifier extends Notifier<List<PaycheckOverride>> {
       ];
     }
     await _persist();
+  }
+
+  Future<void> clearLocalData() async {
+    final uid = _uid();
+    if (uid == 'guest') {
+      state = const [];
+      return;
+    }
+    await _storage.delete(_overridesKey(uid));
+    state = const [];
   }
 }
 

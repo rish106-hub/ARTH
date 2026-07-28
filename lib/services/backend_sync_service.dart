@@ -48,7 +48,9 @@ class BackendSyncService {
       return true;
     } catch (error) {
       if (!_shouldQueue(error)) return false;
-      await _queue.enqueue('profile', profile.toJson());
+      final uid = await _userId();
+      if (uid == null) return false;
+      await _queue.enqueue(uid, 'profile', profile.toJson());
       return false;
     }
   }
@@ -71,7 +73,9 @@ class BackendSyncService {
       await _putTaxResult(result);
     } catch (error) {
       if (!_shouldQueue(error)) return;
-      await _queue.enqueue('taxResult', result.toJson());
+      final uid = await _userId();
+      if (uid == null) return;
+      await _queue.enqueue(uid, 'taxResult', result.toJson());
     }
   }
 
@@ -96,7 +100,9 @@ class BackendSyncService {
       await _putDoneGaps(gapIds);
     } catch (error) {
       if (!_shouldQueue(error)) return;
-      await _queue.enqueue('doneGaps', {'gapIds': gapIds.toList()});
+      final uid = await _userId();
+      if (uid == null) return;
+      await _queue.enqueue(uid, 'doneGaps', {'gapIds': gapIds.toList()});
     }
   }
 
@@ -142,7 +148,9 @@ class BackendSyncService {
   /// rather than re-enqueued in a loop. Anything that still fails is
   /// put back in the queue for the next session.
   Future<void> flushPendingQueue() async {
-    final ops = await _queue.popAll();
+    final uid = await _userId();
+    if (uid == null) return;
+    final ops = await _queue.popAll(uid);
     if (ops.isEmpty) return;
 
     if (kDebugMode) {
@@ -173,8 +181,15 @@ class BackendSyncService {
     }
 
     for (final op in failed) {
-      await _queue.enqueue(op.type, op.payload);
+      await _queue.enqueue(uid, op.type, op.payload);
     }
+  }
+
+  Future<String?> _userId() async {
+    final account = await _auth.loadAccount();
+    final uid = account?.uid;
+    if (uid == null || uid.isEmpty) return null;
+    return uid;
   }
 
   // ─── INTERNAL PUT METHODS ───────────────────────────────────────────────────

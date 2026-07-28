@@ -211,7 +211,9 @@ class _PaycheckHome extends ConsumerWidget {
               item.status == PaycheckItemStatus.review,
         )
         .toList(growable: false);
-    final hasPayslip = paycheck.grossReceived > 0 || paycheck.netCredited > 0;
+    final hasPayslip = paycheck.grossReceived > 0 ||
+        paycheck.netCredited > 0 ||
+        paycheck.salarySmsConnected;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -245,9 +247,19 @@ class _PaycheckHome extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Net pay',
+                paycheck.salarySmsConnected && paycheck.grossReceived <= 0
+                    ? 'Net pay from salary SMS'
+                    : 'Net pay',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
+              if (paycheck.salarySmsConnected && paycheck.grossReceived > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Salary SMS credit ${_money(paycheck.salarySmsCredited)}',
+                    style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                  ),
+                ),
               const SizedBox(height: 20),
               _ComparisonStrip(paycheck: paycheck),
               const SizedBox(height: 12),

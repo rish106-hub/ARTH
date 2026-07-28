@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'secure_storage_service.dart';
+import 'user_scoped_storage.dart';
 
 /// A single operation that failed to reach the server and needs to be retried.
 class PendingOp {
@@ -33,7 +34,6 @@ class PendingOp {
 /// Deduplication: only the latest operation of each type is kept.
 /// There is no point retrying an old profile write when a newer one exists.
 class SyncQueueService {
-  static const _key = 'arth_sync_queue';
   static const maxQueueItems = 10;
   static const maxPayloadBytes = 64 * 1024;
   static const _allowedTypes = {'profile', 'taxResult', 'doneGaps'};
@@ -43,9 +43,11 @@ class SyncQueueService {
   const SyncQueueService({SecureStorageService? storage})
       : _storage = storage ?? const SecureStorageService();
 
-  Future<List<PendingOp>> _read() async {
+  String _key(String userId) => UserScopedStorageKeys.syncQueue(userId);
+
+  Future<List<PendingOp>> _read(String userId) async {
     try {
-      final raw = await _storage.read(_key, migrateFromPrefs: true);
+      final raw = await _storage.read(_key(userId), migrateFromPrefs: true);
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List<dynamic>;
       return list
@@ -57,13 +59,13 @@ class SyncQueueService {
     }
   }
 
-  Future<void> _write(List<PendingOp> ops) async {
+  Future<void> _write(String userId, List<PendingOp> ops) async {
     try {
       if (ops.isEmpty) {
-        await _storage.delete(_key);
+        await _storage.delete(_key(userId));
       } else {
         await _storage.write(
-          _key,
+          _key(userId),
           jsonEncode(ops.map((o) => o.toJson()).toList()),
         );
       }
@@ -72,9 +74,14 @@ class SyncQueueService {
     }
   }
 
-  /// Enqueue or replace an operation.
+  /// Enqueue or replace an operation for [userId].
   /// Only the latest payload for each type is retained.
-  Future<void> enqueue(String type, Map<String, dynamic> payload) async {
+  Future<void> enqueue(
+    String userId,
+    String type,
+    Map<String, dynamic> payload,
+  ) async {
+    if (userId.isEmpty) return;
     if (!_allowedTypes.contains(type)) return;
     final encodedPayload = jsonEncode(payload);
     if (utf8.encode(encodedPayload).length > maxPayloadBytes) {
@@ -82,7 +89,7 @@ class SyncQueueService {
       return;
     }
 
-    final ops = await _read();
+    final ops = await _read(userId);
     ops.removeWhere((o) => o.type == type); // deduplicate
     ops.add(
       PendingOp(
@@ -94,21 +101,22 @@ class SyncQueueService {
     if (ops.length > maxQueueItems) {
       ops.removeRange(0, ops.length - maxQueueItems);
     }
-    await _write(ops);
+    await _write(userId, ops);
     if (kDebugMode) {
       debugPrint('[SyncQueue] enqueued: $type (queue size: ${ops.length})');
     }
   }
 
-  /// Remove and return all pending ops. The caller is responsible for
-  /// re-enqueueing any that still fail.
-  Future<List<PendingOp>> popAll() async {
-    final ops = await _read();
-    await _write([]);
+  /// Remove and return all pending ops for [userId].
+  Future<List<PendingOp>> popAll(String userId) async {
+    if (userId.isEmpty) return const [];
+    final ops = await _read(userId);
+    await _write(userId, []);
     return ops;
   }
 
-  Future<void> clear() => _write([]);
+  Future<void> clear(String userId) => _write(userId, []);
 
-  Future<bool> get hasItems async => (await _read()).isNotEmpty;
+  Future<bool> hasItems(String userId) async =>
+      userId.isNotEmpty && (await _read(userId)).isNotEmpty;
 }

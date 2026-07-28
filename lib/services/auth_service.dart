@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_account.dart';
 import 'secure_storage_service.dart';
 import 'server_api_service.dart';
+import 'user_scoped_storage.dart';
 
 class AuthService {
   static const _accountKey = 'arth_user_account';
@@ -186,16 +187,11 @@ class AuthService {
       _accountKey,
       _accessTokenKey,
       _refreshTokenKey,
-      'arth_sync_queue',
+      'arth_sync_queue', // legacy global queue from older builds
       'arth_user_profile',
     };
     if (uid != null && uid.isNotEmpty) {
-      keys.addAll({
-        'arth_profile_$uid',
-        'arth_onboarding_$uid',
-        'arth_account_profile_$uid',
-        'arth_document_checklist_$uid',
-      });
+      keys.addAll(UserScopedStorageKeys.allForUser(uid));
     }
     await Future.wait(keys.map(_storage.delete), eagerError: false);
   }

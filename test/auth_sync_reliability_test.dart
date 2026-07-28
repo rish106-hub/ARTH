@@ -123,14 +123,17 @@ void main() {
       () async {
     final queue = const SyncQueueService();
 
-    await queue.enqueue('profile', {'version': 1});
-    await queue.enqueue('profile', {'version': 2});
-    await queue.enqueue('taxResult', {'ok': true});
-    await queue.enqueue('invalid', {'bad': true});
+    await queue.enqueue('user-1', 'profile', {'version': 1});
+    await queue.enqueue('user-1', 'profile', {'version': 2});
+    await queue.enqueue('user-1', 'taxResult', {'ok': true});
+    await queue.enqueue('user-1', 'invalid', {'bad': true});
     await queue.enqueue(
-        'doneGaps', {'blob': 'x' * (SyncQueueService.maxPayloadBytes + 1)});
+      'user-1',
+      'doneGaps',
+      {'blob': 'x' * (SyncQueueService.maxPayloadBytes + 1)},
+    );
 
-    final ops = await queue.popAll();
+    final ops = await queue.popAll('user-1');
 
     expect(ops.map((op) => op.type), ['profile', 'taxResult']);
     expect(ops.first.payload, {'version': 2});
@@ -237,6 +240,14 @@ class _FakeApi extends ServerApiService {
 class _FixedTokenAuthService extends AuthService {
   @override
   Future<String?> getValidAccessToken() async => 'access-token';
+
+  @override
+  Future<UserAccount?> loadAccount() async => UserAccount(
+        uid: 'user-1',
+        name: 'User',
+        email: 'user@example.com',
+        createdAt: DateTime(2026, 1, 1),
+      );
 }
 
 class _MissingTokenAuthService extends AuthService {
@@ -248,7 +259,11 @@ class _RecordingQueue extends SyncQueueService {
   final enqueuedTypes = <String>[];
 
   @override
-  Future<void> enqueue(String type, Map<String, dynamic> payload) async {
+  Future<void> enqueue(
+    String userId,
+    String type,
+    Map<String, dynamic> payload,
+  ) async {
     enqueuedTypes.add(type);
   }
 }

@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/spend_map.dart';
+import '../models/spend_scan_period_copy.dart';
 import '../providers/other_income_provider.dart';
+import '../providers/spend_map_adjustments_provider.dart';
 import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
@@ -68,7 +70,7 @@ class SpendInsightsScreen extends ConsumerWidget {
                   onScan: () => ref.read(spendMapProvider.notifier).scan(),
                 )
               else
-                _Insights(map: state.map!),
+                _Insights(map: state.map!, period: state.selectedPeriod),
               if (state.hasData && !state.loading) ...[
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
@@ -274,6 +276,327 @@ Future<void> _editOtherIncome(BuildContext context, WidgetRef ref) {
   );
 }
 
+Future<void> _editMonthlyIncome(
+  BuildContext context,
+  WidgetRef ref,
+  SpendMap map,
+  SpendScanPeriod period,
+) {
+  final controller = TextEditingController(
+    text: map.primaryIncomeIsManual
+        ? map.primaryMonthlyIncome.toString()
+        : map.observedPrimaryMonthlyIncome > 0
+            ? map.observedPrimaryMonthlyIncome.toString()
+            : '',
+  );
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      period.avgMonthlyIncomeTitle,
+                      style: PaycheckType.title(),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                period.incomeTrendCaption(
+                  sourceLabel: map.primaryIncomeSourceLabel,
+                  monthsWithSalary: map.salaryMonthsWithData,
+                  includesOtherIncome: map.hasOtherIncome,
+                  isManual: map.primaryIncomeIsManual,
+                ),
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 16),
+              if (map.salaryCredited > 0)
+                _IncomeSourceRow(
+                  label: 'Salary SMS average',
+                  amount: map.observedPrimaryMonthlyIncome,
+                  detail:
+                      '${map.salaryMonthsWithData} month(s) with a salary credit',
+                  onUse: () async {
+                    await ref
+                        .read(spendMapAdjustmentsProvider.notifier)
+                        .clearManualPrimaryIncome();
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                  },
+                ),
+              if (map.fallbackMonthlyIncome != null &&
+                  map.fallbackMonthlyIncome! > 0 &&
+                  map.salaryCredited <= 0)
+                _IncomeSourceRow(
+                  label: 'Payslip estimate',
+                  amount: map.fallbackMonthlyIncome!,
+                  detail: 'From your confirmed payslip or CTC',
+                  onUse: () async {
+                    await ref
+                        .read(spendMapAdjustmentsProvider.notifier)
+                        .clearManualPrimaryIncome();
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                  },
+                ),
+              const SizedBox(height: 12),
+              Text('Your monthly income', style: PaycheckType.bodyStrong()),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  prefixText: '₹ ',
+                  hintText: 'Enter take-home monthly income',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        await ref
+                            .read(spendMapAdjustmentsProvider.notifier)
+                            .clearManualPrimaryIncome();
+                        if (sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      child: const Text('Use detected figure'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        final amount = int.tryParse(
+                          controller.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        if (amount == null || amount <= 0) return;
+                        await ref
+                            .read(spendMapAdjustmentsProvider.notifier)
+                            .setManualPrimaryIncome(amount);
+                        if (sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  if (context.mounted) {
+                    await _editOtherIncome(context, ref);
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: Text(
+                  map.hasOtherIncome
+                      ? 'Edit other income (${money0(map.otherMonthlyIncome)}/mo)'
+                      : 'Add other income (freelance, rent…)',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _editMonthlySpend(
+  BuildContext context,
+  WidgetRef ref,
+  SpendMap map,
+  SpendScanPeriod period,
+) {
+  final controller = TextEditingController(
+    text: map.spendIsManual
+        ? map.monthlySpend.toString()
+        : map.observedMonthlySpend > 0
+            ? map.observedMonthlySpend.toString()
+            : '',
+  );
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      period.avgMonthlySpendTitle,
+                      style: PaycheckType.title(),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                period.spendTrendCaption(
+                  monthsWithSpend: map.spendMonthsWithData,
+                  totalTransactions: map.txns
+                      .where((t) => t.direction == TxnDirection.debit)
+                      .length,
+                ),
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 16),
+              _IncomeSourceRow(
+                label: 'SMS trend average',
+                amount: map.observedMonthlySpend,
+                detail:
+                    '${money0(map.totalSpent)} total across ${map.spendMonthsWithData} month(s) with spend',
+                onUse: () async {
+                  await ref
+                      .read(spendMapAdjustmentsProvider.notifier)
+                      .clearManualMonthlySpend();
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                },
+              ),
+              const SizedBox(height: 12),
+              Text('Your monthly spend', style: PaycheckType.bodyStrong()),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  prefixText: '₹ ',
+                  hintText: 'Enter average monthly spend',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        await ref
+                            .read(spendMapAdjustmentsProvider.notifier)
+                            .clearManualMonthlySpend();
+                        if (sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      child: const Text('Use SMS trend'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        final amount = int.tryParse(
+                          controller.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        if (amount == null || amount <= 0) return;
+                        await ref
+                            .read(spendMapAdjustmentsProvider.notifier)
+                            .setManualMonthlySpend(amount);
+                        if (sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _IncomeSourceRow extends StatelessWidget {
+  const _IncomeSourceRow({
+    required this.label,
+    required this.amount,
+    required this.detail,
+    required this.onUse,
+  });
+
+  final String label;
+  final int amount;
+  final String detail;
+  final VoidCallback onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PaycheckColors.paper,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: PaycheckColors.line),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: PaycheckType.bodyStrong()),
+                Text(detail,
+                    style: PaycheckType.utility(color: PaycheckColors.inkSoft)),
+              ],
+            ),
+          ),
+          Text(money0(amount), style: PaycheckType.bodyStrong()),
+          TextButton(onPressed: onUse, child: const Text('Use')),
+        ],
+      ),
+    );
+  }
+}
+
 class _Loading extends StatelessWidget {
   const _Loading();
   @override
@@ -309,7 +632,7 @@ class _EmptyCard extends StatelessWidget {
           Text('Build your spend map', style: PaycheckType.title()),
           const SizedBox(height: 8),
           Text(
-            'We will scan ${period.label.toLowerCase()} of bank and UPI SMS, detect salary credits and spends, and estimate what you can realistically save.',
+            'We will scan ${period.windowPhrase} of bank and UPI SMS, detect salary credits and spends, and estimate what you can realistically save.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
           const SizedBox(height: 16),
@@ -389,14 +712,14 @@ class _PeriodPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('SMS HISTORY', style: PaycheckType.utility()),
+        Text('ANALYSIS WINDOW', style: PaycheckType.utility()),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: SpendScanPeriod.values.map((period) {
             return ChoiceChip(
-              label: Text(period.label),
+              label: Text(period.pickerLabel),
               selected: selected == period,
               onSelected: (_) => onSelected(period),
             );
@@ -404,7 +727,8 @@ class _PeriodPicker extends StatelessWidget {
         ),
         const SizedBox(height: 7),
         Text(
-          '3 months recommended for a useful recent baseline.',
+          'Income and spend averages use SMS from ${selected.windowPhrase}. '
+          '3 months is a useful recent baseline.',
           style: PaycheckType.utility(color: PaycheckColors.contract),
         ),
       ],
@@ -413,8 +737,9 @@ class _PeriodPicker extends StatelessWidget {
 }
 
 class _Insights extends ConsumerWidget {
-  const _Insights({required this.map});
+  const _Insights({required this.map, required this.period});
   final SpendMap map;
+  final SpendScanPeriod period;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -425,44 +750,45 @@ class _Insights extends ConsumerWidget {
               entry.$2.category == SpendCategory.other,
         )
         .toList(growable: false);
+    final incomeCaption = period.incomeTrendCaption(
+      sourceLabel: map.primaryIncomeSourceLabel,
+      monthsWithSalary: map.salaryMonthsWithData,
+      includesOtherIncome: map.hasOtherIncome,
+      isManual: map.primaryIncomeIsManual,
+    );
+    final spendCaption = period.spendTrendCaption(
+      monthsWithSpend: map.spendMonthsWithData,
+      totalTransactions:
+          map.txns.where((t) => t.direction == TxnDirection.debit).length,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SavingsHero(map: map),
+        _SavingsHero(map: map, period: period),
         const SizedBox(height: 16),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _StatTile(
-                label: 'Monthly income',
+              child: _EditableStatTile(
+                label: period.avgMonthlyIncomeTitle,
+                caption: incomeCaption,
                 value: money0(map.monthlyIncome),
                 color: PaycheckColors.contract,
+                edited: map.primaryIncomeIsManual || map.hasOtherIncome,
+                onTap: () => _editMonthlyIncome(context, ref, map, period),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _StatTile(
-                label: 'Monthly spend',
+              child: _EditableStatTile(
+                label: period.avgMonthlySpendTitle,
+                caption: spendCaption,
                 value: money0(map.monthlySpend),
                 color: PaycheckColors.claim,
+                edited: map.spendIsManual,
+                onTap: () => _editMonthlySpend(context, ref, map, period),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                map.hasOtherIncome
-                    ? 'Includes ${money0(map.otherMonthlyIncome)}/mo other income'
-                    : 'Have other income to add?',
-                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-              ),
-            ),
-            TextButton(
-              onPressed: () => _editOtherIncome(context, ref),
-              child: Text(map.hasOtherIncome ? 'Edit' : 'Add'),
             ),
           ],
         ),
@@ -1021,8 +1347,9 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _SavingsHero extends StatelessWidget {
-  const _SavingsHero({required this.map});
+  const _SavingsHero({required this.map, required this.period});
   final SpendMap map;
+  final SpendScanPeriod period;
   @override
   Widget build(BuildContext context) {
     final unknownIncome = map.monthlyIncome <= 0;
@@ -1077,11 +1404,20 @@ class _SavingsHero extends StatelessWidget {
             Text(
               overspending
                   ? '${(map.monthlyWaste / map.monthlyIncome * 100).round()}% more than you earn'
-                  : map.incomeIsDetected
-                      ? '$rate% of detected income'
-                      : '$rate% of estimated income (from your payslip)',
+                  : map.primaryIncomeIsManual
+                      ? '$rate% of your entered income'
+                      : map.incomeIsDetected
+                          ? '$rate% of detected income'
+                          : '$rate% of estimated income (from your payslip)',
               style: PaycheckType.utility(),
             ),
+          if (!unknownIncome) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Based on ${period.windowPhrase} averages. Tap income or spend to edit.',
+              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+            ),
+          ],
           if (map.netMixesSources) ...[
             const SizedBox(height: 8),
             Text(
@@ -1155,26 +1491,71 @@ class _CategoryBars extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
-  const _StatTile({
+class _EditableStatTile extends StatelessWidget {
+  const _EditableStatTile({
     required this.label,
+    required this.caption,
     required this.value,
     required this.color,
+    required this.onTap,
+    this.edited = false,
   });
+
   final String label;
+  final String caption;
   final String value;
   final Color color;
+  final VoidCallback onTap;
+  final bool edited;
+
   @override
   Widget build(BuildContext context) {
-    return _Card(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(), style: PaycheckType.utility(color: color)),
-          const SizedBox(height: 6),
-          Text(value, style: PaycheckType.title()),
-        ],
+    return Material(
+      color: PaycheckColors.paper,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color:
+                  edited ? color.withValues(alpha: 0.45) : PaycheckColors.line,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: PaycheckType.utility(color: color),
+                    ),
+                  ),
+                  Icon(Icons.edit_outlined, size: 16, color: color),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(value, style: PaycheckType.title()),
+              if (edited) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Edited',
+                  style: PaycheckType.utility(color: color),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                caption,
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

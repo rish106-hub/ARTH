@@ -220,6 +220,8 @@ class SpendMap {
     required this.generatedAt,
     this.fallbackMonthlyIncome,
     this.otherMonthlyIncome = 0,
+    this.manualPrimaryMonthlyIncome,
+    this.manualMonthlySpend,
   });
 
   final List<FinanceTxn> txns;
@@ -238,6 +240,12 @@ class SpendMap {
   /// to [monthlyIncome] so on-screen projections account for it.
   final int otherMonthlyIncome;
 
+  /// User override for primary monthly income (salary). Local-only.
+  final int? manualPrimaryMonthlyIncome;
+
+  /// User override for average monthly spend. Local-only.
+  final int? manualMonthlySpend;
+
   /// Returns a copy carrying [income] as the fallback monthly income.
   SpendMap withFallbackIncome(int? income) => SpendMap(
         txns: txns,
@@ -246,6 +254,8 @@ class SpendMap {
         generatedAt: generatedAt,
         fallbackMonthlyIncome: income,
         otherMonthlyIncome: otherMonthlyIncome,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
       );
 
   /// Returns a copy carrying [income] as the user-entered other-income total.
@@ -256,6 +266,23 @@ class SpendMap {
         generatedAt: generatedAt,
         fallbackMonthlyIncome: fallbackMonthlyIncome,
         otherMonthlyIncome: income,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
+      );
+
+  SpendMap withAdjustments({
+    int? manualPrimaryMonthlyIncome,
+    int? manualMonthlySpend,
+  }) =>
+      SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: fallbackMonthlyIncome,
+        otherMonthlyIncome: otherMonthlyIncome,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
       );
 
   static SpendMap empty(DateTime now) => SpendMap(
@@ -340,7 +367,16 @@ class SpendMap {
     return result;
   }
 
-  int get monthlySpend => (totalSpent / _spendMonths).round();
+  int get spendMonthsWithData => _spendMonths;
+  int get salaryMonthsWithData => _salaryMonths;
+
+  int get monthlySpend =>
+      manualMonthlySpend ?? (totalSpent / _spendMonths).round();
+
+  int get observedMonthlySpend => (totalSpent / _spendMonths).round();
+
+  bool get spendIsManual =>
+      manualMonthlySpend != null && manualMonthlySpend! > 0;
 
   /// Average monthly spend on non-discretionary categories only. Seeds the
   /// savings-goal "essentials" field without discretionary spend inflating it.
@@ -355,16 +391,26 @@ class SpendMap {
 
   /// True when income comes from a salary credit detected in SMS (as opposed to
   /// the payslip/CTC fallback). Lets the UI label the figure honestly.
-  bool get incomeIsDetected => salaryCredited > 0;
+  bool get incomeIsDetected => !primaryIncomeIsManual && salaryCredited > 0;
 
-  /// Detected/estimated monthly income BEFORE adding other-income sources.
-  /// Prefers salary credits detected in SMS (averaged over the months those
-  /// credits actually cover); when none are found, falls back to payslip/CTC-
-  /// derived income so income never collapses to zero for a user with a
-  /// confirmed payslip but no salary-credit SMS.
-  int get primaryMonthlyIncome {
+  int get observedPrimaryMonthlyIncome {
     if (salaryCredited > 0) return (salaryCredited / _salaryMonths).round();
     return fallbackMonthlyIncome ?? 0;
+  }
+
+  int get primaryMonthlyIncome =>
+      manualPrimaryMonthlyIncome ?? observedPrimaryMonthlyIncome;
+
+  bool get primaryIncomeIsManual =>
+      manualPrimaryMonthlyIncome != null && manualPrimaryMonthlyIncome! > 0;
+
+  String get primaryIncomeSourceLabel {
+    if (primaryIncomeIsManual) return 'Your entered figure';
+    if (salaryCredited > 0) return 'Salary SMS average';
+    if (fallbackMonthlyIncome != null && fallbackMonthlyIncome! > 0) {
+      return 'Payslip estimate';
+    }
+    return 'Not set';
   }
 
   /// Total monthly income used everywhere on screen: primary (SMS salary or
@@ -393,7 +439,8 @@ class SpendMap {
   /// True when income is a payslip/CTC estimate rather than a detected salary
   /// credit AND we also have SMS spend — i.e. the net mixes two sources and
   /// should be shown with a caveat.
-  bool get netMixesSources => !incomeIsDetected && totalSpent > 0;
+  bool get netMixesSources =>
+      !primaryIncomeIsManual && !incomeIsDetected && totalSpent > 0;
 
   /// What can realistically be saved each month = income − observed spend,
   /// floored at 0. When no salary detected, falls back to 0 (unknown).
@@ -415,6 +462,14 @@ class SpendMap {
   int get realisticMonthlySavingsExcludingOtherIncome {
     if (primaryMonthlyIncome <= 0) return 0;
     final diff = primaryMonthlyIncome - monthlySpend;
+    return diff < 0 ? 0 : diff;
+  }
+
+  /// Observed-income savings for server sync — ignores manual income/spend
+  /// overrides and other-income totals.
+  int get observedRealisticMonthlySavings {
+    if (observedPrimaryMonthlyIncome <= 0) return 0;
+    final diff = observedPrimaryMonthlyIncome - observedMonthlySpend;
     return diff < 0 ? 0 : diff;
   }
 

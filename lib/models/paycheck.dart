@@ -90,6 +90,9 @@ class PaycheckState {
   final List<PaycheckComponent> components;
   final List<PaycheckSource> sources;
   final List<PaycheckEvidence> evidence;
+  final int salarySmsCredited;
+  final DateTime? salarySmsLastSeen;
+  final bool salarySmsConnected;
 
   const PaycheckState({
     required this.employeeName,
@@ -111,6 +114,9 @@ class PaycheckState {
     required this.components,
     required this.sources,
     required this.evidence,
+    this.salarySmsCredited = 0,
+    this.salarySmsLastSeen,
+    this.salarySmsConnected = false,
   });
 
   int get matchedAmount => items
@@ -146,6 +152,9 @@ class PaycheckState {
     List<PaycheckComponent>? components,
     List<PaycheckSource>? sources,
     List<PaycheckEvidence>? evidence,
+    int? salarySmsCredited,
+    DateTime? salarySmsLastSeen,
+    bool? salarySmsConnected,
   }) {
     return PaycheckState(
       employeeName: employeeName ?? this.employeeName,
@@ -167,6 +176,9 @@ class PaycheckState {
       components: components ?? this.components,
       sources: sources ?? this.sources,
       evidence: evidence ?? this.evidence,
+      salarySmsCredited: salarySmsCredited ?? this.salarySmsCredited,
+      salarySmsLastSeen: salarySmsLastSeen ?? this.salarySmsLastSeen,
+      salarySmsConnected: salarySmsConnected ?? this.salarySmsConnected,
     );
   }
 }
@@ -191,9 +203,11 @@ const emptyPaycheck = PaycheckState(
   components: [],
   sources: [],
   evidence: [],
+  salarySmsCredited: 0,
+  salarySmsConnected: false,
 );
 
-const demoPaycheck = PaycheckState(
+final demoPaycheck = PaycheckState(
   employeeName: 'Aarav',
   employer: 'Northstar Labs India',
   role: 'Associate Product Analyst',
@@ -336,4 +350,7 @@ const demoPaycheck = PaycheckState(
       needsAction: true,
     ),
   ],
+  salarySmsCredited: 45920,
+  salarySmsLastSeen: DateTime(2026, 7, 1),
+  salarySmsConnected: true,
 );

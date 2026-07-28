@@ -7,11 +7,11 @@ import '../models/form16_tax_prefill.dart';
 import '../models/proof_prefill.dart';
 import '../services/backend_sync_service.dart';
 import '../services/secure_storage_service.dart';
+import '../services/user_scoped_storage.dart';
 import 'auth_provider.dart';
 
-// Keys are scoped per user: arth_profile_{uid}, arth_onboarding_{uid}
-String _profileKey(String uid) => 'arth_profile_$uid';
-String _onboardingKey(String uid) => 'arth_onboarding_$uid';
+String _profileKey(String uid) => UserScopedStorageKeys.profile(uid);
+String _onboardingKey(String uid) => UserScopedStorageKeys.onboarding(uid);
 
 class UserProfileNotifier extends Notifier<UserProfile> {
   final _storage = const SecureStorageService();
@@ -163,8 +163,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   Future<void> clearLocalOnly() async {
     final uid = _currentUid();
     if (uid != null) {
-      await _storage.delete(_profileKey(uid));
-      await _storage.delete(_onboardingKey(uid));
+      await clearUserScopedLocalData(_storage, uid);
     }
     state = const UserProfile();
   }

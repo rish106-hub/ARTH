@@ -34,3 +34,4 @@ GoogleService-Info.plist
 
 # Release keystore (never commit)
 android/keystore/
+CLAUDE.md
