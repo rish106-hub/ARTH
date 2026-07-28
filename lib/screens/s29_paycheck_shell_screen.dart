@@ -9,6 +9,9 @@ import '../models/paycheck.dart';
 import '../models/tax_document.dart';
 import '../features/money_signals/providers/money_signal_provider.dart';
 import '../models/money_signal_models.dart';
+import '../features/monthly_close/models/monthly_close_models.dart';
+import '../features/monthly_close/providers/monthly_close_provider.dart';
+import '../features/monthly_close/screens/monthly_close_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/paycheck_override_provider.dart';
 import '../providers/paycheck_provider.dart';
@@ -219,6 +222,14 @@ class _PaycheckHome extends ConsumerWidget {
         paycheck.netCredited > 0 ||
         paycheck.salarySmsConnected;
     final income = ref.watch(incomeSignalProvider);
+    final closeRecord = ref.watch(monthlyCloseProvider);
+    final closeSnapshot = ref.watch(monthlyCloseSnapshotProvider);
+    FigureAudit? auditFor(String id) =>
+        closeSnapshot.figureAudits.where((audit) => audit.id == id).firstOrNull;
+    void openAudit(String id) {
+      final audit = auditFor(id);
+      if (audit != null) showFigureAuditSheet(context, audit);
+    }
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -234,6 +245,7 @@ class _PaycheckHome extends ConsumerWidget {
             _IncomeSourceStrip(
               income: income,
               onEdit: () => _editPlanningIncome(context, ref, income),
+              onAudit: () => openAudit('planning-income'),
             ),
             const SizedBox(height: 20),
             if (!hasPayslip)
@@ -249,10 +261,14 @@ class _PaycheckHome extends ConsumerWidget {
               const SizedBox(height: 12),
               Semantics(
                 label: '${_money(paycheck.netCredited)} net pay',
-                child: Text(
-                  _money(paycheck.netCredited),
-                  key: const Key('paycheck_claimable_amount'),
-                  style: PaycheckType.display(color: PaycheckColors.matched),
+                button: true,
+                child: InkWell(
+                  onTap: () => openAudit('net-pay'),
+                  child: Text(
+                    _money(paycheck.netCredited),
+                    key: const Key('paycheck_claimable_amount'),
+                    style: PaycheckType.display(color: PaycheckColors.matched),
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -271,7 +287,16 @@ class _PaycheckHome extends ConsumerWidget {
                   ),
                 ),
               const SizedBox(height: 20),
-              _ComparisonStrip(paycheck: paycheck),
+              _ComparisonStrip(
+                paycheck: paycheck,
+                onAudit: openAudit,
+              ),
+              const SizedBox(height: 12),
+              MonthlyCloseEntryCard(
+                record: closeRecord,
+                snapshot: closeSnapshot,
+                onTap: () => context.push('/monthly-close'),
+              ),
               const SizedBox(height: 12),
               if (actionItems.isNotEmpty)
                 SizedBox(
@@ -410,10 +435,15 @@ class _PaycheckHome extends ConsumerWidget {
 }
 
 class _IncomeSourceStrip extends StatelessWidget {
-  const _IncomeSourceStrip({required this.income, required this.onEdit});
+  const _IncomeSourceStrip({
+    required this.income,
+    required this.onEdit,
+    required this.onAudit,
+  });
 
   final IncomeSignal income;
   final VoidCallback onEdit;
+  final VoidCallback onAudit;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -443,11 +473,14 @@ class _IncomeSourceStrip extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            income.hasIncome
-                                ? _money(income.monthlyIncome)
-                                : 'Not set',
-                            style: PaycheckType.h2(),
+                          InkWell(
+                            onTap: income.hasIncome ? onAudit : onEdit,
+                            child: Text(
+                              income.hasIncome
+                                  ? _money(income.monthlyIncome)
+                                  : 'Not set',
+                              style: PaycheckType.h2(),
+                            ),
                           ),
                           Text(
                             income.sourceLabel,
@@ -460,7 +493,12 @@ class _IncomeSourceStrip extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Icon(Icons.edit_outlined, size: 18),
+                    IconButton(
+                      tooltip: 'Edit planning income',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -702,9 +740,13 @@ class _EmptyPaycheck extends StatelessWidget {
 }
 
 class _ComparisonStrip extends StatelessWidget {
-  const _ComparisonStrip({required this.paycheck});
+  const _ComparisonStrip({
+    required this.paycheck,
+    required this.onAudit,
+  });
 
   final PaycheckState paycheck;
+  final void Function(String id) onAudit;
 
   @override
   Widget build(BuildContext context) {
@@ -722,12 +764,15 @@ class _ComparisonStrip extends StatelessWidget {
           _ComparisonCell(
             label: 'Promised',
             value: canCompare ? _money(paycheck.promisedMonthly) : 'Not added',
+            onTap: canCompare ? () => onAudit('promised-pay') : null,
           ),
           Container(width: 1, height: 52, color: PaycheckColors.line),
           _ComparisonCell(
             label: 'Paid',
             value: _money(paycheck.grossReceived),
             color: PaycheckColors.matched,
+            onTap:
+                paycheck.grossReceived > 0 ? () => onAudit('gross-pay') : null,
           ),
           Container(width: 1, height: 52, color: PaycheckColors.line),
           _ComparisonCell(
@@ -735,6 +780,9 @@ class _ComparisonStrip extends StatelessWidget {
             value: canCompare ? _money(difference.abs()) : '—',
             color:
                 difference == 0 ? PaycheckColors.matched : PaycheckColors.claim,
+            onTap: canCompare && paycheck.grossReceived > 0
+                ? () => onAudit('pay-difference')
+                : null,
           ),
         ],
       ),
@@ -747,32 +795,37 @@ class _ComparisonCell extends StatelessWidget {
     required this.label,
     required this.value,
     this.color = PaycheckColors.ink,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: PaycheckType.utility()),
-            const SizedBox(height: 5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: PaycheckType.money(color: color, size: 14),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: PaycheckType.utility()),
+              const SizedBox(height: 5),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: PaycheckType.money(color: color, size: 14),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

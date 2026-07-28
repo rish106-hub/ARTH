@@ -17,6 +17,7 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.paycheckOverrides(uid)));
     expect(keys, contains(UserScopedStorageKeys.syncQueue(uid)));
     expect(keys, contains(UserScopedStorageKeys.recovery(uid)));
-    expect(keys.length, 12);
+    expect(keys, contains(UserScopedStorageKeys.monthlyClose(uid)));
+    expect(keys.length, 13);
   });
 }

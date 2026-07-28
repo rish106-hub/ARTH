@@ -33,6 +33,7 @@ import 'models/gap_card.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
 import 'features/spend_completeness/screens/spend_completeness_screen.dart';
+import 'features/monthly_close/screens/monthly_close_screen.dart';
 
 String _initialLocation() {
   final platformRoute =
@@ -65,6 +66,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/paycheck',
       builder: (_, __) => const PaycheckShellScreen(),
+    ),
+    GoRoute(
+      path: '/monthly-close',
+      builder: (_, __) => const MonthlyCloseScreen(),
     ),
     GoRoute(
       path: '/paycheck/promise',

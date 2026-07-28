@@ -13,10 +13,12 @@ class SpendMapAdjustments {
   const SpendMapAdjustments({
     this.manualPrimaryMonthlyIncome,
     this.manualMonthlySpend,
+    this.primaryIncomeUpdatedAt,
   });
 
   final int? manualPrimaryMonthlyIncome;
   final int? manualMonthlySpend;
+  final DateTime? primaryIncomeUpdatedAt;
 
   bool get hasManualPrimaryIncome =>
       manualPrimaryMonthlyIncome != null && manualPrimaryMonthlyIncome! > 0;
@@ -27,6 +29,7 @@ class SpendMapAdjustments {
   SpendMapAdjustments copyWith({
     int? Function()? manualPrimaryMonthlyIncome,
     int? Function()? manualMonthlySpend,
+    DateTime? Function()? primaryIncomeUpdatedAt,
   }) {
     return SpendMapAdjustments(
       manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome != null
@@ -35,6 +38,9 @@ class SpendMapAdjustments {
       manualMonthlySpend: manualMonthlySpend != null
           ? manualMonthlySpend()
           : this.manualMonthlySpend,
+      primaryIncomeUpdatedAt: primaryIncomeUpdatedAt != null
+          ? primaryIncomeUpdatedAt()
+          : this.primaryIncomeUpdatedAt,
     );
   }
 }
@@ -58,10 +64,12 @@ class SpendMapAdjustmentsNotifier extends Notifier<SpendMapAdjustments> {
       return;
     }
     final parts = raw.split('|');
-    if (parts.length != 2) return;
+    if (parts.length < 2) return;
     state = SpendMapAdjustments(
       manualPrimaryMonthlyIncome: _parseOptional(parts[0]),
       manualMonthlySpend: _parseOptional(parts[1]),
+      primaryIncomeUpdatedAt:
+          parts.length >= 3 ? DateTime.tryParse(parts[2]) : null,
     );
   }
 
@@ -74,19 +82,30 @@ class SpendMapAdjustmentsNotifier extends Notifier<SpendMapAdjustments> {
   Future<void> _persist() async {
     final income = state.manualPrimaryMonthlyIncome?.toString() ?? '';
     final spend = state.manualMonthlySpend?.toString() ?? '';
-    await _storage.write(_adjustmentsKey(_uid()), '$income|$spend');
+    final incomeUpdatedAt =
+        state.primaryIncomeUpdatedAt?.toIso8601String() ?? '';
+    await _storage.write(
+      _adjustmentsKey(_uid()),
+      '$income|$spend|$incomeUpdatedAt',
+    );
   }
 
   Future<void> setManualPrimaryIncome(int amount) async {
     if (amount <= 0) return;
     _mutationRevision++;
-    state = state.copyWith(manualPrimaryMonthlyIncome: () => amount);
+    state = state.copyWith(
+      manualPrimaryMonthlyIncome: () => amount,
+      primaryIncomeUpdatedAt: DateTime.now,
+    );
     await _persist();
   }
 
   Future<void> clearManualPrimaryIncome() async {
     _mutationRevision++;
-    state = state.copyWith(manualPrimaryMonthlyIncome: () => null);
+    state = state.copyWith(
+      manualPrimaryMonthlyIncome: () => null,
+      primaryIncomeUpdatedAt: () => null,
+    );
     await _persist();
   }
 
