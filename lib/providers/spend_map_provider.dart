@@ -1,13 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../engine/reconciliation_engine.dart';
 import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
 import '../services/secure_storage_service.dart';
+import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import 'auth_provider.dart';
 import 'other_income_provider.dart';
 import 'paycheck_provider.dart';
+import 'spend_map_adjustments_provider.dart';
 import 'tax_document_provider.dart';
 import 'user_profile_provider.dart';
 
@@ -37,7 +40,7 @@ extension SpendScanPeriodLabel on SpendScanPeriod {
       };
 }
 
-String _spendMapKey(String uid) => 'arth_spend_map_$uid';
+String _spendMapKey(String uid) => UserScopedStorageKeys.spendMap(uid);
 
 class SpendMapState {
   const SpendMapState({
@@ -107,15 +110,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     Future.microtask(_loadCached);
     // Income falls back to payslip/CTC when no salary credit is detected in
     // SMS; re-derive it whenever a document, paycheck, or profile changes.
-    ref.listen(paycheckProvider, (_, __) => _refreshIncomeContext());
-    ref.listen(payslipTaxPrefillProvider, (_, __) => _refreshIncomeContext());
+    ref.listen(paycheckProvider, (_, __) => _refreshUserContext());
+    ref.listen(payslipTaxPrefillProvider, (_, __) => _refreshUserContext());
     ref.listen(
       userProfileProvider.select((p) => p.annualCTC),
-      (_, __) => _refreshIncomeContext(),
+      (_, __) => _refreshUserContext(),
     );
     // Other-income total (user-entered, local-only) also feeds the figures
     // shown on screen — re-derive whenever the user adds/removes a source.
-    ref.listen(otherIncomeProvider, (_, __) => _refreshIncomeContext());
+    ref.listen(otherIncomeProvider, (_, __) => _refreshUserContext());
+    ref.listen(spendMapAdjustmentsProvider, (_, __) => _refreshUserContext());
     return const SpendMapState();
   }
 
@@ -133,20 +137,30 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     return null;
   }
 
-  /// Applies both transient income adjustments (payslip/CTC fallback + the
-  /// user-entered other-income total) to a map in one place, so every call
-  /// site stays in sync.
-  SpendMap _applyIncomeContext(SpendMap map) {
+  /// Applies transient income adjustments (payslip/CTC fallback, other income,
+  /// and user-edited income/spend overrides) in one place.
+  SpendMap _applyUserContext(SpendMap map) {
     final otherIncome = ref.read(otherIncomeProvider.notifier).totalMonthly;
+    final adjustments = ref.read(spendMapAdjustmentsProvider);
     return map
         .withFallbackIncome(_fallbackMonthlyIncome())
-        .withOtherIncome(otherIncome);
+        .withOtherIncome(otherIncome)
+        .withAdjustments(
+          manualPrimaryMonthlyIncome: adjustments.manualPrimaryMonthlyIncome,
+          manualMonthlySpend: adjustments.manualMonthlySpend,
+        );
   }
 
-  void _refreshIncomeContext() {
+  void _refreshUserContext() {
     final map = state.map;
     if (map == null) return;
-    state = state.copyWith(map: _applyIncomeContext(map));
+    state = state.copyWith(map: _applyUserContext(map));
+  }
+
+  void _bridgeSalarySms(SpendMap? map) {
+    ref.read(paycheckProvider.notifier).syncSalarySms(
+          map == null ? const SalarySmsSnapshot() : salarySmsFromSpendMap(map),
+        );
   }
 
   Future<void> _loadCached() async {
@@ -154,8 +168,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     if (json == null) return;
     try {
       state = state.copyWith(
-        map: _applyIncomeContext(SpendMap.fromJsonString(json)),
+        map: _applyUserContext(SpendMap.fromJsonString(json)),
       );
+      _bridgeSalarySms(state.map);
     } catch (_) {
       // Corrupt cache — ignore, a rescan will overwrite it.
     }
@@ -229,9 +244,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final map = _buildMap(txns, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(
-      map: _applyIncomeContext(map),
+      map: _applyUserContext(map),
       loading: false,
     );
+    _bridgeSalarySms(state.map);
 
     // Hybrid pass: refine the transactions the on-device rules left as
     // `other` using the AI fallback. Best-effort — the rules result already
@@ -275,7 +291,8 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       generatedAt: DateTime.now(),
     );
     await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
-    state = state.copyWith(map: _applyIncomeContext(updated));
+    state = state.copyWith(map: _applyUserContext(updated));
+    _bridgeSalarySms(state.map);
     try {
       await _sync.push(updated);
     } catch (_) {}
@@ -358,7 +375,8 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       generatedAt: map.generatedAt,
     );
     await _storage.write(_spendMapKey(_uid()), updated.toJsonString());
-    state = state.copyWith(map: _applyIncomeContext(updated));
+    state = state.copyWith(map: _applyUserContext(updated));
+    _bridgeSalarySms(state.map);
     return updated;
   }
 
@@ -377,9 +395,15 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   }
 
   Future<void> clear() async {
-    await _storage.delete(_spendMapKey(_uid()));
+    final uid = _uid();
+    if (uid != 'guest') {
+      await _storage.delete(_spendMapKey(uid));
+    }
     state = const SpendMapState();
+    _bridgeSalarySms(null);
   }
+
+  Future<void> clearLocalData() => clear();
 }
 
 final spendMapProvider =

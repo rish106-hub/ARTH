@@ -1,8 +1,8 @@
 # Logic Audit Results
 
-Generated: 2026-07-26T17:55:01.103362
+Generated: 2026-07-28T14:47:05.897319
 Rule set: FY2025-26 Filing / AY 2026-27
-Runtime: 44s
+Runtime: 38s
 
 ## Sweep Scope
 

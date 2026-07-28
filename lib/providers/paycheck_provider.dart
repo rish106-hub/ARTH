@@ -1,19 +1,42 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../engine/reconciliation_engine.dart';
 import '../models/paycheck.dart';
 import '../models/tax_document.dart';
 import 'paycheck_override_provider.dart';
 import 'tax_document_provider.dart';
 import 'user_profile_provider.dart';
 
+class _ParsedSnapshot {
+  const _ParsedSnapshot({
+    this.offerFields = const {},
+    this.payslipFields = const {},
+    this.components = const [],
+    this.evidence = const [],
+    this.employeeName = 'Your pay profile',
+    this.employer = '',
+    this.role = 'Add an offer letter to compare pay',
+    this.payPeriod = 'Not connected',
+    this.offerLetterAdded = false,
+  });
+
+  final Map<String, dynamic> offerFields;
+  final Map<String, dynamic> payslipFields;
+  final List<PaycheckComponent> components;
+  final List<PaycheckEvidence> evidence;
+  final String employeeName;
+  final String employer;
+  final String role;
+  final String payPeriod;
+  final bool offerLetterAdded;
+}
+
 class PaycheckNotifier extends Notifier<PaycheckState> {
   PaycheckState? _realState;
-
-  /// The parsed state BEFORE user overrides are layered on — cached so
-  /// overrides can be re-applied whenever they change without needing to
-  /// re-parse documents. Starts at [emptyPaycheck] so overrides work even
-  /// before any document has been confirmed (fully manual entry).
-  PaycheckState _baseState = emptyPaycheck;
+  _ParsedSnapshot _parsed = const _ParsedSnapshot();
+  SalarySmsSnapshot _salarySms = const SalarySmsSnapshot();
+  Set<String> _preparedClaims = {};
+  bool _inboxConnected = false;
 
   @override
   PaycheckState build() {
@@ -28,37 +51,77 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       userProfileProvider,
       (_, profile) => Future<void>.microtask(() {
         if (!state.usingSampleData && profile.employerName.trim().isNotEmpty) {
-          state = state.copyWith(employer: profile.employerName.trim());
-          _baseState =
-              _baseState.copyWith(employer: profile.employerName.trim());
+          _parsed = _ParsedSnapshot(
+            offerFields: _parsed.offerFields,
+            payslipFields: _parsed.payslipFields,
+            components: _parsed.components,
+            evidence: _parsed.evidence,
+            employeeName: _parsed.employeeName,
+            employer: profile.employerName.trim(),
+            role: _parsed.role,
+            payPeriod: _parsed.payPeriod,
+            offerLetterAdded: _parsed.offerLetterAdded,
+          );
+          if (!state.usingSampleData) state = _reconcile();
         }
       }),
       fireImmediately: true,
     );
-    // Manual edits/additions/removals — re-apply on top of the last parsed
-    // base state whenever the user changes an override. No fireImmediately:
-    // this only needs to react to FUTURE changes, since the initial overrides
-    // (if any already exist) are folded into the value build() returns below
-    // via a plain read — mutating `state` synchronously during build() isn't
-    // allowed, so that seed has to happen through the return value instead.
     ref.listen(paycheckOverrideProvider, (_, __) {
-      if (!state.usingSampleData) state = _applyOverrides(_baseState);
+      if (!state.usingSampleData) state = _reconcile();
     });
-    return _applyOverrides(_baseState);
+    return _reconcile();
   }
 
-  /// Merges user overrides on top of [base] (the freshly-parsed state):
-  /// edits replace a component's label/amount, removals hide it, and manual
-  /// additions are appended. Aggregate totals (gross/net/tax/other
-  /// deductions) are recomputed from the merged component list so the pay
-  /// equation always stays internally consistent.
-  PaycheckState _applyOverrides(PaycheckState base) {
+  /// Called by the spend-map provider when SMS salary credits change.
+  void syncSalarySms(SalarySmsSnapshot salarySms) {
+    if (state.usingSampleData || _salarySms == salarySms) return;
+    _salarySms = salarySms;
+    state = _reconcile();
+  }
+
+  PaycheckState _reconcile() {
+    final mergedComponents = _mergeOverrides(_parsed.components);
+    final output = ReconciliationEngine.reconcile(
+      ReconciliationInput(
+        offerFields: _parsed.offerFields,
+        payslipFields: _parsed.payslipFields,
+        components: mergedComponents,
+        evidence: _parsed.evidence,
+        salarySms: _salarySms,
+        employeeName: _parsed.employeeName,
+        employer: _parsed.employer,
+        role: _parsed.role,
+        payPeriod: _parsed.payPeriod,
+        offerLetterAdded: _parsed.offerLetterAdded,
+      ),
+    );
+    var paycheck = output.toPaycheckState(
+      preparedClaims: _preparedClaims,
+      inboxConnected: _inboxConnected,
+    );
+    if (_inboxConnected) {
+      paycheck = paycheck.copyWith(
+        sources: [
+          ...paycheck.sources,
+          const PaycheckSource(
+            name: 'Gmail receipts',
+            detail: 'Payslips and eligible bills',
+            connected: true,
+          ),
+        ],
+      );
+    }
+    return paycheck;
+  }
+
+  List<PaycheckComponent> _mergeOverrides(List<PaycheckComponent> base) {
     final overrides = ref.read(paycheckOverrideProvider);
     if (overrides.isEmpty) return base;
 
     final overrideByKey = {for (final o in overrides) o.canonicalKey: o};
     final merged = <PaycheckComponent>[];
-    for (final component in base.components) {
+    for (final component in base) {
       final override = overrideByKey[component.canonicalKey];
       if (override == null) {
         merged.add(component);
@@ -83,54 +146,7 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
         ));
       }
     }
-
-    final earnings =
-        merged.where((c) => c.kind == PaycheckComponentKind.earning).toList();
-    final deductions =
-        merged.where((c) => c.kind == PaycheckComponentKind.deduction).toList();
-    final gross = earnings.fold<int>(0, (sum, c) => sum + c.amount);
-    final totalDeductions = deductions.fold<int>(0, (sum, c) => sum + c.amount);
-    final incomeTax = deductions
-        .where((c) => c.classification == 'income_tax')
-        .fold<int>(0, (sum, c) => sum + c.amount);
-    final net =
-        gross > 0 ? (gross - totalDeductions).clamp(0, gross).toInt() : 0;
-
-    String detailFor(String canonicalKey, bool isDeduction) {
-      final override = overrideByKey[canonicalKey];
-      if (override != null && override.isManualAdd) return 'Added by you';
-      if (override != null) return 'Edited by you';
-      return isDeduction
-          ? 'Deducted in the confirmed payslip'
-          : 'Recorded from confirmed payslip';
-    }
-
-    final items = <PaycheckItem>[
-      ...earnings.map((c) => PaycheckItem(
-            id: 'earning-${c.canonicalKey}',
-            label: c.label,
-            detail: detailFor(c.canonicalKey, false),
-            amount: c.amount,
-            status: PaycheckItemStatus.matched,
-          )),
-      ...deductions.map((c) => PaycheckItem(
-            id: 'deduction-${c.canonicalKey}',
-            label: c.label,
-            detail: detailFor(c.canonicalKey, true),
-            amount: c.amount,
-            status: PaycheckItemStatus.deduction,
-          )),
-    ];
-
-    return base.copyWith(
-      components: merged,
-      items: items,
-      grossReceived: gross,
-      netCredited: net,
-      taxWithheld: incomeTax,
-      otherDeductions:
-          (totalDeductions - incomeTax).clamp(0, totalDeductions).toInt(),
-    );
+    return merged;
   }
 
   void syncDocuments(List<TaxDocument> documents) {
@@ -145,37 +161,6 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
     final pay = payslip?.confirmedFields ?? const <String, dynamic>{};
     final deductions = _rows(pay['deductions']);
     final earnings = _rows(pay['earnings']);
-    final gross = _amount(pay['grossEarnings']) ?? _sumRows(earnings);
-    final totalDeductions =
-        _amount(pay['totalDeductions']) ?? _sumRows(deductions);
-    final net = _amount(pay['netSalary']) ??
-        (gross > 0 ? (gross - totalDeductions).clamp(0, gross).toInt() : 0);
-    final incomeTax = deductions
-        .where((row) => row['classification'] == 'income_tax')
-        .fold<int>(0, (sum, row) => sum + (_amount(row['amount']) ?? 0));
-    final annualFixed =
-        _amount(offer['fixedAnnualPay']) ?? _amount(offer['annualCtc']) ?? 0;
-
-    final items = <PaycheckItem>[
-      ...earnings.map(
-        (row) => PaycheckItem(
-          id: 'earning-${_itemId(row['label'])}',
-          label: row['label']?.toString() ?? 'Earning',
-          detail: 'Recorded from confirmed payslip',
-          amount: _amount(row['amount']) ?? 0,
-          status: PaycheckItemStatus.matched,
-        ),
-      ),
-      ...deductions.map(
-        (row) => PaycheckItem(
-          id: 'deduction-${_itemId(row['label'])}',
-          label: row['label']?.toString() ?? 'Deduction',
-          detail: 'Deducted in the confirmed payslip',
-          amount: _amount(row['amount']) ?? 0,
-          status: PaycheckItemStatus.deduction,
-        ),
-      ),
-    ];
     final components = <PaycheckComponent>[
       ...earnings.map(
         (row) => PaycheckComponent(
@@ -198,8 +183,29 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
         ),
       ),
     ];
+    final grossDeclared = _amount(pay['grossEarnings']);
+    final earningsSum = components
+        .where((c) => c.kind == PaycheckComponentKind.earning)
+        .fold<int>(0, (sum, c) => sum + c.amount);
+    if (grossDeclared != null &&
+        grossDeclared > earningsSum &&
+        earningsSum > 0) {
+      components.add(
+        PaycheckComponent(
+          label: 'Other earnings',
+          canonicalKey: 'other_earnings',
+          classification: 'other',
+          amount: grossDeclared - earningsSum,
+          kind: PaycheckComponentKind.earning,
+        ),
+      );
+    }
 
-    final base = emptyPaycheck.copyWith(
+    _parsed = _ParsedSnapshot(
+      offerFields: offer,
+      payslipFields: pay,
+      components: components,
+      evidence: evidence,
       employeeName: _text(pay['employeeName']) ?? state.employeeName,
       employer: _text(pay['employerName']) ??
           _text(offer['employerName']) ??
@@ -210,36 +216,11 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
               : state.role),
       payPeriod: _text(pay['payPeriod']) ??
           (payslip == null ? 'No payslip confirmed' : 'Latest payslip'),
-      promisedMonthly: annualFixed > 0 ? (annualFixed / 12).round() : 0,
-      grossReceived: gross,
-      netCredited: net,
-      taxWithheld: incomeTax,
-      otherDeductions:
-          (totalDeductions - incomeTax).clamp(0, totalDeductions).toInt(),
       offerLetterAdded: offerLetter != null ||
           active.any((document) =>
               document.documentType == 'offerLetter' && !document.isPayslip),
-      items: items,
-      components: components,
-      sources: [
-        if (offerLetter != null)
-          const PaycheckSource(
-            name: 'Offer letter',
-            detail: 'Confirmed compensation promise',
-            connected: true,
-          ),
-        if (payslip != null)
-          const PaycheckSource(
-            name: 'Latest payslip',
-            detail: 'Confirmed monthly pay',
-            connected: true,
-          ),
-      ],
-      evidence: evidence,
-      preparedClaims: state.preparedClaims,
     );
-    _baseState = base;
-    state = _applyOverrides(base);
+    state = _reconcile();
   }
 
   void useSampleData() {
@@ -255,7 +236,10 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
   void clearUserData() {
     state = emptyPaycheck;
     _realState = null;
-    _baseState = emptyPaycheck;
+    _parsed = const _ParsedSnapshot();
+    _salarySms = const SalarySmsSnapshot();
+    _preparedClaims = {};
+    _inboxConnected = false;
   }
 
   void markOfferLetterAdded() {
@@ -263,26 +247,17 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
   }
 
   void setInboxConnected(bool connected) {
-    final updatedSources = state.sources
-        .map(
-          (source) => source.name == 'Gmail receipts'
-              ? PaycheckSource(
-                  name: source.name,
-                  detail: source.detail,
-                  connected: connected,
-                  lastSeen: connected ? DateTime.now() : null,
-                )
-              : source,
-        )
-        .toList(growable: false);
-    state = state.copyWith(
-      inboxConnected: connected,
-      sources: updatedSources,
-    );
+    _inboxConnected = connected;
+    state = _reconcile();
   }
 
   void markClaimPrepared(String id) {
-    state = state.copyWith(preparedClaims: {...state.preparedClaims, id});
+    if (state.usingSampleData) {
+      state = state.copyWith(preparedClaims: {...state.preparedClaims, id});
+      return;
+    }
+    _preparedClaims = {..._preparedClaims, id};
+    state = _reconcile();
   }
 
   void addEvidence(String fileName) {
@@ -311,6 +286,18 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       usingSampleData: false,
       evidence: [evidence, ...state.evidence],
     );
+    _parsed = _ParsedSnapshot(
+      offerFields: _parsed.offerFields,
+      payslipFields: _parsed.payslipFields,
+      components: _parsed.components,
+      evidence: [evidence, ..._parsed.evidence],
+      employeeName: _parsed.employeeName,
+      employer: _parsed.employer,
+      role: _parsed.role,
+      payPeriod: _parsed.payPeriod,
+      offerLetterAdded: _parsed.offerLetterAdded,
+    );
+    state = _reconcile();
   }
 
   TaxDocument? _latestConfirmed(
@@ -334,9 +321,7 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       document.reviewedAt ?? document.createdAt ?? DateTime(1970);
 
   PaycheckEvidence _evidenceFromDocument(TaxDocument document) {
-    final kind = document.isPayslip
-        ? PaycheckEvidenceKind.payslip
-        : PaycheckEvidenceKind.document;
+    final kind = evidenceKindForDocument(document);
     final count = document.confirmedFields['earnings'] is List
         ? (document.confirmedFields['earnings'] as List).length
         : document.confirmedFields.length;
@@ -362,11 +347,6 @@ class PaycheckNotifier extends Notifier<PaycheckState> {
       (value as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
-
-  int _sumRows(List<Map<String, dynamic>> rows) => rows.fold<int>(
-        0,
-        (sum, row) => sum + (_amount(row['amount']) ?? 0),
-      );
 
   int? _amount(Object? value) => value is num ? value.round() : null;
 

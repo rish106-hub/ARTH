@@ -2,10 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/other_income_source.dart';
 import '../services/secure_storage_service.dart';
+import '../services/user_scoped_storage.dart';
 import 'auth_provider.dart';
 
-String _sourcesKey(String uid) => 'arth_other_income_$uid';
-String _askedKey(String uid) => 'arth_other_income_asked_$uid';
+String _sourcesKey(String uid) => UserScopedStorageKeys.otherIncome(uid);
+String _askedKey(String uid) => UserScopedStorageKeys.otherIncomeAsked(uid);
 
 /// Manual "other income" entries (freelance, rent, side business, etc.) that
 /// the user adds after the one-time follow-up question. Stored ONLY in the
@@ -71,6 +72,19 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   Future<void> markAsked() async {
     _asked = true;
     await _storage.write(_askedKey(_uid()), 'true');
+  }
+
+  Future<void> clearLocalData() async {
+    final uid = _uid();
+    if (uid == 'guest') {
+      state = const [];
+      _asked = false;
+      return;
+    }
+    await _storage.delete(_sourcesKey(uid));
+    await _storage.delete(_askedKey(uid));
+    _asked = false;
+    state = const [];
   }
 }
 

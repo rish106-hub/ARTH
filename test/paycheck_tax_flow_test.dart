@@ -80,7 +80,7 @@ void main() {
     expect(paycheck.grossReceived, 38767);
     expect(paycheck.netCredited, 38567);
     expect(paycheck.otherDeductions, 200);
-    expect(paycheck.items, hasLength(3));
+    expect(paycheck.items, hasLength(4));
     expect(paycheck.evidence.single.statusLabel, 'CONFIRMED');
   });
 
