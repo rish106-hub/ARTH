@@ -39,7 +39,6 @@ class PayslipTaxPrefill {
 
   UserProfile applyTo(UserProfile profile) {
     return profile.copyWith(
-      annualCTC: annualGrossSalary ?? profile.annualCTC,
       employmentType: EmploymentType.salaried,
       employerName: employerName ?? profile.employerName,
       hasHRA:
@@ -48,17 +47,38 @@ class PayslipTaxPrefill {
       actualHraReceived: annualHraReceived ?? profile.actualHraReceived,
       actualProfessionalTax:
           annualProfessionalTax ?? profile.actualProfessionalTax,
-      invested80C: annualEligible80C ?? profile.invested80C,
+      invested80C: _larger(profile.invested80C, annualEligible80C),
       hasNPS:
           annualEmployeeNps == null ? profile.hasNPS : annualEmployeeNps! > 0,
-      npsExtraContribution: annualEmployeeNps ?? profile.npsExtraContribution,
+      npsExtraContribution:
+          _larger(profile.npsExtraContribution, annualEmployeeNps),
       hasHealthInsuranceSelf: annualHealthInsurance == null
           ? profile.hasHealthInsuranceSelf
           : annualHealthInsurance! > 0,
-      healthInsuranceSelfPremium:
-          annualHealthInsurance ?? profile.healthInsuranceSelfPremium,
+      healthInsuranceSelfPremium: _largerOptional(
+        profile.healthInsuranceSelfPremium,
+        annualHealthInsurance,
+      ),
     );
   }
+
+  /// Builds the profile used for tax calculation. Confirmed payslip gross can
+  /// replace CTC for this calculation without rewriting the user's saved CTC.
+  UserProfile applyForTax(UserProfile profile) {
+    final enriched = applyTo(profile);
+    return enriched.copyWith(
+      annualCTC: annualGrossSalary ?? enriched.annualCTC,
+    );
+  }
+}
+
+int _larger(int current, int? detected) =>
+    detected != null && detected > current ? detected : current;
+
+int? _largerOptional(int? current, int? detected) {
+  if (detected == null) return current;
+  if (current == null || detected > current) return detected;
+  return current;
 }
 
 PayslipTaxPrefill? payslipTaxPrefillFromDocuments(

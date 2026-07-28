@@ -1201,6 +1201,16 @@ describe('backend security harness', () => {
     });
     assert.equal(putPan.statusCode, 200);
 
+    const patchAfterPan = await app.inject({
+      method: 'PATCH',
+      url: '/v1/account/profile',
+      headers: bearer(alice.accessToken),
+      payload: { name: 'Alice Sharma' },
+    });
+    assert.equal(patchAfterPan.statusCode, 200);
+    assert.equal(patchAfterPan.json().pan.status, 'present');
+    assert.equal(patchAfterPan.json().pan.maskedPan, '•••••1234F');
+
     const clear = await app.inject({
       method: 'DELETE',
       url: '/v1/profile',
