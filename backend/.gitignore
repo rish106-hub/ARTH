@@ -1,4 +1,9 @@
 node_modules/
 dist/
+# Cover every variant, not just the bare name: tooling writes .env.local,
+# .env.bak.<timestamp>, and .env.save, and a bare `.env` rule matches none of them.
 .env
+.env.*
+*.env
+!.env.example
 *.log
