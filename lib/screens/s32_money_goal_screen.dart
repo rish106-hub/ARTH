@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../models/money_goal.dart';
 import '../models/user_profile.dart';
+import '../features/money_signals/providers/money_signal_provider.dart';
 import '../providers/money_goal_provider.dart';
-import '../providers/paycheck_provider.dart';
 import '../providers/spend_map_provider.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
@@ -128,13 +128,8 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
     if (goal != null && _loadedId == null) {
       _loadGoal(goal);
     }
-    // Prefer confirmed net pay; fall back to the spend map's monthly income
-    // (payslip/CTC-derived) so a goal can still be tested before a payslip is
-    // confirmed, instead of always reading as infeasible.
-    final netPay = ref.watch(paycheckProvider).netCredited;
-    final spendIncome = ref.watch(spendMapProvider).map?.monthlyIncome ?? 0;
-    final effectiveIncome = netPay > 0 ? netPay : spendIncome;
-    final usingConfirmedPay = netPay > 0;
+    final income = ref.watch(incomeSignalProvider);
+    final effectiveIncome = income.monthlyIncome;
     final projection =
         projectGoal(goal: _draft(), monthlyNetPay: effectiveIncome);
 
@@ -158,11 +153,9 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                usingConfirmedPay
-                    ? 'The plan uses your confirmed net pay of ${money0(netPay)}.'
-                    : spendIncome > 0
-                        ? 'No confirmed payslip yet — using estimated monthly income of ${money0(spendIncome)} from your spend map. Confirm a payslip for a precise plan.'
-                        : 'Confirm a payslip or build your spend map so ARTH can test this goal against real income.',
+                income.hasIncome
+                    ? 'Using ${money0(income.monthlyIncome)} monthly from ${income.sourceLabel.toLowerCase()}. This is the same figure shown on Home and Spend map.'
+                    : 'Add income on Home or build your spend map so ARTH can test this goal.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 20),

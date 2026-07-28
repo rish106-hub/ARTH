@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'money_signal_models.dart';
+
 /// Direction of a money movement parsed from an SMS/email.
 enum TxnDirection { credit, debit }
 
@@ -223,6 +225,7 @@ class SpendMap {
     this.manualPrimaryMonthlyIncome,
     this.manualMonthlySpend,
     this.trustedSalarySourceId,
+    this.incomeSignal,
   });
 
   final List<FinanceTxn> txns;
@@ -252,6 +255,10 @@ class SpendMap {
   /// detected salary credit until the user makes a choice.
   final String? trustedSalarySourceId;
 
+  /// Resolved income shared by Home, Spend map, Goal, and Tax. Transient and
+  /// rebuilt from live sources whenever the map loads or those sources change.
+  final IncomeSignal? incomeSignal;
+
   /// Returns a copy carrying [income] as the fallback monthly income.
   SpendMap withFallbackIncome(int? income) => SpendMap(
         txns: txns,
@@ -263,6 +270,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        incomeSignal: null,
       );
 
   /// Returns a copy carrying [income] as the user-entered other-income total.
@@ -276,6 +284,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        incomeSignal: null,
       );
 
   SpendMap withAdjustments({
@@ -292,6 +301,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        incomeSignal: null,
       );
 
   SpendMap withTrustedSalarySource(String? sourceId) => SpendMap(
@@ -304,6 +314,20 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: sourceId,
+        incomeSignal: null,
+      );
+
+  SpendMap withIncomeSignal(IncomeSignal signal) => SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: fallbackMonthlyIncome,
+        otherMonthlyIncome: otherMonthlyIncome,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: trustedSalarySourceId,
+        incomeSignal: signal,
       );
 
   static SpendMap empty(DateTime now) => SpendMap(
@@ -418,7 +442,9 @@ class SpendMap {
 
   /// True when income comes from a salary credit detected in SMS (as opposed to
   /// the payslip/CTC fallback). Lets the UI label the figure honestly.
-  bool get incomeIsDetected => !primaryIncomeIsManual && salaryCredited > 0;
+  bool get incomeIsDetected =>
+      incomeSignal?.source == IncomeSignalSource.salarySms ||
+      (incomeSignal == null && !primaryIncomeIsManual && salaryCredited > 0);
 
   int get observedPrimaryMonthlyIncome {
     if (salaryCredited > 0) return (salaryCredited / _salaryMonths).round();
@@ -426,12 +452,18 @@ class SpendMap {
   }
 
   int get primaryMonthlyIncome =>
-      manualPrimaryMonthlyIncome ?? observedPrimaryMonthlyIncome;
+      incomeSignal?.primaryMonthlyIncome ??
+      manualPrimaryMonthlyIncome ??
+      observedPrimaryMonthlyIncome;
 
   bool get primaryIncomeIsManual =>
-      manualPrimaryMonthlyIncome != null && manualPrimaryMonthlyIncome! > 0;
+      incomeSignal?.source == IncomeSignalSource.edited ||
+      (incomeSignal == null &&
+          manualPrimaryMonthlyIncome != null &&
+          manualPrimaryMonthlyIncome! > 0);
 
   String get primaryIncomeSourceLabel {
+    if (incomeSignal != null) return incomeSignal!.source.label;
     if (primaryIncomeIsManual) return 'Your entered figure';
     if (salaryCredited > 0) return 'Salary SMS average';
     if (fallbackMonthlyIncome != null && fallbackMonthlyIncome! > 0) {
@@ -442,7 +474,8 @@ class SpendMap {
 
   /// Total monthly income used everywhere on screen: primary (SMS salary or
   /// payslip/CTC fallback) plus any user-entered other-income total.
-  int get monthlyIncome => primaryMonthlyIncome + otherMonthlyIncome;
+  int get monthlyIncome =>
+      incomeSignal?.monthlyIncome ?? primaryMonthlyIncome + otherMonthlyIncome;
 
   /// True when other-income has been added, so the UI can break the total
   /// down instead of presenting one opaque number.

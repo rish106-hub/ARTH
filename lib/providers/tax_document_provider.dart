@@ -83,9 +83,22 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
   }) async {
     final previous = state.asData?.value ?? const <TaxDocument>[];
     final confirmed = await _service.confirmParsedFields(id, fields: fields);
-    state = AsyncData([
+    final updated = [
       for (final doc in previous) doc.id == id ? confirmed : doc,
-    ]);
+    ];
+    state = AsyncData(updated);
+    if (confirmed.isPayslip) {
+      final monthsWorked = ref.read(userProfileProvider).jobDurationMonths;
+      final prefill = payslipTaxPrefillFromDocuments(
+        updated,
+        monthsWorked: monthsWorked,
+      );
+      if (prefill != null) {
+        final profile = ref.read(userProfileProvider.notifier);
+        profile.applyPayslipPrefill(prefill);
+        await profile.save();
+      }
+    }
     return confirmed;
   }
 }
