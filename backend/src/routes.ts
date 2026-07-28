@@ -137,6 +137,7 @@ const spendMapSchema = z.object({
   generatedAt: flexibleDatetime(),
   monthlyIncome: z.number().int().min(0).max(1_000_000_000),
   monthlySpend: z.number().int().min(0).max(1_000_000_000),
+  salaryCreditDay: z.number().int().min(1).max(31).optional(),
   realisticMonthlySavings: z.number().int().min(0).max(1_000_000_000),
   spendByCategory: z.record(
     z.string().min(1).max(40),
@@ -1545,9 +1546,9 @@ export async function registerRoutes(app: FastifyInstance) {
     await db.query(
       `insert into spend_maps (
          user_id, window_start, window_end, generated_at, monthly_income,
-         monthly_spend, realistic_monthly_savings, spend_by_category,
+         monthly_spend, realistic_monthly_savings, salary_credit_day, spend_by_category,
          monthly_trend, updated_at
-       ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, now())
+       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, now())
        on conflict (user_id) do update set
          window_start = excluded.window_start,
          window_end = excluded.window_end,
@@ -1555,6 +1556,7 @@ export async function registerRoutes(app: FastifyInstance) {
          monthly_income = excluded.monthly_income,
          monthly_spend = excluded.monthly_spend,
          realistic_monthly_savings = excluded.realistic_monthly_savings,
+         salary_credit_day = coalesce(excluded.salary_credit_day, spend_maps.salary_credit_day),
          spend_by_category = excluded.spend_by_category,
          monthly_trend = excluded.monthly_trend,
          updated_at = now()`,
@@ -1566,6 +1568,7 @@ export async function registerRoutes(app: FastifyInstance) {
         summary.monthlyIncome,
         summary.monthlySpend,
         summary.realisticMonthlySavings,
+        summary.salaryCreditDay ?? null,
         JSON.stringify(summary.spendByCategory),
         JSON.stringify(summary.monthlyTrend),
       ],

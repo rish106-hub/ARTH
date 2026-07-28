@@ -33,12 +33,14 @@ class PushFakeDb {
   tokens = new Map<string, TokenRow>();
   claims = new Map<string, { id: string; userId: string }>();
   prunes = 0;
+  salaryUsers: string[] = [];
   private nextId = 0;
 
   reset() {
     this.tokens.clear();
     this.claims.clear();
     this.prunes = 0;
+    this.salaryUsers = [];
     this.nextId = 0;
   }
 
@@ -50,6 +52,12 @@ class PushFakeDb {
         rows: [...this.tokens.values()].filter(
           (row) => row.user_id === params[0],
         ),
+      };
+    }
+    if (normalized.startsWith('select user_id from spend_maps')) {
+      return {
+        rowCount: this.salaryUsers.length,
+        rows: this.salaryUsers.map((user_id) => ({ user_id })),
       };
     }
     if (normalized.startsWith('delete from push_delivery_claims where created_at')) {
@@ -83,6 +91,8 @@ class PushFakeDb {
 
 const fakeDb = new PushFakeDb();
 let sendPushToUser: typeof import('../src/pushNotifications.js').sendPushToUser;
+let sendPaydayCloseReminders:
+  typeof import('../src/pushNotifications.js').sendPaydayCloseReminders;
 let resetPushState:
   typeof import('../src/pushNotifications.js').resetPushNotificationStateForTests;
 let encryptDocument: typeof import('../src/security.js').encryptDocument;
@@ -107,6 +117,7 @@ before(async () => {
   const securityModule = await import('../src/security.js');
   const dbModule = await import('../src/db.js');
   sendPushToUser = pushModule.sendPushToUser;
+  sendPaydayCloseReminders = pushModule.sendPaydayCloseReminders;
   resetPushState = pushModule.resetPushNotificationStateForTests;
   encryptDocument = securityModule.encryptDocument;
   setDbForTests = dbModule.setDbForTests;
@@ -182,5 +193,16 @@ describe('push notification delivery', () => {
 
     assert.equal(fakeDb.tokens.size, 1);
     assert.equal(fakeDb.claims.size, 0);
+  });
+
+  it('sends a deduplicated monthly-close push to payday users', async () => {
+    addToken('token-1', 'user-1');
+    fakeDb.salaryUsers = ['user-1'];
+
+    await sendPaydayCloseReminders(new Date('2026-07-28T04:00:00.000Z'));
+    await sendPaydayCloseReminders(new Date('2026-07-28T05:00:00.000Z'));
+
+    assert.equal(fcmCalls, 1);
+    assert.equal(fakeDb.claims.size, 1);
   });
 });

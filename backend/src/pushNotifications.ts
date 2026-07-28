@@ -13,6 +13,7 @@ let credentials: FirebaseCredentials | null | undefined;
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
 let accessTokenRequest: Promise<string> | null = null;
 let lastClaimsPruneAt = 0;
+let paydayTimer: NodeJS.Timeout | null = null;
 
 function getFirebaseCredentials(): FirebaseCredentials | null {
   if (credentials !== undefined) return credentials;
@@ -163,6 +164,7 @@ export interface PushPayload {
   body: string;
   data?: Record<string, string>;
   dailyDedupeKey?: string;
+  dedupeDate?: string;
 }
 
 /// Sends a push notification to every registered device for a user.
@@ -184,12 +186,17 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   let deliveryClaimId: string | null = null;
   if (payload.dailyDedupeKey) {
     await pruneExpiredDeliveryClaims();
+    const bucketSql = payload.dedupeDate == null
+      ? 'current_date'
+      : '$3::date';
     const claim = await db.query(
       `insert into push_delivery_claims (user_id, delivery_key, bucket_date)
-       values ($1, $2, current_date)
+       values ($1, $2, ${bucketSql})
        on conflict (user_id, delivery_key, bucket_date) do nothing
        returning id`,
-      [userId, payload.dailyDedupeKey],
+      payload.dedupeDate == null
+        ? [userId, payload.dailyDedupeKey]
+        : [userId, payload.dailyDedupeKey, payload.dedupeDate],
     );
     if (claim.rows.length === 0) return;
     deliveryClaimId = claim.rows[0].id;
@@ -229,6 +236,74 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 }
 
+function indiaDateParts(now: Date): {
+  year: number;
+  month: number;
+  day: number;
+  lastDay: number;
+} {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(now);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+  const year = value('year');
+  const month = value('month');
+  const day = value('day');
+  return {
+    year,
+    month,
+    day,
+    lastDay: new Date(Date.UTC(year, month, 0)).getUTCDate(),
+  };
+}
+
+/// Sends one reminder on the detected salary-credit day. Days 29-31 are
+/// clamped to the month's last day, so February does not silently skip them.
+export async function sendPaydayCloseReminders(
+  now = new Date(),
+): Promise<void> {
+  if (!getFirebaseCredentials()) return;
+  const { year, month, day, lastDay } = indiaDateParts(now);
+  const result = await db.query(
+    `select user_id
+     from spend_maps
+     where salary_credit_day is not null
+       and least(salary_credit_day, $1) = $2`,
+    [lastDay, day],
+  );
+  await Promise.all(
+    result.rows.map((row: { user_id: string }) =>
+      sendPushToUser(row.user_id, {
+        title: 'Your monthly pay close is ready',
+        body: 'Confirm the credit, check new bills, and review open claims.',
+        data: { type: 'payday_close', screen: 'monthly-close' },
+        dailyDedupeKey: `monthly_close_${year}_${month}`,
+        dedupeDate: [
+          year,
+          month.toString().padStart(2, '0'),
+          day.toString().padStart(2, '0'),
+        ].join('-'),
+      }),
+    ),
+  );
+}
+
+export function startPaydayReminderScheduler(): void {
+  if (paydayTimer != null) return;
+  const run = () => {
+    sendPaydayCloseReminders().catch((error) => {
+      console.warn('[push] payday sweep failed', (error as Error).message);
+    });
+  };
+  run();
+  paydayTimer = setInterval(run, 60 * 60 * 1000);
+  paydayTimer.unref();
+}
+
 export function resetPushNotificationStateForTests(): void {
   if (env.NODE_ENV !== 'test') {
     throw new Error('resetPushNotificationStateForTests is only allowed in test');
@@ -237,4 +312,6 @@ export function resetPushNotificationStateForTests(): void {
   cachedAccessToken = null;
   accessTokenRequest = null;
   lastClaimsPruneAt = 0;
+  if (paydayTimer != null) clearInterval(paydayTimer);
+  paydayTimer = null;
 }
