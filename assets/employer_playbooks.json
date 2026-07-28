@@ -1,0 +1,62 @@
+{
+  "version": "2026.07.1",
+  "employers": [
+    {
+      "key": "tcs",
+      "name": "Tata Consultancy Services",
+      "aliases": ["TCS"],
+      "status": "identity_only",
+      "sourceUrl": "https://www.tcs.com/careers",
+      "rules": []
+    },
+    {
+      "key": "infosys",
+      "name": "Infosys",
+      "aliases": ["Infosys Limited"],
+      "status": "identity_only",
+      "sourceUrl": "https://www.infosys.com/careers/",
+      "rules": []
+    },
+    {
+      "key": "accenture-india",
+      "name": "Accenture India",
+      "aliases": ["Accenture"],
+      "status": "identity_only",
+      "sourceUrl": "https://www.accenture.com/in-en/careers",
+      "rules": []
+    },
+    {
+      "key": "deloitte-india",
+      "name": "Deloitte India",
+      "aliases": ["Deloitte"],
+      "status": "identity_only",
+      "sourceUrl": "https://www.deloitte.com/in/en/careers.html",
+      "rules": []
+    },
+    {
+      "key": "hdfc-bank",
+      "name": "HDFC Bank",
+      "aliases": ["HDFC"],
+      "status": "identity_only",
+      "sourceUrl": "https://www.hdfcbank.com/personal/about-us/careers",
+      "rules": []
+    }
+  ],
+  "genericRules": [
+    {
+      "id": "internet-reimbursement",
+      "matchTerms": ["internet reimbursement", "broadband reimbursement"],
+      "sourceLabel": "Confirmed offer or payslip component"
+    },
+    {
+      "id": "wellness-allowance",
+      "matchTerms": ["wellness allowance", "fitness reimbursement"],
+      "sourceLabel": "Confirmed offer or payslip component"
+    },
+    {
+      "id": "mobile-reimbursement",
+      "matchTerms": ["mobile reimbursement", "telephone reimbursement"],
+      "sourceLabel": "Confirmed offer or payslip component"
+    }
+  ]
+}

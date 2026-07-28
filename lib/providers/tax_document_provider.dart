@@ -53,6 +53,8 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
     state = AsyncData(previous.where((doc) => doc.id != id).toList());
   }
 
+  Future<List<int>> download(String id) => _service.downloadDocument(id);
+
   Future<void> updateMetadata(
     String id, {
     String? userLabel,

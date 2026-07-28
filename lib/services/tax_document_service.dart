@@ -22,6 +22,12 @@ class TaxDocumentService {
         .toList();
   }
 
+  Future<List<int>> downloadDocument(String id) async {
+    final token = await _auth.getValidAccessToken();
+    if (token == null) throw StateError('not signed in');
+    return _api.getBytes('/documents/$id/download', bearerToken: token);
+  }
+
   Future<TaxDocument> updateDocument(
     String id, {
     String? userLabel,

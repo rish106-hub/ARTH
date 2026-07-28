@@ -30,6 +30,8 @@ import 'screens/s31_profile_screens.dart';
 import 'screens/s32_money_goal_screen.dart';
 import 'screens/s33_spend_insights_screen.dart';
 import 'models/gap_card.dart';
+import 'features/recovery/screens/claim_pack_screen.dart';
+import 'features/recovery/screens/recovery_hub_screen.dart';
 
 String _initialLocation() {
   final platformRoute =
@@ -180,6 +182,16 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/spend-map',
       builder: (_, __) => const SpendInsightsScreen(),
+    ),
+    GoRoute(
+      path: '/recovery',
+      builder: (_, __) => const RecoveryHubScreen(),
+    ),
+    GoRoute(
+      path: '/recovery/claim/:id',
+      builder: (_, state) => ClaimPackScreen(
+        claimId: state.pathParameters['id'] ?? '',
+      ),
     ),
     GoRoute(path: '/control-room-demo', redirect: (_, __) => '/paycheck'),
   ],
