@@ -47,6 +47,8 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.text('MONTHLY PLANNING INCOME'), findsOneWidget);
+    expect(find.textContaining('Confirmed payslip net'), findsOneWidget);
     expect(find.byKey(const Key('paycheck_claimable_amount')), findsOneWidget);
     expect(find.text('Needs your review'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -56,6 +58,23 @@ void main() {
 
     expect(find.text('Documents behind your pay'), findsOneWidget);
     expect(find.text('Your files'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('filing shows paycheck tax impact and evidence hints', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      sampleScope(const MaterialApp(home: PaycheckShellScreen())),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('paycheck_nav_filing')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paycheck tax impact'), findsOneWidget);
+    expect(find.text('Payslip tax signals'), findsOneWidget);
+    expect(find.text('Provident fund found'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

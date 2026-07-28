@@ -833,6 +833,12 @@ export async function registerRoutes(app: FastifyInstance) {
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
       [auth.userId, 'account_profile_updated', '{}'],
     );
+    const identityResult = await db.query(
+      `select pan_last4, pan_last_char, pan_consent_version, pan_consented_at, updated_at
+       from user_private_identity
+       where user_id = $1 and pan_ciphertext is not null`,
+      [auth.userId],
+    );
     return accountResponse(
       result.rows[0] as {
         id: string;
@@ -843,6 +849,7 @@ export async function registerRoutes(app: FastifyInstance) {
         avatar_color?: string | null;
         created_at: string | Date;
       },
+      identityResult.rows[0],
     );
   });
 

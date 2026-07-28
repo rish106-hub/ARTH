@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../engine/reconciliation_engine.dart';
+import '../engine/money_signal_engine.dart';
 import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
 import '../services/secure_storage_service.dart';
@@ -145,7 +146,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final otherIncome = ref.read(otherIncomeProvider.notifier).totalMonthly;
     final adjustments = ref.read(spendMapAdjustmentsProvider);
     final completeness = ref.read(spendCompletenessProvider);
-    return map
+    final paycheck = ref.read(paycheckProvider);
+    final profile = ref.read(userProfileProvider);
+    final contextual = map
         .withFallbackIncome(_fallbackMonthlyIncome())
         .withOtherIncome(otherIncome)
         .withAdjustments(
@@ -153,6 +156,17 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
           manualMonthlySpend: adjustments.manualMonthlySpend,
         )
         .withTrustedSalarySource(completeness.trustedSalarySourceId);
+    final signal = MoneySignalEngine.resolveIncome(
+      editedMonthlyIncome: adjustments.manualPrimaryMonthlyIncome,
+      confirmedPayslipNet:
+          paycheck.grossReceived > 0 ? paycheck.netCredited : 0,
+      trustedSalarySmsMonthly: contextual.salaryCredited > 0
+          ? contextual.observedPrimaryMonthlyIncome
+          : 0,
+      annualCtc: profile.annualCTC,
+      otherMonthlyIncome: otherIncome,
+    );
+    return contextual.withIncomeSignal(signal);
   }
 
   void _refreshUserContext() {

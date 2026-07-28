@@ -2,19 +2,27 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tax_result.dart';
 import '../models/gap_card.dart';
+import '../models/user_profile.dart';
 import '../engine/tax_engine.dart';
 import '../engine/gap_finder.dart';
 import '../services/backend_sync_service.dart';
 import 'user_profile_provider.dart';
 import 'tax_year_provider.dart';
+import 'tax_document_provider.dart';
 
 final backendSyncServiceProvider = Provider<BackendSyncService>(
   (ref) => BackendSyncService(),
 );
 
 // Async provider that loads triggers from JSON and computes gaps
-final taxResultProvider = FutureProvider<TaxResult>((ref) async {
+final effectiveTaxProfileProvider = Provider<UserProfile>((ref) {
   final profile = ref.watch(userProfileProvider);
+  final payslip = ref.watch(payslipTaxPrefillProvider);
+  return payslip?.applyForTax(profile) ?? profile;
+});
+
+final taxResultProvider = FutureProvider<TaxResult>((ref) async {
+  final profile = ref.watch(effectiveTaxProfileProvider);
   final ruleSet = await ref.watch(activeTaxRuleSetProvider.future);
   final triggers = await GapFinder.loadTriggers();
   final gaps = GapFinder.findGaps(profile, triggers);

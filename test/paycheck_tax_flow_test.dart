@@ -162,17 +162,29 @@ void main() {
     expect(prefill.annualEmployeeNps, 12000);
     expect(prefill.annualHealthInsurance, 9000);
 
-    final profile = prefill.applyTo(const UserProfile(city: 'Durgapur'));
+    const savedProfile = UserProfile(
+      city: 'Durgapur',
+      annualCTC: 900000,
+      invested80C: 100000,
+      npsExtraContribution: 20000,
+      healthInsuranceSelfPremium: 15000,
+    );
+    final profile = prefill.applyTo(savedProfile);
     expect(profile.employerName, 'Example Employer');
+    expect(profile.annualCTC, 900000);
     expect(profile.hasHRA, isTrue);
     expect(profile.actualBasicSalary, 231996);
     expect(profile.actualHraReceived, 92796);
     expect(profile.actualProfessionalTax, 2400);
-    expect(profile.invested80C, 43224);
+    expect(profile.invested80C, 100000);
     expect(profile.hasNPS, isTrue);
-    expect(profile.npsExtraContribution, 12000);
+    expect(profile.npsExtraContribution, 20000);
     expect(profile.hasHealthInsuranceSelf, isTrue);
-    expect(profile.healthInsuranceSelfPremium, 9000);
+    expect(profile.healthInsuranceSelfPremium, 15000);
+
+    final taxProfile = prefill.applyForTax(savedProfile);
+    expect(taxProfile.annualCTC, 465204);
+    expect(taxProfile.invested80C, 100000);
   });
 
   test('payslip annualizes over a partial-year job duration', () {
@@ -296,6 +308,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('open_tax_plan')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open_tax_plan')));
     await tester.pumpAndSettle();
 

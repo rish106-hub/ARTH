@@ -193,6 +193,35 @@ void main() {
     expect(profile.invested80C, 0);
     expect(profile.hasHomeLoan, isFalse);
   });
+
+  test('cold hydration does not replace cached CTC with remote zero', () {
+    const cached = UserProfile(
+      name: 'User',
+      email: 'user@example.com',
+      annualCTC: 1800000,
+      city: 'Delhi',
+    );
+    const remote = UserProfile(
+      name: 'User',
+      email: 'user@example.com',
+      annualCTC: 0,
+      city: 'Delhi',
+    );
+
+    final resolved = preserveLocalCtcOnHydration(remote, cached);
+
+    expect(resolved.annualCTC, 1800000);
+    expect(resolved.city, remote.city);
+  });
+
+  test('positive remote CTC still replaces an older cached value', () {
+    const cached = UserProfile(annualCTC: 1800000);
+    const remote = UserProfile(annualCTC: 2000000);
+
+    final resolved = preserveLocalCtcOnHydration(remote, cached);
+
+    expect(resolved.annualCTC, 2000000);
+  });
 }
 
 class _FakeApi extends ServerApiService {

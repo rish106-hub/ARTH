@@ -13,6 +13,20 @@ import 'auth_provider.dart';
 String _profileKey(String uid) => UserScopedStorageKeys.profile(uid);
 String _onboardingKey(String uid) => UserScopedStorageKeys.onboarding(uid);
 
+/// Server profile remains authoritative, except a missing CTC must not erase a
+/// valid account-scoped local value. The profile UI never saves CTC as zero, so
+/// this merge repairs stale or partial server records without blocking a user
+/// from intentionally replacing one positive value with another.
+UserProfile preserveLocalCtcOnHydration(
+  UserProfile remote,
+  UserProfile? cached,
+) {
+  if (remote.annualCTC > 0 || cached == null || cached.annualCTC <= 0) {
+    return remote;
+  }
+  return remote.copyWith(annualCTC: cached.annualCTC);
+}
+
 class UserProfileNotifier extends Notifier<UserProfile> {
   final _storage = const SecureStorageService();
   Timer? _syncDebounce;
@@ -106,6 +120,16 @@ class UserProfileNotifier extends Notifier<UserProfile> {
   Future<bool> load() async {
     final uid = _currentUid();
     final account = ref.read(authProvider);
+    UserProfile? cached;
+    if (uid != null) {
+      final json =
+          await _storage.read(_profileKey(uid), migrateFromPrefs: true);
+      if (json != null) {
+        try {
+          cached = UserProfile.fromJsonString(json);
+        } catch (_) {}
+      }
+    }
     if (account != null) {
       resetForAccount(account);
     } else {
@@ -119,25 +143,23 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     // 1. Fetch from server — always the authoritative copy.
     final remote = await BackendSyncService().fetchProfile();
     if (remote != null) {
-      state = remote;
+      final resolved = preserveLocalCtcOnHydration(remote, cached);
+      state = resolved;
       // Update local cache for this user.
       if (uid != null) {
-        await _storage.write(_profileKey(uid), remote.toJsonString());
+        await _storage.write(_profileKey(uid), resolved.toJsonString());
         await _storage.write(_onboardingKey(uid), true.toString());
+      }
+      if (resolved.annualCTC != remote.annualCTC) {
+        await BackendSyncService().syncProfile(resolved);
       }
       return true;
     }
 
     // 2. Offline fallback — use user-scoped local cache only.
-    if (uid != null) {
-      final json =
-          await _storage.read(_profileKey(uid), migrateFromPrefs: true);
-      if (json != null) {
-        try {
-          state = UserProfile.fromJsonString(json);
-          return true;
-        } catch (_) {}
-      }
+    if (cached != null) {
+      state = cached;
+      return true;
     }
 
     return false;

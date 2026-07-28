@@ -69,6 +69,7 @@ class AccountProfileService {
   }) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) throw StateError('not signed in');
+    final current = await loadCached();
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (phoneNumber != null) body['phoneNumber'] = phoneNumber;
@@ -79,9 +80,10 @@ class AccountProfileService {
       bearerToken: token,
       body: body,
     );
-    final current = await loadCached();
     final account = AccountProfile.fromJson(response);
-    final merged = account.copyWith(pan: current?.pan ?? account.pan);
+    final merged = account.copyWith(
+      pan: account.pan.present ? account.pan : current?.pan ?? account.pan,
+    );
     await _persist(merged);
     return merged;
   }
