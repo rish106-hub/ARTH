@@ -14,14 +14,17 @@ String _profileKey(String uid) => UserScopedStorageKeys.profile(uid);
 String _onboardingKey(String uid) => UserScopedStorageKeys.onboarding(uid);
 
 /// Server profile remains authoritative, except a missing CTC must not erase a
-/// valid account-scoped local value. The profile UI never saves CTC as zero, so
-/// this merge repairs stale or partial server records without blocking a user
-/// from intentionally replacing one positive value with another.
+/// confirmed account-scoped local value. Unfinished drafts never enter this
+/// merge and are never promoted to server data.
 UserProfile preserveLocalCtcOnHydration(
   UserProfile remote,
-  UserProfile? cached,
-) {
-  if (remote.annualCTC > 0 || cached == null || cached.annualCTC <= 0) {
+  UserProfile? cached, {
+  required bool cachedProfileConfirmed,
+}) {
+  if (!cachedProfileConfirmed ||
+      remote.annualCTC > 0 ||
+      cached == null ||
+      cached.annualCTC <= 0) {
     return remote;
   }
   return remote.copyWith(annualCTC: cached.annualCTC);
@@ -44,6 +47,10 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 
   Future<void> restoreDraft(UserProfile profile) async {
     state = profile;
+    await persistDraft();
+  }
+
+  Future<void> persistDraft() async {
     final uid = _currentUid();
     if (uid != null) {
       await _storage.write(_profileKey(uid), state.toJsonString());
@@ -121,6 +128,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     final uid = _currentUid();
     final account = ref.read(authProvider);
     UserProfile? cached;
+    var cachedProfileConfirmed = false;
     if (uid != null) {
       final json =
           await _storage.read(_profileKey(uid), migrateFromPrefs: true);
@@ -129,6 +137,9 @@ class UserProfileNotifier extends Notifier<UserProfile> {
           cached = UserProfile.fromJsonString(json);
         } catch (_) {}
       }
+      cachedProfileConfirmed =
+          await _storage.read(_onboardingKey(uid), migrateFromPrefs: true) ==
+              true.toString();
     }
     if (account != null) {
       resetForAccount(account);
@@ -143,15 +154,16 @@ class UserProfileNotifier extends Notifier<UserProfile> {
     // 1. Fetch from server — always the authoritative copy.
     final remote = await BackendSyncService().fetchProfile();
     if (remote != null) {
-      final resolved = preserveLocalCtcOnHydration(remote, cached);
+      final resolved = preserveLocalCtcOnHydration(
+        remote,
+        cached,
+        cachedProfileConfirmed: cachedProfileConfirmed,
+      );
       state = resolved;
       // Update local cache for this user.
       if (uid != null) {
         await _storage.write(_profileKey(uid), resolved.toJsonString());
         await _storage.write(_onboardingKey(uid), true.toString());
-      }
-      if (resolved.annualCTC != remote.annualCTC) {
-        await BackendSyncService().syncProfile(resolved);
       }
       return true;
     }
@@ -197,10 +209,7 @@ class UserProfileNotifier extends Notifier<UserProfile> {
       // mid-onboarding would cause load() to return true on the next cold
       // start, routing the user to /gap-reveal with incomplete default data.
       // Server sync happens exclusively from save() once onboarding is done.
-      final uid = _currentUid();
-      if (uid != null) {
-        await _storage.write(_profileKey(uid), state.toJsonString());
-      }
+      await persistDraft();
     });
   }
 

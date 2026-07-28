@@ -54,6 +54,21 @@ void main() {
       expect(ctc.primaryMonthlyIncome, 60000);
     });
 
+    test('keeps confirmed payslip gross when net pay is unavailable', () {
+      final signal = MoneySignalEngine.resolveIncome(
+        editedMonthlyIncome: null,
+        confirmedPayslipNet: 0,
+        confirmedPayslipGross: 82000,
+        trustedSalarySmsMonthly: 0,
+        annualCtc: 0,
+        otherMonthlyIncome: 0,
+      );
+
+      expect(signal.primaryMonthlyIncome, 82000);
+      expect(signal.source, IncomeSignalSource.payslipGross);
+      expect(signal.sourceLabel, 'Confirmed payslip gross');
+    });
+
     test('Spend map uses the same resolved source as Home and Goal', () {
       final map = SpendMap(
         txns: [
@@ -127,6 +142,18 @@ void main() {
       expect(impact.status, TdsPaceStatus.over);
       expect(impact.expectedMonthlyTds, 0);
     });
+
+    test('loading tax states never become review findings', () {
+      const impact = PaycheckTaxImpact(
+        expectedMonthlyTds: 0,
+        actualMonthlyTds: 900,
+        status: TdsPaceStatus.calculating,
+        regimeLabel: 'selected regime',
+      );
+
+      expect(impact.needsReview, isFalse);
+      expect(impact.status.label, 'CALCULATING');
+    });
   });
 
   test('tax hints stay inside payslip evidence and employer policy', () {
@@ -185,5 +212,43 @@ void main() {
       hints.last.detail,
       contains('does not label reimbursements as 80C'),
     );
+  });
+
+  test('NPS hints distinguish employee, additional, and employer rules', () {
+    final paycheck = emptyPaycheck.copyWith(
+      components: const [
+        PaycheckComponent(
+          label: 'Employee NPS',
+          canonicalKey: 'employee_nps_80ccd_1',
+          classification: 'employee_nps',
+          amount: 2000,
+          kind: PaycheckComponentKind.deduction,
+        ),
+        PaycheckComponent(
+          label: 'NPS 80CCD(1B)',
+          canonicalKey: 'nps_80ccd_1b',
+          classification: 'nps_80ccd_1b',
+          amount: 1000,
+          kind: PaycheckComponentKind.deduction,
+        ),
+        PaycheckComponent(
+          label: 'Employer NPS',
+          canonicalKey: 'employer_nps_80ccd_2',
+          classification: 'employer_nps',
+          amount: 3000,
+          kind: PaycheckComponentKind.deduction,
+        ),
+      ],
+    );
+
+    final hints = MoneySignalEngine.taxHints(
+      paycheck,
+      const UserProfile(),
+    );
+    final details = hints.map((hint) => hint.detail).join(' ');
+
+    expect(details, contains('80CCD(1)'));
+    expect(details, contains('80CCD(1B)'));
+    expect(details, contains('80CCD(2)'));
   });
 }

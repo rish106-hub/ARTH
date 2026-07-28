@@ -81,8 +81,10 @@ class AccountProfileService {
       body: body,
     );
     final account = AccountProfile.fromJson(response);
-    final merged = account.copyWith(
-      pan: account.pan.present ? account.pan : current?.pan ?? account.pan,
+    final merged = mergeAccountProfileUpdate(
+      account,
+      current,
+      panIncluded: response['pan'] is Map<String, dynamic>,
     );
     await _persist(merged);
     return merged;
@@ -131,4 +133,13 @@ class AccountProfileService {
       await _storage.write('$_cachePrefix$uid', profile.toJsonString());
     }
   }
+}
+
+AccountProfile mergeAccountProfileUpdate(
+  AccountProfile account,
+  AccountProfile? cached, {
+  required bool panIncluded,
+}) {
+  if (panIncluded || cached == null) return account;
+  return account.copyWith(pan: cached.pan);
 }

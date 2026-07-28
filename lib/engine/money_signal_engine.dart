@@ -8,6 +8,7 @@ class MoneySignalEngine {
   static IncomeSignal resolveIncome({
     required int? editedMonthlyIncome,
     required int confirmedPayslipNet,
+    int confirmedPayslipGross = 0,
     required int trustedSalarySmsMonthly,
     required int annualCtc,
     required int otherMonthlyIncome,
@@ -24,6 +25,13 @@ class MoneySignalEngine {
         primaryMonthlyIncome: confirmedPayslipNet,
         otherMonthlyIncome: otherMonthlyIncome,
         source: IncomeSignalSource.payslip,
+      );
+    }
+    if (confirmedPayslipGross > 0) {
+      return IncomeSignal(
+        primaryMonthlyIncome: confirmedPayslipGross,
+        otherMonthlyIncome: otherMonthlyIncome,
+        source: IncomeSignalSource.payslipGross,
       );
     }
     if (trustedSalarySmsMonthly > 0) {
@@ -119,15 +127,61 @@ class MoneySignalEngine {
         ),
       );
     }
-    if (classifications.any(
-      (value) => value.contains('nps') || value.contains('80ccd'),
-    )) {
+    final npsComponents = paycheck.components.where((component) {
+      final text =
+          '${component.label} ${component.canonicalKey} ${component.classification}'
+              .toLowerCase();
+      return text.contains('nps') || text.contains('80ccd');
+    }).toList(growable: false);
+    final hasEmployerNps = npsComponents.any((component) {
+      final text =
+          '${component.label} ${component.canonicalKey} ${component.classification}'
+              .toLowerCase();
+      return text.contains('employer') || text.contains('80ccd(2)');
+    });
+    final hasAdditionalNps = npsComponents.any((component) {
+      final text =
+          '${component.label} ${component.canonicalKey} ${component.classification}'
+              .toLowerCase();
+      return text.contains('1b') || text.contains('80ccd(1b)');
+    });
+    final hasEmployeeNps = npsComponents.any((component) {
+      final text =
+          '${component.label} ${component.canonicalKey} ${component.classification}'
+              .toLowerCase();
+      final employer = text.contains('employer') || text.contains('80ccd(2)');
+      final additional = text.contains('1b') || text.contains('80ccd(1b)');
+      return !employer && !additional;
+    });
+    if (hasEmployeeNps) {
       hints.add(
         const PaycheckTaxHint(
-          id: 'nps-80ccd',
-          title: 'NPS deduction found',
+          id: 'nps-employee',
+          title: 'Employee NPS found',
           detail:
-              'NPS uses 80CCD rules, not the general 80C bucket. Confirm whether this is employee or employer contribution.',
+              'Employee NPS under 80CCD(1) shares the combined ₹1.5 lakh ceiling with 80C and 80CCC. Confirm the payroll classification.',
+          kind: TaxHintKind.nps,
+        ),
+      );
+    }
+    if (hasAdditionalNps) {
+      hints.add(
+        const PaycheckTaxHint(
+          id: 'nps-1b',
+          title: 'Additional NPS found',
+          detail:
+              '80CCD(1B) is a separate additional deduction under the old regime. Confirm the annual employee contribution.',
+          kind: TaxHintKind.nps,
+        ),
+      );
+    }
+    if (hasEmployerNps) {
+      hints.add(
+        const PaycheckTaxHint(
+          id: 'nps-employer',
+          title: 'Employer NPS found',
+          detail:
+              'Employer NPS uses 80CCD(2), separate from the employee 80C ceiling. Confirm how payroll classified it.',
           kind: TaxHintKind.nps,
         ),
       );

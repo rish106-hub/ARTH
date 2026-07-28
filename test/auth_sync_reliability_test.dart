@@ -208,7 +208,11 @@ void main() {
       city: 'Delhi',
     );
 
-    final resolved = preserveLocalCtcOnHydration(remote, cached);
+    final resolved = preserveLocalCtcOnHydration(
+      remote,
+      cached,
+      cachedProfileConfirmed: true,
+    );
 
     expect(resolved.annualCTC, 1800000);
     expect(resolved.city, remote.city);
@@ -218,9 +222,26 @@ void main() {
     const cached = UserProfile(annualCTC: 1800000);
     const remote = UserProfile(annualCTC: 2000000);
 
-    final resolved = preserveLocalCtcOnHydration(remote, cached);
+    final resolved = preserveLocalCtcOnHydration(
+      remote,
+      cached,
+      cachedProfileConfirmed: true,
+    );
 
     expect(resolved.annualCTC, 2000000);
+  });
+
+  test('cold hydration does not promote an unfinished CTC draft', () {
+    const cached = UserProfile(annualCTC: 1800000);
+    const remote = UserProfile(annualCTC: 0);
+
+    final resolved = preserveLocalCtcOnHydration(
+      remote,
+      cached,
+      cachedProfileConfirmed: false,
+    );
+
+    expect(resolved.annualCTC, 0);
   });
 }
 

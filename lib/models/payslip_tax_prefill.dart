@@ -48,13 +48,21 @@ class PayslipTaxPrefill {
       actualProfessionalTax:
           annualProfessionalTax ?? profile.actualProfessionalTax,
       invested80C: _larger(profile.invested80C, annualEligible80C),
-      hasNPS:
-          annualEmployeeNps == null ? profile.hasNPS : annualEmployeeNps! > 0,
-      npsExtraContribution:
-          _larger(profile.npsExtraContribution, annualEmployeeNps),
+      hasNPS: annualEmployeeNps == null
+          ? profile.hasNPS
+          : _larger(profile.npsExtraContribution, annualEmployeeNps) > 0,
+      npsExtraContribution: _larger(
+        profile.npsExtraContribution,
+        annualEmployeeNps,
+      ),
       hasHealthInsuranceSelf: annualHealthInsurance == null
           ? profile.hasHealthInsuranceSelf
-          : annualHealthInsurance! > 0,
+          : (_largerOptional(
+                    profile.healthInsuranceSelfPremium,
+                    annualHealthInsurance,
+                  ) ??
+                  0) >
+              0,
       healthInsuranceSelfPremium: _largerOptional(
         profile.healthInsuranceSelfPremium,
         annualHealthInsurance,
@@ -65,9 +73,8 @@ class PayslipTaxPrefill {
   /// Builds the profile used for tax calculation. Confirmed payslip gross can
   /// replace CTC for this calculation without rewriting the user's saved CTC.
   UserProfile applyForTax(UserProfile profile) {
-    final enriched = applyTo(profile);
-    return enriched.copyWith(
-      annualCTC: annualGrossSalary ?? enriched.annualCTC,
+    return profile.copyWith(
+      annualCTC: annualGrossSalary ?? profile.annualCTC,
     );
   }
 }

@@ -160,6 +160,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       editedMonthlyIncome: adjustments.manualPrimaryMonthlyIncome,
       confirmedPayslipNet:
           paycheck.grossReceived > 0 ? paycheck.netCredited : 0,
+      confirmedPayslipGross:
+          paycheck.grossReceived > 0 && paycheck.netCredited <= 0
+              ? paycheck.grossReceived
+              : 0,
       trustedSalarySmsMonthly: contextual.salaryCredited > 0
           ? contextual.observedPrimaryMonthlyIncome
           : 0,

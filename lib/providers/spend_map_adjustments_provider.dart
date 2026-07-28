@@ -41,6 +41,7 @@ class SpendMapAdjustments {
 
 class SpendMapAdjustmentsNotifier extends Notifier<SpendMapAdjustments> {
   final _storage = const SecureStorageService();
+  int _mutationRevision = 0;
 
   @override
   SpendMapAdjustments build() {
@@ -51,8 +52,11 @@ class SpendMapAdjustmentsNotifier extends Notifier<SpendMapAdjustments> {
   String _uid() => ref.read(authProvider)?.uid ?? 'guest';
 
   Future<void> _load() async {
+    final revisionAtStart = _mutationRevision;
     final raw = await _storage.read(_adjustmentsKey(_uid()));
-    if (raw == null || !ref.mounted) return;
+    if (raw == null || !ref.mounted || revisionAtStart != _mutationRevision) {
+      return;
+    }
     final parts = raw.split('|');
     if (parts.length != 2) return;
     state = SpendMapAdjustments(
@@ -75,27 +79,32 @@ class SpendMapAdjustmentsNotifier extends Notifier<SpendMapAdjustments> {
 
   Future<void> setManualPrimaryIncome(int amount) async {
     if (amount <= 0) return;
+    _mutationRevision++;
     state = state.copyWith(manualPrimaryMonthlyIncome: () => amount);
     await _persist();
   }
 
   Future<void> clearManualPrimaryIncome() async {
+    _mutationRevision++;
     state = state.copyWith(manualPrimaryMonthlyIncome: () => null);
     await _persist();
   }
 
   Future<void> setManualMonthlySpend(int amount) async {
     if (amount <= 0) return;
+    _mutationRevision++;
     state = state.copyWith(manualMonthlySpend: () => amount);
     await _persist();
   }
 
   Future<void> clearManualMonthlySpend() async {
+    _mutationRevision++;
     state = state.copyWith(manualMonthlySpend: () => null);
     await _persist();
   }
 
   Future<void> clearAll() async {
+    _mutationRevision++;
     state = const SpendMapAdjustments();
     final uid = _uid();
     if (uid != 'guest') {
