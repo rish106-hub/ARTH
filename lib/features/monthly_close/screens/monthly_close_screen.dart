@@ -189,12 +189,19 @@ class _CloseDocket extends StatelessWidget {
           _CloseStepRow(
             number: '01',
             title: 'Confirm salary credit',
-            detail: snapshot.creditAmount > 0
-                ? '${_money(snapshot.creditAmount)} received'
-                : 'No credit found yet',
+            detail: switch (snapshot.creditStatus) {
+              MonthlyCloseCreditStatus.confirmed =>
+                '${_money(snapshot.creditAmount)} credited to your account',
+              MonthlyCloseCreditStatus.awaitingCredit =>
+                'No salary credit seen yet',
+              MonthlyCloseCreditStatus.smsNotConnected =>
+                'Connect salary SMS to confirm the credit',
+              MonthlyCloseCreditStatus.demoData =>
+                'Demo figures cannot confirm a credit',
+            },
             checked: record.completedSteps.contains(MonthlyCloseStep.credit),
             onChanged: (value) => onChanged(MonthlyCloseStep.credit, value),
-            enabled: snapshot.creditAmount > 0,
+            enabled: snapshot.creditConfirmed,
           ),
           _CloseStepRow(
             number: '02',

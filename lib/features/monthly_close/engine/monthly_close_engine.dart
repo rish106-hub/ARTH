@@ -22,40 +22,61 @@ class MonthlyCloseEngine {
     required DateTime now,
     CohortBenchmark? cohort,
   }) {
+    // Sample figures may be on screen, but they are never evidence.
+    final isDemo = paycheck.usingSampleData;
     final activeDocuments =
         documents.where((document) => document.active).toList();
-    final payslips = activeDocuments
-        .where((document) => document.isPayslip)
-        .toList()
-      ..sort((a, b) => _documentDate(b).compareTo(_documentDate(a)));
-    final offerLetters = activeDocuments
-        .where((document) => document.documentType == 'offerLetter')
-        .toList()
-      ..sort((a, b) => _documentDate(b).compareTo(_documentDate(a)));
-    final latestPayslip = payslips.firstOrNull;
-    final latestOffer = offerLetters.firstOrNull;
+    // Only a reviewed document can date or confirm a figure, so a newer
+    // unconfirmed upload never outranks an older confirmed one.
+    final latestPayslip = isDemo
+        ? null
+        : _latestConfirmed(
+            activeDocuments.where((document) => document.isPayslip),
+          );
+    final latestOffer = isDemo
+        ? null
+        : _latestConfirmed(
+            activeDocuments
+                .where((document) => document.documentType == 'offerLetter'),
+          );
     final pendingReceipts = paycheck.evidence
         .where((item) =>
             item.kind == PaycheckEvidenceKind.receipt && item.needsAction)
         .length;
+
+    final payslipConfirmed = !isDemo && paycheck.grossReceived > 0;
+    final salarySmsConnected = !isDemo && paycheck.salarySmsConnected;
 
     final evidence = EvidenceHealth(
       pendingReceiptCount: pendingReceipts,
       items: [
         EvidenceHealthItem(
           label: 'Offer',
-          detail: paycheck.offerLetterAdded ? 'Confirmed' : 'Not added',
-          ready: paycheck.offerLetterAdded,
+          detail: switch ((isDemo, paycheck.offerLetterAdded, latestOffer)) {
+            (true, _, _) => 'Demo data',
+            (_, false, _) => 'Not added',
+            (_, true, null) => 'Added, not confirmed',
+            (_, true, _) => 'Confirmed',
+          },
+          ready: !isDemo && paycheck.offerLetterAdded && latestOffer != null,
         ),
         EvidenceHealthItem(
           label: 'Payslip',
-          detail: paycheck.grossReceived > 0 ? 'Confirmed' : 'Not confirmed',
-          ready: paycheck.grossReceived > 0,
+          detail: isDemo
+              ? 'Demo data'
+              : payslipConfirmed
+                  ? 'Confirmed'
+                  : 'Not confirmed',
+          ready: payslipConfirmed,
         ),
         EvidenceHealthItem(
           label: 'Salary SMS',
-          detail: paycheck.salarySmsConnected ? 'Connected' : 'Not connected',
-          ready: paycheck.salarySmsConnected,
+          detail: isDemo
+              ? 'Demo data'
+              : salarySmsConnected
+                  ? 'Connected'
+                  : 'Not connected',
+          ready: salarySmsConnected,
         ),
         EvidenceHealthItem(
           label: 'Receipts',
@@ -67,13 +88,18 @@ class MonthlyCloseEngine {
       ],
     );
 
+    final payslipLabel =
+        latestPayslip?.displayName ?? '${paycheck.payPeriod} payslip';
+    final payslipDate = _documentDate(latestPayslip);
+    final offerDate = _documentDate(latestOffer);
+
     final audits = <FigureAudit>[
       if (income.monthlyIncome > 0)
         FigureAudit(
           id: 'planning-income',
           label: 'Monthly planning income',
           amount: income.monthlyIncome,
-          source: income.source.label,
+          source: income.sourceLabel,
           detail: income.isEdited
               ? 'Your local edit is used across paycheck, spend, goal, and tax.'
               : _incomeDetail(income, paycheck),
@@ -87,18 +113,21 @@ class MonthlyCloseEngine {
           label: 'Promised monthly pay',
           amount: paycheck.promisedMonthly,
           source: latestOffer?.displayName ?? 'Offer letter',
-          detail: 'Monthly value from the confirmed offer.',
-          confirmedAt: latestOffer == null ? null : _documentDate(latestOffer),
+          detail: latestOffer == null
+              ? 'Monthly value from the offer you added. Not confirmed yet.'
+              : 'Monthly value from the confirmed offer.',
+          confirmedAt: offerDate,
         ),
       if (paycheck.grossReceived > 0)
         FigureAudit(
           id: 'gross-pay',
           label: 'Gross earnings',
           amount: paycheck.grossReceived,
-          source: latestPayslip?.displayName ?? '${paycheck.payPeriod} payslip',
-          detail: 'Sum of confirmed payslip earnings.',
-          confirmedAt:
-              latestPayslip == null ? null : _documentDate(latestPayslip),
+          source: payslipLabel,
+          detail: latestPayslip == null
+              ? 'Sum of payslip earnings. No confirmed payslip on file yet.'
+              : 'Sum of confirmed payslip earnings.',
+          confirmedAt: payslipDate,
         ),
       if (paycheck.promisedMonthly > 0 && paycheck.grossReceived > 0)
         FigureAudit(
@@ -106,43 +135,45 @@ class MonthlyCloseEngine {
           label: 'Pay difference',
           amount: (paycheck.promisedMonthly - paycheck.grossReceived).abs(),
           source: 'Offer and payslip comparison',
-          detail:
-              'Confirmed promised monthly pay minus confirmed gross earnings.',
-          confirmedAt:
-              latestPayslip == null ? null : _documentDate(latestPayslip),
+          detail: 'Promised monthly pay minus gross earnings.',
+          confirmedAt: payslipDate,
         ),
       if (paycheck.netCredited > 0)
         FigureAudit(
           id: 'net-pay',
           label: 'Net pay',
           amount: paycheck.netCredited,
-          source: paycheck.grossReceived > 0
-              ? latestPayslip?.displayName ?? '${paycheck.payPeriod} payslip'
-              : 'Salary SMS',
+          source: paycheck.grossReceived > 0 ? payslipLabel : 'Salary SMS',
           detail: paycheck.grossReceived > 0
-              ? 'Gross earnings minus confirmed deductions.'
+              ? 'Gross earnings minus payslip deductions.'
               : 'Latest trusted salary credit.',
           confirmedAt: paycheck.grossReceived > 0
-              ? (latestPayslip == null ? null : _documentDate(latestPayslip))
-              : paycheck.salarySmsLastSeen,
+              ? payslipDate
+              : (salarySmsConnected ? paycheck.salarySmsLastSeen : null),
         ),
       if (paycheck.taxWithheld + paycheck.otherDeductions > 0)
         FigureAudit(
           id: 'deductions',
           label: 'Deductions',
           amount: paycheck.taxWithheld + paycheck.otherDeductions,
-          source: latestPayslip?.displayName ?? '${paycheck.payPeriod} payslip',
-          detail: 'Tax and other confirmed payslip deductions.',
-          confirmedAt:
-              latestPayslip == null ? null : _documentDate(latestPayslip),
+          source: payslipLabel,
+          detail: 'Tax and other payslip deductions.',
+          confirmedAt: payslipDate,
         ),
     ];
 
     return MonthlyCloseSnapshot(
       periodLabel: DateFormat('MMMM yyyy').format(now),
-      creditAmount: paycheck.netCredited > 0
-          ? paycheck.netCredited
-          : paycheck.salarySmsCredited,
+      // A payslip states what the employer says it paid. Only a salary SMS
+      // shows money reaching the account, so only it can back this figure.
+      creditAmount: isDemo ? 0 : paycheck.salarySmsCredited,
+      creditStatus: switch ((isDemo, salarySmsConnected)) {
+        (true, _) => MonthlyCloseCreditStatus.demoData,
+        (_, false) => MonthlyCloseCreditStatus.smsNotConnected,
+        _ when paycheck.salarySmsCredited > 0 =>
+          MonthlyCloseCreditStatus.confirmed,
+        _ => MonthlyCloseCreditStatus.awaitingCredit,
+      },
       openClaimCount: paycheck.items
           .where((item) =>
               item.status == PaycheckItemStatus.claimable ||
@@ -154,10 +185,27 @@ class MonthlyCloseEngine {
     );
   }
 
-  static DateTime _documentDate(TaxDocument document) =>
-      document.reviewedAt ??
-      document.createdAt ??
-      DateTime.fromMillisecondsSinceEpoch(0);
+  /// Newest reviewed document, preferring ones that carry a real date. Returns
+  /// null when nothing is reviewed, so no figure claims evidence it lacks.
+  static TaxDocument? _latestConfirmed(Iterable<TaxDocument> documents) {
+    final confirmed = documents.where((document) => document.reviewed).toList()
+      ..sort(_byNewestKnownDate);
+    return confirmed.firstOrNull;
+  }
+
+  static int _byNewestKnownDate(TaxDocument a, TaxDocument b) {
+    final aDate = _documentDate(a);
+    final bDate = _documentDate(b);
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+    return bDate.compareTo(aDate);
+  }
+
+  /// Real document date only. There is no epoch fallback, so the UI can never
+  /// render a 1970 timestamp.
+  static DateTime? _documentDate(TaxDocument? document) =>
+      document?.reviewedAt ?? document?.createdAt;
 
   static String _incomeDetail(
     IncomeSignal income,
@@ -181,7 +229,6 @@ class MonthlyCloseEngine {
       return const CohortBenchmark(
         status: CohortBenchmarkStatus.profileNeeded,
         sampleSize: 0,
-        minimumSampleSize: CohortBenchmark.minimumPrivateSample,
       );
     }
     final lower = (profile.annualCTC ~/ 500000) * 5;
@@ -189,7 +236,6 @@ class MonthlyCloseEngine {
     return CohortBenchmark(
       status: CohortBenchmarkStatus.waitingForSample,
       sampleSize: 0,
-      minimumSampleSize: CohortBenchmark.minimumPrivateSample,
       city: city,
       ctcBandLabel: '₹${lower}L–₹${upper}L',
     );

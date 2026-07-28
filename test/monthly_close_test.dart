@@ -10,6 +10,71 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final now = DateTime(2026, 7, 28);
 
+  const payslipIncome = IncomeSignal(
+    primaryMonthlyIncome: 45920,
+    otherMonthlyIncome: 0,
+    source: IncomeSignalSource.payslip,
+  );
+
+  const profile = UserProfile(
+    annualCTC: 1000000,
+    city: 'Bengaluru',
+    paysRent: true,
+    monthlyRent: 18000,
+  );
+
+  final salariedPaycheck = emptyPaycheck.copyWith(
+    payPeriod: 'July 2026',
+    promisedMonthly: 54500,
+    grossReceived: 52700,
+    netCredited: 45920,
+    taxWithheld: 4200,
+    otherDeductions: 2580,
+    offerLetterAdded: true,
+  );
+
+  TaxDocument document({
+    required String id,
+    required String documentType,
+    required String filename,
+    required String parseStatus,
+    DateTime? reviewedAt,
+    DateTime? createdAt,
+  }) =>
+      TaxDocument(
+        id: id,
+        fy: '2026-27',
+        documentType: documentType,
+        originalFilename: filename,
+        mimeType: 'application/pdf',
+        byteSize: 100,
+        parseStatus: parseStatus,
+        parseSummary: const {},
+        reviewedAt: reviewedAt,
+        createdAt: createdAt,
+      );
+
+  MonthlyCloseSnapshot build({
+    PaycheckState? paycheck,
+    IncomeSignal income = payslipIncome,
+    SpendMapAdjustments adjustments = const SpendMapAdjustments(),
+    List<TaxDocument> documents = const [],
+  }) =>
+      MonthlyCloseEngine.build(
+        paycheck: paycheck ?? salariedPaycheck,
+        income: income,
+        adjustments: adjustments,
+        documents: documents,
+        profile: profile,
+        now: now,
+      );
+
+  EvidenceHealthItem evidenceRow(MonthlyCloseSnapshot snapshot, String label) =>
+      snapshot.evidenceHealth.items.singleWhere((item) => item.label == label);
+
+  FigureAudit audit(MonthlyCloseSnapshot snapshot, String id) =>
+      snapshot.figureAudits.singleWhere((item) => item.id == id);
+
   test('monthly close record persists explicit checks and completion date', () {
     var record = const MonthlyCloseRecord(periodKey: '2026-07');
     record = record.mark(MonthlyCloseStep.credit, true, now);
@@ -42,50 +107,134 @@ void main() {
     expect(record.completedAt, isNull);
   });
 
-  test('evidence health and audit trail use real paycheck sources', () {
+  test('audit trail dates figures from the confirmed payslip', () {
     final payslipDate = DateTime(2026, 7, 22);
-    final snapshot = MonthlyCloseEngine.build(
-      paycheck: demoPaycheck,
-      income: const IncomeSignal(
-        primaryMonthlyIncome: 45920,
-        otherMonthlyIncome: 0,
-        source: IncomeSignalSource.payslip,
-      ),
-      adjustments: const SpendMapAdjustments(),
+    final snapshot = build(
       documents: [
-        TaxDocument(
+        document(
           id: 'payslip',
-          fy: '2026-27',
           documentType: 'payslip',
-          originalFilename: 'July payslip.pdf',
-          mimeType: 'application/pdf',
-          byteSize: 100,
+          filename: 'July payslip.pdf',
           parseStatus: 'parsed',
-          parseSummary: const {},
           reviewedAt: payslipDate,
         ),
       ],
-      profile: const UserProfile(
-        annualCTC: 1000000,
-        city: 'Bengaluru',
-        paysRent: true,
-        monthlyRent: 18000,
-      ),
-      now: now,
     );
 
-    expect(snapshot.evidenceHealth.readyCount, 3);
-    expect(snapshot.evidenceHealth.pendingReceiptCount, 2);
-    expect(snapshot.openClaimCount, 3);
-    final netAudit =
-        snapshot.figureAudits.singleWhere((audit) => audit.id == 'net-pay');
-    expect(netAudit.source, 'July payslip.pdf');
-    expect(netAudit.confirmedAt, payslipDate);
+    final netPay = audit(snapshot, 'net-pay');
+    expect(netPay.source, 'July payslip.pdf');
+    expect(netPay.confirmedAt, payslipDate);
+    expect(audit(snapshot, 'deductions').confirmedAt, payslipDate);
+    expect(evidenceRow(snapshot, 'Payslip').detail, 'Confirmed');
   });
 
-  test('manual income audit keeps its edit timestamp', () {
+  test('a confirmed older payslip outranks a newer unconfirmed upload', () {
+    final confirmedDate = DateTime(2026, 7, 10);
+    final snapshot = build(
+      documents: [
+        document(
+          id: 'newer-unconfirmed',
+          documentType: 'payslip',
+          filename: 'August payslip.pdf',
+          parseStatus: 'needs_confirmation',
+          createdAt: DateTime(2026, 8, 2),
+        ),
+        document(
+          id: 'older-confirmed',
+          documentType: 'payslip',
+          filename: 'July payslip.pdf',
+          parseStatus: 'parsed',
+          reviewedAt: confirmedDate,
+        ),
+      ],
+    );
+
+    final netPay = audit(snapshot, 'net-pay');
+    expect(netPay.source, 'July payslip.pdf');
+    expect(netPay.confirmedAt, confirmedDate);
+  });
+
+  test('an added offer is not reported as confirmed until it is reviewed', () {
+    final addedOnly = build();
+    expect(evidenceRow(addedOnly, 'Offer').detail, 'Added, not confirmed');
+    expect(evidenceRow(addedOnly, 'Offer').ready, isFalse);
+    expect(audit(addedOnly, 'promised-pay').confirmedAt, isNull);
+    expect(
+      audit(addedOnly, 'promised-pay').detail,
+      'Monthly value from the offer you added. Not confirmed yet.',
+    );
+
+    final offerDate = DateTime(2026, 4, 1);
+    final confirmed = build(
+      documents: [
+        document(
+          id: 'offer',
+          documentType: 'offerLetter',
+          filename: 'Offer.pdf',
+          parseStatus: 'parsed',
+          reviewedAt: offerDate,
+        ),
+      ],
+    );
+    expect(evidenceRow(confirmed, 'Offer').detail, 'Confirmed');
+    expect(evidenceRow(confirmed, 'Offer').ready, isTrue);
+    expect(audit(confirmed, 'promised-pay').confirmedAt, offerDate);
+  });
+
+  test('a missing offer reads as not added rather than unconfirmed', () {
+    final snapshot = build(
+      paycheck: salariedPaycheck.copyWith(offerLetterAdded: false),
+    );
+
+    expect(evidenceRow(snapshot, 'Offer').detail, 'Not added');
+    expect(evidenceRow(snapshot, 'Offer').ready, isFalse);
+  });
+
+  test('an undated confirmed payslip never reports an epoch date', () {
+    final snapshot = build(
+      documents: [
+        document(
+          id: 'undated',
+          documentType: 'payslip',
+          filename: 'Scan.pdf',
+          parseStatus: 'parsed',
+        ),
+      ],
+    );
+
+    final netPay = audit(snapshot, 'net-pay');
+    expect(netPay.source, 'Scan.pdf');
+    expect(netPay.confirmedAt, isNull);
+    for (final item in snapshot.figureAudits) {
+      expect(item.confirmedAt?.year, anyOf(isNull, greaterThan(1970)));
+    }
+  });
+
+  test('salary SMS dates net pay when there is no payslip', () {
+    final seenAt = DateTime(2026, 7, 27);
+    final snapshot = build(
+      paycheck: emptyPaycheck.copyWith(
+        payPeriod: 'July 2026',
+        netCredited: 45920,
+        salarySmsCredited: 45920,
+        salarySmsLastSeen: seenAt,
+        salarySmsConnected: true,
+      ),
+      income: const IncomeSignal(
+        primaryMonthlyIncome: 45920,
+        otherMonthlyIncome: 0,
+        source: IncomeSignalSource.salarySms,
+      ),
+    );
+
+    final netPay = audit(snapshot, 'net-pay');
+    expect(netPay.source, 'Salary SMS');
+    expect(netPay.confirmedAt, seenAt);
+  });
+
+  test('a manual income edit keeps its own edit timestamp', () {
     final editedAt = DateTime(2026, 7, 28, 9, 30);
-    final snapshot = MonthlyCloseEngine.build(
+    final snapshot = build(
       paycheck: emptyPaycheck,
       income: const IncomeSignal(
         primaryMonthlyIncome: 60000,
@@ -96,33 +245,131 @@ void main() {
         manualPrimaryMonthlyIncome: 60000,
         primaryIncomeUpdatedAt: editedAt,
       ),
-      documents: const [],
-      profile: const UserProfile(),
-      now: now,
     );
 
-    final audit = snapshot.figureAudits.single;
-    expect(audit.editedByUser, isTrue);
-    expect(audit.confirmedAt, editedAt);
+    final income = snapshot.figureAudits.single;
+    expect(income.editedByUser, isTrue);
+    expect(income.confirmedAt, editedAt);
   });
 
-  test('cohort percentage stays hidden below the privacy threshold', () {
-    final hidden = CohortBenchmark.fromAggregate(
-      sampleSize: 29,
-      city: 'Bengaluru',
-      ctcBandLabel: '₹10L–₹15L',
-      averageRentPercent: 18,
-    );
-    final visible = CohortBenchmark.fromAggregate(
-      sampleSize: 30,
-      city: 'Bengaluru',
-      ctcBandLabel: '₹10L–₹15L',
-      averageRentPercent: 18,
+  test('planning income names every contributing source', () {
+    final snapshot = build(
+      income: const IncomeSignal(
+        primaryMonthlyIncome: 45920,
+        otherMonthlyIncome: 8000,
+        source: IncomeSignalSource.payslip,
+      ),
     );
 
-    expect(hidden.canShowComparison, isFalse);
-    expect(hidden.averageRentPercent, isNull);
-    expect(visible.canShowComparison, isTrue);
-    expect(visible.averageRentPercent, 18);
+    expect(audit(snapshot, 'planning-income').source, contains('other income'));
+    expect(audit(snapshot, 'planning-income').amount, 53920);
+  });
+
+  group('salary credit confirmation', () {
+    test('a payslip alone cannot confirm a bank credit', () {
+      final snapshot = build();
+
+      expect(snapshot.creditStatus, MonthlyCloseCreditStatus.smsNotConnected);
+      expect(snapshot.creditConfirmed, isFalse);
+      expect(snapshot.creditAmount, 0);
+    });
+
+    test('a connected SMS with no credit yet stays unconfirmed', () {
+      final snapshot = build(
+        paycheck: salariedPaycheck.copyWith(salarySmsConnected: true),
+      );
+
+      expect(snapshot.creditStatus, MonthlyCloseCreditStatus.awaitingCredit);
+      expect(snapshot.creditConfirmed, isFalse);
+      expect(snapshot.creditAmount, 0);
+    });
+
+    test('a real salary SMS credit confirms and reports its own amount', () {
+      final snapshot = build(
+        paycheck: salariedPaycheck.copyWith(
+          salarySmsCredited: 45100,
+          salarySmsLastSeen: DateTime(2026, 7, 27),
+          salarySmsConnected: true,
+        ),
+      );
+
+      expect(snapshot.creditStatus, MonthlyCloseCreditStatus.confirmed);
+      expect(snapshot.creditConfirmed, isTrue);
+      expect(snapshot.creditAmount, 45100);
+      expect(snapshot.creditAmount, isNot(salariedPaycheck.netCredited));
+    });
+
+    test('demo figures confirm nothing at all', () {
+      final snapshot = build(paycheck: demoPaycheck);
+
+      expect(snapshot.creditStatus, MonthlyCloseCreditStatus.demoData);
+      expect(snapshot.creditConfirmed, isFalse);
+      expect(snapshot.creditAmount, 0);
+      expect(snapshot.evidenceHealth.readyCount, 0);
+      expect(evidenceRow(snapshot, 'Offer').detail, 'Demo data');
+      expect(evidenceRow(snapshot, 'Payslip').detail, 'Demo data');
+      expect(evidenceRow(snapshot, 'Salary SMS').detail, 'Demo data');
+      for (final item in snapshot.figureAudits) {
+        expect(item.confirmedAt, isNull);
+      }
+    });
+
+    test('demo figures stay unconfirmed even with real documents on file', () {
+      final snapshot = build(
+        paycheck: demoPaycheck,
+        documents: [
+          document(
+            id: 'payslip',
+            documentType: 'payslip',
+            filename: 'July payslip.pdf',
+            parseStatus: 'parsed',
+            reviewedAt: DateTime(2026, 7, 22),
+          ),
+        ],
+      );
+
+      expect(snapshot.creditStatus, MonthlyCloseCreditStatus.demoData);
+      expect(audit(snapshot, 'net-pay').confirmedAt, isNull);
+      expect(evidenceRow(snapshot, 'Payslip').ready, isFalse);
+    });
+  });
+
+  group('cohort privacy floor', () {
+    CohortBenchmark cohortOf(int sampleSize) => CohortBenchmark.fromAggregate(
+          sampleSize: sampleSize,
+          city: 'Bengaluru',
+          ctcBandLabel: '₹10L–₹15L',
+          averageRentPercent: 18,
+        );
+
+    test('an empty cohort shows nothing', () {
+      final cohort = cohortOf(0);
+      expect(cohort.canShowComparison, isFalse);
+      expect(cohort.averageRentPercent, isNull);
+    });
+
+    test('one short of the floor still shows nothing', () {
+      final cohort = cohortOf(29);
+      expect(cohort.canShowComparison, isFalse);
+      expect(cohort.averageRentPercent, isNull);
+    });
+
+    test('the floor itself is the first visible sample size', () {
+      final cohort = cohortOf(30);
+      expect(cohort.canShowComparison, isTrue);
+      expect(cohort.averageRentPercent, 18);
+    });
+
+    test('the floor is fixed at 30 and cannot be lowered by a caller', () {
+      expect(CohortBenchmark.minimumPrivateSample, 30);
+      const forged = CohortBenchmark(
+        status: CohortBenchmarkStatus.available,
+        sampleSize: 5,
+        averageRentPercent: 18,
+      );
+
+      expect(forged.minimumSampleSize, 30);
+      expect(forged.canShowComparison, isFalse);
+    });
   });
 }
