@@ -766,6 +766,8 @@ class _Insights extends ConsumerWidget {
       children: [
         _SavingsHero(map: map, period: period),
         const SizedBox(height: 16),
+        _CoverageEntryCard(map: map),
+        const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -863,6 +865,52 @@ class _Insights extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _CoverageEntryCard extends StatelessWidget {
+  const _CoverageEntryCard({required this.map});
+
+  final SpendMap map;
+
+  @override
+  Widget build(BuildContext context) => _Card(
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: PaycheckColors.contractSoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.receipt_long_outlined,
+                color: PaycheckColors.contract,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Check spend coverage',
+                      style: PaycheckType.bodyStrong()),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${map.txns.length} SMS transactions. Mark missing channels and review repeats.',
+                    style: PaycheckType.utility(),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Open spend coverage',
+              onPressed: () => context.push('/spend-map/coverage'),
+              icon: const Icon(Icons.arrow_forward),
+            ),
+          ],
+        ),
+      );
 }
 
 /// Full-screen, one-card-at-a-time review: swipe away to skip, tap a category

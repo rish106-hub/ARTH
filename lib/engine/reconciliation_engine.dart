@@ -572,11 +572,7 @@ class _PromisedLine {
 
 /// Builds a [SalarySmsSnapshot] from a spend map.
 SalarySmsSnapshot salarySmsFromSpendMap(SpendMap map) {
-  final salaries = map.txns
-      .where(
-        (txn) => txn.direction == TxnDirection.credit && txn.isSalary,
-      )
-      .toList()
+  final salaries = map.trustedSalaryTransactions.toList()
     ..sort((a, b) => b.date.compareTo(a.date));
 
   if (salaries.isEmpty) {
@@ -584,8 +580,7 @@ SalarySmsSnapshot salarySmsFromSpendMap(SpendMap map) {
   }
 
   final latest = salaries.first;
-  final salaryMonths = map.txns
-      .where((txn) => txn.direction == TxnDirection.credit && txn.isSalary)
+  final salaryMonths = salaries
       .map((txn) => DateTime(txn.date.year, txn.date.month))
       .toSet()
       .length;
