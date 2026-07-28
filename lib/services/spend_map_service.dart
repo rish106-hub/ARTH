@@ -18,6 +18,13 @@ class SpendMapService {
     final token = await _auth.getValidAccessToken();
     if (token == null) return;
     // Sync an aggregate summary only — never raw message bodies.
+    final salaryDates = map.txns
+        .where((transaction) =>
+            transaction.isSalary &&
+            transaction.direction == TxnDirection.credit)
+        .map((transaction) => transaction.date)
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
     await _api.postJson(
       '/spend-map',
       bearerToken: token,
@@ -28,6 +35,7 @@ class SpendMapService {
         'generatedAt': map.generatedAt.toUtc().toIso8601String(),
         // Observed SMS/payslip figures only — manual user edits stay on-device.
         'monthlyIncome': map.observedPrimaryMonthlyIncome,
+        if (salaryDates.isNotEmpty) 'salaryCreditDay': salaryDates.first.day,
         'incomeSource': map.primaryIncomeIsManual
             ? 'manual'
             : map.incomeIsDetected

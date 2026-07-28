@@ -50,6 +50,7 @@ void main() {
     expect(find.text('MONTHLY PLANNING INCOME'), findsOneWidget);
     expect(find.textContaining('Confirmed payslip net'), findsOneWidget);
     expect(find.byKey(const Key('paycheck_claimable_amount')), findsOneWidget);
+    expect(find.byKey(const Key('open_monthly_close')), findsOneWidget);
     expect(find.text('Needs your review'), findsOneWidget);
     expect(tester.takeException(), isNull);
 

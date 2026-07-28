@@ -15,6 +15,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 String? notificationRouteForData(Map<String, dynamic> data) {
   return switch (data['screen']) {
     'spend-map' => '/spend-map',
+    'monthly-close' => '/monthly-close',
     _ => null,
   };
 }

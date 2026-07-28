@@ -7,6 +7,10 @@ void main() {
       notificationRouteForData({'screen': 'spend-map'}),
       '/spend-map',
     );
+    expect(
+      notificationRouteForData({'screen': 'monthly-close'}),
+      '/monthly-close',
+    );
     expect(notificationRouteForData({'screen': 'unknown'}), isNull);
     expect(notificationRouteForData({}), isNull);
   });
