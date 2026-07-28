@@ -1,6 +1,7 @@
 enum IncomeSignalSource {
   edited,
   payslip,
+  payslipGross,
   salarySms,
   ctcEstimate,
   missing;
@@ -8,6 +9,7 @@ enum IncomeSignalSource {
   String get label => switch (this) {
         IncomeSignalSource.edited => 'Edited by you',
         IncomeSignalSource.payslip => 'Confirmed payslip net',
+        IncomeSignalSource.payslipGross => 'Confirmed payslip gross',
         IncomeSignalSource.salarySms => 'Trusted salary SMS',
         IncomeSignalSource.ctcEstimate => 'CTC estimate',
         IncomeSignalSource.missing => 'Income not set',
@@ -34,12 +36,16 @@ class IncomeSignal {
 }
 
 enum TdsPaceStatus {
+  calculating,
+  unavailable,
   aligned,
   over,
   under,
   unknown;
 
   String get label => switch (this) {
+        TdsPaceStatus.calculating => 'CALCULATING',
+        TdsPaceStatus.unavailable => 'ESTIMATE UNAVAILABLE',
         TdsPaceStatus.aligned => 'ON PACE',
         TdsPaceStatus.over => 'REVIEW HIGH TDS',
         TdsPaceStatus.under => 'REVIEW LOW TDS',

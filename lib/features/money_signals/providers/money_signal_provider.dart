@@ -10,9 +10,12 @@ import '../../../providers/tax_result_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 
 final incomeSignalProvider = Provider<IncomeSignal>((ref) {
+  final map = ref.watch(spendMapProvider).map;
+  final resolved = map?.incomeSignal;
+  if (resolved != null) return resolved;
+
   final adjustments = ref.watch(spendMapAdjustmentsProvider);
   final paycheck = ref.watch(paycheckProvider);
-  final map = ref.watch(spendMapProvider).map;
   final profile = ref.watch(userProfileProvider);
   final otherIncome = ref.watch(otherIncomeProvider);
   final otherMonthly = otherIncome.fold<int>(
@@ -27,6 +30,8 @@ final incomeSignalProvider = Provider<IncomeSignal>((ref) {
   return MoneySignalEngine.resolveIncome(
     editedMonthlyIncome: adjustments.manualPrimaryMonthlyIncome,
     confirmedPayslipNet: confirmedPayslipNet,
+    confirmedPayslipGross:
+        confirmedPayslipNet <= 0 ? paycheck.grossReceived : 0,
     trustedSalarySmsMonthly: trustedSmsMonthly,
     annualCtc: profile.annualCTC,
     otherMonthlyIncome: otherMonthly,
@@ -35,12 +40,30 @@ final incomeSignalProvider = Provider<IncomeSignal>((ref) {
 
 final paycheckTaxImpactProvider = Provider<PaycheckTaxImpact>((ref) {
   final paycheck = ref.watch(paycheckProvider);
-  final taxResult = ref.watch(taxResultProvider).asData?.value;
+  final hasConfirmedPayslip = paycheck.grossReceived > 0;
+  final taxState = ref.watch(taxResultProvider);
+  final taxResult = taxState.asData?.value;
+  if (hasConfirmedPayslip && taxState.hasError) {
+    return PaycheckTaxImpact(
+      expectedMonthlyTds: 0,
+      actualMonthlyTds: paycheck.taxWithheld,
+      status: TdsPaceStatus.unavailable,
+      regimeLabel: 'selected regime',
+    );
+  }
+  if (hasConfirmedPayslip && taxResult == null) {
+    return PaycheckTaxImpact(
+      expectedMonthlyTds: 0,
+      actualMonthlyTds: paycheck.taxWithheld,
+      status: TdsPaceStatus.calculating,
+      regimeLabel: 'selected regime',
+    );
+  }
   return MoneySignalEngine.taxImpact(
     actualMonthlyTds: paycheck.taxWithheld,
     expectedAnnualTax: taxResult?.currentTax.round() ?? 0,
     regimeLabel: taxResult?.betterRegimeLabel ?? 'selected regime',
-    hasConfirmedPayslip: paycheck.grossReceived > 0,
+    hasConfirmedPayslip: hasConfirmedPayslip,
   );
 });
 

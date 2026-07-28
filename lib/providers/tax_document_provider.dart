@@ -96,7 +96,7 @@ class TaxDocumentNotifier extends AsyncNotifier<List<TaxDocument>> {
       if (prefill != null) {
         final profile = ref.read(userProfileProvider.notifier);
         profile.applyPayslipPrefill(prefill);
-        await profile.save();
+        await profile.persistDraft();
       }
     }
     return confirmed;

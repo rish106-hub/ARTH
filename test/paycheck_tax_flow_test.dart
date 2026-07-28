@@ -185,6 +185,40 @@ void main() {
     final taxProfile = prefill.applyForTax(savedProfile);
     expect(taxProfile.annualCTC, 465204);
     expect(taxProfile.invested80C, 100000);
+
+    final corrected = taxProfile.copyWith(
+      invested80C: 10000,
+      npsExtraContribution: 5000,
+      healthInsuranceSelfPremium: 4000,
+    );
+    final recalculated = prefill.applyForTax(corrected);
+    expect(recalculated.invested80C, 10000);
+    expect(recalculated.npsExtraContribution, 5000);
+    expect(recalculated.healthInsuranceSelfPremium, 4000);
+
+    const zeroDetected = PayslipTaxPrefill(
+      documentId: 'zero-deductions',
+      documentName: 'Payslip',
+      payPeriod: 'July 2026',
+      annualGrossSalary: 465204,
+      annualBasicSalary: null,
+      annualHraReceived: null,
+      annualProfessionalTax: null,
+      annualEligible80C: null,
+      annualEmployeeNps: 0,
+      annualHealthInsurance: 0,
+      employerName: null,
+    );
+    final retained = zeroDetected.applyTo(
+      const UserProfile(
+        hasNPS: true,
+        npsExtraContribution: 5000,
+        hasHealthInsuranceSelf: true,
+        healthInsuranceSelfPremium: 4000,
+      ),
+    );
+    expect(retained.hasNPS, isTrue);
+    expect(retained.hasHealthInsuranceSelf, isTrue);
   });
 
   test('payslip annualizes over a partial-year job duration', () {

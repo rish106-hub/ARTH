@@ -78,6 +78,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('planning income keeps the sheet open for an invalid amount', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      sampleScope(const MaterialApp(home: PaycheckShellScreen())),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('MONTHLY PLANNING INCOME'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Primary monthly income'),
+      '',
+    );
+    await tester.tap(find.text('Save income'));
+    await tester.pump();
+
+    expect(find.text('Enter a monthly amount above zero.'), findsOneWidget);
+    expect(find.text('Monthly planning income'), findsOneWidget);
+  });
+
   testWidgets('claim pack can be prepared with explicit approval', (
     tester,
   ) async {

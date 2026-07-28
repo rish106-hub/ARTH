@@ -505,66 +505,80 @@ Future<void> _editPlanningIncome(
         ? income.primaryMonthlyIncome.toString()
         : '',
   );
+  String? errorText;
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     backgroundColor: PaycheckColors.paper,
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        8,
-        20,
-        MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Monthly planning income', style: PaycheckType.h2()),
-          const SizedBox(height: 6),
-          Text(
-            'One edit updates Home, Spend map, and Money goal. Other income stays separate.',
-            style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Primary monthly income',
-              prefixText: '₹ ',
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (sheetContext, setSheetState) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          8,
+          20,
+          MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Monthly planning income', style: PaycheckType.h2()),
+            const SizedBox(height: 6),
+            Text(
+              'One edit updates Home, Spend map, and Money goal. Other income stays separate.',
+              style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              if (income.isEdited)
-                TextButton(
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) {
+                if (errorText != null) {
+                  setSheetState(() => errorText = null);
+                }
+              },
+              decoration: InputDecoration(
+                labelText: 'Primary monthly income',
+                prefixText: '₹ ',
+                errorText: errorText,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                if (income.isEdited)
+                  TextButton(
+                    onPressed: () async {
+                      await ref
+                          .read(spendMapAdjustmentsProvider.notifier)
+                          .clearManualPrimaryIncome();
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    },
+                    child: const Text('Use detected income'),
+                  ),
+                const Spacer(),
+                FilledButton(
                   onPressed: () async {
+                    final amount = int.tryParse(controller.text) ?? 0;
+                    if (amount <= 0) {
+                      setSheetState(
+                        () => errorText = 'Enter a monthly amount above zero.',
+                      );
+                      return;
+                    }
                     await ref
                         .read(spendMapAdjustmentsProvider.notifier)
-                        .clearManualPrimaryIncome();
+                        .setManualPrimaryIncome(amount);
                     if (sheetContext.mounted) Navigator.pop(sheetContext);
                   },
-                  child: const Text('Use detected income'),
+                  child: const Text('Save income'),
                 ),
-              const Spacer(),
-              FilledButton(
-                onPressed: () async {
-                  final amount = int.tryParse(controller.text) ?? 0;
-                  if (amount <= 0) return;
-                  await ref
-                      .read(spendMapAdjustmentsProvider.notifier)
-                      .setManualPrimaryIncome(amount);
-                  if (sheetContext.mounted) Navigator.pop(sheetContext);
-                },
-                child: const Text('Save income'),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -2655,12 +2669,29 @@ class _TaxImpactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final review = impact.needsReview;
-    final color = review ? PaycheckColors.claim : PaycheckColors.matched;
-    final background =
-        review ? PaycheckColors.claimSoft : PaycheckColors.matchedSoft;
+    final (color, background) = switch (impact.status) {
+      TdsPaceStatus.over || TdsPaceStatus.under => (
+          PaycheckColors.claim,
+          PaycheckColors.claimSoft,
+        ),
+      TdsPaceStatus.aligned => (
+          PaycheckColors.matched,
+          PaycheckColors.matchedSoft,
+        ),
+      TdsPaceStatus.calculating ||
+      TdsPaceStatus.unavailable ||
+      TdsPaceStatus.unknown =>
+        (
+          PaycheckColors.inkSoft,
+          PaycheckColors.surfaceMuted,
+        ),
+    };
     final difference = impact.difference.abs();
     final detail = switch (impact.status) {
+      TdsPaceStatus.calculating =>
+        'ARTH is calculating the rule estimate for your selected regime.',
+      TdsPaceStatus.unavailable =>
+        'The tax estimate could not load. Open the tax plan to retry.',
       TdsPaceStatus.unknown =>
         'Confirm a payslip to compare payroll TDS with ARTH tax rules.',
       TdsPaceStatus.aligned =>
@@ -2698,7 +2729,9 @@ class _TaxImpactCard extends StatelessWidget {
               Expanded(
                 child: _TaxPaceFigure(
                   label: 'Rule estimate',
-                  value: impact.expectedMonthlyTds,
+                  value: impact.status == TdsPaceStatus.calculating
+                      ? null
+                      : impact.expectedMonthlyTds,
                 ),
               ),
             ],
@@ -2720,7 +2753,7 @@ class _TaxPaceFigure extends StatelessWidget {
   const _TaxPaceFigure({required this.label, required this.value});
 
   final String label;
-  final int value;
+  final int? value;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -2731,7 +2764,10 @@ class _TaxPaceFigure extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(_money(value), style: PaycheckType.money(size: 18)),
+            child: Text(
+              value == null ? 'Calculating' : _money(value!),
+              style: PaycheckType.money(size: 18),
+            ),
           ),
         ],
       );
