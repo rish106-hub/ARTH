@@ -312,6 +312,10 @@ class _PaycheckHome extends ConsumerWidget {
                 paycheck: paycheck,
                 onOpenEvidence: onOpenEvidence,
               ),
+              const SizedBox(height: 12),
+              _RecoveryLedgerLink(
+                onTap: () => context.push('/recovery'),
+              ),
             ],
           ],
         ),
@@ -370,13 +374,16 @@ class _PaycheckHome extends ConsumerWidget {
                     ),
                   ),
                   onPressed: () {
-                    ref
-                        .read(paycheckProvider.notifier)
-                        .markClaimPrepared(item.id);
                     Navigator.pop(sheetContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${item.label} pack prepared')),
-                    );
+                    if (ref.read(paycheckProvider).usingSampleData) {
+                      ref
+                          .read(paycheckProvider.notifier)
+                          .markClaimPrepared(item.id);
+                    } else {
+                      context.push(
+                        '/recovery/claim/${Uri.encodeComponent(item.id)}',
+                      );
+                    }
                   },
                   child: Text(
                     'Prepare claim pack',
@@ -384,6 +391,52 @@ class _PaycheckHome extends ConsumerWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecoveryLedgerLink extends StatelessWidget {
+  const _RecoveryLedgerLink({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: PaycheckColors.ink,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Money recovery',
+                      style: PaycheckType.bodyStrong(color: Colors.white),
+                    ),
+                    Text(
+                      'Claims, benefits, payday check, and monthly history',
+                      style: PaycheckType.utility(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white70),
             ],
           ),
         ),

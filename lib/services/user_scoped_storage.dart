@@ -17,6 +17,7 @@ class UserScopedStorageKeys {
   static String otherIncomeAsked(String uid) => 'arth_other_income_asked_$uid';
   static String paycheckOverrides(String uid) => 'arth_paycheck_overrides_$uid';
   static String syncQueue(String uid) => 'arth_sync_queue_$uid';
+  static String recovery(String uid) => 'arth_recovery_$uid';
 
   static List<String> allForUser(String uid) => [
         profile(uid),
@@ -29,6 +30,7 @@ class UserScopedStorageKeys {
         otherIncomeAsked(uid),
         paycheckOverrides(uid),
         syncQueue(uid),
+        recovery(uid),
       ];
 }
 

@@ -47,6 +47,55 @@ class ServerApiService {
     return _decodeMap(response);
   }
 
+  Future<Uint8List> getBytes(
+    String path, {
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path');
+    try {
+      final request =
+          await _client.openUrl('GET', uri).timeout(_documentUploadTimeout);
+      request.headers.set(HttpHeaders.acceptHeader, '*/*');
+      if (bearerToken != null && bearerToken.isNotEmpty) {
+        request.headers.set(
+          HttpHeaders.authorizationHeader,
+          'Bearer $bearerToken',
+        );
+      }
+      final response = await request.close().timeout(_documentUploadTimeout);
+      final bytes =
+          await response.fold<BytesBuilder>(BytesBuilder(), (builder, chunk) {
+        builder.add(chunk);
+        return builder;
+      }).timeout(_documentUploadTimeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final body = utf8.decode(bytes.toBytes(), allowMalformed: true);
+        final details = _extractErrorDetails(body);
+        throw ServerApiException(
+          response.statusCode,
+          details.message,
+          code: details.code,
+          retryable: details.retryable || response.statusCode >= 500,
+        );
+      }
+      return bytes.takeBytes();
+    } on TimeoutException {
+      throw const ServerApiException(
+        0,
+        'Document download took too long. Please try again.',
+        code: 'document_download_timeout',
+        retryable: true,
+      );
+    } on SocketException {
+      throw const ServerApiException(
+        0,
+        'Cannot reach ARTH. Please try again.',
+        code: 'network_unreachable',
+        retryable: true,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> postJson(
     String path, {
     Map<String, dynamic>? body,
