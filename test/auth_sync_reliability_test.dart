@@ -205,6 +205,62 @@ void main() {
     );
   });
 
+  test('an older callback cannot replace a newer queued tombstone', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final deletedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    final staleWriteAt = DateTime.parse('2026-07-29T09:00:00.000Z');
+
+    service.scheduleBackup(key, null, deletedAt);
+    service.scheduleBackup(key, 'stale-value', staleWriteAt);
+    await service.flushScheduled();
+
+    expect(
+      api.deleteBodies['/user-state/other-income'],
+      {'clientUpdatedAt': deletedAt.toIso8601String()},
+    );
+    expect(api.putBodies, isEmpty);
+  });
+
+  test('device state wins when server and device timestamps tie', () async {
+    final storage = const SecureStorageService();
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final tiedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    await storage.writeRestored(key, 'device-value', tiedAt);
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': 'server-value',
+            'deleted': false,
+            'clientUpdatedAt': tiedAt.toIso8601String(),
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), 'device-value');
+    expect(
+      api.putBodies['/user-state/other-income'],
+      {
+        'payload': 'device-value',
+        'clientUpdatedAt': tiedAt.toIso8601String(),
+      },
+    );
+  });
+
   test('one failed namespace does not stop later durable restores', () async {
     const storage = _OneNamespaceFailingStorage();
     final api = _FakeApi()
@@ -450,6 +506,7 @@ class _FakeApi extends ServerApiService {
   final postCalls = <String>[];
   final postRetryFlags = <String, bool>{};
   final putBodies = <String, Map<String, dynamic>>{};
+  final deleteBodies = <String, Map<String, dynamic>>{};
   ServerApiException? putError;
 
   _FakeApi() : super(baseUrl: 'http://localhost');
@@ -486,6 +543,15 @@ class _FakeApi extends ServerApiService {
     final error = putError;
     if (error != null) throw error;
     return <String, dynamic>{'ok': true};
+  }
+
+  @override
+  Future<void> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
+  }) async {
+    deleteBodies[path] = body ?? <String, dynamic>{};
   }
 
   @override

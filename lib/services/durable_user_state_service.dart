@@ -43,9 +43,14 @@ class DurableUserStateService {
       }
       return;
     }
+    final normalizedUpdatedAt = (updatedAt ?? DateTime.now()).toUtc();
+    final existing = _pending[key];
+    if (existing != null && existing.updatedAt.isAfter(normalizedUpdatedAt)) {
+      return;
+    }
     _pending[key] = _PendingWrite(
       value: value,
-      updatedAt: (updatedAt ?? DateTime.now()).toUtc(),
+      updatedAt: normalizedUpdatedAt,
     );
     _flushTimer?.cancel();
     _flushTimer = Timer(
@@ -167,7 +172,7 @@ class DurableUserStateService {
     )?.toUtc();
     if (remoteUpdatedAt == null) return;
 
-    if (localUpdatedAt == null || !localUpdatedAt.isAfter(remoteUpdatedAt)) {
+    if (localUpdatedAt == null || remoteUpdatedAt.isAfter(localUpdatedAt)) {
       _dropPendingThrough(key, remoteUpdatedAt);
       if (remoteDeleted) {
         await _storage.deleteRestored(key, remoteUpdatedAt);

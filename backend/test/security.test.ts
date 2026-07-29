@@ -160,6 +160,9 @@ class FakeDb {
     if (normalized === 'begin' || normalized === 'commit' || normalized === 'rollback') {
       return rows();
     }
+    if (normalized.startsWith('set local application_name = ')) {
+      return rows();
+    }
 
     if (normalized.startsWith('select id from app_users where email = $1')) {
       if (this.transientEmailLookupFailures > 0) {
@@ -1208,6 +1211,18 @@ describe('backend security harness', () => {
     });
     assert.equal(largeState.statusCode, 200);
     assert.equal(largeState.json().item.payload.length, largePayload.length);
+
+    const oversizedPayload = 'x'.repeat((16 * 1024 * 1024) + 1);
+    const oversizedState = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/spend-map',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: oversizedPayload,
+        clientUpdatedAt: currentUpdatedAt,
+      },
+    });
+    assert.equal(oversizedState.statusCode, 400);
 
     const staleDelete = await app.inject({
       method: 'DELETE',

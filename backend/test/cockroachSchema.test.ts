@@ -10,6 +10,10 @@ const durableStateSchema = await readFile(
   new URL('../sql/cockroach/002_durable_user_state.sql', import.meta.url),
   'utf8',
 );
+const routes = await readFile(
+  new URL('../src/routes.ts', import.meta.url),
+  'utf8',
+);
 
 describe('Cockroach secure schema', () => {
   it('contains required domain schemas and ownership controls', () => {
@@ -54,6 +58,8 @@ describe('Cockroach secure schema', () => {
       durableStateSchema,
       /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_state TO arth_app_runtime/,
     );
+    assert.match(routes, /set local application_name = 'arth\.\$\{safeUserId\}'/);
+    assert.match(routes, /runUserStateTransaction/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });
