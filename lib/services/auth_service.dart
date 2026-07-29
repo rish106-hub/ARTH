@@ -4,7 +4,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_account.dart';
 import 'secure_storage_service.dart';
 import 'server_api_service.dart';
-import 'user_scoped_storage.dart';
 
 class AuthService {
   static const _accountKey = 'arth_user_account';
@@ -80,15 +79,10 @@ class AuthService {
       final raw = await _storage.read(_accountKey, migrateFromPrefs: true);
       final resetVersion = await _storage.read(_requiredResetKey);
       if (resetVersion != _requiredResetVersion) {
-        String? uid;
-        if (raw != null && raw.isNotEmpty) {
-          try {
-            uid = UserAccount.fromJsonString(raw).uid;
-          } catch (_) {}
-        }
-        await _clearObsoleteLocalSession(uid);
+        // This is a migration marker, not permission to erase account data.
+        // Older builds used this path for a forced clean start, which made an
+        // app update look like data loss.
         await _storage.write(_requiredResetKey, _requiredResetVersion);
-        return null;
       }
       if (raw == null || raw.isEmpty) return null;
       return UserAccount.fromJsonString(raw);
@@ -146,14 +140,11 @@ class AuthService {
         );
       } catch (_) {}
     }
-    await Future.wait(
-      [
-        _storage.delete(_accountKey),
-        _storage.delete(_accessTokenKey),
-        _storage.delete(_refreshTokenKey),
-      ],
-      eagerError: false,
-    );
+    await Future.wait([
+      _storage.delete(_accountKey),
+      _storage.delete(_accessTokenKey),
+      _storage.delete(_refreshTokenKey),
+    ], eagerError: false);
   }
 
   Future<UserAccount> _persistAuthResponse(
@@ -180,20 +171,6 @@ class AuthService {
     await _storage.write(_accessTokenKey, accessToken);
     await _storage.write(_refreshTokenKey, refreshToken);
     return account;
-  }
-
-  Future<void> _clearObsoleteLocalSession(String? uid) async {
-    final keys = <String>{
-      _accountKey,
-      _accessTokenKey,
-      _refreshTokenKey,
-      'arth_sync_queue', // legacy global queue from older builds
-      'arth_user_profile',
-    };
-    if (uid != null && uid.isNotEmpty) {
-      keys.addAll(UserScopedStorageKeys.allForUser(uid));
-    }
-    await Future.wait(keys.map(_storage.delete), eagerError: false);
   }
 
   bool _isExpired(String jwt) {

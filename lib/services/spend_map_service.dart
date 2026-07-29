@@ -17,7 +17,8 @@ class SpendMapService {
   Future<void> push(SpendMap map) async {
     final token = await _auth.getValidAccessToken();
     if (token == null) return;
-    // Sync an aggregate summary only — never raw message bodies.
+    // This analytics route receives an aggregate summary. Full durable-state
+    // backup is handled separately by DurableUserStateService.
     final salaryDates = map.txns
         .where((transaction) =>
             transaction.isSalary &&
@@ -33,7 +34,7 @@ class SpendMapService {
         'windowStart': map.windowStart.toUtc().toIso8601String(),
         'windowEnd': map.windowEnd.toUtc().toIso8601String(),
         'generatedAt': map.generatedAt.toUtc().toIso8601String(),
-        // Observed SMS/payslip figures only — manual user edits stay on-device.
+        // Observed SMS/payslip figures only. Manual edits use durable state.
         'monthlyIncome': map.observedPrimaryMonthlyIncome,
         if (salaryDates.isNotEmpty) 'salaryCreditDay': salaryDates.first.day,
         'incomeSource': map.primaryIncomeIsManual

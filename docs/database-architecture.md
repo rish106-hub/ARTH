@@ -35,7 +35,8 @@ goal, reference and operations schemas.
 - HMAC blind indexes support login, duplicate detection and canonical matching.
 - Plaintext is limited to ownership IDs, operational state, timestamps and
   non-sensitive reference catalogs.
-- Raw SMS remains on-device.
+- SMS parsing remains on-device. Parsed transaction records are encrypted
+  before durable account state is written to the database.
 - GCS object names are random and contain no filenames or user information.
 
 ## Development validation

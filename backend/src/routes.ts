@@ -111,6 +111,21 @@ const doneGapsSchema = z.object({
   gapIds: z.array(z.string().min(1).max(120)).max(100),
 });
 
+const userStateNamespaceSchema = z.enum([
+  'profile-draft',
+  'onboarding',
+  'tax-year',
+  'document-checklist',
+  'spend-map',
+  'spend-map-adjustments',
+  'spend-completeness',
+  'other-income',
+  'other-income-asked',
+  'paycheck-overrides',
+  'recovery',
+  'monthly-close',
+]);
+
 const eventSchema = z.object({
   name: z.string().min(1).max(64),
   metadata: z.record(z.string(), z.any()).optional(),
@@ -130,6 +145,14 @@ const moneyGoalSchema = z.object({
 // DateTime.toIso8601String() on a local DateTime emits no timezone, which the
 // default (Z-only) datetime() would reject — silently 400ing the sync.
 const flexibleDatetime = () => z.string().datetime({ offset: true, local: true });
+
+const userStatePayloadSchema = z.object({
+  payload: z.string().max(512 * 1024),
+  clientUpdatedAt: flexibleDatetime(),
+}).strict();
+const userStateDeleteSchema = userStatePayloadSchema.pick({
+  clientUpdatedAt: true,
+});
 
 const spendMapSchema = z.object({
   windowStart: flexibleDatetime(),
@@ -401,6 +424,25 @@ function accountResponse(user: {
         ? new Date(identity.updated_at as string | Date).toISOString()
         : null,
     },
+  };
+}
+
+function userStateResponse(row: Record<string, unknown>) {
+  const deleted = row.deleted === true;
+  const payload = deleted
+    ? null
+    : decryptDocument({
+      ciphertext: row.payload_ciphertext as string,
+      iv: row.payload_iv as string,
+      authTag: row.payload_auth_tag as string,
+    }).toString('utf8');
+  return {
+    namespace: row.namespace,
+    payload,
+    deleted,
+    clientUpdatedAt: new Date(
+      row.client_updated_at as string | Date,
+    ).toISOString(),
   };
 }
 
@@ -1755,6 +1797,93 @@ export async function registerRoutes(app: FastifyInstance) {
     return reply.code(201).send({ employer: result.rows[0].display_name });
   });
 
+  app.get('/user-state', readRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const result = await db.query(
+      `select namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
+              client_updated_at
+       from user_state
+       where user_id = $1
+       order by namespace asc`,
+      [auth.userId],
+    );
+    return {
+      items: result.rows.map(userStateResponse),
+    };
+  });
+
+  app.put('/user-state/:namespace', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { namespace } = z.object({
+      namespace: userStateNamespaceSchema,
+    }).parse(request.params);
+    const payload = userStatePayloadSchema.parse(request.body);
+    const encrypted = encryptDocument(Buffer.from(payload.payload, 'utf8'));
+    const result = await db.query(
+      `insert into user_state (
+         user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+         deleted, client_updated_at, updated_at
+       ) values ($1, $2, $3, $4, $5, false, $6, now())
+       on conflict (user_id, namespace) do update set
+         payload_ciphertext = excluded.payload_ciphertext,
+         payload_iv = excluded.payload_iv,
+         payload_auth_tag = excluded.payload_auth_tag,
+         deleted = false,
+         client_updated_at = excluded.client_updated_at,
+         updated_at = now()
+       where user_state.client_updated_at <= excluded.client_updated_at
+       returning namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
+                 client_updated_at`,
+      [
+        auth.userId,
+        namespace,
+        encrypted.ciphertext,
+        encrypted.iv,
+        encrypted.authTag,
+        new Date(payload.clientUpdatedAt),
+      ],
+    );
+    const current = result.rowCount
+      ? result.rows[0]
+      : (await db.query(
+        `select namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
+                client_updated_at
+         from user_state
+         where user_id = $1 and namespace = $2`,
+        [auth.userId, namespace],
+      )).rows[0];
+    return {
+      item: userStateResponse(current),
+    };
+  });
+
+  app.delete('/user-state/:namespace', dataRateLimit, async (request, reply) => {
+    const auth = await requireAuth(request, reply);
+    if (!auth) return;
+    const { namespace } = z.object({
+      namespace: userStateNamespaceSchema,
+    }).parse(request.params);
+    const payload = userStateDeleteSchema.parse(request.body);
+    await db.query(
+      `insert into user_state (
+         user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+         deleted, client_updated_at, updated_at
+       ) values ($1, $2, null, null, null, true, $3, now())
+       on conflict (user_id, namespace) do update set
+         payload_ciphertext = null,
+         payload_iv = null,
+         payload_auth_tag = null,
+         deleted = true,
+         client_updated_at = excluded.client_updated_at,
+         updated_at = now()
+       where user_state.client_updated_at <= excluded.client_updated_at`,
+      [auth.userId, namespace, new Date(payload.clientUpdatedAt)],
+    );
+    return reply.code(204).send();
+  });
+
   app.get(
     '/done-gaps/current',
     readRateLimit,
@@ -1808,6 +1937,7 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
         await client.query('delete from money_goals where user_id = $1', [auth.userId]);
         await client.query('delete from spend_maps where user_id = $1', [auth.userId]);
+        await client.query('delete from user_state where user_id = $1', [auth.userId]);
         await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
         await client.query(
           `update user_private_identity

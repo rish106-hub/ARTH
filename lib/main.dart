@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/durable_user_state_service.dart';
 import 'services/push_notification_service.dart';
 
 void main() async {
@@ -35,6 +36,7 @@ void main() async {
     if (kDebugMode) debugPrint('[main] Firebase init skipped: $e');
   }
 
+  durableUserStateService.registerWriteObserver();
   runApp(const ProviderScope(child: ArthApp()));
   WidgetsBinding.instance.addPostFrameCallback((_) {
     pushNotificationService.openPendingNotification();

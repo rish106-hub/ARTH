@@ -6,6 +6,10 @@ const schema = await readFile(
   new URL('../sql/cockroach/001_secure_schema.sql', import.meta.url),
   'utf8',
 );
+const durableStateSchema = await readFile(
+  new URL('../sql/cockroach/002_durable_user_state.sql', import.meta.url),
+  'utf8',
+);
 
 describe('Cockroach secure schema', () => {
   it('contains required domain schemas and ownership controls', () => {
@@ -31,5 +35,13 @@ describe('Cockroach secure schema', () => {
 
   it('does not store raw SMS or API secrets', () => {
     assert.doesNotMatch(schema, /raw_sms|sms_body|api_key|provider_secret/i);
+  });
+
+  it('encrypts durable user state at rest', () => {
+    assert.match(durableStateSchema, /payload_ciphertext\s+STRING/);
+    assert.match(durableStateSchema, /payload_iv\s+STRING/);
+    assert.match(durableStateSchema, /payload_auth_tag\s+STRING/);
+    assert.match(durableStateSchema, /deleted\s+BOOL NOT NULL DEFAULT false/);
+    assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });

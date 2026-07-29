@@ -5,9 +5,11 @@ import 'package:arth/models/user_account.dart';
 import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/services/backend_sync_service.dart';
+import 'package:arth/services/durable_user_state_service.dart';
 import 'package:arth/services/secure_storage_service.dart';
 import 'package:arth/services/server_api_service.dart';
 import 'package:arth/services/sync_queue_service.dart';
+import 'package:arth/services/user_scoped_storage.dart';
 import 'package:arth/providers/tax_readiness_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -20,6 +22,7 @@ void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
+    SecureStorageService.writeObserver = null;
   });
 
   test('document checklist provider can rebuild without reinitializing storage',
@@ -51,7 +54,7 @@ void main() {
     expect(api.postCalls, contains('/auth/refresh'));
   });
 
-  test('first 1.0.3 launch removes the obsolete local account and caches',
+  test('version migration retains the account and every existing cache',
       () async {
     final storage = const SecureStorageService();
     final account = UserAccount(
@@ -69,13 +72,104 @@ void main() {
 
     final loaded = await AuthService(storage: storage).loadAccount();
 
-    expect(loaded, isNull);
-    expect(await storage.read('arth_user_account'), isNull);
-    expect(await storage.read('arth_access_token'), isNull);
-    expect(await storage.read('arth_refresh_token'), isNull);
-    expect(await storage.read('arth_profile_old-user'), isNull);
-    expect(await storage.read('arth_account_profile_old-user'), isNull);
-    expect(await storage.read('arth_sync_queue'), isNull);
+    expect(loaded?.uid, 'old-user');
+    expect(await storage.read('arth_user_account'), account.toJsonString());
+    expect(await storage.read('arth_access_token'), 'old-access');
+    expect(await storage.read('arth_refresh_token'), 'old-refresh');
+    expect(await storage.read('arth_profile_old-user'), '{"name":"Old User"}');
+    expect(
+      await storage.read('arth_account_profile_old-user'),
+      '{"old":true}',
+    );
+    expect(await storage.read('arth_sync_queue'), '[{"old":true}]');
+    expect(
+      await storage.read('arth_required_session_reset'),
+      '2026-07-clean-start-v1',
+    );
+  });
+
+  test('durable state restores a missing device cache from the server',
+      () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'paycheck-overrides',
+            'payload': '[{"canonicalKey":"basic","amount":80000}]',
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(
+      await storage.read(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      '[{"canonicalKey":"basic","amount":80000}]',
+    );
+    expect(
+      await storage
+          .updatedAt(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      DateTime.parse('2026-07-29T10:00:00.000Z'),
+    );
+  });
+
+  test('a newer server tombstone removes stale device state', () async {
+    final storage = const SecureStorageService();
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    await storage.write(
+      key,
+      '[{"id":"1","label":"Freelance","monthlyAmount":20000}]',
+    );
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': null,
+            'deleted': true,
+            'clientUpdatedAt': '2027-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), isNull);
+    expect(await storage.updatedAt(key), DateTime.parse('2027-07-29T10:00Z'));
+  });
+
+  test('durable spend backup retains the complete local transaction data',
+      () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+    final key = UserScopedStorageKeys.spendMap('user-1');
+    const value = '{"txns":[{"amount":500,"sender":"BANK","smsId":42,'
+        '"bodyPreview":"private text","category":"food"}]}';
+    await storage.write(key, value);
+
+    service.scheduleBackup(key, value);
+    await service.flushScheduled();
+
+    final payload =
+        api.putBodies['/user-state/spend-map']?['payload'] as String;
+    expect(payload, value);
   });
 
   test('sign-up retries transient server failures like sign-in', () async {
@@ -246,13 +340,23 @@ void main() {
 }
 
 class _FakeApi extends ServerApiService {
+  final getResponses = <String, Map<String, dynamic>>{};
   final postResponses = <String, Map<String, dynamic>>{};
   final postErrors = <String, ServerApiException>{};
   final postCalls = <String>[];
   final postRetryFlags = <String, bool>{};
+  final putBodies = <String, Map<String, dynamic>>{};
   ServerApiException? putError;
 
   _FakeApi() : super(baseUrl: 'http://localhost');
+
+  @override
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    String? bearerToken,
+  }) async {
+    return getResponses[path] ?? <String, dynamic>{};
+  }
 
   @override
   Future<Map<String, dynamic>> postJson(
@@ -274,6 +378,7 @@ class _FakeApi extends ServerApiService {
     Map<String, dynamic>? body,
     String? bearerToken,
   }) async {
+    putBodies[path] = body ?? <String, dynamic>{};
     final error = putError;
     if (error != null) throw error;
     return <String, dynamic>{'ok': true};

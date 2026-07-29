@@ -9,10 +9,9 @@ String _sourcesKey(String uid) => UserScopedStorageKeys.otherIncome(uid);
 String _askedKey(String uid) => UserScopedStorageKeys.otherIncomeAsked(uid);
 
 /// Manual "other income" entries (freelance, rent, side business, etc.) that
-/// the user adds after the one-time follow-up question. Stored ONLY in the
-/// device's secure storage (Keychain/Keystore) — never synced to the backend
-/// and never included in the spend-map payload that is pushed remotely. Only
-/// the resulting aggregate contributes to on-screen income figures.
+/// the user adds after the one-time follow-up question. Stored in device secure
+/// storage and in the account's encrypted durable-state backup. It is not added
+/// to the aggregate spend-map analytics payload.
 class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   final _storage = const SecureStorageService();
 

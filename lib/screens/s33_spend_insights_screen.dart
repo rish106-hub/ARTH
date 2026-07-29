@@ -44,7 +44,7 @@ class SpendInsightsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'ARTH reads only bank & UPI transaction SMS on this phone to map where your money goes. Personal messages are ignored and parsing stays on-device.',
+                'ARTH reads only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on-device, and the resulting transaction history is encrypted and backed up to your ARTH account.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 20),

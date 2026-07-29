@@ -59,6 +59,7 @@ class FakeDb {
   private documents = new Map<string, Row>();
   private moneyGoals = new Map<string, Row>();
   private spendMaps = new Map<string, Row>();
+  private userState = new Map<string, Row>();
   private employers = new Map<string, Row>();
   private deviceTokens = new Map<string, Row>();
   private events: Row[] = [];
@@ -76,6 +77,7 @@ class FakeDb {
     this.documents.clear();
     this.moneyGoals.clear();
     this.spendMaps.clear();
+    this.userState.clear();
     this.employers.clear();
     this.deviceTokens.clear();
     this.events = [];
@@ -98,6 +100,10 @@ class FakeDb {
 
   rawDeviceTokens() {
     return [...this.deviceTokens.values()];
+  }
+
+  rawUserState() {
+    return [...this.userState.values()];
   }
 
   hasUser(userId: string) {
@@ -277,6 +283,7 @@ class FakeDb {
       this.deleteByUser(this.profiles, userId);
       this.deleteByUser(this.taxResults, userId);
       this.deleteByUser(this.doneGaps, userId);
+      this.deleteByUser(this.userState, userId);
       this.identities.delete(userId);
       for (const [documentId, document] of this.documents) {
         if (document.user_id === userId) this.documents.delete(documentId);
@@ -588,8 +595,50 @@ class FakeDb {
       return rows();
     }
 
+    if (normalized.startsWith('insert into user_state')) {
+      const stateKey = key(params[0], params[1]);
+      const existing = this.userState.get(stateKey);
+      const isDelete = params.length === 3;
+      const incomingUpdatedAt = params[isDelete ? 2 : 5] as Date;
+      if (existing
+          && (existing.client_updated_at as Date).getTime() > incomingUpdatedAt.getTime()) {
+        return rows();
+      }
+      const item = {
+        user_id: params[0],
+        namespace: params[1],
+        payload_ciphertext: isDelete ? null : params[2],
+        payload_iv: isDelete ? null : params[3],
+        payload_auth_tag: isDelete ? null : params[4],
+        deleted: isDelete,
+        client_updated_at: incomingUpdatedAt,
+        updated_at: new Date(),
+      };
+      this.userState.set(stateKey, item);
+      return rows([item]);
+    }
+
+    if (normalized.startsWith('select namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,')) {
+      const items = [...this.userState.values()]
+        .filter((item) =>
+          item.user_id === params[0]
+          && (params.length < 2 || item.namespace === params[1]))
+        .sort((left, right) =>
+          (left.namespace as string).localeCompare(right.namespace as string));
+      return rows(items);
+    }
+
     if (normalized.startsWith('delete from spend_maps where user_id = $1')) {
       this.spendMaps.delete(params[0] as string);
+      return rows();
+    }
+
+    if (normalized.startsWith('delete from user_state where user_id = $1')) {
+      if (params.length > 1) {
+        this.userState.delete(key(params[0], params[1]));
+      } else {
+        this.deleteByUser(this.userState, params[0] as string);
+      }
       return rows();
     }
 
@@ -1047,6 +1096,93 @@ describe('backend security harness', () => {
       headers: bearer(bob.accessToken),
     });
     assert.deepEqual(bobGaps.json(), { gapIds: [] });
+
+    await app.close();
+  });
+
+  it('backs up user state by account and rejects stale overwrites', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const currentUpdatedAt = '2026-07-29T10:00:00.000Z';
+
+    const saved = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/paycheck-overrides',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: '[{"canonicalKey":"basic","amount":80000}]',
+        clientUpdatedAt: currentUpdatedAt,
+      },
+    });
+    assert.equal(saved.statusCode, 200);
+    assert.equal(
+      JSON.stringify(fakeDb.rawUserState()).includes('canonicalKey'),
+      false,
+    );
+
+    const stale = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/paycheck-overrides',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: '[]',
+        clientUpdatedAt: '2026-07-29T09:00:00.000Z',
+      },
+    });
+    assert.equal(stale.statusCode, 200);
+    assert.equal(stale.json().item.payload,
+      '[{"canonicalKey":"basic","amount":80000}]');
+
+    const aliceState = await app.inject({
+      method: 'GET',
+      url: '/v1/user-state',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(aliceState.statusCode, 200);
+    assert.equal(aliceState.json().items.length, 1);
+    assert.equal(aliceState.json().items[0].clientUpdatedAt, currentUpdatedAt);
+
+    const bobState = await app.inject({
+      method: 'GET',
+      url: '/v1/user-state',
+      headers: bearer(bob.accessToken),
+    });
+    assert.deepEqual(bobState.json(), { items: [] });
+
+    const unknownNamespace = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/access-token',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: 'secret',
+        clientUpdatedAt: currentUpdatedAt,
+      },
+    });
+    assert.equal(unknownNamespace.statusCode, 400);
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: '/v1/user-state/paycheck-overrides',
+      headers: bearer(alice.accessToken),
+      payload: {
+        clientUpdatedAt: '2026-07-29T11:00:00.000Z',
+      },
+    });
+    assert.equal(removed.statusCode, 204);
+    const afterDelete = await app.inject({
+      method: 'GET',
+      url: '/v1/user-state',
+      headers: bearer(alice.accessToken),
+    });
+    assert.deepEqual(afterDelete.json(), {
+      items: [{
+        namespace: 'paycheck-overrides',
+        payload: null,
+        deleted: true,
+        clientUpdatedAt: '2026-07-29T11:00:00.000Z',
+      }],
+    });
 
     await app.close();
   });
