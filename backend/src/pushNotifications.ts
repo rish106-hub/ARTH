@@ -272,9 +272,14 @@ export async function sendPaydayCloseReminders(
     `select user_id
      from spend_maps
      where salary_credit_day is not null
-       and least(salary_credit_day, $1) = $2`,
+       and least(salary_credit_day, $1) <= $2`,
     [lastDay, day],
   );
+  const monthBucket = [
+    year,
+    month.toString().padStart(2, '0'),
+    '01',
+  ].join('-');
   await Promise.all(
     result.rows.map((row: { user_id: string }) =>
       sendPushToUser(row.user_id, {
@@ -282,11 +287,7 @@ export async function sendPaydayCloseReminders(
         body: 'Confirm the credit, check new bills, and review open claims.',
         data: { type: 'payday_close', screen: 'monthly-close' },
         dailyDedupeKey: `monthly_close_${year}_${month}`,
-        dedupeDate: [
-          year,
-          month.toString().padStart(2, '0'),
-          day.toString().padStart(2, '0'),
-        ].join('-'),
+        dedupeDate: monthBucket,
       }),
     ),
   );
