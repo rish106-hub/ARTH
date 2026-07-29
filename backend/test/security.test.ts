@@ -60,6 +60,7 @@ class FakeDb {
   private moneyGoals = new Map<string, Row>();
   private spendMaps = new Map<string, Row>();
   private userState = new Map<string, Row>();
+  private userStateContexts: string[] = [];
   private employers = new Map<string, Row>();
   private deviceTokens = new Map<string, Row>();
   private events: Row[] = [];
@@ -78,6 +79,7 @@ class FakeDb {
     this.moneyGoals.clear();
     this.spendMaps.clear();
     this.userState.clear();
+    this.userStateContexts = [];
     this.employers.clear();
     this.deviceTokens.clear();
     this.events = [];
@@ -104,6 +106,10 @@ class FakeDb {
 
   rawUserState() {
     return [...this.userState.values()];
+  }
+
+  rawUserStateContexts() {
+    return [...this.userStateContexts];
   }
 
   hasUser(userId: string) {
@@ -161,6 +167,7 @@ class FakeDb {
       return rows();
     }
     if (normalized.startsWith('set local application_name = ')) {
+      this.userStateContexts.push(normalized);
       return rows();
     }
 
@@ -1151,6 +1158,10 @@ describe('backend security harness', () => {
       headers: bearer(alice.accessToken),
     });
     assert.equal(aliceState.statusCode, 200);
+    assert.ok(
+      fakeDb.rawUserStateContexts().some((query) =>
+        query.includes(`arth.${alice.user.id}`)),
+    );
     assert.equal(aliceState.json().items.length, 1);
     assert.equal(aliceState.json().items[0].clientUpdatedAt, currentUpdatedAt);
 
@@ -1159,7 +1170,8 @@ describe('backend security harness', () => {
       url: '/v1/user-state',
       headers: bearer(bob.accessToken),
     });
-    assert.deepEqual(bobState.json(), { items: [] });
+    assert.deepEqual(bobState.json().items, []);
+    assert.ok(Date.parse(bobState.json().serverTime) > 0);
 
     const unknownNamespace = await app.inject({
       method: 'PUT',
@@ -1232,7 +1244,12 @@ describe('backend security harness', () => {
         clientUpdatedAt: staleUpdatedAt,
       },
     });
-    assert.equal(staleDelete.statusCode, 409);
+    assert.equal(staleDelete.statusCode, 200);
+    assert.equal(staleDelete.json().item.deleted, false);
+    assert.equal(
+      staleDelete.json().item.clientUpdatedAt,
+      currentUpdatedAt,
+    );
 
     const removed = await app.inject({
       method: 'DELETE',
@@ -1242,7 +1259,13 @@ describe('backend security harness', () => {
         clientUpdatedAt: deletedAt,
       },
     });
-    assert.equal(removed.statusCode, 204);
+    assert.equal(removed.statusCode, 200);
+    assert.equal(removed.json().item.deleted, true);
+    assert.equal(
+      removed.json().item.clientUpdatedAt,
+      deletedAt,
+    );
+    assert.ok(Date.parse(removed.json().serverTime) > 0);
     const afterDelete = await app.inject({
       method: 'GET',
       url: '/v1/user-state',
@@ -1436,6 +1459,11 @@ describe('backend security harness', () => {
     });
     assert.equal(account.statusCode, 200);
     assert.equal(account.json().pan.status, 'missing');
+    const clearedState = fakeDb.rawUserState()
+      .filter((item) => item.user_id === alice.user.id);
+    assert.equal(clearedState.length, 12);
+    assert.ok(clearedState.every((item) =>
+      item.deleted === true && item.payload_ciphertext === null));
 
     await app.close();
   });

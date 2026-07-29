@@ -23,6 +23,7 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
     SecureStorageService.writeObserver = null;
+    SecureStorageService.resetServerClockForTests();
   });
 
   test('document checklist provider can rebuild without reinitializing storage',
@@ -227,6 +228,118 @@ void main() {
     expect(api.putBodies, isEmpty);
   });
 
+  test('pending state cannot cross accounts during a session switch', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _BoundSessionAuthService('user-2'),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+
+    service.scheduleBackup(
+      UserScopedStorageKeys.otherIncome('user-1'),
+      'user-1-value',
+    );
+    await service.flushScheduled();
+
+    expect(api.putBodies, isEmpty);
+    expect(api.deleteBodies, isEmpty);
+  });
+
+  test('non-durable auth values never enter the backup queue', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+
+    service.scheduleBackup('arth_access_token', 'secret-token');
+    await service.flushScheduled();
+
+    expect(api.putBodies, isEmpty);
+    expect(api.putPaths, isEmpty);
+  });
+
+  test('a failed backup stays queued for the next flush', () async {
+    final api = _FakeApi()..putError = const ServerApiException(503, 'offline');
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+
+    service.scheduleBackup(key, 'value');
+    await service.flushScheduled();
+    expect(api.putPaths, ['/user-state/other-income']);
+
+    api.putError = null;
+    await service.flushScheduled();
+    expect(api.putPaths, [
+      '/user-state/other-income',
+      '/user-state/other-income',
+    ]);
+  });
+
+  test('secure storage serializes a value with its matching timestamp',
+      () async {
+    const storage = SecureStorageService();
+    const key = 'serialized-key';
+    final observed = <(String?, DateTime)>[];
+    SecureStorageService.writeObserver = (changedKey, value, updatedAt) {
+      if (changedKey == key) observed.add((value, updatedAt));
+    };
+
+    await Future.wait([
+      storage.write(key, 'first'),
+      storage.write(key, 'second'),
+    ]);
+
+    expect(await storage.read(key), 'second');
+    expect(observed.map((entry) => entry.$1), ['first', 'second']);
+    expect(await storage.updatedAt(key), observed.last.$2);
+  });
+
+  test('new writes use the last observed server clock', () async {
+    const storage = SecureStorageService();
+    final serverTime = DateTime.parse('2027-07-29T10:00:00.000Z');
+    SecureStorageService.observeServerTime(serverTime);
+
+    await storage.write('clock-key', 'value');
+
+    final updatedAt = await storage.updatedAt('clock-key');
+    expect(updatedAt, isNotNull);
+    expect(updatedAt!.isBefore(serverTime), isFalse);
+  });
+
+  test('hydration corrects a far-future local timestamp', () async {
+    const storage = SecureStorageService();
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final futureAt = DateTime.parse('2030-07-29T10:00:00.000Z');
+    final serverTime = DateTime.parse('2026-07-29T10:00:00.000Z');
+    await storage.writeRestored(key, 'device-value', futureAt);
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': <Map<String, dynamic>>[],
+        'serverTime': serverTime.toIso8601String(),
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), 'device-value');
+    expect(await storage.updatedAt(key), serverTime);
+    expect(
+      api.putBodies['/user-state/other-income']?['clientUpdatedAt'],
+      serverTime.toIso8601String(),
+    );
+  });
+
   test('device state wins when server and device timestamps tie', () async {
     final storage = const SecureStorageService();
     final key = UserScopedStorageKeys.otherIncome('user-1');
@@ -330,6 +443,12 @@ void main() {
     await service.flushScheduled();
 
     expect(api.putBodies, isEmpty);
+    expect(
+      await const SecureStorageService().read(
+        'arth_durable_backup_oversized',
+      ),
+      isNotNull,
+    );
   });
 
   test('sign-up retries transient server failures like sign-in', () async {
@@ -507,6 +626,8 @@ class _FakeApi extends ServerApiService {
   final postRetryFlags = <String, bool>{};
   final putBodies = <String, Map<String, dynamic>>{};
   final deleteBodies = <String, Map<String, dynamic>>{};
+  final putPaths = <String>[];
+  final deletePaths = <String>[];
   ServerApiException? putError;
 
   _FakeApi() : super(baseUrl: 'http://localhost');
@@ -539,19 +660,40 @@ class _FakeApi extends ServerApiService {
     Map<String, dynamic>? body,
     String? bearerToken,
   }) async {
+    putPaths.add(path);
     putBodies[path] = body ?? <String, dynamic>{};
     final error = putError;
     if (error != null) throw error;
-    return <String, dynamic>{'ok': true};
+    final clientUpdatedAt = body?['clientUpdatedAt']?.toString();
+    return <String, dynamic>{
+      'item': {
+        'namespace': path.split('/').last,
+        'payload': body?['payload'],
+        'deleted': false,
+        'clientUpdatedAt': clientUpdatedAt,
+      },
+      'serverTime': clientUpdatedAt,
+    };
   }
 
   @override
-  Future<void> delete(
+  Future<Map<String, dynamic>> deleteJson(
     String path, {
     Map<String, dynamic>? body,
     String? bearerToken,
   }) async {
+    deletePaths.add(path);
     deleteBodies[path] = body ?? <String, dynamic>{};
+    final clientUpdatedAt = body?['clientUpdatedAt']?.toString();
+    return <String, dynamic>{
+      'item': {
+        'namespace': path.split('/').last,
+        'payload': null,
+        'deleted': true,
+        'clientUpdatedAt': clientUpdatedAt,
+      },
+      'serverTime': clientUpdatedAt,
+    };
   }
 
   @override
@@ -573,11 +715,28 @@ class _FixedTokenAuthService extends AuthService {
         email: 'user@example.com',
         createdAt: DateTime(2026, 1, 1),
       );
+
+  @override
+  Future<AuthenticatedSession?> getValidSession() async =>
+      const AuthenticatedSession(
+        uid: 'user-1',
+        accessToken: 'access-token',
+      );
 }
 
 class _MissingTokenAuthService extends AuthService {
   @override
   Future<String?> getValidAccessToken() async => null;
+}
+
+class _BoundSessionAuthService extends AuthService {
+  _BoundSessionAuthService(this.uid);
+
+  final String uid;
+
+  @override
+  Future<AuthenticatedSession?> getValidSession() async =>
+      AuthenticatedSession(uid: uid, accessToken: 'token-$uid');
 }
 
 class _OneNamespaceFailingStorage extends SecureStorageService {

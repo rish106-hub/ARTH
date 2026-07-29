@@ -10,11 +10,12 @@ const _activeTaxYearKey = 'arth_active_tax_year';
 class ActiveTaxYearNotifier extends Notifier<TaxYearId> {
   final SecureStorageService _storage = const SecureStorageService();
   late String _uid;
+  int _loadGeneration = 0;
 
   @override
   TaxYearId build() {
     _uid = ref.watch(authProvider)?.uid ?? 'guest';
-    _loadPersistedTaxYear();
+    _loadPersistedTaxYear(_uid, ++_loadGeneration);
     return TaxYearId.fy2026_27;
   }
 
@@ -23,23 +24,36 @@ class ActiveTaxYearNotifier extends Notifier<TaxYearId> {
     await _storage.write(UserScopedStorageKeys.taxYear(_uid), id.wireName);
   }
 
-  Future<void> _loadPersistedTaxYear() async {
-    final key = UserScopedStorageKeys.taxYear(_uid);
+  Future<void> _loadPersistedTaxYear(
+    String uid,
+    int generation,
+  ) async {
+    final key = UserScopedStorageKeys.taxYear(uid);
     final scoped = await _storage.read(key);
-    final raw = scoped ?? await _storage.read(_activeTaxYearKey);
+    if (!_isCurrent(uid, generation)) return;
+    final canMigrateLegacy = uid != 'guest';
+    final legacy = canMigrateLegacy && scoped == null
+        ? await _storage.read(_activeTaxYearKey)
+        : null;
+    if (!_isCurrent(uid, generation)) return;
+    final raw = scoped ?? legacy;
     if (raw == null || raw.isEmpty) return;
     try {
       state = TaxYearId.fromWireName(raw);
-      if (scoped == null) {
+      if (legacy != null) {
         await _storage.write(key, raw);
+        if (!_isCurrent(uid, generation)) return;
         if (await _storage.read(key) == raw) {
           await _storage.delete(_activeTaxYearKey);
         }
       }
     } on FormatException {
-      await _storage.delete(scoped == null ? _activeTaxYearKey : key);
+      await _storage.delete(legacy != null ? _activeTaxYearKey : key);
     }
   }
+
+  bool _isCurrent(String uid, int generation) =>
+      uid == _uid && generation == _loadGeneration;
 }
 
 final activeTaxYearProvider =

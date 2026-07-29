@@ -39,5 +39,13 @@ void main() {
       durable.values,
       isNot(contains(UserScopedStorageKeys.syncQueue(uid))),
     );
+    for (final entry in durable.entries) {
+      expect(
+        UserScopedStorageKeys.durableNamespaceForKey(uid, entry.value),
+        entry.key,
+      );
+      expect(UserScopedStorageKeys.isDurableKey(entry.value), isTrue);
+    }
+    expect(UserScopedStorageKeys.isDurableKey('arth_access_token'), isFalse);
   });
 }

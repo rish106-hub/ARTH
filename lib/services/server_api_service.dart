@@ -156,6 +156,20 @@ class ServerApiService {
     await _send('DELETE', path, body: body, bearerToken: bearerToken);
   }
 
+  Future<Map<String, dynamic>> deleteJson(
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
+  }) async {
+    final response = await _send(
+      'DELETE',
+      path,
+      body: body,
+      bearerToken: bearerToken,
+    );
+    return _decodeMap(response);
+  }
+
   Future<Map<String, dynamic>> uploadMultipart(
     String path, {
     required String bearerToken,

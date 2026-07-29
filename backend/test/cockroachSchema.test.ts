@@ -10,8 +10,12 @@ const durableStateSchema = await readFile(
   new URL('../sql/cockroach/002_durable_user_state.sql', import.meta.url),
   'utf8',
 );
-const routes = await readFile(
-  new URL('../src/routes.ts', import.meta.url),
+const postgresDurableStateSchema = await readFile(
+  new URL('../sql/016_durable_user_state.sql', import.meta.url),
+  'utf8',
+);
+const verifier = await readFile(
+  new URL('../src/scripts/verify-cockroach.ts', import.meta.url),
   'utf8',
 );
 
@@ -58,8 +62,12 @@ describe('Cockroach secure schema', () => {
       durableStateSchema,
       /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_state TO arth_app_runtime/,
     );
-    assert.match(routes, /set local application_name = 'arth\.\$\{safeUserId\}'/);
-    assert.match(routes, /runUserStateTransaction/);
+    assert.match(verifier, /'public\.user_state'/);
+    assert.match(postgresDurableStateSchema, /FORCE ROW LEVEL SECURITY/);
+    assert.match(postgresDurableStateSchema, /app_user_state_isolation/);
+    assert.match(postgresDurableStateSchema, /REVOKE ALL ON TABLE user_state FROM PUBLIC/);
+    assert.match(durableStateSchema, /length\(namespace\) <= 64/);
+    assert.match(postgresDurableStateSchema, /length\(namespace\) <= 64/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });

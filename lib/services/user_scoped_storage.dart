@@ -6,20 +6,8 @@ import 'secure_storage_service.dart';
 class UserScopedStorageKeys {
   UserScopedStorageKeys._();
 
-  static const durableNamespaces = <String>[
-    'profile-draft',
-    'onboarding',
-    'tax-year',
-    'document-checklist',
-    'spend-map',
-    'spend-map-adjustments',
-    'spend-completeness',
-    'other-income',
-    'other-income-asked',
-    'paycheck-overrides',
-    'recovery',
-    'monthly-close',
-  ];
+  static List<String> get durableNamespaces =>
+      durableForUser('').keys.toList(growable: false);
 
   static String profile(String uid) => 'arth_profile_$uid';
   static String onboarding(String uid) => 'arth_onboarding_$uid';
@@ -57,6 +45,12 @@ class UserScopedStorageKeys {
       if (entry.value == key) return entry.key;
     }
     return null;
+  }
+
+  static bool isDurableKey(String key) {
+    return durableForUser('').values.any(
+          (prefix) => key.length > prefix.length && key.startsWith(prefix),
+        );
   }
 
   static List<String> allForUser(String uid) => [

@@ -289,7 +289,10 @@ void main() {
 
       await notifier.scan();
 
-      final map = container.read(spendMapProvider).map!;
+      final spendState = container.read(spendMapProvider);
+      expect(spendState.error, isNull);
+      expect(spendState.map, isNotNull);
+      final map = spendState.map!;
       expect(map.primaryMonthlyIncome, 54500); // detected salary, unaffected
       expect(map.otherMonthlyIncome, 8000);
       expect(map.monthlyIncome, 54500 + 8000); // on-screen total includes it
