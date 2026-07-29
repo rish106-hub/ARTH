@@ -1,3 +1,5 @@
+import 'package:arth/features/monthly_close/providers/monthly_close_provider.dart';
+import 'package:arth/features/monthly_close/screens/monthly_close_screen.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
@@ -5,6 +7,7 @@ import 'package:arth/theme/paycheck_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   ProviderScope sampleScope(Widget child) => ProviderScope(
@@ -187,6 +190,9 @@ void main() {
       ProviderScope(
         overrides: [
           paycheckProvider.overrideWith(EmptyPaycheckNotifier.new),
+          monthlyCloseClockProvider.overrideWith(
+            (ref) => () => DateTime(2026, 7, 28),
+          ),
         ],
         child: const MaterialApp(home: PaycheckShellScreen()),
       ),
@@ -195,12 +201,51 @@ void main() {
 
     expect(find.text('Add your first payslip'), findsOneWidget);
     expect(find.byKey(const Key('add_first_payslip')), findsOneWidget);
+    expect(find.byKey(const Key('open_monthly_close')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('add_first_payslip')));
     await tester.pumpAndSettle();
 
     expect(find.text('Documents behind your pay'), findsOneWidget);
     expect(find.byKey(const Key('add_paycheck_evidence')), findsOneWidget);
+  });
+
+  testWidgets('empty paycheck reaches monthly close bills and claims', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const PaycheckShellScreen()),
+        GoRoute(
+          path: '/monthly-close',
+          builder: (_, __) => const MonthlyCloseScreen(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(EmptyPaycheckNotifier.new),
+          monthlyCloseClockProvider.overrideWith(
+            (ref) => () => DateTime(2026, 7, 28),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('open_monthly_close')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('open_monthly_close')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open_monthly_close')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Check new bills'), findsOneWidget);
+    expect(find.text('Review claims'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
 

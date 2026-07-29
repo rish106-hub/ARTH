@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/money_signals/providers/money_signal_provider.dart';
@@ -11,54 +13,119 @@ import '../../../services/user_scoped_storage.dart';
 import '../engine/monthly_close_engine.dart';
 import '../models/monthly_close_models.dart';
 
+typedef MonthlyCloseClock = DateTime Function();
+
+final monthlyCloseClockProvider = Provider<MonthlyCloseClock>(
+  (ref) => () => DateTime.now(),
+);
+
+/// Aligns persisted close state with [now]. Prior months always start fresh.
+MonthlyCloseRecord reconcileMonthlyCloseRecord({
+  required MonthlyCloseRecord? stored,
+  required DateTime now,
+}) {
+  final currentKey = MonthlyCloseEngine.periodKey(now);
+  if (stored == null || stored.periodKey != currentKey) {
+    return MonthlyCloseRecord(periodKey: currentKey);
+  }
+  return stored;
+}
+
+Duration delayUntilNextMonthBoundary(DateTime now) {
+  final nextBoundary = DateTime(now.year, now.month + 1);
+  return nextBoundary.difference(now);
+}
+
 class MonthlyCloseNotifier extends Notifier<MonthlyCloseRecord> {
   final _storage = const SecureStorageService();
   late String _uid;
   int _mutationRevision = 0;
+  Timer? _periodTimer;
+
+  DateTime _now() => ref.read(monthlyCloseClockProvider)();
 
   @override
   MonthlyCloseRecord build() {
     _uid = ref.watch(authProvider)?.uid ?? 'guest';
+    ref.onDispose(_disposePeriodTimer);
     final record = _emptyRecord();
     Future.microtask(() => _load(_uid));
+    _schedulePeriodRollover();
     return record;
   }
 
+  void _disposePeriodTimer() {
+    _periodTimer?.cancel();
+    _periodTimer = null;
+  }
+
+  void _schedulePeriodRollover() {
+    _disposePeriodTimer();
+    final delay = delayUntilNextMonthBoundary(_now());
+    if (delay <= Duration.zero) return;
+    _periodTimer = Timer(delay, _onPeriodBoundary);
+  }
+
+  void _onPeriodBoundary() {
+    if (!ref.mounted) return;
+    if (state.periodKey != MonthlyCloseEngine.periodKey(_now())) {
+      unawaited(_resetForCurrentPeriod(persist: true));
+    }
+    _schedulePeriodRollover();
+  }
+
   MonthlyCloseRecord _emptyRecord() => MonthlyCloseRecord(
-        periodKey: MonthlyCloseEngine.periodKey(DateTime.now()),
+        periodKey: MonthlyCloseEngine.periodKey(_now()),
       );
 
   Future<void> _load(String uid) async {
     final revision = _mutationRevision;
     final raw = await _storage.read(UserScopedStorageKeys.monthlyClose(uid));
-    if (raw == null ||
-        !ref.mounted ||
-        uid != _uid ||
-        revision != _mutationRevision) {
+    if (!ref.mounted || uid != _uid || revision != _mutationRevision) {
       return;
     }
-    try {
-      final loaded = MonthlyCloseRecord.fromJsonString(raw);
-      state = loaded.periodKey == MonthlyCloseEngine.periodKey(DateTime.now())
-          ? loaded
-          : _emptyRecord();
-    } catch (_) {
-      // Corrupt local state is ignored. The next check writes a clean record.
+    MonthlyCloseRecord? loaded;
+    if (raw != null) {
+      try {
+        loaded = MonthlyCloseRecord.fromJsonString(raw);
+      } catch (_) {
+        loaded = null;
+      }
+    }
+    final resolved = reconcileMonthlyCloseRecord(stored: loaded, now: _now());
+    state = resolved;
+    if (loaded != null && loaded.periodKey != resolved.periodKey) {
+      await _persist(resolved);
     }
   }
 
-  Future<void> setStep(MonthlyCloseStep step, bool complete) async {
+  Future<void> _resetForCurrentPeriod({required bool persist}) async {
     _mutationRevision++;
-    state = state.mark(step, complete, DateTime.now());
+    state = _emptyRecord();
+    if (persist && _uid != 'guest') {
+      await _persist(state);
+    }
+  }
+
+  Future<void> _persist(MonthlyCloseRecord record) async {
     await _storage.write(
       UserScopedStorageKeys.monthlyClose(_uid),
-      state.toJsonString(),
+      record.toJsonString(),
     );
   }
 
-  Future<void> clearLocalData() async {
+  Future<void> setStep(MonthlyCloseStep step, bool complete) async {
+    final currentKey = MonthlyCloseEngine.periodKey(_now());
+    if (state.periodKey != currentKey) {
+      await _resetForCurrentPeriod(persist: false);
+    }
     _mutationRevision++;
-    state = _emptyRecord();
+    state = state.mark(step, complete, _now());
+    await _persist(state);
+  }
+
+  Future<void> clearLocalData() async {
+    await _resetForCurrentPeriod(persist: false);
     if (_uid != 'guest') {
       await _storage.delete(UserScopedStorageKeys.monthlyClose(_uid));
     }
@@ -71,6 +138,7 @@ final monthlyCloseProvider =
 );
 
 final monthlyCloseSnapshotProvider = Provider<MonthlyCloseSnapshot>((ref) {
+  ref.watch(monthlyCloseClockProvider);
   final documents = ref.watch(taxDocumentProvider).asData?.value ?? const [];
   return MonthlyCloseEngine.build(
     paycheck: ref.watch(paycheckProvider),
@@ -78,6 +146,6 @@ final monthlyCloseSnapshotProvider = Provider<MonthlyCloseSnapshot>((ref) {
     adjustments: ref.watch(spendMapAdjustmentsProvider),
     documents: documents,
     profile: ref.watch(userProfileProvider),
-    now: DateTime.now(),
+    now: ref.read(monthlyCloseClockProvider)(),
   );
 });

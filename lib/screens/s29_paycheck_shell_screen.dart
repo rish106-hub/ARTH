@@ -292,12 +292,6 @@ class _PaycheckHome extends ConsumerWidget {
                 onAudit: openAudit,
               ),
               const SizedBox(height: 12),
-              MonthlyCloseEntryCard(
-                record: closeRecord,
-                snapshot: closeSnapshot,
-                onTap: () => context.push('/monthly-close'),
-              ),
-              const SizedBox(height: 12),
               if (actionItems.isNotEmpty)
                 SizedBox(
                   width: double.infinity,
@@ -352,6 +346,12 @@ class _PaycheckHome extends ConsumerWidget {
                 onTap: () => context.push('/recovery'),
               ),
             ],
+            const SizedBox(height: 12),
+            MonthlyCloseEntryCard(
+              record: closeRecord,
+              snapshot: closeSnapshot,
+              onTap: () => context.push('/monthly-close'),
+            ),
           ],
         ),
       ),
