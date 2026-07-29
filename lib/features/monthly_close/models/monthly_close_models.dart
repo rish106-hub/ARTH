@@ -108,24 +108,26 @@ class CohortBenchmark {
   const CohortBenchmark({
     required this.status,
     required this.sampleSize,
-    required this.minimumSampleSize,
     this.city,
     this.ctcBandLabel,
     this.averageRentPercent,
   });
 
+  /// Privacy floor for any cohort comparison. This is a policy constant, not a
+  /// caller option, so no call site can lower it.
   static const minimumPrivateSample = 30;
 
   final CohortBenchmarkStatus status;
   final int sampleSize;
-  final int minimumSampleSize;
   final String? city;
   final String? ctcBandLabel;
   final int? averageRentPercent;
 
+  int get minimumSampleSize => minimumPrivateSample;
+
   bool get canShowComparison =>
       status == CohortBenchmarkStatus.available &&
-      sampleSize >= minimumSampleSize &&
+      sampleSize >= minimumPrivateSample &&
       averageRentPercent != null;
 
   factory CohortBenchmark.fromAggregate({
@@ -133,13 +135,11 @@ class CohortBenchmark {
     required String city,
     required String ctcBandLabel,
     required int averageRentPercent,
-    int minimumSampleSize = minimumPrivateSample,
   }) {
-    if (sampleSize < minimumSampleSize) {
+    if (sampleSize < minimumPrivateSample) {
       return CohortBenchmark(
         status: CohortBenchmarkStatus.waitingForSample,
         sampleSize: sampleSize,
-        minimumSampleSize: minimumSampleSize,
         city: city,
         ctcBandLabel: ctcBandLabel,
       );
@@ -147,7 +147,6 @@ class CohortBenchmark {
     return CohortBenchmark(
       status: CohortBenchmarkStatus.available,
       sampleSize: sampleSize,
-      minimumSampleSize: minimumSampleSize,
       city: city,
       ctcBandLabel: ctcBandLabel,
       averageRentPercent: averageRentPercent.clamp(0, 100),
@@ -155,10 +154,26 @@ class CohortBenchmark {
   }
 }
 
+/// Why a salary credit can or cannot be treated as confirmed.
+enum MonthlyCloseCreditStatus {
+  /// A trusted salary SMS credit was seen for this account.
+  confirmed,
+
+  /// Salary SMS is connected but no credit has arrived yet.
+  awaitingCredit,
+
+  /// Nothing can confirm a bank credit until salary SMS is connected.
+  smsNotConnected,
+
+  /// Sample figures are on screen. They never confirm a real credit.
+  demoData,
+}
+
 class MonthlyCloseSnapshot {
   const MonthlyCloseSnapshot({
     required this.periodLabel,
     required this.creditAmount,
+    required this.creditStatus,
     required this.openClaimCount,
     required this.evidenceHealth,
     required this.figureAudits,
@@ -166,9 +181,16 @@ class MonthlyCloseSnapshot {
   });
 
   final String periodLabel;
+
+  /// Real salary-SMS credit only. Payslip net pay is a document figure, not
+  /// proof that money reached the account, so it never lands here.
   final int creditAmount;
+  final MonthlyCloseCreditStatus creditStatus;
   final int openClaimCount;
   final EvidenceHealth evidenceHealth;
   final List<FigureAudit> figureAudits;
   final CohortBenchmark cohort;
+
+  bool get creditConfirmed =>
+      creditStatus == MonthlyCloseCreditStatus.confirmed;
 }
