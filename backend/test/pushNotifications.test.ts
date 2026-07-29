@@ -29,11 +29,16 @@ type TokenRow = {
   token_auth_tag: string;
 };
 
+type SalaryUser = {
+  user_id: string;
+  salary_credit_day: number;
+};
+
 class PushFakeDb {
   tokens = new Map<string, TokenRow>();
   claims = new Map<string, { id: string; userId: string }>();
   prunes = 0;
-  salaryUsers: string[] = [];
+  salaryUsers: SalaryUser[] = [];
   private nextId = 0;
 
   reset() {
@@ -55,9 +60,14 @@ class PushFakeDb {
       };
     }
     if (normalized.startsWith('select user_id from spend_maps')) {
+      const lastDay = Number(params[0]);
+      const day = Number(params[1]);
+      const rows = this.salaryUsers.filter(
+        (row) => Math.min(row.salary_credit_day, lastDay) <= day,
+      );
       return {
-        rowCount: this.salaryUsers.length,
-        rows: this.salaryUsers.map((user_id) => ({ user_id })),
+        rowCount: rows.length,
+        rows: rows.map((row) => ({ user_id: row.user_id })),
       };
     }
     if (normalized.startsWith('delete from push_delivery_claims where created_at')) {
@@ -65,7 +75,7 @@ class PushFakeDb {
       return { rowCount: 0, rows: [] };
     }
     if (normalized.startsWith('insert into push_delivery_claims')) {
-      const key = `${params[0]}:${params[1]}`;
+      const key = `${params[0]}:${params[1]}:${params[2] ?? 'current_date'}`;
       if (this.claims.has(key)) return { rowCount: 0, rows: [] };
       const id = `claim-${++this.nextId}`;
       this.claims.set(key, { id, userId: String(params[0]) });
@@ -197,10 +207,42 @@ describe('push notification delivery', () => {
 
   it('sends a deduplicated monthly-close push to payday users', async () => {
     addToken('token-1', 'user-1');
-    fakeDb.salaryUsers = ['user-1'];
+    fakeDb.salaryUsers = [{ user_id: 'user-1', salary_credit_day: 28 }];
 
     await sendPaydayCloseReminders(new Date('2026-07-28T04:00:00.000Z'));
     await sendPaydayCloseReminders(new Date('2026-07-28T05:00:00.000Z'));
+
+    assert.equal(fcmCalls, 1);
+    assert.equal(fakeDb.claims.size, 1);
+  });
+
+  it('does not send monthly-close reminders before the salary day', async () => {
+    addToken('token-1', 'user-1');
+    fakeDb.salaryUsers = [{ user_id: 'user-1', salary_credit_day: 28 }];
+
+    await sendPaydayCloseReminders(new Date('2026-07-27T04:00:00.000Z'));
+
+    assert.equal(fcmCalls, 0);
+    assert.equal(fakeDb.claims.size, 0);
+  });
+
+  it('catches up monthly-close reminders after a missed payday day', async () => {
+    addToken('token-1', 'user-1');
+    fakeDb.salaryUsers = [{ user_id: 'user-1', salary_credit_day: 28 }];
+
+    await sendPaydayCloseReminders(new Date('2026-07-29T04:00:00.000Z'));
+
+    assert.equal(fcmCalls, 1);
+    assert.equal(fakeDb.claims.size, 1);
+  });
+
+  it('uses one month bucket even when the salary day changes mid-month', async () => {
+    addToken('token-1', 'user-1');
+    fakeDb.salaryUsers = [{ user_id: 'user-1', salary_credit_day: 28 }];
+
+    await sendPaydayCloseReminders(new Date('2026-07-28T04:00:00.000Z'));
+    fakeDb.salaryUsers = [{ user_id: 'user-1', salary_credit_day: 29 }];
+    await sendPaydayCloseReminders(new Date('2026-07-29T04:00:00.000Z'));
 
     assert.equal(fcmCalls, 1);
     assert.equal(fakeDb.claims.size, 1);
