@@ -5,9 +5,11 @@ import 'package:arth/models/user_account.dart';
 import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/services/auth_service.dart';
 import 'package:arth/services/backend_sync_service.dart';
+import 'package:arth/services/durable_user_state_service.dart';
 import 'package:arth/services/secure_storage_service.dart';
 import 'package:arth/services/server_api_service.dart';
 import 'package:arth/services/sync_queue_service.dart';
+import 'package:arth/services/user_scoped_storage.dart';
 import 'package:arth/providers/tax_readiness_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -20,6 +22,7 @@ void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
+    SecureStorageService.writeObserver = null;
   });
 
   test('document checklist provider can rebuild without reinitializing storage',
@@ -51,7 +54,7 @@ void main() {
     expect(api.postCalls, contains('/auth/refresh'));
   });
 
-  test('first 1.0.3 launch removes the obsolete local account and caches',
+  test('version migration retains the account and every existing cache',
       () async {
     final storage = const SecureStorageService();
     final account = UserAccount(
@@ -69,13 +72,264 @@ void main() {
 
     final loaded = await AuthService(storage: storage).loadAccount();
 
-    expect(loaded, isNull);
-    expect(await storage.read('arth_user_account'), isNull);
-    expect(await storage.read('arth_access_token'), isNull);
-    expect(await storage.read('arth_refresh_token'), isNull);
-    expect(await storage.read('arth_profile_old-user'), isNull);
-    expect(await storage.read('arth_account_profile_old-user'), isNull);
-    expect(await storage.read('arth_sync_queue'), isNull);
+    expect(loaded?.uid, 'old-user');
+    expect(await storage.read('arth_user_account'), account.toJsonString());
+    expect(await storage.read('arth_access_token'), 'old-access');
+    expect(await storage.read('arth_refresh_token'), 'old-refresh');
+    expect(await storage.read('arth_profile_old-user'), '{"name":"Old User"}');
+    expect(
+      await storage.read('arth_account_profile_old-user'),
+      '{"old":true}',
+    );
+    expect(await storage.read('arth_sync_queue'), '[{"old":true}]');
+    expect(
+      await storage.read('arth_required_session_reset'),
+      '2026-07-clean-start-v1',
+    );
+  });
+
+  test('durable state restores a missing device cache from the server',
+      () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'paycheck-overrides',
+            'payload': '[{"canonicalKey":"basic","amount":80000}]',
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(
+      await storage.read(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      '[{"canonicalKey":"basic","amount":80000}]',
+    );
+    expect(
+      await storage
+          .updatedAt(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      DateTime.parse('2026-07-29T10:00:00.000Z'),
+    );
+  });
+
+  test('a newer server tombstone removes stale device state', () async {
+    final storage = const SecureStorageService();
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    await storage.write(
+      key,
+      '[{"id":"1","label":"Freelance","monthlyAmount":20000}]',
+    );
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': null,
+            'deleted': true,
+            'clientUpdatedAt': '2027-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), isNull);
+    expect(await storage.updatedAt(key), DateTime.parse('2027-07-29T10:00Z'));
+  });
+
+  test('a server tombstone removes legacy state without a local timestamp',
+      () async {
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    FlutterSecureStorage.setMockInitialValues({
+      key: '[{"id":"1","label":"Freelance","monthlyAmount":20000}]',
+    });
+    final storage = const SecureStorageService();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': null,
+            'deleted': true,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), isNull);
+    expect(api.putBodies, isEmpty);
+  });
+
+  test('queued backup keeps the timestamp captured with its value', () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final queuedAt = DateTime.parse('2026-07-29T09:00:00.000Z');
+    final restoredAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+
+    service.scheduleBackup(key, 'old-value', queuedAt);
+    await storage.writeRestored(key, 'new-value', restoredAt);
+    await service.flushScheduled();
+
+    expect(
+      api.putBodies['/user-state/other-income'],
+      {
+        'payload': 'old-value',
+        'clientUpdatedAt': queuedAt.toIso8601String(),
+      },
+    );
+  });
+
+  test('an older callback cannot replace a newer queued tombstone', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final deletedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    final staleWriteAt = DateTime.parse('2026-07-29T09:00:00.000Z');
+
+    service.scheduleBackup(key, null, deletedAt);
+    service.scheduleBackup(key, 'stale-value', staleWriteAt);
+    await service.flushScheduled();
+
+    expect(
+      api.deleteBodies['/user-state/other-income'],
+      {'clientUpdatedAt': deletedAt.toIso8601String()},
+    );
+    expect(api.putBodies, isEmpty);
+  });
+
+  test('device state wins when server and device timestamps tie', () async {
+    final storage = const SecureStorageService();
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final tiedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    await storage.writeRestored(key, 'device-value', tiedAt);
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': 'server-value',
+            'deleted': false,
+            'clientUpdatedAt': tiedAt.toIso8601String(),
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), 'device-value');
+    expect(
+      api.putBodies['/user-state/other-income'],
+      {
+        'payload': 'device-value',
+        'clientUpdatedAt': tiedAt.toIso8601String(),
+      },
+    );
+  });
+
+  test('one failed namespace does not stop later durable restores', () async {
+    const storage = _OneNamespaceFailingStorage();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'profile-draft',
+            'payload': '{"name":"User"}',
+            'deleted': false,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+          {
+            'namespace': 'paycheck-overrides',
+            'payload': '[{"canonicalKey":"basic","amount":80000}]',
+            'deleted': false,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(
+      await storage.read(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      '[{"canonicalKey":"basic","amount":80000}]',
+    );
+  });
+
+  test('durable spend backup retains the complete local transaction data',
+      () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+    final key = UserScopedStorageKeys.spendMap('user-1');
+    const value = '{"txns":[{"amount":500,"sender":"BANK","smsId":42,'
+        '"bodyPreview":"private text","category":"food"}]}';
+    await storage.write(key, value);
+
+    service.scheduleBackup(key, value);
+    await service.flushScheduled();
+
+    final payload =
+        api.putBodies['/user-state/spend-map']?['payload'] as String;
+    expect(payload, value);
+  });
+
+  test('oversized durable state is not sent in a retry loop', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+    final key = UserScopedStorageKeys.spendMap('user-1');
+    final value = 'x' * (DurableUserStateService.maxPayloadBytes + 1);
+
+    service.scheduleBackup(key, value);
+    await service.flushScheduled();
+
+    expect(api.putBodies, isEmpty);
   });
 
   test('sign-up retries transient server failures like sign-in', () async {
@@ -246,13 +500,24 @@ void main() {
 }
 
 class _FakeApi extends ServerApiService {
+  final getResponses = <String, Map<String, dynamic>>{};
   final postResponses = <String, Map<String, dynamic>>{};
   final postErrors = <String, ServerApiException>{};
   final postCalls = <String>[];
   final postRetryFlags = <String, bool>{};
+  final putBodies = <String, Map<String, dynamic>>{};
+  final deleteBodies = <String, Map<String, dynamic>>{};
   ServerApiException? putError;
 
   _FakeApi() : super(baseUrl: 'http://localhost');
+
+  @override
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    String? bearerToken,
+  }) async {
+    return getResponses[path] ?? <String, dynamic>{};
+  }
 
   @override
   Future<Map<String, dynamic>> postJson(
@@ -274,9 +539,19 @@ class _FakeApi extends ServerApiService {
     Map<String, dynamic>? body,
     String? bearerToken,
   }) async {
+    putBodies[path] = body ?? <String, dynamic>{};
     final error = putError;
     if (error != null) throw error;
     return <String, dynamic>{'ok': true};
+  }
+
+  @override
+  Future<void> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? bearerToken,
+  }) async {
+    deleteBodies[path] = body ?? <String, dynamic>{};
   }
 
   @override
@@ -303,6 +578,22 @@ class _FixedTokenAuthService extends AuthService {
 class _MissingTokenAuthService extends AuthService {
   @override
   Future<String?> getValidAccessToken() async => null;
+}
+
+class _OneNamespaceFailingStorage extends SecureStorageService {
+  const _OneNamespaceFailingStorage();
+
+  @override
+  Future<void> writeRestored(
+    String key,
+    String value,
+    DateTime updatedAt,
+  ) {
+    if (key == UserScopedStorageKeys.profile('user-1')) {
+      throw StateError('simulated keystore failure');
+    }
+    return super.writeRestored(key, value, updatedAt);
+  }
 }
 
 class _RecordingQueue extends SyncQueueService {

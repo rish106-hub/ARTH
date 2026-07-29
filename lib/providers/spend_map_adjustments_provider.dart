@@ -7,8 +7,8 @@ import 'auth_provider.dart';
 String _adjustmentsKey(String uid) =>
     UserScopedStorageKeys.spendMapAdjustments(uid);
 
-/// User-edited monthly income (primary) and spend figures. Stored only on
-/// device — never synced to the backend.
+/// User-edited monthly income (primary) and spend figures. Stored locally first
+/// and mirrored to the account's encrypted durable-state backup.
 class SpendMapAdjustments {
   const SpendMapAdjustments({
     this.manualPrimaryMonthlyIncome,

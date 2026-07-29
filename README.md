@@ -121,7 +121,7 @@ Anything still uncategorised goes into a full-screen, one-card-at-a-time review:
 
 ### Additional income
 
-Immediately after SMS permission is granted, ARTH asks once whether the user has income beyond salary (freelance, rent, a side business). Entries are stored **only in device secure storage** and contribute solely to on-screen figures — the backend sync payload deliberately uses the pre-other-income number, so the boosted total and anything derived from it never reach the server.
+Immediately after SMS permission is granted, ARTH asks once whether the user has income beyond salary (freelance, rent, a side business). Entries are stored in device secure storage and the account's encrypted durable-state backup. They contribute to on-screen figures but are not added to the aggregate spend-map analytics payload.
 
 ---
 
@@ -166,9 +166,9 @@ Images are downscaled and compressed on-device before upload (≤2400px JPEG), w
 This is the product, not a compliance footnote:
 
 - SMS parsing happens **on-device**. Personal messages are ignored; only bank/UPI transaction patterns are read.
-- Raw SMS bodies are never uploaded. Only a short preview is retained locally so the user can identify a transaction in-app.
+- Parsed transaction records, including the short SMS preview used in the UI, are encrypted and backed up to the authenticated account.
 - Text sent for AI categorisation is minimised and redacted (merchant only where possible; amounts and long digit runs stripped).
-- User-entered "other income" never leaves the device.
+- User-entered other income is included in the encrypted account backup.
 - Documents are encrypted; PAN is encrypted and separately hashed.
 - The user can review sources, retention and deletion, and can delete tax and paycheck data while keeping their login.
 

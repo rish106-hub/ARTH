@@ -6,9 +6,25 @@ import 'secure_storage_service.dart';
 class UserScopedStorageKeys {
   UserScopedStorageKeys._();
 
+  static const durableNamespaces = <String>[
+    'profile-draft',
+    'onboarding',
+    'tax-year',
+    'document-checklist',
+    'spend-map',
+    'spend-map-adjustments',
+    'spend-completeness',
+    'other-income',
+    'other-income-asked',
+    'paycheck-overrides',
+    'recovery',
+    'monthly-close',
+  ];
+
   static String profile(String uid) => 'arth_profile_$uid';
   static String onboarding(String uid) => 'arth_onboarding_$uid';
   static String accountProfile(String uid) => 'arth_account_profile_$uid';
+  static String taxYear(String uid) => 'arth_tax_year_$uid';
   static String documentChecklist(String uid) => 'arth_document_checklist_$uid';
   static String spendMap(String uid) => 'arth_spend_map_$uid';
   static String spendMapAdjustments(String uid) =>
@@ -21,10 +37,33 @@ class UserScopedStorageKeys {
   static String recovery(String uid) => 'arth_recovery_$uid';
   static String monthlyClose(String uid) => 'arth_monthly_close_$uid';
 
+  static Map<String, String> durableForUser(String uid) => {
+        'profile-draft': profile(uid),
+        'onboarding': onboarding(uid),
+        'tax-year': taxYear(uid),
+        'document-checklist': documentChecklist(uid),
+        'spend-map': spendMap(uid),
+        'spend-map-adjustments': spendMapAdjustments(uid),
+        'spend-completeness': spendCompleteness(uid),
+        'other-income': otherIncome(uid),
+        'other-income-asked': otherIncomeAsked(uid),
+        'paycheck-overrides': paycheckOverrides(uid),
+        'recovery': recovery(uid),
+        'monthly-close': monthlyClose(uid),
+      };
+
+  static String? durableNamespaceForKey(String uid, String key) {
+    for (final entry in durableForUser(uid).entries) {
+      if (entry.value == key) return entry.key;
+    }
+    return null;
+  }
+
   static List<String> allForUser(String uid) => [
         profile(uid),
         onboarding(uid),
         accountProfile(uid),
+        taxYear(uid),
         documentChecklist(uid),
         spendMap(uid),
         spendMapAdjustments(uid),

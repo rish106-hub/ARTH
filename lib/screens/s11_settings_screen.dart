@@ -168,7 +168,7 @@ class SettingsScreen extends ConsumerWidget {
                         _ActionTile(
                           icon: Icons.insights_rounded,
                           label: 'Spend Map',
-                          subtitle: 'On-device SMS spend & savings insights',
+                          subtitle: 'On-device parsing with account backup',
                           badge: 'NEW',
                           onTap: () => context.push('/spend-map'),
                         ),
