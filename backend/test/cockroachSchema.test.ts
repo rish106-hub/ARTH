@@ -42,6 +42,18 @@ describe('Cockroach secure schema', () => {
     assert.match(durableStateSchema, /payload_iv\s+STRING/);
     assert.match(durableStateSchema, /payload_auth_tag\s+STRING/);
     assert.match(durableStateSchema, /deleted\s+BOOL NOT NULL DEFAULT false/);
+    assert.match(
+      durableStateSchema,
+      /ALTER TABLE user_state FORCE ROW LEVEL SECURITY/,
+    );
+    assert.match(
+      durableStateSchema,
+      /CREATE POLICY app_user_isolation ON user_state/,
+    );
+    assert.match(
+      durableStateSchema,
+      /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_state TO arth_app_runtime/,
+    );
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });

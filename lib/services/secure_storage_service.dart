@@ -1,7 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef SecureStorageWriteObserver = void Function(String key, String? value);
+typedef SecureStorageWriteObserver = void Function(
+  String key,
+  String? value,
+  DateTime updatedAt,
+);
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
@@ -36,18 +40,19 @@ class SecureStorageService {
   }
 
   Future<void> write(String key, String value) async {
+    final updatedAt = DateTime.now().toUtc();
     try {
       await _storage.write(key: key, value: value);
       await _storage.write(
         key: _updatedAtKey(key),
-        value: DateTime.now().toUtc().toIso8601String(),
+        value: updatedAt.toIso8601String(),
       );
     } catch (_) {
       // Existing provider flows are local-first and must not crash when a
       // platform storage plugin is unavailable. The observer still mirrors
       // the value to the authenticated server backup when possible.
     }
-    writeObserver?.call(key, value);
+    writeObserver?.call(key, value, updatedAt);
   }
 
   Future<DateTime?> updatedAt(String key) async {
@@ -88,7 +93,7 @@ class SecureStorageService {
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(key);
-    writeObserver?.call(key, null);
+    writeObserver?.call(key, null, deletedAt);
   }
 
   String _updatedAtKey(String key) => '$key.__updated_at';

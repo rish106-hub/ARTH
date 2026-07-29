@@ -23,3 +23,22 @@ CREATE TABLE IF NOT EXISTS user_state (
 
 CREATE INDEX IF NOT EXISTS idx_user_state_updated
     ON user_state(user_id, updated_at DESC);
+
+ALTER TABLE user_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_state FORCE ROW LEVEL SECURITY;
+CREATE POLICY app_user_isolation ON user_state
+    FOR ALL TO arth_app_runtime
+    USING (
+      user_id = nullif(
+        split_part(current_setting('application_name'), '.', 2),
+        ''
+      )::UUID
+    )
+    WITH CHECK (
+      user_id = nullif(
+        split_part(current_setting('application_name'), '.', 2),
+        ''
+      )::UUID
+    );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_state TO arth_app_runtime;

@@ -1104,7 +1104,15 @@ describe('backend security harness', () => {
     const app = await buildApp();
     const alice = await createSession(app, 'Alice', 'alice@example.com');
     const bob = await createSession(app, 'Bob', 'bob@example.com');
-    const currentUpdatedAt = '2026-07-29T10:00:00.000Z';
+    const currentUpdatedAt = new Date(
+      Date.now() - 60 * 60 * 1000,
+    ).toISOString();
+    const staleUpdatedAt = new Date(
+      Date.parse(currentUpdatedAt) - 60 * 60 * 1000,
+    ).toISOString();
+    const deletedAt = new Date(
+      Date.parse(currentUpdatedAt) + 30 * 60 * 1000,
+    ).toISOString();
 
     const saved = await app.inject({
       method: 'PUT',
@@ -1127,7 +1135,7 @@ describe('backend security harness', () => {
       headers: bearer(alice.accessToken),
       payload: {
         payload: '[]',
-        clientUpdatedAt: '2026-07-29T09:00:00.000Z',
+        clientUpdatedAt: staleUpdatedAt,
       },
     });
     assert.equal(stale.statusCode, 200);
@@ -1161,12 +1169,62 @@ describe('backend security harness', () => {
     });
     assert.equal(unknownNamespace.statusCode, 400);
 
+    const missingTimezone = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/tax-year',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: 'fy2026_27',
+        clientUpdatedAt: '2026-07-29T10:00:00.000',
+      },
+    });
+    assert.equal(missingTimezone.statusCode, 400);
+
+    const futureTimestamp = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const futureClamped = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/tax-year',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: 'fy2026_27',
+        clientUpdatedAt: futureTimestamp.toISOString(),
+      },
+    });
+    assert.equal(futureClamped.statusCode, 200);
+    assert.ok(
+      Date.parse(futureClamped.json().item.clientUpdatedAt)
+        < futureTimestamp.getTime(),
+    );
+
+    const largePayload = 'x'.repeat(200 * 1024);
+    const largeState = await app.inject({
+      method: 'PUT',
+      url: '/v1/user-state/spend-map',
+      headers: bearer(alice.accessToken),
+      payload: {
+        payload: largePayload,
+        clientUpdatedAt: currentUpdatedAt,
+      },
+    });
+    assert.equal(largeState.statusCode, 200);
+    assert.equal(largeState.json().item.payload.length, largePayload.length);
+
+    const staleDelete = await app.inject({
+      method: 'DELETE',
+      url: '/v1/user-state/paycheck-overrides',
+      headers: bearer(alice.accessToken),
+      payload: {
+        clientUpdatedAt: staleUpdatedAt,
+      },
+    });
+    assert.equal(staleDelete.statusCode, 409);
+
     const removed = await app.inject({
       method: 'DELETE',
       url: '/v1/user-state/paycheck-overrides',
       headers: bearer(alice.accessToken),
       payload: {
-        clientUpdatedAt: '2026-07-29T11:00:00.000Z',
+        clientUpdatedAt: deletedAt,
       },
     });
     assert.equal(removed.statusCode, 204);
@@ -1175,13 +1233,15 @@ describe('backend security harness', () => {
       url: '/v1/user-state',
       headers: bearer(alice.accessToken),
     });
-    assert.deepEqual(afterDelete.json(), {
-      items: [{
-        namespace: 'paycheck-overrides',
-        payload: null,
-        deleted: true,
-        clientUpdatedAt: '2026-07-29T11:00:00.000Z',
-      }],
+    const deletedItem = afterDelete.json().items.find(
+      (item: { namespace: string }) =>
+        item.namespace === 'paycheck-overrides',
+    );
+    assert.deepEqual(deletedItem, {
+      namespace: 'paycheck-overrides',
+      payload: null,
+      deleted: true,
+      clientUpdatedAt: deletedAt,
     });
 
     await app.close();

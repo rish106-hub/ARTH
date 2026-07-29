@@ -141,14 +141,28 @@ const moneyGoalSchema = z.object({
   monthlyFamilySupport: z.number().int().min(0).max(100_000_000),
 });
 
-// Accept UTC ('Z'), zoned offset, and offset-less local timestamps. Dart's
-// DateTime.toIso8601String() on a local DateTime emits no timezone, which the
-// default (Z-only) datetime() would reject — silently 400ing the sync.
+// Domain timestamps can be local because they describe user-entered dates.
 const flexibleDatetime = () => z.string().datetime({ offset: true, local: true });
 
+const maxUserStatePayloadBytes = 16 * 1024 * 1024;
+const userStateClientTimestamp = z.string()
+  .datetime({ offset: true })
+  .transform((value) => {
+    const parsed = new Date(value);
+    const now = Date.now();
+    const maxClockLeadMs = 5 * 60 * 1000;
+    return parsed.getTime() > now + maxClockLeadMs
+      ? new Date(now).toISOString()
+      : parsed.toISOString();
+  });
 const userStatePayloadSchema = z.object({
-  payload: z.string().max(512 * 1024),
-  clientUpdatedAt: flexibleDatetime(),
+  payload: z.string()
+    .max(maxUserStatePayloadBytes)
+    .refine(
+      (value) => Buffer.byteLength(value, 'utf8') <= maxUserStatePayloadBytes,
+      'payload is too large',
+    ),
+  clientUpdatedAt: userStateClientTimestamp,
 }).strict();
 const userStateDeleteSchema = userStatePayloadSchema.pick({
   clientUpdatedAt: true,
@@ -292,6 +306,11 @@ const dataRateLimit = {
       timeWindow: '1 minute',
     },
   },
+};
+
+const userStateWriteOptions = {
+  bodyLimit: 20 * 1024 * 1024,
+  config: dataRateLimit.config,
 };
 
 const documentUploadOptions = {
@@ -1813,7 +1832,7 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put('/user-state/:namespace', dataRateLimit, async (request, reply) => {
+  app.put('/user-state/:namespace', userStateWriteOptions, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
     const { namespace } = z.object({
@@ -1866,7 +1885,7 @@ export async function registerRoutes(app: FastifyInstance) {
       namespace: userStateNamespaceSchema,
     }).parse(request.params);
     const payload = userStateDeleteSchema.parse(request.body);
-    await db.query(
+    const result = await db.query(
       `insert into user_state (
          user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
          deleted, client_updated_at, updated_at
@@ -1878,9 +1897,17 @@ export async function registerRoutes(app: FastifyInstance) {
          deleted = true,
          client_updated_at = excluded.client_updated_at,
          updated_at = now()
-       where user_state.client_updated_at <= excluded.client_updated_at`,
+       where user_state.client_updated_at <= excluded.client_updated_at
+       returning namespace`,
       [auth.userId, namespace, new Date(payload.clientUpdatedAt)],
     );
+    if (!result.rowCount) {
+      return reply.code(409).send({
+        code: 'state_conflict',
+        message: 'Newer user state already exists',
+        retryable: false,
+      });
+    }
     return reply.code(204).send();
   });
 

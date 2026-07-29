@@ -30,9 +30,14 @@ class ActiveTaxYearNotifier extends Notifier<TaxYearId> {
     if (raw == null || raw.isEmpty) return;
     try {
       state = TaxYearId.fromWireName(raw);
-      if (scoped == null) await _storage.write(key, raw);
+      if (scoped == null) {
+        await _storage.write(key, raw);
+        if (await _storage.read(key) == raw) {
+          await _storage.delete(_activeTaxYearKey);
+        }
+      }
     } on FormatException {
-      await _storage.delete(key);
+      await _storage.delete(scoped == null ? _activeTaxYearKey : key);
     }
   }
 }

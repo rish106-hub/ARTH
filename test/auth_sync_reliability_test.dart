@@ -150,6 +150,94 @@ void main() {
     expect(await storage.updatedAt(key), DateTime.parse('2027-07-29T10:00Z'));
   });
 
+  test('a server tombstone removes legacy state without a local timestamp',
+      () async {
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    FlutterSecureStorage.setMockInitialValues({
+      key: '[{"id":"1","label":"Freelance","monthlyAmount":20000}]',
+    });
+    final storage = const SecureStorageService();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'other-income',
+            'payload': null,
+            'deleted': true,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(await storage.read(key), isNull);
+    expect(api.putBodies, isEmpty);
+  });
+
+  test('queued backup keeps the timestamp captured with its value', () async {
+    final storage = const SecureStorageService();
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+    final key = UserScopedStorageKeys.otherIncome('user-1');
+    final queuedAt = DateTime.parse('2026-07-29T09:00:00.000Z');
+    final restoredAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+
+    service.scheduleBackup(key, 'old-value', queuedAt);
+    await storage.writeRestored(key, 'new-value', restoredAt);
+    await service.flushScheduled();
+
+    expect(
+      api.putBodies['/user-state/other-income'],
+      {
+        'payload': 'old-value',
+        'clientUpdatedAt': queuedAt.toIso8601String(),
+      },
+    );
+  });
+
+  test('one failed namespace does not stop later durable restores', () async {
+    const storage = _OneNamespaceFailingStorage();
+    final api = _FakeApi()
+      ..getResponses['/user-state'] = {
+        'items': [
+          {
+            'namespace': 'profile-draft',
+            'payload': '{"name":"User"}',
+            'deleted': false,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+          {
+            'namespace': 'paycheck-overrides',
+            'payload': '[{"canonicalKey":"basic","amount":80000}]',
+            'deleted': false,
+            'clientUpdatedAt': '2026-07-29T10:00:00.000Z',
+          },
+        ],
+      };
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: storage,
+    );
+
+    await service.restore('user-1');
+
+    expect(
+      await storage.read(UserScopedStorageKeys.paycheckOverrides('user-1')),
+      '[{"canonicalKey":"basic","amount":80000}]',
+    );
+  });
+
   test('durable spend backup retains the complete local transaction data',
       () async {
     final storage = const SecureStorageService();
@@ -170,6 +258,22 @@ void main() {
     final payload =
         api.putBodies['/user-state/spend-map']?['payload'] as String;
     expect(payload, value);
+  });
+
+  test('oversized durable state is not sent in a retry loop', () async {
+    final api = _FakeApi();
+    final service = DurableUserStateService(
+      auth: _FixedTokenAuthService(),
+      api: api,
+      storage: const SecureStorageService(),
+    );
+    final key = UserScopedStorageKeys.spendMap('user-1');
+    final value = 'x' * (DurableUserStateService.maxPayloadBytes + 1);
+
+    service.scheduleBackup(key, value);
+    await service.flushScheduled();
+
+    expect(api.putBodies, isEmpty);
   });
 
   test('sign-up retries transient server failures like sign-in', () async {
@@ -408,6 +512,22 @@ class _FixedTokenAuthService extends AuthService {
 class _MissingTokenAuthService extends AuthService {
   @override
   Future<String?> getValidAccessToken() async => null;
+}
+
+class _OneNamespaceFailingStorage extends SecureStorageService {
+  const _OneNamespaceFailingStorage();
+
+  @override
+  Future<void> writeRestored(
+    String key,
+    String value,
+    DateTime updatedAt,
+  ) {
+    if (key == UserScopedStorageKeys.profile('user-1')) {
+      throw StateError('simulated keystore failure');
+    }
+    return super.writeRestored(key, value, updatedAt);
+  }
 }
 
 class _RecordingQueue extends SyncQueueService {

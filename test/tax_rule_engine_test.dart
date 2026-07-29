@@ -11,11 +11,21 @@ import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
 import 'package:arth/providers/tax_year_provider.dart';
 import 'package:arth/providers/tax_result_provider.dart';
+import 'package:arth/services/secure_storage_service.dart';
+import 'package:arth/services/user_scoped_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({});
+    SecureStorageService.writeObserver = null;
+  });
 
   test('tax result computes without an authenticated completion flag',
       () async {
@@ -33,6 +43,38 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(activeTaxYearProvider), TaxYearId.fy2026_27);
+  });
+
+  test('legacy tax year migrates once and removes the global value', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'arth_active_tax_year': TaxYearId.fy2025_26.wireName,
+    });
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(activeTaxYearProvider);
+    await pumpEventQueue();
+
+    const storage = SecureStorageService();
+    expect(
+      await storage.read(UserScopedStorageKeys.taxYear('guest')),
+      TaxYearId.fy2025_26.wireName,
+    );
+    expect(await storage.read('arth_active_tax_year'), isNull);
+  });
+
+  test('corrupt legacy tax year is removed from its actual source', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'arth_active_tax_year': 'not-a-tax-year',
+    });
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(activeTaxYearProvider);
+    await pumpEventQueue();
+
+    const storage = SecureStorageService();
+    expect(await storage.read('arth_active_tax_year'), isNull);
   });
 
   test('bundled tax rule assets expose filing and planning context', () {
