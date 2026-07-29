@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ import '../providers/spend_map_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../models/user_account.dart';
 import '../features/monthly_close/providers/monthly_close_provider.dart';
@@ -30,6 +33,7 @@ Future<void> clearDeviceSession(WidgetRef ref) async {
 void _invalidateUserScopedProviders(WidgetRef ref) {
   ref.invalidate(gapStateProvider);
   ref.invalidate(taxResultProvider);
+  ref.invalidate(activeTaxYearProvider);
   ref.invalidate(completedTaxProfileProvider);
   ref.invalidate(documentReadinessPercentProvider);
   ref.invalidate(taxDocumentProvider);
@@ -57,7 +61,13 @@ Future<bool> hydrateAuthenticatedAccount(
 ) async {
   final uid = account.uid;
   if (uid != null && uid.isNotEmpty) {
-    await durableUserStateService.restore(uid);
+    try {
+      await durableUserStateService
+          .restore(uid)
+          .timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      // Local account data still loads. The next write or sign-in retries sync.
+    }
   }
   ref.read(userProfileProvider.notifier).resetForAccount(account);
   ref.invalidate(accountProfileProvider);
@@ -65,6 +75,7 @@ Future<bool> hydrateAuthenticatedAccount(
   ref.invalidate(documentChecklistProvider);
   ref.invalidate(gapStateProvider);
   ref.invalidate(taxResultProvider);
+  ref.invalidate(activeTaxYearProvider);
   ref.invalidate(completedTaxProfileProvider);
   ref.invalidate(spendMapProvider);
   ref.invalidate(spendMapAdjustmentsProvider);
@@ -97,6 +108,7 @@ Future<void> clearDeviceSessionForContainer(ProviderContainer container) async {
 
   container.invalidate(gapStateProvider);
   container.invalidate(taxResultProvider);
+  container.invalidate(activeTaxYearProvider);
   container.invalidate(completedTaxProfileProvider);
   container.invalidate(documentReadinessPercentProvider);
   container.invalidate(taxDocumentProvider);

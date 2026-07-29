@@ -9,6 +9,7 @@ if (process.env.DB_DIALECT !== 'cockroach') {
 }
 
 const expectedSchemas = [
+  'public',
   'auth',
   'privacy',
   'profile',
@@ -22,6 +23,7 @@ const expectedSchemas = [
 ];
 
 const expectedTables = [
+  'public.user_state',
   'auth.users',
   'auth.auth_identities',
   'auth.auth_sessions',

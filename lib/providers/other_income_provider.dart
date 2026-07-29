@@ -14,6 +14,7 @@ String _askedKey(String uid) => UserScopedStorageKeys.otherIncomeAsked(uid);
 /// to the aggregate spend-map analytics payload.
 class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   final _storage = const SecureStorageService();
+  int _generation = 0;
 
   // In-memory so scan() can check it synchronously without an I/O round trip
   // on every call; loaded once from storage at startup and flipped
@@ -30,10 +31,13 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
 
   Future<void> _load() async {
     final uid = _uid();
+    final generation = _generation;
     final raw = await _storage.read(_sourcesKey(uid));
     final sources = OtherIncomeSource.decodeList(raw);
     final askedRaw = await _storage.read(_askedKey(uid));
-    if (!ref.mounted) return;
+    if (!ref.mounted || generation != _generation || uid != _uid()) {
+      return;
+    }
     _asked = askedRaw == 'true';
     state = sources;
   }
@@ -46,6 +50,7 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   Future<void> add(String label, int monthlyAmount) async {
     final trimmed = label.trim();
     if (trimmed.isEmpty || monthlyAmount <= 0) return;
+    _generation++;
     state = [
       ...state,
       OtherIncomeSource(
@@ -58,6 +63,7 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   }
 
   Future<void> remove(String id) async {
+    _generation++;
     state = state.where((s) => s.id != id).toList();
     await _persist();
   }
@@ -69,11 +75,13 @@ class OtherIncomeNotifier extends Notifier<List<OtherIncomeSource>> {
   bool get hasAsked => _asked;
 
   Future<void> markAsked() async {
+    _generation++;
     _asked = true;
     await _storage.write(_askedKey(_uid()), 'true');
   }
 
   Future<void> clearLocalData() async {
+    _generation++;
     final uid = _uid();
     if (uid == 'guest') {
       state = const [];
