@@ -1061,6 +1061,73 @@ class _SwipeHint extends StatelessWidget {
   }
 }
 
+void _showInsuranceTypeDialog(
+  BuildContext context,
+  ValueChanged<String> onSelected,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Insurance type',
+            style: PaycheckType.heading(),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              onSelected(SpendCategory.insuranceCar);
+            },
+            child: const Text('Car insurance'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              onSelected(SpendCategory.insuranceBike);
+            },
+            child: const Text('Bike insurance'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              onSelected(SpendCategory.insuranceHealth);
+            },
+            child: const Text('Health insurance'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              onSelected(SpendCategory.insuranceLife);
+            },
+            child: const Text('Life insurance'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonal(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              onSelected(SpendCategory.insuranceOther);
+            },
+            child: const Text('Other insurance'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(sheetContext),
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _SwipeReviewCard extends StatelessWidget {
   const _SwipeReviewCard({required this.txn, required this.onCategory});
   final FinanceTxn txn;
@@ -1129,7 +1196,13 @@ class _SwipeReviewCard extends StatelessWidget {
                   (category) => ActionChip(
                     avatar: Icon(_iconFor(category), size: 16),
                     label: Text(SpendCategory.label(category)),
-                    onPressed: () => onCategory(category),
+                    onPressed: () {
+                      if (category == SpendCategory.insurance) {
+                        _showInsuranceTypeDialog(context, onCategory);
+                      } else {
+                        onCategory(category);
+                      }
+                    },
                   ),
                 )
                 .toList(growable: false),

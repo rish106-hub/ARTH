@@ -15,10 +15,18 @@ class SpendCategory {
   static const groceries = 'groceries';
   static const entertainment = 'entertainment';
   static const health = 'health';
+  static const insurance = 'insurance';
   static const rent = 'rent';
   static const investment = 'investment';
   static const cash = 'cash';
   static const other = 'other';
+
+  // Insurance sub-types
+  static const insuranceCar = 'insurance:car';
+  static const insuranceBike = 'insurance:bike';
+  static const insuranceHealth = 'insurance:health';
+  static const insuranceLife = 'insurance:life';
+  static const insuranceOther = 'insurance:other';
 
   static const all = [
     food,
@@ -28,6 +36,7 @@ class SpendCategory {
     groceries,
     entertainment,
     health,
+    insurance,
     rent,
     investment,
     cash,
@@ -43,6 +52,7 @@ class SpendCategory {
     groceries,
     transport,
     health,
+    insurance,
   ];
 
   static String label(String category) {
@@ -61,6 +71,18 @@ class SpendCategory {
         return 'Entertainment';
       case health:
         return 'Health';
+      case insurance:
+        return 'Insurance';
+      case insuranceCar:
+        return 'Car insurance';
+      case insuranceBike:
+        return 'Bike insurance';
+      case insuranceHealth:
+        return 'Health insurance';
+      case insuranceLife:
+        return 'Life insurance';
+      case insuranceOther:
+        return 'Other insurance';
       case rent:
         return 'Rent';
       case investment:
