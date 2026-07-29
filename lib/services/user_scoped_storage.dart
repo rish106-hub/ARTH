@@ -15,6 +15,8 @@ class UserScopedStorageKeys {
   static String taxYear(String uid) => 'arth_tax_year_$uid';
   static String documentChecklist(String uid) => 'arth_document_checklist_$uid';
   static String spendMap(String uid) => 'arth_spend_map_$uid';
+  static String spendMapRecalculationNotice(String uid) =>
+      'arth_spend_map_recalculation_notice_$uid';
   static String spendMapAdjustments(String uid) =>
       'arth_spend_map_adjustments_$uid';
   static String spendCompleteness(String uid) => 'arth_spend_completeness_$uid';
@@ -60,6 +62,7 @@ class UserScopedStorageKeys {
         taxYear(uid),
         documentChecklist(uid),
         spendMap(uid),
+        spendMapRecalculationNotice(uid),
         spendMapAdjustments(uid),
         spendCompleteness(uid),
         otherIncome(uid),

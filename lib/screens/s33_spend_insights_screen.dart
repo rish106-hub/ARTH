@@ -70,7 +70,14 @@ class SpendInsightsScreen extends ConsumerWidget {
                   onScan: () => ref.read(spendMapProvider.notifier).scan(),
                 )
               else
-                _Insights(map: state.map!, period: state.selectedPeriod),
+                _Insights(
+                  map: state.map!,
+                  period: state.selectedPeriod,
+                  showRecalculationNotice: state.showRecalculationNotice,
+                  onDismissRecalculationNotice: () => ref
+                      .read(spendMapProvider.notifier)
+                      .dismissRecalculationNotice(),
+                ),
               if (state.hasData && !state.loading) ...[
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
@@ -737,9 +744,16 @@ class _PeriodPicker extends StatelessWidget {
 }
 
 class _Insights extends ConsumerWidget {
-  const _Insights({required this.map, required this.period});
+  const _Insights({
+    required this.map,
+    required this.period,
+    required this.showRecalculationNotice,
+    required this.onDismissRecalculationNotice,
+  });
   final SpendMap map;
   final SpendScanPeriod period;
+  final bool showRecalculationNotice;
+  final VoidCallback onDismissRecalculationNotice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -764,6 +778,10 @@ class _Insights extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (showRecalculationNotice) ...[
+          _RecalculationNotice(onDismiss: onDismissRecalculationNotice),
+          const SizedBox(height: 16),
+        ],
         _SavingsHero(map: map, period: period),
         const SizedBox(height: 16),
         _CoverageEntryCard(map: map),
@@ -863,6 +881,44 @@ class _Insights extends ConsumerWidget {
           style: PaycheckType.utility(),
         ),
       ],
+    );
+  }
+}
+
+class _RecalculationNotice extends StatelessWidget {
+  const _RecalculationNotice({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.sync_rounded, color: PaycheckColors.contract),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your totals were recalculated',
+                    style: PaycheckType.bodyStrong()),
+                const SizedBox(height: 4),
+                Text(
+                  'Card transfers and duplicate transactions are now handled more accurately. Your spend and savings may look different.',
+                  style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: onDismiss,
+                  child: const Text('Got it'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

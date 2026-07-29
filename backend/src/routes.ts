@@ -196,6 +196,9 @@ const spendMapSchema = z.object({
   monthlyIncome: z.number().int().min(0).max(1_000_000_000),
   monthlySpend: z.number().int().min(0).max(1_000_000_000),
   salaryCreditDay: z.number().int().min(1).max(31).optional(),
+  // A client may request a clear only after it scanned a full salary cycle
+  // without finding a credit. The SQL guard below enforces the same window.
+  clearSalaryCreditDay: z.literal(true).optional(),
   realisticMonthlySavings: z.number().int().min(0).max(1_000_000_000),
   spendByCategory: z.record(
     z.string().min(1).max(40),
@@ -1643,7 +1646,13 @@ export async function registerRoutes(app: FastifyInstance) {
          monthly_income = excluded.monthly_income,
          monthly_spend = excluded.monthly_spend,
          realistic_monthly_savings = excluded.realistic_monthly_savings,
-         salary_credit_day = coalesce(excluded.salary_credit_day, spend_maps.salary_credit_day),
+         salary_credit_day = case
+           when excluded.salary_credit_day is not null then excluded.salary_credit_day
+           when $11::boolean
+             and excluded.window_end - excluded.window_start >= interval '60 days'
+             then null
+           else spend_maps.salary_credit_day
+         end,
          spend_by_category = excluded.spend_by_category,
          monthly_trend = excluded.monthly_trend,
          updated_at = now()`,
@@ -1658,6 +1667,7 @@ export async function registerRoutes(app: FastifyInstance) {
         summary.salaryCreditDay ?? null,
         JSON.stringify(summary.spendByCategory),
         JSON.stringify(summary.monthlyTrend),
+        summary.clearSalaryCreditDay === true,
       ],
     );
 

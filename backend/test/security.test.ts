@@ -108,6 +108,10 @@ class FakeDb {
     return [...this.userState.values()];
   }
 
+  rawSpendMap(userId: string) {
+    return this.spendMaps.get(userId);
+  }
+
   rawUserStateContexts() {
     return [...this.userStateContexts];
   }
@@ -590,16 +594,28 @@ class FakeDb {
     }
 
     if (normalized.startsWith('insert into spend_maps')) {
+      const userId = params[0] as string;
+      const existing = this.spendMaps.get(userId);
+      const salaryCreditDay = params[7] as number | null;
+      const clearRequested = params[10] === true;
+      const windowStart = new Date(params[1] as string);
+      const windowEnd = new Date(params[2] as string);
+      const coversSixtyDays =
+        windowEnd.getTime() - windowStart.getTime() >= 60 * 24 * 60 * 60 * 1000;
       this.spendMaps.set(params[0] as string, {
-        user_id: params[0],
+        user_id: userId,
         window_start: params[1],
         window_end: params[2],
         generated_at: params[3],
         monthly_income: params[4],
         monthly_spend: params[5],
         realistic_monthly_savings: params[6],
-        spend_by_category: JSON.parse(params[7] as string),
-        monthly_trend: JSON.parse(params[8] as string),
+        salary_credit_day: salaryCreditDay ??
+            (clearRequested && coversSixtyDays
+                ? null
+                : (existing?.salary_credit_day ?? null)),
+        spend_by_category: JSON.parse(params[8] as string),
+        monthly_trend: JSON.parse(params[9] as string),
         updated_at: new Date(),
       });
       return rows();
@@ -1464,6 +1480,63 @@ describe('backend security harness', () => {
     assert.equal(clearedState.length, 12);
     assert.ok(clearedState.every((item) =>
       item.deleted === true && item.payload_ciphertext === null));
+
+    await app.close();
+  });
+
+  it('clears a stale payday only after a 60-day salary-free scan', async () => {
+    const app = await buildApp();
+    const session = await createSession(app, 'Alice', 'alice@example.com');
+    const base = {
+      generatedAt: '2026-07-30T00:00:00.000Z',
+      monthlyIncome: 50000,
+      monthlySpend: 20000,
+      realisticMonthlySavings: 30000,
+      spendByCategory: { groceries: 5000 },
+      monthlyTrend: [],
+    };
+
+    const detected = await app.inject({
+      method: 'POST',
+      url: '/v1/spend-map',
+      headers: bearer(session.accessToken),
+      payload: {
+        ...base,
+        windowStart: '2026-05-01T00:00:00.000Z',
+        windowEnd: '2026-07-30T00:00:00.000Z',
+        salaryCreditDay: 28,
+      },
+    });
+    assert.equal(detected.statusCode, 200);
+    assert.equal(fakeDb.rawSpendMap(session.user.id)?.salary_credit_day, 28);
+
+    const shortScan = await app.inject({
+      method: 'POST',
+      url: '/v1/spend-map',
+      headers: bearer(session.accessToken),
+      payload: {
+        ...base,
+        windowStart: '2026-07-01T00:00:00.000Z',
+        windowEnd: '2026-07-30T00:00:00.000Z',
+        clearSalaryCreditDay: true,
+      },
+    });
+    assert.equal(shortScan.statusCode, 200);
+    assert.equal(fakeDb.rawSpendMap(session.user.id)?.salary_credit_day, 28);
+
+    const fullScan = await app.inject({
+      method: 'POST',
+      url: '/v1/spend-map',
+      headers: bearer(session.accessToken),
+      payload: {
+        ...base,
+        windowStart: '2026-05-01T00:00:00.000Z',
+        windowEnd: '2026-07-30T00:00:00.000Z',
+        clearSalaryCreditDay: true,
+      },
+    });
+    assert.equal(fullScan.statusCode, 200);
+    assert.equal(fakeDb.rawSpendMap(session.user.id)?.salary_credit_day, null);
 
     await app.close();
   });
