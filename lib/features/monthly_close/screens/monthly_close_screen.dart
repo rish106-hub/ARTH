@@ -55,8 +55,10 @@ class MonthlyCloseScreen extends ConsumerWidget {
             _EvidenceLedger(health: snapshot.evidenceHealth),
             const SizedBox(height: 22),
             _AuditLedger(audits: snapshot.figureAudits),
-            const SizedBox(height: 22),
-            _CohortCard(cohort: snapshot.cohort),
+            if (snapshot.cohort.canShowComparison) ...[
+              const SizedBox(height: 22),
+              _CohortCard(cohort: snapshot.cohort),
+            ],
             if (!record.isComplete) ...[
               const SizedBox(height: 18),
               Text(
@@ -496,17 +498,9 @@ class _CohortCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final available = cohort.canShowComparison;
-    final title = available
-        ? 'Similar users spend ${cohort.averageRentPercent}% on rent'
-        : cohort.status == CohortBenchmarkStatus.profileNeeded
-            ? 'Add rent, city, and CTC first'
-            : 'Private cohort not ready';
-    final detail = available
-        ? '${cohort.sampleSize} anonymous users in ${cohort.city}, ${cohort.ctcBandLabel}.'
-        : cohort.status == CohortBenchmarkStatus.profileNeeded
-            ? 'ARTH needs those three fields to choose a comparison group.'
-            : 'ARTH will not show a benchmark until at least ${cohort.minimumSampleSize} anonymous users match ${cohort.city}, ${cohort.ctcBandLabel}. No percentage is guessed.';
+    final title = 'Similar users spend ${cohort.averageRentPercent}% on rent';
+    final detail =
+        '${cohort.sampleSize} anonymous users in ${cohort.city}, ${cohort.ctcBandLabel}.';
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -516,9 +510,9 @@ class _CohortCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            available ? Icons.groups_outlined : Icons.lock_outline_rounded,
-            color: available ? PaycheckColors.matched : PaycheckColors.inkSoft,
+          const Icon(
+            Icons.groups_outlined,
+            color: PaycheckColors.matched,
           ),
           const SizedBox(width: 12),
           Expanded(
