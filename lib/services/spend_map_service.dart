@@ -26,6 +26,8 @@ class SpendMapService {
         .map((transaction) => transaction.date)
         .toList()
       ..sort((a, b) => b.compareTo(a));
+    final scanCoversSixtyDays =
+        map.windowEnd.difference(map.windowStart).inDays >= 60;
     await _api.postJson(
       '/spend-map',
       bearerToken: token,
@@ -37,6 +39,8 @@ class SpendMapService {
         // Observed SMS/payslip figures only. Manual edits use durable state.
         'monthlyIncome': map.observedPrimaryMonthlyIncome,
         if (salaryDates.isNotEmpty) 'salaryCreditDay': salaryDates.first.day,
+        if (salaryDates.isEmpty && scanCoversSixtyDays)
+          'clearSalaryCreditDay': true,
         'incomeSource': map.primaryIncomeIsManual
             ? 'manual'
             : map.incomeIsDetected

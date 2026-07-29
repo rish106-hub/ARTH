@@ -52,6 +52,7 @@ class SpendMapState {
     this.selectedPeriod = SpendScanPeriod.threeMonths,
     this.error,
     this.awaitingOtherIncomeAnswer = false,
+    this.showRecalculationNotice = false,
   });
 
   final SpendMap? map;
@@ -65,6 +66,7 @@ class SpendMapState {
   /// shows the follow-up prompt while this is true and the actual SMS read
   /// is held until [SpendMapNotifier.resumeScanAfterOtherIncomeAnswer] runs.
   final bool awaitingOtherIncomeAnswer;
+  final bool showRecalculationNotice;
 
   bool get hasData => map != null && !map!.isEmpty;
 
@@ -75,6 +77,7 @@ class SpendMapState {
     SpendScanPeriod? selectedPeriod,
     Object? error = _unset,
     bool? awaitingOtherIncomeAnswer,
+    bool? showRecalculationNotice,
   }) {
     return SpendMapState(
       map: map ?? this.map,
@@ -84,6 +87,8 @@ class SpendMapState {
       error: identical(error, _unset) ? this.error : error as String?,
       awaitingOtherIncomeAnswer:
           awaitingOtherIncomeAnswer ?? this.awaitingOtherIncomeAnswer,
+      showRecalculationNotice:
+          showRecalculationNotice ?? this.showRecalculationNotice,
     );
   }
 
@@ -187,11 +192,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   }
 
   Future<void> _loadCached() async {
-    final json = await _storage.read(_spendMapKey(_uid()));
+    final uid = _uid();
+    final json = await _storage.read(_spendMapKey(uid));
     if (json == null) return;
     try {
       state = state.copyWith(
         map: _applyUserContext(SpendMap.fromJsonString(json)),
+        showRecalculationNotice: await _storage.read(
+              UserScopedStorageKeys.spendMapRecalculationNotice(uid),
+            ) !=
+            'seen',
       );
       _bridgeSalarySms(state.map);
     } catch (_) {
@@ -427,6 +437,14 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   }
 
   Future<void> clearLocalData() => clear();
+
+  Future<void> dismissRecalculationNotice() async {
+    await _storage.write(
+      UserScopedStorageKeys.spendMapRecalculationNotice(_uid()),
+      'seen',
+    );
+    state = state.copyWith(showRecalculationNotice: false);
+  }
 }
 
 final spendMapProvider =
