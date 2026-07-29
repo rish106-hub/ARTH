@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS user_state (
     user_id             UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    namespace           STRING NOT NULL CHECK (length(namespace) <= 64),
+    namespace           STRING NOT NULL,
     payload_ciphertext  STRING,
     payload_iv          STRING,
     payload_auth_tag    STRING,
