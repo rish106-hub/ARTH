@@ -10,8 +10,16 @@ const durableStateSchema = await readFile(
   new URL('../sql/cockroach/002_durable_user_state.sql', import.meta.url),
   'utf8',
 );
+const durableStateHardening = await readFile(
+  new URL('../sql/cockroach/003_durable_user_state_hardening.sql', import.meta.url),
+  'utf8',
+);
 const postgresDurableStateSchema = await readFile(
   new URL('../sql/016_durable_user_state.sql', import.meta.url),
+  'utf8',
+);
+const postgresDurableStateHardening = await readFile(
+  new URL('../sql/017_durable_user_state_hardening.sql', import.meta.url),
   'utf8',
 );
 const verifier = await readFile(
@@ -63,11 +71,11 @@ describe('Cockroach secure schema', () => {
       /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_state TO arth_app_runtime/,
     );
     assert.match(verifier, /'public\.user_state'/);
-    assert.match(postgresDurableStateSchema, /FORCE ROW LEVEL SECURITY/);
-    assert.match(postgresDurableStateSchema, /app_user_state_isolation/);
-    assert.match(postgresDurableStateSchema, /REVOKE ALL ON TABLE user_state FROM PUBLIC/);
-    assert.match(durableStateSchema, /length\(namespace\) <= 64/);
-    assert.match(postgresDurableStateSchema, /length\(namespace\) <= 64/);
+    assert.match(postgresDurableStateHardening, /FORCE ROW LEVEL SECURITY/);
+    assert.match(postgresDurableStateHardening, /app_user_state_isolation/);
+    assert.match(postgresDurableStateHardening, /REVOKE ALL ON TABLE user_state FROM PUBLIC/);
+    assert.match(durableStateHardening, /length\(namespace\) <= 64/);
+    assert.match(postgresDurableStateHardening, /length\(namespace\) <= 64/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });
