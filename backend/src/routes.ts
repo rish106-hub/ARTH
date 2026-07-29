@@ -308,9 +308,14 @@ const dataRateLimit = {
   },
 };
 
-const userStateWriteOptions = {
+const userStateWriteRateLimit = {
   bodyLimit: 20 * 1024 * 1024,
-  config: dataRateLimit.config,
+  config: {
+    rateLimit: {
+      max: 60,
+      timeWindow: '1 minute',
+    },
+  },
 };
 
 const documentUploadOptions = {
@@ -1832,7 +1837,7 @@ export async function registerRoutes(app: FastifyInstance) {
     };
   });
 
-  app.put('/user-state/:namespace', userStateWriteOptions, async (request, reply) => {
+  app.put('/user-state/:namespace', userStateWriteRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
     const { namespace } = z.object({
