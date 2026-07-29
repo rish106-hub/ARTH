@@ -36,12 +36,15 @@ class MonthlyCloseEngine {
     final latestOffer = isDemo
         ? null
         : _latestConfirmed(
-            activeDocuments
-                .where((document) => document.documentType == 'offerLetter'),
+            activeDocuments.where(
+              (document) => document.documentType == 'offerLetter',
+            ),
           );
     final pendingReceipts = paycheck.evidence
-        .where((item) =>
-            item.kind == PaycheckEvidenceKind.receipt && item.needsAction)
+        .where(
+          (item) =>
+              item.kind == PaycheckEvidenceKind.receipt && item.needsAction,
+        )
         .length;
 
     // Parsed figures alone are not confirmation. The row only reads Confirmed
@@ -121,9 +124,11 @@ class MonthlyCloseEngine {
           label: 'Promised monthly pay',
           amount: paycheck.promisedMonthly,
           source: latestOffer?.displayName ?? 'Offer letter',
-          detail: latestOffer == null
-              ? 'Monthly value from the offer you added. Not confirmed yet.'
-              : 'Monthly value from the confirmed offer.',
+          detail: latestOffer != null
+              ? 'Monthly value from the confirmed offer.'
+              : paycheck.offerLetterAdded
+                  ? 'Monthly value from the offer you added. Not confirmed yet.'
+                  : 'Promised pay is available, but no offer letter is on file.',
           confirmedAt: offerDate,
         ),
       if (paycheck.grossReceived > 0)
@@ -143,8 +148,11 @@ class MonthlyCloseEngine {
           label: 'Pay difference',
           amount: (paycheck.promisedMonthly - paycheck.grossReceived).abs(),
           source: 'Offer and payslip comparison',
-          detail: 'Promised monthly pay minus gross earnings.',
-          confirmedAt: payslipDate,
+          detail: latestOffer != null && latestPayslip != null
+              ? 'Confirmed promised monthly pay minus confirmed gross earnings.'
+              : 'Promised monthly pay minus gross earnings. Both sources are not confirmed yet.',
+          confirmedAt:
+              latestOffer != null && latestPayslip != null ? payslipDate : null,
         ),
       if (paycheck.netCredited > 0)
         FigureAudit(
@@ -169,6 +177,19 @@ class MonthlyCloseEngine {
           confirmedAt: payslipDate,
         ),
     ];
+    final safeAudits = isDemo
+        ? audits
+            .map(
+              (audit) => FigureAudit(
+                id: audit.id,
+                label: audit.label,
+                amount: audit.amount,
+                source: 'Demo data',
+                detail: 'Sample figure for exploring ARTH. Not confirmed.',
+              ),
+            )
+            .toList(growable: false)
+        : audits;
 
     return MonthlyCloseSnapshot(
       periodLabel: DateFormat('MMMM yyyy').format(now),
@@ -183,12 +204,14 @@ class MonthlyCloseEngine {
         _ => MonthlyCloseCreditStatus.awaitingCredit,
       },
       openClaimCount: paycheck.items
-          .where((item) =>
-              item.status == PaycheckItemStatus.claimable ||
-              item.status == PaycheckItemStatus.review)
+          .where(
+            (item) =>
+                item.status == PaycheckItemStatus.claimable ||
+                item.status == PaycheckItemStatus.review,
+          )
           .length,
       evidenceHealth: evidence,
-      figureAudits: audits,
+      figureAudits: safeAudits,
       cohort: cohort ?? _unavailableCohort(profile),
     );
   }
@@ -232,10 +255,7 @@ class MonthlyCloseEngine {
         IncomeSignalSource.ctcEstimate || IncomeSignalSource.missing => null,
       };
 
-  static String _incomeDetail(
-    IncomeSignal income,
-    PaycheckState paycheck,
-  ) =>
+  static String _incomeDetail(IncomeSignal income, PaycheckState paycheck) =>
       switch (income.source) {
         IncomeSignalSource.payslip =>
           'Net pay from the confirmed ${paycheck.payPeriod} payslip.',

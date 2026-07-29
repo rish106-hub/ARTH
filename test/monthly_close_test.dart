@@ -342,6 +342,56 @@ void main() {
 
     expect(evidenceRow(snapshot, 'Offer').detail, 'Not added');
     expect(evidenceRow(snapshot, 'Offer').ready, isFalse);
+    expect(
+      audit(snapshot, 'promised-pay').detail,
+      'Promised pay is available, but no offer letter is on file.',
+    );
+  });
+
+  test('pay difference needs both offer and payslip confirmation', () {
+    final payslipDate = DateTime(2026, 7, 22);
+    final payslipOnly = build(
+      documents: [
+        document(
+          id: 'payslip',
+          documentType: 'payslip',
+          filename: 'July payslip.pdf',
+          parseStatus: 'parsed',
+          reviewedAt: payslipDate,
+        ),
+      ],
+    );
+
+    expect(audit(payslipOnly, 'pay-difference').confirmedAt, isNull);
+    expect(
+      audit(payslipOnly, 'pay-difference').detail,
+      contains('Both sources are not confirmed yet'),
+    );
+
+    final bothConfirmed = build(
+      documents: [
+        document(
+          id: 'payslip',
+          documentType: 'payslip',
+          filename: 'July payslip.pdf',
+          parseStatus: 'parsed',
+          reviewedAt: payslipDate,
+        ),
+        document(
+          id: 'offer',
+          documentType: 'offerLetter',
+          filename: 'Offer.pdf',
+          parseStatus: 'parsed',
+          reviewedAt: DateTime(2026, 4, 1),
+        ),
+      ],
+    );
+
+    expect(audit(bothConfirmed, 'pay-difference').confirmedAt, payslipDate);
+    expect(
+      audit(bothConfirmed, 'pay-difference').detail,
+      'Confirmed promised monthly pay minus confirmed gross earnings.',
+    );
   });
 
   test('an undated confirmed payslip never reports an epoch date', () {
@@ -464,6 +514,8 @@ void main() {
       expect(evidenceRow(snapshot, 'Payslip').detail, 'Demo data');
       expect(evidenceRow(snapshot, 'Salary SMS').detail, 'Demo data');
       for (final item in snapshot.figureAudits) {
+        expect(item.source, 'Demo data');
+        expect(item.detail, 'Sample figure for exploring ARTH. Not confirmed.');
         expect(item.confirmedAt, isNull);
       }
     });
