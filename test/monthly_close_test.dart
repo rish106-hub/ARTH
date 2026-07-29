@@ -125,7 +125,161 @@ void main() {
     expect(netPay.source, 'July payslip.pdf');
     expect(netPay.confirmedAt, payslipDate);
     expect(audit(snapshot, 'deductions').confirmedAt, payslipDate);
+    expect(audit(snapshot, 'planning-income').confirmedAt, payslipDate);
     expect(evidenceRow(snapshot, 'Payslip').detail, 'Confirmed');
+  });
+
+  group('the payslip row waits for a reviewed document', () {
+    test('parsed figures without any document are not confirmed', () {
+      final snapshot = build();
+
+      expect(
+        snapshot.figureAudits.any((item) => item.id == 'gross-pay'),
+        isTrue,
+      );
+      expect(evidenceRow(snapshot, 'Payslip').detail, 'Not confirmed');
+      expect(evidenceRow(snapshot, 'Payslip').ready, isFalse);
+    });
+
+    test('an unreviewed upload does not confirm the row', () {
+      final snapshot = build(
+        documents: [
+          document(
+            id: 'pending',
+            documentType: 'payslip',
+            filename: 'July payslip.pdf',
+            parseStatus: 'needs_confirmation',
+            createdAt: DateTime(2026, 7, 24),
+          ),
+        ],
+      );
+
+      expect(evidenceRow(snapshot, 'Payslip').detail, 'Not confirmed');
+      expect(evidenceRow(snapshot, 'Payslip').ready, isFalse);
+      expect(audit(snapshot, 'gross-pay').confirmedAt, isNull);
+    });
+
+    test('a reviewed document confirms the row', () {
+      final snapshot = build(
+        documents: [
+          document(
+            id: 'reviewed',
+            documentType: 'payslip',
+            filename: 'July payslip.pdf',
+            parseStatus: 'parsed',
+            reviewedAt: DateTime(2026, 7, 24),
+          ),
+        ],
+      );
+
+      expect(evidenceRow(snapshot, 'Payslip').detail, 'Confirmed');
+      expect(evidenceRow(snapshot, 'Payslip').ready, isTrue);
+    });
+
+    test('a reviewed but undated document still confirms the row', () {
+      final snapshot = build(
+        documents: [
+          document(
+            id: 'undated',
+            documentType: 'payslip',
+            filename: 'Scan.pdf',
+            parseStatus: 'parsed',
+          ),
+        ],
+      );
+
+      expect(evidenceRow(snapshot, 'Payslip').detail, 'Confirmed');
+      expect(evidenceRow(snapshot, 'Payslip').ready, isTrue);
+      expect(audit(snapshot, 'gross-pay').confirmedAt, isNull);
+    });
+  });
+
+  group('planning income carries its own source date', () {
+    test('a payslip source uses the confirmed payslip date', () {
+      final payslipDate = DateTime(2026, 7, 22);
+      final snapshot = build(
+        income: const IncomeSignal(
+          primaryMonthlyIncome: 52700,
+          otherMonthlyIncome: 0,
+          source: IncomeSignalSource.payslipGross,
+        ),
+        documents: [
+          document(
+            id: 'payslip',
+            documentType: 'payslip',
+            filename: 'July payslip.pdf',
+            parseStatus: 'parsed',
+            reviewedAt: payslipDate,
+          ),
+        ],
+      );
+
+      final income = audit(snapshot, 'planning-income');
+      expect(income.confirmedAt, payslipDate);
+      expect(income.editedByUser, isFalse);
+    });
+
+    test('a salary SMS source uses the last credit it saw', () {
+      final seenAt = DateTime(2026, 7, 27);
+      final snapshot = build(
+        paycheck: salariedPaycheck.copyWith(
+          salarySmsCredited: 45100,
+          salarySmsLastSeen: seenAt,
+          salarySmsConnected: true,
+        ),
+        income: const IncomeSignal(
+          primaryMonthlyIncome: 45100,
+          otherMonthlyIncome: 0,
+          source: IncomeSignalSource.salarySms,
+        ),
+      );
+
+      expect(audit(snapshot, 'planning-income').confirmedAt, seenAt);
+    });
+
+    test('a payslip source has no date until a payslip is confirmed', () {
+      final snapshot = build();
+
+      expect(audit(snapshot, 'planning-income').confirmedAt, isNull);
+    });
+
+    test('a CTC estimate is never dated, because nothing confirmed it', () {
+      final snapshot = build(
+        income: const IncomeSignal(
+          primaryMonthlyIncome: 83000,
+          otherMonthlyIncome: 0,
+          source: IncomeSignalSource.ctcEstimate,
+        ),
+        documents: [
+          document(
+            id: 'payslip',
+            documentType: 'payslip',
+            filename: 'July payslip.pdf',
+            parseStatus: 'parsed',
+            reviewedAt: DateTime(2026, 7, 22),
+          ),
+        ],
+      );
+
+      expect(audit(snapshot, 'planning-income').confirmedAt, isNull);
+    });
+
+    test('a disconnected salary SMS leaves the figure undated', () {
+      final snapshot = build(
+        paycheck: salariedPaycheck.copyWith(
+          salarySmsCredited: 45100,
+          salarySmsLastSeen: DateTime(2026, 7, 27),
+          salarySmsConnected: false,
+        ),
+        income: const IncomeSignal(
+          primaryMonthlyIncome: 45100,
+          otherMonthlyIncome: 0,
+          source: IncomeSignalSource.salarySms,
+        ),
+      );
+
+      expect(audit(snapshot, 'planning-income').confirmedAt, isNull);
+    });
   });
 
   test('a confirmed older payslip outranks a newer unconfirmed upload', () {

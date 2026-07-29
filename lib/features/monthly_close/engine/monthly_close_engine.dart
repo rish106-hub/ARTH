@@ -44,7 +44,10 @@ class MonthlyCloseEngine {
             item.kind == PaycheckEvidenceKind.receipt && item.needsAction)
         .length;
 
-    final payslipConfirmed = !isDemo && paycheck.grossReceived > 0;
+    // Parsed figures alone are not confirmation. The row only reads Confirmed
+    // once a reviewed payslip document backs those figures.
+    final payslipConfirmed =
+        !isDemo && paycheck.grossReceived > 0 && latestPayslip != null;
     final salarySmsConnected = !isDemo && paycheck.salarySmsConnected;
 
     final evidence = EvidenceHealth(
@@ -103,8 +106,13 @@ class MonthlyCloseEngine {
           detail: income.isEdited
               ? 'Your local edit is used across paycheck, spend, goal, and tax.'
               : _incomeDetail(income, paycheck),
-          confirmedAt:
-              income.isEdited ? adjustments.primaryIncomeUpdatedAt : null,
+          confirmedAt: _incomeConfirmedAt(
+            income: income,
+            adjustments: adjustments,
+            payslipDate: payslipDate,
+            salarySmsLastSeen:
+                salarySmsConnected ? paycheck.salarySmsLastSeen : null,
+          ),
           editedByUser: income.isEdited,
         ),
       if (paycheck.promisedMonthly > 0)
@@ -206,6 +214,23 @@ class MonthlyCloseEngine {
   /// render a 1970 timestamp.
   static DateTime? _documentDate(TaxDocument? document) =>
       document?.reviewedAt ?? document?.createdAt;
+
+  /// Dates the planning figure from whichever source produced it. CTC estimates
+  /// and a missing source carry no date, because nothing confirmed them.
+  static DateTime? _incomeConfirmedAt({
+    required IncomeSignal income,
+    required SpendMapAdjustments adjustments,
+    required DateTime? payslipDate,
+    required DateTime? salarySmsLastSeen,
+  }) =>
+      switch (income.source) {
+        IncomeSignalSource.payslip ||
+        IncomeSignalSource.payslipGross =>
+          payslipDate,
+        IncomeSignalSource.salarySms => salarySmsLastSeen,
+        IncomeSignalSource.edited => adjustments.primaryIncomeUpdatedAt,
+        IncomeSignalSource.ctcEstimate || IncomeSignalSource.missing => null,
+      };
 
   static String _incomeDetail(
     IncomeSignal income,
