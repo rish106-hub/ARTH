@@ -168,6 +168,30 @@ const userStateDeleteSchema = userStatePayloadSchema.pick({
   clientUpdatedAt: true,
 });
 
+async function tombstoneAllUserState(
+  client: Queryable,
+  userId: string,
+  deletedAt: Date,
+): Promise<void> {
+  for (const namespace of userStateNamespaceSchema.options) {
+    await client.query(
+      `insert into user_state (
+         user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+         deleted, client_updated_at, updated_at
+       ) values ($1, $2, null, null, null, true, $3, now())
+       on conflict (user_id, namespace) do update set
+         payload_ciphertext = null,
+         payload_iv = null,
+         payload_auth_tag = null,
+         deleted = true,
+         client_updated_at = excluded.client_updated_at,
+         updated_at = now()
+       where user_state.client_updated_at <= excluded.client_updated_at`,
+      [userId, namespace, deletedAt],
+    );
+  }
+}
+
 async function setUserStateDbContext(
   client: Queryable,
   userId: string,
@@ -1997,7 +2021,7 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
         await client.query('delete from money_goals where user_id = $1', [auth.userId]);
         await client.query('delete from spend_maps where user_id = $1', [auth.userId]);
-        await client.query('delete from user_state where user_id = $1', [auth.userId]);
+        await tombstoneAllUserState(client, auth.userId, new Date());
         await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
         await client.query(
           `update user_private_identity

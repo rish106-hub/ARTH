@@ -591,8 +591,9 @@ class FakeDb {
         monthly_income: params[4],
         monthly_spend: params[5],
         realistic_monthly_savings: params[6],
-        spend_by_category: JSON.parse(params[7] as string),
-        monthly_trend: JSON.parse(params[8] as string),
+        salary_credit_day: params[7],
+        spend_by_category: JSON.parse(params[8] as string),
+        monthly_trend: JSON.parse(params[9] as string),
         updated_at: new Date(),
       });
       return rows();
@@ -1259,6 +1260,25 @@ describe('backend security harness', () => {
       clientUpdatedAt: deletedAt,
     });
 
+    const profileWipe = await app.inject({
+      method: 'DELETE',
+      url: '/v1/profile',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(profileWipe.statusCode, 204);
+    const tombstoned = await app.inject({
+      method: 'GET',
+      url: '/v1/user-state',
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(tombstoned.statusCode, 200);
+    assert.ok(tombstoned.json().items.length > 0);
+    assert.ok(
+      tombstoned.json().items.every(
+        (item: { deleted: boolean }) => item.deleted === true,
+      ),
+    );
+
     await app.close();
   });
 
@@ -1483,6 +1503,7 @@ describe('backend security harness', () => {
         monthlyIncome: 109412,
         monthlySpend: 50969,
         realisticMonthlySavings: 58443,
+        salaryCreditDay: 28,
         spendByCategory: { bills: 12000, groceries: 8000 },
         monthlyTrend: [{
           month: '2026-07-01T00:00:00.000Z',
@@ -1492,6 +1513,9 @@ describe('backend security harness', () => {
       },
     });
     assert.equal(spendMap.statusCode, 200);
+    const storedSpendMap = fakeDb.spendMaps.get(alice.user.id);
+    assert.equal(storedSpendMap?.salary_credit_day, 28);
+    assert.deepEqual(storedSpendMap?.spend_by_category, { bills: 12000, groceries: 8000 });
 
     const bobUpdate = await app.inject({
       method: 'PUT',

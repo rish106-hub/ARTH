@@ -13,6 +13,7 @@ import '../providers/spend_map_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/tax_readiness_provider.dart';
 import '../providers/tax_result_provider.dart';
+import '../providers/tax_year_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../models/user_account.dart';
 import '../features/monthly_close/providers/monthly_close_provider.dart';
@@ -45,6 +46,7 @@ void _invalidateUserScopedProviders(WidgetRef ref) {
   ref.invalidate(spendCompletenessProvider);
   ref.invalidate(recoveryProvider);
   ref.invalidate(monthlyCloseProvider);
+  ref.invalidate(activeTaxYearProvider);
 }
 
 Future<void> prepareForAuthentication(WidgetRef ref) async {
@@ -75,6 +77,7 @@ Future<bool> hydrateAuthenticatedAccount(
   ref.invalidate(spendCompletenessProvider);
   ref.invalidate(recoveryProvider);
   ref.invalidate(monthlyCloseProvider);
+  ref.invalidate(activeTaxYearProvider);
   return ref.read(userProfileProvider.notifier).load();
 }
 
@@ -112,4 +115,5 @@ Future<void> clearDeviceSessionForContainer(ProviderContainer container) async {
   container.invalidate(spendCompletenessProvider);
   container.invalidate(recoveryProvider);
   container.invalidate(monthlyCloseProvider);
+  container.invalidate(activeTaxYearProvider);
 }

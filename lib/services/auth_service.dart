@@ -175,11 +175,8 @@ class AuthService {
 
   bool _isExpired(String jwt) {
     try {
-      final parts = jwt.split('.');
-      if (parts.length != 3) return true;
-      final normalized = base64.normalize(parts[1]);
-      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final payload = _decodeJwtPayload(jwt);
+      if (payload == null) return true;
       final exp = payload['exp'] as num?;
       if (exp == null) return true;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
@@ -191,6 +188,25 @@ class AuthService {
           );
     } catch (_) {
       return true;
+    }
+  }
+
+  /// Returns the authenticated user id embedded in an access token.
+  String? userIdFromAccessToken(String token) {
+    final payload = _decodeJwtPayload(token);
+    final sub = payload?['sub']?.toString();
+    return sub == null || sub.isEmpty ? null : sub;
+  }
+
+  Map<String, dynamic>? _decodeJwtPayload(String jwt) {
+    try {
+      final parts = jwt.split('.');
+      if (parts.length != 3) return null;
+      final normalized = base64.normalize(parts[1]);
+      return jsonDecode(utf8.decode(base64Url.decode(normalized)))
+          as Map<String, dynamic>;
+    } catch (_) {
+      return null;
     }
   }
 }

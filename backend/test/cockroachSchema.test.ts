@@ -60,6 +60,7 @@ describe('Cockroach secure schema', () => {
     );
     assert.match(routes, /set local application_name = 'arth\.\$\{safeUserId\}'/);
     assert.match(routes, /runUserStateTransaction/);
+    assert.match(routes, /tombstoneAllUserState/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
   });
 });

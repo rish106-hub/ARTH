@@ -189,8 +189,9 @@ void main() {
       storage: storage,
     );
     final key = UserScopedStorageKeys.otherIncome('user-1');
-    final queuedAt = DateTime.parse('2026-07-29T09:00:00.000Z');
-    final restoredAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    final queuedAt = DateTime.now().toUtc().subtract(const Duration(hours: 2));
+    final restoredAt =
+        DateTime.now().toUtc().subtract(const Duration(hours: 1));
 
     service.scheduleBackup(key, 'old-value', queuedAt);
     await storage.writeRestored(key, 'new-value', restoredAt);
@@ -213,8 +214,10 @@ void main() {
       storage: const SecureStorageService(),
     );
     final key = UserScopedStorageKeys.otherIncome('user-1');
-    final deletedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
-    final staleWriteAt = DateTime.parse('2026-07-29T09:00:00.000Z');
+    final deletedAt =
+        DateTime.now().toUtc().subtract(const Duration(minutes: 30));
+    final staleWriteAt =
+        DateTime.now().toUtc().subtract(const Duration(hours: 2));
 
     service.scheduleBackup(key, null, deletedAt);
     service.scheduleBackup(key, 'stale-value', staleWriteAt);
@@ -230,7 +233,7 @@ void main() {
   test('device state wins when server and device timestamps tie', () async {
     final storage = const SecureStorageService();
     final key = UserScopedStorageKeys.otherIncome('user-1');
-    final tiedAt = DateTime.parse('2026-07-29T10:00:00.000Z');
+    final tiedAt = DateTime.now().toUtc().subtract(const Duration(hours: 1));
     await storage.writeRestored(key, 'device-value', tiedAt);
     final api = _FakeApi()
       ..getResponses['/user-state'] = {
@@ -564,7 +567,8 @@ class _FakeApi extends ServerApiService {
 
 class _FixedTokenAuthService extends AuthService {
   @override
-  Future<String?> getValidAccessToken() async => 'access-token';
+  Future<String?> getValidAccessToken() async =>
+      _jwtWithExpiry(DateTime.now().add(const Duration(hours: 1)));
 
   @override
   Future<UserAccount?> loadAccount() async => UserAccount(

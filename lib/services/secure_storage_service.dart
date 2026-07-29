@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +24,8 @@ class SecureStorageService {
 
   static SecureStorageWriteObserver? writeObserver;
 
+  static final Map<String, Future<void>> _writeChains = {};
+
   const SecureStorageService();
 
   Future<String?> read(String key, {bool migrateFromPrefs = false}) async {
@@ -40,19 +44,21 @@ class SecureStorageService {
   }
 
   Future<void> write(String key, String value) async {
-    final updatedAt = DateTime.now().toUtc();
-    try {
-      await _storage.write(key: key, value: value);
-      await _storage.write(
-        key: _updatedAtKey(key),
-        value: updatedAt.toIso8601String(),
-      );
-    } catch (_) {
-      // Existing provider flows are local-first and must not crash when a
-      // platform storage plugin is unavailable. The observer still mirrors
-      // the value to the authenticated server backup when possible.
-    }
-    writeObserver?.call(key, value, updatedAt);
+    await _serialized(key, () async {
+      final updatedAt = DateTime.now().toUtc();
+      try {
+        await _storage.write(key: key, value: value);
+        await _storage.write(
+          key: _updatedAtKey(key),
+          value: updatedAt.toIso8601String(),
+        );
+      } catch (_) {
+        // Existing provider flows are local-first and must not crash when a
+        // platform storage plugin is unavailable. The observer still mirrors
+        // the value to the authenticated server backup when possible.
+      }
+      writeObserver?.call(key, value, updatedAt);
+    });
   }
 
   Future<DateTime?> updatedAt(String key) async {
@@ -65,35 +71,48 @@ class SecureStorageService {
     String value,
     DateTime updatedAt,
   ) async {
-    await _storage.write(key: key, value: value);
-    await _storage.write(
-      key: _updatedAtKey(key),
-      value: updatedAt.toUtc().toIso8601String(),
-    );
+    await _serialized(key, () async {
+      await _storage.write(key: key, value: value);
+      await _storage.write(
+        key: _updatedAtKey(key),
+        value: updatedAt.toUtc().toIso8601String(),
+      );
+    });
   }
 
   Future<void> deleteRestored(String key, DateTime updatedAt) async {
-    await _storage.delete(key: key);
-    await _storage.write(
-      key: _updatedAtKey(key),
-      value: updatedAt.toUtc().toIso8601String(),
-    );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(key);
-  }
-
-  Future<void> delete(String key) async {
-    final deletedAt = DateTime.now().toUtc();
-    try {
+    await _serialized(key, () async {
       await _storage.delete(key: key);
       await _storage.write(
         key: _updatedAtKey(key),
-        value: deletedAt.toIso8601String(),
+        value: updatedAt.toUtc().toIso8601String(),
       );
-    } catch (_) {}
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(key);
-    writeObserver?.call(key, null, deletedAt);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    });
+  }
+
+  Future<void> delete(String key) async {
+    await _serialized(key, () async {
+      final deletedAt = DateTime.now().toUtc();
+      try {
+        await _storage.delete(key: key);
+        await _storage.write(
+          key: _updatedAtKey(key),
+          value: deletedAt.toIso8601String(),
+        );
+      } catch (_) {}
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+      writeObserver?.call(key, null, deletedAt);
+    });
+  }
+
+  Future<void> _serialized(String key, Future<void> Function() action) {
+    final previous = _writeChains[key] ?? Future<void>.value();
+    final next = previous.catchError((_) {}).then((_) => action());
+    _writeChains[key] = next;
+    return next;
   }
 
   String _updatedAtKey(String key) => '$key.__updated_at';

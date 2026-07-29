@@ -9,6 +9,8 @@ import 'package:arth/models/proof_prefill.dart';
 import 'package:arth/models/tax_result.dart';
 import 'package:arth/models/tax_rule_set.dart';
 import 'package:arth/models/user_profile.dart';
+import 'package:arth/models/user_account.dart';
+import 'package:arth/providers/auth_provider.dart';
 import 'package:arth/providers/tax_year_provider.dart';
 import 'package:arth/providers/tax_result_provider.dart';
 import 'package:arth/services/secure_storage_service.dart';
@@ -49,7 +51,20 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({
       'arth_active_tax_year': TaxYearId.fy2025_26.wireName,
     });
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        authProvider.overrideWith(
+          () => _SignedInAuthNotifier(
+            UserAccount(
+              uid: 'user-1',
+              name: 'User',
+              email: 'user@example.com',
+              createdAt: DateTime(2026, 1, 1),
+            ),
+          ),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     container.read(activeTaxYearProvider);
@@ -57,17 +72,48 @@ void main() {
 
     const storage = SecureStorageService();
     expect(
-      await storage.read(UserScopedStorageKeys.taxYear('guest')),
+      await storage.read(UserScopedStorageKeys.taxYear('user-1')),
       TaxYearId.fy2025_26.wireName,
     );
     expect(await storage.read('arth_active_tax_year'), isNull);
+  });
+
+  test('legacy tax year stays global until authentication resolves', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'arth_active_tax_year': TaxYearId.fy2025_26.wireName,
+    });
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(activeTaxYearProvider);
+    await pumpEventQueue();
+
+    const storage = SecureStorageService();
+    expect(await storage.read(UserScopedStorageKeys.taxYear('guest')), isNull);
+    expect(
+      await storage.read('arth_active_tax_year'),
+      TaxYearId.fy2025_26.wireName,
+    );
   });
 
   test('corrupt legacy tax year is removed from its actual source', () async {
     FlutterSecureStorage.setMockInitialValues({
       'arth_active_tax_year': 'not-a-tax-year',
     });
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        authProvider.overrideWith(
+          () => _SignedInAuthNotifier(
+            UserAccount(
+              uid: 'user-1',
+              name: 'User',
+              email: 'user@example.com',
+              createdAt: DateTime(2026, 1, 1),
+            ),
+          ),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     container.read(activeTaxYearProvider);
@@ -631,6 +677,15 @@ void main() {
     final p = prefill.applyTo(const UserProfile(monthlyRent: 40000));
     expect(p.monthlyRent, 40000); // user value preserved
   });
+}
+
+class _SignedInAuthNotifier extends AuthNotifier {
+  _SignedInAuthNotifier(this._account);
+
+  final UserAccount _account;
+
+  @override
+  UserAccount? build() => _account;
 }
 
 TaxRuleSet _loadRuleSet(TaxYearId id) {
