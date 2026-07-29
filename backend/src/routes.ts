@@ -111,7 +111,7 @@ const doneGapsSchema = z.object({
   gapIds: z.array(z.string().min(1).max(120)).max(100),
 });
 
-const userStateNamespaceSchema = z.enum([
+const userStateNamespaces = [
   'profile-draft',
   'onboarding',
   'tax-year',
@@ -124,7 +124,8 @@ const userStateNamespaceSchema = z.enum([
   'paycheck-overrides',
   'recovery',
   'monthly-close',
-]);
+] as const;
+const userStateNamespaceSchema = z.enum(userStateNamespaces);
 
 const eventSchema = z.object({
   name: z.string().min(1).max(64),
@@ -1857,6 +1858,7 @@ export async function registerRoutes(app: FastifyInstance) {
     );
     return {
       items: result.rows.map(userStateResponse),
+      serverTime: new Date().toISOString(),
     };
   });
 
@@ -1904,6 +1906,7 @@ export async function registerRoutes(app: FastifyInstance) {
     });
     return {
       item: userStateResponse(current),
+      serverTime: new Date().toISOString(),
     };
   });
 
@@ -1929,18 +1932,31 @@ export async function registerRoutes(app: FastifyInstance) {
            client_updated_at = excluded.client_updated_at,
            updated_at = now()
          where user_state.client_updated_at <= excluded.client_updated_at
-         returning namespace`,
+         returning namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+                   deleted, client_updated_at`,
         [auth.userId, namespace, new Date(payload.clientUpdatedAt)],
       ),
     );
     if (!result.rowCount) {
-      return reply.code(409).send({
-        code: 'state_conflict',
-        message: 'Newer user state already exists',
-        retryable: false,
-      });
+      const current = await runUserStateTransaction(
+        auth.userId,
+        (client) => client.query(
+          `select namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+                  deleted, client_updated_at
+           from user_state
+           where user_id = $1 and namespace = $2`,
+          [auth.userId, namespace],
+        ),
+      );
+      return {
+        item: userStateResponse(current.rows[0]),
+        serverTime: new Date().toISOString(),
+      };
     }
-    return reply.code(204).send();
+    return {
+      item: userStateResponse(result.rows[0]),
+      serverTime: new Date().toISOString(),
+    };
   });
 
   app.get(
@@ -1997,7 +2013,23 @@ export async function registerRoutes(app: FastifyInstance) {
         await client.query('delete from tax_results where user_id = $1', [auth.userId]);
         await client.query('delete from money_goals where user_id = $1', [auth.userId]);
         await client.query('delete from spend_maps where user_id = $1', [auth.userId]);
-        await client.query('delete from user_state where user_id = $1', [auth.userId]);
+        const clearedAt = new Date();
+        for (const namespace of userStateNamespaces) {
+          await client.query(
+            `insert into user_state (
+               user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+               deleted, client_updated_at, updated_at
+             ) values ($1, $2, null, null, null, true, $3, now())
+             on conflict (user_id, namespace) do update set
+               payload_ciphertext = null,
+               payload_iv = null,
+               payload_auth_tag = null,
+               deleted = true,
+               client_updated_at = excluded.client_updated_at,
+               updated_at = now()`,
+            [auth.userId, namespace, clearedAt],
+          );
+        }
         await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
         await client.query(
           `update user_private_identity

@@ -5,6 +5,16 @@ import '../models/user_account.dart';
 import 'secure_storage_service.dart';
 import 'server_api_service.dart';
 
+class AuthenticatedSession {
+  const AuthenticatedSession({
+    required this.uid,
+    required this.accessToken,
+  });
+
+  final String uid;
+  final String accessToken;
+}
+
 class AuthService {
   static const _accountKey = 'arth_user_account';
   static const _accessTokenKey = 'arth_access_token';
@@ -107,6 +117,14 @@ class AuthService {
     return getAccessToken();
   }
 
+  Future<AuthenticatedSession?> getValidSession() async {
+    final accessToken = await getValidAccessToken();
+    if (accessToken == null || accessToken.isEmpty) return null;
+    final uid = _accessTokenSubject(accessToken);
+    if (uid == null || uid.isEmpty) return null;
+    return AuthenticatedSession(uid: uid, accessToken: accessToken);
+  }
+
   Future<UserAccount?> refreshSession() async {
     final refreshToken = await _storage.read(
       _refreshTokenKey,
@@ -175,11 +193,8 @@ class AuthService {
 
   bool _isExpired(String jwt) {
     try {
-      final parts = jwt.split('.');
-      if (parts.length != 3) return true;
-      final normalized = base64.normalize(parts[1]);
-      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final payload = _decodeJwtPayload(jwt);
+      if (payload == null) return true;
       final exp = payload['exp'] as num?;
       if (exp == null) return true;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
@@ -191,6 +206,24 @@ class AuthService {
           );
     } catch (_) {
       return true;
+    }
+  }
+
+  String? _accessTokenSubject(String jwt) {
+    final payload = _decodeJwtPayload(jwt);
+    if (payload?['type'] != 'access') return null;
+    return payload?['sub'] as String?;
+  }
+
+  Map<String, dynamic>? _decodeJwtPayload(String jwt) {
+    try {
+      final parts = jwt.split('.');
+      if (parts.length != 3) return null;
+      final normalized = base64.normalize(parts[1]);
+      return jsonDecode(utf8.decode(base64Url.decode(normalized)))
+          as Map<String, dynamic>;
+    } catch (_) {
+      return null;
     }
   }
 }
