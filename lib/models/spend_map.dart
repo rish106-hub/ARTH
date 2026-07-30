@@ -85,6 +85,19 @@ class SpendCategory {
     education,
   ];
 
+  /// "insurance:car" → "insurance". Anything without a sub-type is its own
+  /// parent.
+  static String parentOf(String category) {
+    final separator = category.indexOf(':');
+    return separator < 0 ? category : category.substring(0, separator);
+  }
+
+  /// True when [category] is a non-discretionary living cost. Tests the parent,
+  /// so a sub-typed category ("insurance:car") counts like plain `insurance` —
+  /// a plain [essentials] membership check silently missed every sub-type.
+  static bool isEssential(String category) =>
+      essentials.contains(parentOf(category));
+
   static String label(String category) {
     switch (category) {
       case food:
@@ -510,7 +523,7 @@ class SpendMap {
     final essentialTotal = txns
         .where((t) =>
             t.direction == TxnDirection.debit &&
-            SpendCategory.essentials.contains(t.category))
+            SpendCategory.isEssential(t.category))
         .fold<int>(0, (sum, t) => sum + t.amount);
     return (essentialTotal / _spendMonths).round();
   }

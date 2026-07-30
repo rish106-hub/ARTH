@@ -470,8 +470,15 @@ void main() {
     });
 
     test('loan EMI and school fees count as essential spend', () {
-      expect(SpendCategory.essentials, contains(SpendCategory.loan));
-      expect(SpendCategory.essentials, contains(SpendCategory.education));
+      expect(SpendCategory.isEssential(SpendCategory.loan), isTrue);
+      expect(SpendCategory.isEssential(SpendCategory.education), isTrue);
+      expect(SpendCategory.isEssential(SpendCategory.shopping), isFalse);
+    });
+
+    test('an insurance sub-type is essential like its parent', () {
+      expect(SpendCategory.isEssential(SpendCategory.insuranceCar), isTrue);
+      expect(SpendCategory.parentOf(SpendCategory.insuranceCar),
+          SpendCategory.insurance);
     });
   });
 
