@@ -4,6 +4,7 @@ import '../engine/reconciliation_engine.dart';
 import '../engine/money_signal_engine.dart';
 import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
+import '../services/merchant_category_rules.dart';
 import '../services/secure_storage_service.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
@@ -112,6 +113,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
   SpendScanPeriod? _pendingPeriod;
 
+  /// Merchant → category rules taught by the user's manual corrections.
+  MerchantCategoryRules _categoryRules = const MerchantCategoryRules.empty();
+  bool _categoryRulesLoaded = false;
+
   @override
   SpendMapState build() {
     Future.microtask(_loadCached);
@@ -191,8 +196,20 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         );
   }
 
+  /// Loads the taught merchant rules once per session. Called from both the
+  /// cache load and the scan path, because a first-run scan can start before
+  /// (or without) any cached map being read.
+  Future<void> _ensureCategoryRulesLoaded() async {
+    if (_categoryRulesLoaded) return;
+    _categoryRulesLoaded = true;
+    _categoryRules = MerchantCategoryRules.fromJsonString(
+      await _storage.read(UserScopedStorageKeys.spendCategoryRules(_uid())),
+    );
+  }
+
   Future<void> _loadCached() async {
     final uid = _uid();
+    await _ensureCategoryRulesLoaded();
     final json = await _storage.read(_spendMapKey(uid));
     if (json == null) return;
     try {
@@ -270,9 +287,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   /// runs the AI categorization fallback, and best-effort syncs a summary.
   /// Assumes SMS permission is already granted.
   Future<void> _performScan(SpendScanPeriod selected) async {
+    await _ensureCategoryRulesLoaded();
     final since = selected.since(DateTime.now());
+    final previous = state.map;
     final raw = await _reader.readInbox(since: since);
-    final txns = _parser.parseAll(raw);
+    final txns = _applyUserCategories(_parser.parseAll(raw), previous);
 
     final map = _buildMap(txns, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
@@ -294,6 +313,75 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     } catch (_) {}
   }
 
+  /// Stable identity for a parsed transaction. A list index cannot be used to
+  /// recognise a transaction across scans — a scan rebuilds the whole list from
+  /// the inbox — so we key on the payment reference, else the source SMS id,
+  /// else the amount/direction/day/merchant signature.
+  static String _txnIdentity(FinanceTxn txn) {
+    final ref = txn.refNo;
+    if (ref != null && ref.isNotEmpty) return 'ref:$ref';
+    final smsId = txn.smsId;
+    if (smsId != null) return 'sms:$smsId';
+    return 'sig:${txn.amount}|${txn.direction.name}|'
+        '${txn.date.year}-${txn.date.month}-${txn.date.day}|'
+        '${MerchantCategoryRules.keyFor(txn.merchant) ?? ''}';
+  }
+
+  /// Re-applies the categories the user already chose to a freshly parsed scan:
+  /// first the exact corrections carried over from the previous map, then the
+  /// merchant rules those corrections taught. Without this, every scan — which
+  /// includes the implicit re-scan behind a period-chip tap — silently threw
+  /// away every manual category.
+  List<FinanceTxn> _applyUserCategories(
+    List<FinanceTxn> txns,
+    SpendMap? previous,
+  ) {
+    final manualByIdentity = <String, String>{};
+    for (final txn in previous?.txns ?? const <FinanceTxn>[]) {
+      if (txn.categorySource == CategorySource.manual) {
+        manualByIdentity[_txnIdentity(txn)] = txn.category;
+      }
+    }
+    if (manualByIdentity.isEmpty && _categoryRules.isEmpty) return txns;
+    return [
+      for (final txn in txns) _withUserCategory(txn, manualByIdentity),
+    ];
+  }
+
+  FinanceTxn _withUserCategory(
+    FinanceTxn txn,
+    Map<String, String> manualByIdentity,
+  ) {
+    if (txn.direction != TxnDirection.debit) return txn;
+    final chosen = manualByIdentity[_txnIdentity(txn)] ??
+        _categoryRules.categoryFor(txn.merchant);
+    // A stale or hand-edited rules blob must not be able to inject a category
+    // the app does not understand.
+    if (chosen == null || !SpendCategory.assignable.contains(chosen)) {
+      return txn;
+    }
+    return txn.copyWith(
+      category: chosen,
+      categorySource: CategorySource.manual,
+    );
+  }
+
+  /// Records "this merchant means this category" so later scans file it without
+  /// asking again. Silently ignored when the transaction has no merchant name
+  /// long enough to key a rule on.
+  Future<void> _rememberMerchantCategory(
+    String? merchant,
+    String category,
+  ) async {
+    if (MerchantCategoryRules.keyFor(merchant) == null) return;
+    if (_categoryRules.categoryFor(merchant) == category) return;
+    _categoryRules = _categoryRules.withRule(merchant, category);
+    await _storage.write(
+      UserScopedStorageKeys.spendCategoryRules(_uid()),
+      _categoryRules.toJsonString(),
+    );
+  }
+
   /// Changes the scan window. If a map already exists, immediately re-scans so
   /// the figures reflect the new window (the period chips are otherwise inert).
   /// Before the first scan we only record the choice and wait for the explicit
@@ -306,17 +394,22 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
   Future<void> recategorize(int transactionIndex, String category) async {
     final current = state.map;
+    // Validated against `assignable`, not `all`: `all` is the flat picker list
+    // and omits the insurance sub-types, so choosing "Car insurance" used to be
+    // rejected here and silently did nothing.
     if (current == null ||
         transactionIndex < 0 ||
         transactionIndex >= current.txns.length ||
-        !SpendCategory.all.contains(category)) {
+        !SpendCategory.assignable.contains(category)) {
       return;
     }
     final txns = [...current.txns];
-    txns[transactionIndex] = txns[transactionIndex].copyWith(
+    final corrected = txns[transactionIndex].copyWith(
       category: category,
       categorySource: CategorySource.manual,
     );
+    txns[transactionIndex] = corrected;
+    await _rememberMerchantCategory(corrected.merchant, category);
     final updated = SpendMap(
       txns: txns,
       windowStart: current.windowStart,

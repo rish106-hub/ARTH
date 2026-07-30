@@ -299,6 +299,106 @@ void main() {
       expect(map.hasOtherIncome, isTrue);
     });
   });
+
+  group('manual categories survive a re-scan', () {
+    /// A transaction with no extractable payee name, so the only thing that can
+    /// carry its category across a re-scan is the per-transaction identity.
+    RawSms unnamedDebit() => (
+          id: null,
+          sender: 'VMBANK',
+          body: 'Rs 700 debited from A/c XX1234 towards QUIKPAY on 05-07-26.',
+          date: DateTime(2026, 7, 5),
+        );
+
+    /// The "already asked about other income" flag lives in memory on its
+    /// notifier, which Riverpod may rebuild between reads in a test container.
+    /// Re-marking before each scan keeps the scan from parking on that one-time
+    /// question instead of reading the inbox.
+    Future<void> scan(ProviderContainer container) async {
+      await container.read(otherIncomeProvider.notifier).markAsked();
+      await container.read(spendMapProvider.notifier).scan();
+    }
+
+    test('an exact correction is re-applied after scanning again', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(
+        reader: _FakeReader([unnamedDebit()]),
+        sync: _NoopSync(),
+      );
+
+      await scan(container);
+      expect(
+          container.read(spendMapProvider).map!.txns.single.merchant, isNull);
+      await notifier.recategorize(0, SpendCategory.fees);
+
+      await scan(container);
+
+      final txn = container.read(spendMapProvider).map!.txns.single;
+      expect(txn.category, SpendCategory.fees);
+      expect(txn.categorySource, CategorySource.manual);
+    });
+
+    test('correcting a payee files its later payments automatically', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final messages = <RawSms>[
+        (
+          id: null,
+          sender: 'VMBANK',
+          body: 'Rs 700 debited via UPI to LOCAL STORE.',
+          date: DateTime(2026, 7, 5),
+        ),
+      ];
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(
+        reader: _FakeReader(messages),
+        sync: _NoopSync(),
+      );
+
+      await scan(container);
+      expect(container.read(spendMapProvider).map!.txns.single.category,
+          SpendCategory.other);
+      await notifier.recategorize(0, SpendCategory.groceries);
+
+      // A second, never-seen payment to the same payee arrives.
+      messages.add((
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 320 debited via UPI to Local Store.',
+        date: DateTime(2026, 7, 19),
+      ));
+      await scan(container);
+
+      final txns = container.read(spendMapProvider).map!.txns;
+      expect(txns.length, 2);
+      expect(
+        txns.every((t) => t.category == SpendCategory.groceries),
+        isTrue,
+      );
+    });
+
+    test('an insurance sub-type is accepted, an unknown category is not',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(spendMapProvider.notifier);
+      notifier.debugInjectDependencies(
+        reader: _FakeReader([unnamedDebit()]),
+        sync: _NoopSync(),
+      );
+      await scan(container);
+
+      await notifier.recategorize(0, SpendCategory.insuranceCar);
+      expect(container.read(spendMapProvider).map!.txns.single.category,
+          SpendCategory.insuranceCar);
+
+      await notifier.recategorize(0, 'not-a-category');
+      expect(container.read(spendMapProvider).map!.txns.single.category,
+          SpendCategory.insuranceCar);
+    });
+  });
 }
 
 /// Sync stub that returns canned AI category guesses keyed by transaction index.

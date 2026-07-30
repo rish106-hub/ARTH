@@ -9,6 +9,7 @@ import '../models/spend_scan_period_copy.dart';
 import '../providers/other_income_provider.dart';
 import '../providers/spend_map_adjustments_provider.dart';
 import '../providers/spend_map_provider.dart';
+import '../services/merchant_category_rules.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
 
@@ -1242,30 +1243,61 @@ class _SwipeReviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: SpendCategory.all
-                .where((category) => category != SpendCategory.other)
-                .map(
-                  (category) => ActionChip(
-                    avatar: Icon(_iconFor(category), size: 16),
-                    label: Text(SpendCategory.label(category)),
-                    onPressed: () {
-                      if (category == SpendCategory.insurance) {
-                        _showInsuranceTypeDialog(context, onCategory);
-                      } else {
-                        onCategory(category);
-                      }
-                    },
-                  ),
-                )
-                .toList(growable: false),
-          ),
+          _CategoryChips(onCategory: onCategory),
         ],
       ),
     );
+  }
+}
+
+/// The category picker. Shared by the unclear-transaction review and the
+/// "change category" action on a transaction, so both offer the same choices.
+class _CategoryChips extends StatelessWidget {
+  const _CategoryChips({required this.onCategory, this.selected});
+
+  final ValueChanged<String> onCategory;
+
+  /// Current category, highlighted when re-filing an already-categorised
+  /// transaction. Null while reviewing an unclear one.
+  final String? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    // `other` is excluded: it is the state the user is filing away from, and
+    // the parent insurance entry opens the sub-type sheet instead of applying.
+    final categories = SpendCategory.all
+        .where((category) => category != SpendCategory.other)
+        .toList(growable: false);
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final category in categories)
+          ActionChip(
+            avatar: Icon(_iconFor(category), size: 16),
+            label: Text(SpendCategory.label(category)),
+            backgroundColor:
+                _isSelected(category) ? PaycheckColors.matchedSoft : null,
+            onPressed: () {
+              if (category == SpendCategory.insurance) {
+                _showInsuranceTypeDialog(context, onCategory);
+              } else {
+                onCategory(category);
+              }
+            },
+          ),
+      ],
+    );
+  }
+
+  bool _isSelected(String category) {
+    final current = selected;
+    if (current == null) return false;
+    // An insurance sub-type highlights the parent chip.
+    return current == category ||
+        (category == SpendCategory.insurance &&
+            current.startsWith('${SpendCategory.insurance}:'));
   }
 }
 
@@ -1852,8 +1884,11 @@ class _TransactionListState extends State<_TransactionList> {
 
   @override
   Widget build(BuildContext context) {
-    // Most recent first.
-    final txns = [...widget.map.txns]..sort((a, b) => b.date.compareTo(a.date));
+    // Most recent first. Carries each transaction's index in `map.txns` so a
+    // row can be re-filed — the notifier addresses transactions by that index,
+    // which display order would otherwise lose.
+    final txns = [...widget.map.txns.indexed]
+      ..sort((a, b) => b.$2.date.compareTo(a.$2.date));
     if (txns.isEmpty) {
       return Text('No transactions detected yet.',
           style: PaycheckType.body(color: PaycheckColors.inkSoft));
@@ -1863,7 +1898,8 @@ class _TransactionListState extends State<_TransactionList> {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Column(
         children: [
-          for (final txn in shown) _TransactionRow(txn: txn),
+          for (final entry in shown)
+            _TransactionRow(index: entry.$1, txn: entry.$2),
           if (txns.length > _initialCount)
             TextButton(
               onPressed: () => setState(() => _expanded = !_expanded),
@@ -1878,7 +1914,10 @@ class _TransactionListState extends State<_TransactionList> {
 }
 
 class _TransactionRow extends StatelessWidget {
-  const _TransactionRow({required this.txn});
+  const _TransactionRow({required this.index, required this.txn});
+
+  /// Index of this transaction in `SpendMap.txns`, not in display order.
+  final int index;
   final FinanceTxn txn;
 
   @override
@@ -1888,7 +1927,7 @@ class _TransactionRow extends StatelessWidget {
         ? txn.merchant!
         : (txn.sender ?? 'Unknown');
     return InkWell(
-      onTap: () => _showTxnDetail(context, txn),
+      onTap: () => _showTxnDetail(context, txn, index),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1957,7 +1996,7 @@ class _TransactionRow extends StatelessWidget {
   }
 }
 
-Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
+Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn, int index) {
   final isDebit = txn.direction == TxnDirection.debit;
   return showModalBottomSheet<void>(
     context: context,
@@ -1965,7 +2004,9 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
     ),
-    builder: (context) => SafeArea(
+    // Named so the outer context stays reachable: the category picker is opened
+    // from the page, after this sheet has been popped.
+    builder: (sheetContext) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(
@@ -1985,7 +2026,7 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
                 ),
                 IconButton(
                   tooltip: 'Close',
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(sheetContext),
                   icon: const Icon(Icons.close_rounded),
                 ),
               ],
@@ -2003,6 +2044,21 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
                   ? SpendCategory.label(txn.category)
                   : (txn.isSalary ? 'Salary' : 'Credit'),
             ),
+            // Filing was only reachable from the unclear-transaction review,
+            // which surfaces `other` transactions — a wrong category on any
+            // other transaction could not be corrected at all.
+            if (isDebit)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _showCategoryPicker(context, txn, index);
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Change category'),
+                ),
+              ),
             if (txn.bodyPreview?.isNotEmpty == true) ...[
               const SizedBox(height: 14),
               Text('ORIGINAL SMS', style: PaycheckType.utility()),
@@ -2022,12 +2078,64 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn) {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () => _openInMessages(context, txn),
+                onPressed: () => _openInMessages(sheetContext, txn),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: const Text('Open in Messages app'),
               ),
             ),
           ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Re-files one transaction into a category the user picks. The choice is
+/// remembered per merchant, so the same payee is filed automatically on later
+/// scans instead of needing the same correction again.
+Future<void> _showCategoryPicker(
+  BuildContext context,
+  FinanceTxn txn,
+  int index,
+) {
+  final merchant = txn.merchant?.trim();
+  final remembersMerchant =
+      MerchantCategoryRules.keyFor(merchant) != null && merchant != null;
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Consumer(
+          builder: (_, ref, __) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('File this transaction', style: PaycheckType.heading()),
+              const SizedBox(height: 4),
+              Text(
+                remembersMerchant
+                    ? 'Future payments to $merchant will use this category.'
+                    : 'This transaction only — there is no payee name to '
+                        'remember it against.',
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 16),
+              _CategoryChips(
+                selected: txn.category,
+                onCategory: (category) {
+                  ref
+                      .read(spendMapProvider.notifier)
+                      .recategorize(index, category);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -2100,6 +2208,10 @@ class _Card extends StatelessWidget {
 }
 
 IconData _iconFor(String category) {
+  // Covers the insurance sub-types ("insurance:car") with the parent icon.
+  if (category.startsWith(SpendCategory.insurance)) {
+    return Icons.shield_outlined;
+  }
   switch (category) {
     case SpendCategory.food:
       return Icons.restaurant_outlined;
@@ -2121,6 +2233,18 @@ IconData _iconFor(String category) {
       return Icons.trending_up_outlined;
     case SpendCategory.cash:
       return Icons.atm_outlined;
+    case SpendCategory.travel:
+      return Icons.flight_takeoff_outlined;
+    case SpendCategory.education:
+      return Icons.school_outlined;
+    case SpendCategory.loan:
+      return Icons.account_balance_outlined;
+    case SpendCategory.fees:
+      return Icons.percent_outlined;
+    case SpendCategory.subscriptions:
+      return Icons.autorenew_outlined;
+    case SpendCategory.transfer:
+      return Icons.send_outlined;
     default:
       return Icons.category_outlined;
   }

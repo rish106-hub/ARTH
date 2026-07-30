@@ -118,6 +118,7 @@ const userStateNamespaces = [
   'document-checklist',
   'spend-map',
   'spend-map-adjustments',
+  'spend-category-rules',
   'spend-completeness',
   'other-income',
   'other-income-asked',

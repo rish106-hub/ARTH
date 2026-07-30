@@ -12,6 +12,7 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.documentChecklist(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendMap(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendMapAdjustments(uid)));
+    expect(keys, contains(UserScopedStorageKeys.spendCategoryRules(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendCompleteness(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncome(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncomeAsked(uid)));
@@ -19,7 +20,7 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.syncQueue(uid)));
     expect(keys, contains(UserScopedStorageKeys.recovery(uid)));
     expect(keys, contains(UserScopedStorageKeys.monthlyClose(uid)));
-    expect(keys.length, 15);
+    expect(keys.length, 16);
   });
 
   test('durable keys include drafts and exclude auth caches and retry queue',
