@@ -19,6 +19,12 @@ class SpendCategory {
   static const rent = 'rent';
   static const investment = 'investment';
   static const cash = 'cash';
+  static const travel = 'travel';
+  static const education = 'education';
+  static const loan = 'loan';
+  static const fees = 'fees';
+  static const subscriptions = 'subscriptions';
+  static const transfer = 'transfer';
   static const other = 'other';
 
   // Insurance sub-types
@@ -28,20 +34,40 @@ class SpendCategory {
   static const insuranceLife = 'insurance:life';
   static const insuranceOther = 'insurance:other';
 
+  static const insuranceSubtypes = [
+    insuranceCar,
+    insuranceBike,
+    insuranceHealth,
+    insuranceLife,
+    insuranceOther,
+  ];
+
   static const all = [
     food,
-    transport,
-    shopping,
-    bills,
     groceries,
+    transport,
+    travel,
+    shopping,
     entertainment,
+    subscriptions,
+    bills,
+    fees,
     health,
     insurance,
     rent,
+    education,
+    loan,
     investment,
+    transfer,
     cash,
     other,
   ];
+
+  /// Every value a transaction's category may legitimately hold, including the
+  /// insurance sub-types. Use this — not [all] — to validate a category coming
+  /// from the UI or from stored/synced JSON; [all] is the flat picker list and
+  /// deliberately carries only the parent `insurance` entry.
+  static const assignable = [...all, ...insuranceSubtypes];
 
   /// Categories that count as non-discretionary living costs. Used to seed the
   /// savings-goal "essentials" figure without pulling in discretionary spend
@@ -53,6 +79,10 @@ class SpendCategory {
     transport,
     health,
     insurance,
+    // A loan EMI and school/college fees are contractually owed, not
+    // discretionary — leaving them out understated the essentials floor.
+    loan,
+    education,
   ];
 
   static String label(String category) {
@@ -89,6 +119,18 @@ class SpendCategory {
         return 'Investments';
       case cash:
         return 'Cash / ATM';
+      case travel:
+        return 'Travel & stays';
+      case education:
+        return 'Education';
+      case loan:
+        return 'Loan & EMI';
+      case fees:
+        return 'Fees & charges';
+      case subscriptions:
+        return 'Subscriptions';
+      case transfer:
+        return 'Sent to people';
       default:
         return 'Other';
     }
@@ -106,6 +148,7 @@ class FinanceTxn {
     this.merchant,
     this.sender,
     this.smsId,
+    this.refNo,
     this.bodyPreview,
     this.categorySource = CategorySource.rules,
   });
@@ -121,6 +164,13 @@ class FinanceTxn {
   /// Android SMS `_id` of the source message, kept so the UI can offer to open
   /// the exact original SMS. Null when parsed from a source without an id.
   final int? smsId;
+
+  /// UPI/NEFT reference number from the message body, when present. The same
+  /// payment alerted twice (bank header + UPI app header) carries the same
+  /// reference, so this is the only reliable duplicate key; it also survives a
+  /// re-scan, which the Android SMS `_id` does for the same message but a
+  /// re-parsed list index does not.
+  final String? refNo;
 
   /// Short excerpt of the original SMS body, retained so the user can identify
   /// a transaction in-app without leaving the screen. Truncated at parse time.
@@ -146,6 +196,7 @@ class FinanceTxn {
         merchant: merchant ?? this.merchant,
         sender: sender,
         smsId: smsId,
+        refNo: refNo,
         bodyPreview: bodyPreview,
         categorySource: categorySource ?? this.categorySource,
       );
@@ -159,6 +210,7 @@ class FinanceTxn {
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
         if (smsId != null) 'smsId': smsId,
+        if (refNo != null) 'refNo': refNo,
         if (bodyPreview != null) 'bodyPreview': bodyPreview,
         'categorySource': categorySource.name,
       };
@@ -175,6 +227,7 @@ class FinanceTxn {
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
         smsId: (json['smsId'] as num?)?.toInt(),
+        refNo: json['refNo']?.toString(),
         bodyPreview: json['bodyPreview']?.toString(),
         categorySource: CategorySource.fromName(
           json['categorySource']?.toString(),

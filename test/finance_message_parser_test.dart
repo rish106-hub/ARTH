@@ -323,6 +323,193 @@ void main() {
     });
   });
 
+  group('issuer SMS formats that were previously dropped', () {
+    test('HDFC "Sent Rs.X From A/C To MERCHANT" is a debit', () {
+      final txn = parse(
+        'Sent Rs.120.00 From HDFC Bank A/C x1234 To ZEPTO On 12/07/26 '
+        'Ref 419203847362 Not You? Call 18002586161',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.debit);
+      expect(txn.amount, 120);
+      expect(txn.merchant, 'ZEPTO');
+      expect(txn.category, SpendCategory.groceries);
+      expect(txn.refNo, '419203847362');
+    });
+
+    test('SBI bare amount with no currency prefix is parsed', () {
+      final txn = parse(
+        'Dear UPI user A/C X1234 debited by 250.0 on date 12Jul26 '
+        'trf to SWIGGY Refno 419203847362',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.amount, 250);
+      expect(txn.direction, TxnDirection.debit);
+      expect(txn.category, SpendCategory.food);
+    });
+
+    test('a bare number is only read as an amount after a money verb', () {
+      // Account tail, date and reference digits must not become the amount.
+      expect(parse('A/C X1234 statement for 12Jul26 ref 998877 is ready.'),
+          isNull);
+    });
+
+    test('a completed UPI Autopay debit counts as spend', () {
+      final txn = parse(
+        'Rs 649 debited from A/c XX1234 towards NETFLIX subscription '
+        'via UPI Autopay on 12-Jul-26.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.amount, 649);
+      expect(txn.category, SpendCategory.entertainment);
+    });
+
+    test('a completed e-mandate debit counts as spend', () {
+      final txn = parse(
+        'Rs 5000 debited via e-mandate for SIP in Axis Bluechip Fund '
+        'on 12-Jul-26.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.amount, 5000);
+      expect(txn.category, SpendCategory.investment);
+    });
+
+    test('mandate REGISTRATION is still ignored', () {
+      expect(
+        parse('E-mandate registered for Rs 5000 monthly on your A/c XX1234.'),
+        isNull,
+      );
+    });
+  });
+
+  group('merchant extraction', () {
+    test('does not mistake the amount for the merchant', () {
+      final txn = parse(
+        'ICICI Bank Acct XX123 debited for Rs 99.00 on 12-Jul-26. '
+        'UPI:419203847362',
+      );
+      expect(txn!.merchant, isNot(contains('99')));
+    });
+
+    test('strips wrapping words before the merchant', () {
+      final txn = parse(
+          'Rs 2400 debited for purchase at METRO CASH AND CARRY on 12-Jul-26.');
+      expect(txn!.merchant, 'METRO CASH AND CARRY');
+    });
+
+    test('strips trailing rails words after the merchant', () {
+      expect(parse('Rs 499 paid to SWIGGY via UPI.')!.merchant, 'SWIGGY');
+    });
+
+    test('drops an account tail rather than showing it as a merchant', () {
+      final txn = parse('Rs 85,000 credited to a/c XX12 by NEFT ref ACME.');
+      expect(txn!.merchant, isNull);
+    });
+  });
+
+  group('category keyword precision', () {
+    test('"gossip" does not match the investment keyword "sip"', () {
+      expect(parse('Rs 300 paid to GOSSIP CAFE BANDRA on 12-Jul-26.')!.category,
+          SpendCategory.food);
+    });
+
+    test('METRO CASH AND CARRY is groceries, not transport', () {
+      expect(
+          parse('Rs 2400 debited at METRO CASH AND CARRY on 12-Jul.')!.category,
+          SpendCategory.groceries);
+    });
+
+    test('APOLLO TYRES is transport, not health', () {
+      expect(parse('Rs 8000 paid to APOLLO TYRES DEALER via UPI.')!.category,
+          SpendCategory.transport);
+    });
+
+    test('APOLLO PHARMACY is still health', () {
+      expect(parse('Rs 800 paid to APOLLO PHARMACY via UPI.')!.category,
+          SpendCategory.health);
+    });
+  });
+
+  group('categories added for common Indian spend', () {
+    test('home loan EMI → loan', () {
+      expect(
+        parse('Rs 12,450 debited from A/c XX1234 towards HOME LOAN EMI.')!
+            .category,
+        SpendCategory.loan,
+      );
+    });
+
+    test('bank charges → fees', () {
+      expect(
+        parse('Rs 590 debited towards Annual Maintenance Charges GST incl.')!
+            .category,
+        SpendCategory.fees,
+      );
+    });
+
+    test('school fees → education, not fees', () {
+      expect(
+          parse('Rs 45,000 paid to VIDYASHRAM SCHOOL FEES via UPI.')!.category,
+          SpendCategory.education);
+    });
+
+    test('hotel booking → travel', () {
+      expect(
+          parse('Rs 6,700 debited at MAKEMYTRIP HOTELS on 12-Jul.')!.category,
+          SpendCategory.travel);
+    });
+
+    test('NETFLIX stays entertainment ahead of the subscriptions keyword', () {
+      expect(parse('Rs 649 debited towards NETFLIX subscription.')!.category,
+          SpendCategory.entertainment);
+    });
+
+    test('iCloud storage → subscriptions', () {
+      expect(parse('Rs 219 debited towards ICLOUD renewal.')!.category,
+          SpendCategory.subscriptions);
+    });
+
+    test('loan EMI and school fees count as essential spend', () {
+      expect(SpendCategory.essentials, contains(SpendCategory.loan));
+      expect(SpendCategory.essentials, contains(SpendCategory.education));
+    });
+  });
+
+  group('duplicate alerts vs distinct same-amount payments', () {
+    ({int? id, String sender, String body, DateTime date}) msg(
+      String body,
+      String sender,
+    ) =>
+        (id: null, sender: sender, body: body, date: DateTime(2026, 7, 12));
+
+    test('two alerts sharing a UPI reference collapse to one', () {
+      final txns = parser.parseAll([
+        msg('Rs 499 debited to SWIGGY. Ref 419203847362', 'HDFCBK'),
+        msg('Rs 499 paid to Swiggy via UPI. Refno 419203847362', 'PAYTM'),
+      ]);
+      expect(txns.length, 1);
+    });
+
+    test('two different same-amount payments on one day are both kept', () {
+      final txns = parser.parseAll([
+        msg('Sent Rs.50.00 From A/C x1234 To CHAI POINT Ref 111111111111',
+            'HDFCBK'),
+        msg('Sent Rs.50.00 From A/C x1234 To TEA VILLA Ref 222222222222',
+            'HDFCBK'),
+      ]);
+      expect(txns.length, 2);
+    });
+
+    test('same-amount payments to different merchants survive without a ref',
+        () {
+      final txns = parser.parseAll([
+        msg('Rs 50 paid to CHAI POINT.', 'HDFCBK'),
+        msg('Rs 50 paid to TEA VILLA.', 'HDFCBK'),
+      ]);
+      expect(txns.length, 2);
+    });
+  });
+
   group('credit card bill payments are not mistaken for income', () {
     test('"received...credited to your credit card" is a debit, not salary',
         () {

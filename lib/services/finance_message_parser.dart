@@ -8,8 +8,10 @@ import '../models/spend_map.dart';
 class FinanceMessageParser {
   const FinanceMessageParser();
 
-  // Currency amount: Rs / Rs. / INR / ₹  followed by an amount, OR a bare
-  // amount followed by a currency word. Captures the numeric group.
+  // ---------------------------------------------------------------- amounts
+
+  // Currency amount: Rs / Rs. / INR / ₹ followed by an amount. Captures the
+  // numeric group.
   static final RegExp _amountRe = RegExp(
     r'(?:rs\.?|inr|₹)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)',
     caseSensitive: false,
@@ -23,37 +25,39 @@ class FinanceMessageParser {
     caseSensitive: false,
   );
 
-  static const _debitWords = [
-    'debited',
-    'debit',
-    'spent',
-    'paid',
-    'withdrawn',
-    'withdrawal',
-    'purchase',
-    'deducted',
-    'charged',
-    'sent to',
-    'txn of',
-    'transferred',
-  ];
+  // Amount with NO currency prefix. SBI/BoB/Canara UPI alerts write "A/C X1234
+  // debited by 250.0 ... trf to SWIGGY" — without this the whole message was
+  // discarded. Anchored immediately after a money verb (with only linking words
+  // in between) so an account tail, date or reference number can never be read
+  // as an amount.
+  static final RegExp _bareAmountRe = RegExp(
+    r'\b(?:debited|credited|debit|credit|paid|payment|sent|spent|withdrawn|'
+    r'deducted|charged|transferred|trf)\b'
+    r'(?:\s+(?:by|for|with|of|amount|amt|rs|inr))*'
+    r'\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)\b',
+    caseSensitive: false,
+  );
 
-  static const _creditWords = [
-    'credited',
-    'received',
-    'deposited',
-    'added to',
-    'refund',
-  ];
+  // ------------------------------------------------------------- direction
 
-  static const _salaryWords = [
-    'salary',
-    'sal cr',
-    'sal-cr',
-    'payroll',
-    'sal credit',
-    'monthly sal',
-  ];
+  // Direction verbs are matched on word boundaries: bare `contains` let
+  // "debit" fire inside unrelated words. "sent" (not just "sent to") is
+  // required for HDFC's dominant UPI format — "Sent Rs.120 From A/C x1 To X".
+  static final RegExp _debitRe = RegExp(
+    r'\b(?:debited|debit|spent|paid|withdrawn|withdrawal|purchase|deducted|'
+    r'charged|sent|txn of|transferred|trf)\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _creditRe = RegExp(
+    r'\b(?:credited|received|deposited|added to|refund|refunded)\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _salaryRe = RegExp(
+    r'\b(?:salary|sal cr|sal-cr|sal credit|payroll|monthly sal)\b',
+    caseSensitive: false,
+  );
 
   // Credit-card BILL PAYMENTS read as a literal credit ("Payment of Rs X
   // received... credited to your SBI Credit Card ending 1234") because the
@@ -78,20 +82,25 @@ class FinanceMessageParser {
     return !_cardCreditExceptions.any(lowerBody.contains);
   }
 
-  // Skip these outright — not real completed transactions.
+  // Skip these outright — not real completed transactions. Note that "autopay"
+  // and "e-mandate" are deliberately NOT here: a mandate DEBIT is a real
+  // expense (Netflix, SIPs, insurance). Only mandate *registration* and
+  // future-tense notices are skipped.
   static const _skipWords = [
     'otp',
     'one time password',
     'do not share',
     'will be debited',
     'will be deducted',
+    'will be charged',
     'due on',
     'is due',
     'requested money',
     'requesting',
-    'e-mandate',
-    'autopay',
     'has been set',
+    'mandate registered',
+    'mandate created',
+    'mandate is successfully',
     'failed',
     'declined',
     'reversed',
@@ -103,8 +112,85 @@ class FinanceMessageParser {
   static final RegExp _skipRe =
       RegExp('\\b(?:${_skipWords.join('|')})\\b', caseSensitive: false);
 
-  // merchant/keyword → category. First match wins.
+  // ------------------------------------------------------------ categories
+
+  // merchant/keyword → category. Order matters: the first category whose
+  // keywords match wins, so narrower categories are listed before the broader
+  // ones they would otherwise be swallowed by ("metro cash" as groceries
+  // before "metro" as transport; "school" as education before "fee" as fees).
   static const Map<String, List<String>> _categoryKeywords = {
+    SpendCategory.insurance: [
+      'insurance',
+      'policy premium',
+      'renewal premium',
+      'lic premium',
+      'lic of india',
+      'hdfc ergo',
+      'icici lombard',
+      'bajaj allianz',
+      'star health',
+      'niva bupa',
+      'acko',
+      'go digit',
+      'godigit',
+      'policybazaar',
+      'tata aig',
+      'sbi life',
+      'max life',
+    ],
+    SpendCategory.investment: [
+      'sip',
+      'mutual fund',
+      'zerodha',
+      'groww',
+      'upstox',
+      'angel one',
+      'nps',
+      'ppf',
+      'elss',
+      'smallcase',
+      'demat',
+      'broking',
+      'stocks',
+      'indmoney',
+      'kuvera',
+      'recurring deposit',
+      'fixed deposit',
+    ],
+    SpendCategory.loan: [
+      'emi',
+      'loan',
+      'nbfc',
+      'finserv',
+      'bajaj finance',
+      'muthoot',
+      'hdb financial',
+      'kreditbee',
+      'moneyview',
+      'principal outstanding',
+    ],
+    SpendCategory.groceries: [
+      'bigbasket',
+      'blinkit',
+      'zepto',
+      'dmart',
+      'grofers',
+      'jiomart',
+      'instamart',
+      'grocery',
+      'kirana',
+      'supermarket',
+      'super market',
+      'metro cash',
+      'metro wholesale',
+      'reliance fresh',
+      'reliance smart',
+      'spencers',
+      'natures basket',
+      'licious',
+      'country delight',
+      'milkbasket',
+    ],
     SpendCategory.food: [
       'swiggy',
       'zomato',
@@ -119,84 +205,88 @@ class FinanceMessageParser {
       'faasos',
       'behrouz',
       'starbucks',
+      'dhaba',
+      'bakery',
+      'biryani',
+      'pizza',
+      'burger',
+      'chai',
+      'sweets',
+      'canteen',
+      'tiffin',
     ],
-    SpendCategory.groceries: [
-      'bigbasket',
-      'blinkit',
-      'zepto',
-      'dmart',
-      'grofers',
-      'jiomart',
-      'instamart',
-      'grocery',
-      'licious',
-      'country delight',
-      'milkbasket',
+    SpendCategory.education: [
+      'school',
+      'college',
+      'tuition',
+      'university',
+      'coaching',
+      'semester',
+      'hostel fee',
+      'admission',
+      'exam fee',
+      'coursera',
+      'udemy',
+      'unacademy',
+      'byju',
+      'vedantu',
+      'physicswallah',
+      'upgrad',
+      'scaler',
+    ],
+    SpendCategory.travel: [
+      'makemytrip',
+      'goibibo',
+      'yatra',
+      'cleartrip',
+      'ixigo',
+      'oyo',
+      'airbnb',
+      'agoda',
+      'booking.com',
+      'indigo',
+      'air india',
+      'vistara',
+      'spicejet',
+      'akasa',
+      'airlines',
+      'flight',
+      'irctc',
+      'railway',
+      'redbus',
+      'abhibus',
+      'hotels',
+      'resort',
+      'homestay',
+      'travel',
+      'travels',
+      'tours',
+      'rental',
+      'zoomcar',
+      'revv',
     ],
     SpendCategory.transport: [
       'uber',
       'ola',
       'rapido',
-      'irctc',
       'petrol',
       'fuel',
       'hpcl',
       'iocl',
       'bpcl',
+      'indian oil',
+      'shell',
+      'nayara',
       'metro',
       'fastag',
-      'redbus',
+      'toll',
+      'parking',
       'namma yatri',
       'blusmart',
       'yulu',
-      'indian oil',
-    ],
-    SpendCategory.shopping: [
-      'amazon',
-      'flipkart',
-      'myntra',
-      'ajio',
-      'meesho',
-      'nykaa',
-      'tatacliq',
-      'reliance digital',
-      'croma',
-      'lenskart',
-      'decathlon',
-      'ikea',
-    ],
-    SpendCategory.entertainment: [
-      'netflix',
-      'spotify',
-      'hotstar',
-      'prime video',
-      'bookmyshow',
-      'pvr',
-      'inox',
-      'youtube premium',
-      'jiocinema',
-      'sonyliv',
-      'zee5',
-      'disney',
-    ],
-    SpendCategory.bills: [
-      'recharge',
-      'electricity',
-      'bescom',
-      'bill',
-      'jio',
-      'airtel',
-      'vi ',
-      'broadband',
-      'gas',
-      'water bill',
-      'dth',
-      'postpaid',
-      'tata power',
-      'adani',
-      'act fibernet',
-      'bsnl',
-      'insurance premium',
+      'bounce',
+      'apollo tyres',
+      'tyre',
     ],
     SpendCategory.health: [
       'pharmeasy',
@@ -206,39 +296,250 @@ class FinanceMessageParser {
       'hospital',
       'clinic',
       'diagnostic',
+      'pathlab',
+      'pathlabs',
       'medplus',
+      'pharmacy',
+      'medical',
+      'dental',
+      'dentist',
+      'physio',
       'practo',
       'cult.fit',
       'cultfit',
+    ],
+    SpendCategory.entertainment: [
+      'netflix',
+      'spotify',
+      'hotstar',
+      'prime video',
+      'bookmyshow',
+      'pvr',
+      'inox',
+      'cinepolis',
+      'cinema',
+      'multiplex',
+      'theatre',
+      'youtube premium',
+      'jiocinema',
+      'sonyliv',
+      'zee5',
+      'disney',
+      'gaming',
+    ],
+    SpendCategory.subscriptions: [
+      'subscription',
+      'renewal',
+      'membership',
+      'icloud',
+      'google one',
+      'microsoft 365',
+      'office 365',
+      'adobe',
+      'chatgpt',
+      'openai',
+      'notion',
+      'canva',
+      'github',
+      'dropbox',
+      'audible',
+      'kindle unlimited',
+      'apple one',
+      'youtube music',
+    ],
+    SpendCategory.shopping: [
+      'amazon',
+      'flipkart',
+      'myntra',
+      'ajio',
+      'meesho',
+      'nykaa',
+      'tatacliq',
+      'snapdeal',
+      'firstcry',
+      'reliance digital',
+      'vijay sales',
+      'croma',
+      'lenskart',
+      'decathlon',
+      'ikea',
+      'zudio',
+      'pantaloons',
+      'westside',
+      'shoppers stop',
+      'bata',
+      'tanishq',
+      'caratlane',
+    ],
+    SpendCategory.bills: [
+      'recharge',
+      'electricity',
+      'bescom',
+      'msedcl',
+      'torrent power',
+      'tata power',
+      'adani',
+      'tneb',
+      'kseb',
+      'bill',
+      'jio',
+      'airtel',
+      'vodafone',
+      'vi postpaid',
+      'bsnl',
+      'broadband',
+      'act fibernet',
+      'wifi',
+      'landline',
+      'dth',
+      'postpaid',
+      'prepaid',
+      'gas',
+      'indane',
+      'bharat gas',
+      'mahanagar gas',
+      'water bill',
+      'utility',
+    ],
+    SpendCategory.fees: [
+      'charge',
+      'charges',
+      'fee',
+      'fees',
+      'gst',
+      'penalty',
+      'late fee',
+      'annual maintenance',
+      'amc',
+      'convenience fee',
+      'processing fee',
+      'sms charges',
+      'minimum balance',
+      'surcharge',
+      'service tax',
     ],
     SpendCategory.rent: [
       'rent',
       'nobroker',
       'landlord',
-    ],
-    SpendCategory.investment: [
-      'sip',
-      'mutual fund',
-      'zerodha',
-      'groww',
-      'upstox',
-      'nps',
-      'ppf',
-      'stock',
-      'indmoney',
-      'kuvera',
+      'house rent',
+      'society maintenance',
+      'flat maintenance',
     ],
     SpendCategory.cash: [
       'atm',
       'cash withdrawal',
       'cash wdl',
+      'cardless cash',
     ],
   };
+
+  static final RegExp _regexSpecials = RegExp(r'[.*+?^${}()|[\]\\]');
+
+  static String _escape(String literal) =>
+      literal.replaceAllMapped(_regexSpecials, (m) => '\\${m[0]}');
+
+  static final RegExp _wordCharStart = RegExp(r'^\w');
+  static final RegExp _wordCharEnd = RegExp(r'\w$');
+
+  /// Anchors a keyword on word boundaries so `sip` no longer fires inside
+  /// "gossip", `bill` inside "billdesk" or `metro` inside a longer token. The
+  /// boundary is only added on an edge that is actually a word character, so
+  /// punctuated keywords ("cult.fit", "booking.com") still match.
+  static String _asWord(String keyword) {
+    final left = _wordCharStart.hasMatch(keyword) ? r'\b' : '';
+    final right = _wordCharEnd.hasMatch(keyword) ? r'\b' : '';
+    return '$left${_escape(keyword)}$right';
+  }
+
+  static final List<(String, RegExp)> _categoryMatchers = [
+    for (final entry in _categoryKeywords.entries)
+      (
+        entry.key,
+        RegExp(entry.value.map(_asWord).join('|'), caseSensitive: false),
+      ),
+  ];
+
+  // ------------------------------------------------------------- merchants
+
+  // Merchant follows "to", "at" or "for". The trailing delimiter is a lookahead
+  // so it is not swallowed, which keeps the captured span tight.
+  static final RegExp _merchantRe = RegExp(
+    r"(?:\bto\b|\bat\b|\bfor\b)\s+([A-Za-z0-9&./'_ -]{2,60}?)"
+    r'(?=\s+on\b|\s+ref|\s+via\b|\s+upi\b|\s+dt\b|[.,;!]|$)',
+    caseSensitive: false,
+  );
+
+  static final RegExp _vpaRe =
+      RegExp(r'([a-z0-9._-]+)@[a-z]+', caseSensitive: false);
+
+  // "for UPI to SWIGGY" / "for purchase at METRO CASH AND CARRY" — the real
+  // merchant is the last segment, after the innermost preposition.
+  static final RegExp _innerPrepositionRe =
+      RegExp(r'\s+(?:to|at)\s+', caseSensitive: false);
+
+  // Tokens that are transport wrapping, not part of the merchant name.
+  static const _merchantNoiseTokens = {
+    'a/c',
+    'ac',
+    'acct',
+    'account',
+    'avl',
+    'bal',
+    'bank',
+    'by',
+    'card',
+    'dt',
+    'for',
+    'from',
+    'imps',
+    'info',
+    'neft',
+    'no',
+    'of',
+    'on',
+    'payment',
+    'pymt',
+    'ref',
+    'refno',
+    'rtgs',
+    'ach',
+    'sent',
+    'the',
+    'through',
+    'to',
+    'towards',
+    'transaction',
+    'trf',
+    'txn',
+    'upi',
+    'via',
+    'vpa',
+    'your',
+  };
+
+  // A masked account tail ("XX1234", "x1234", "****9012") or a bare number is
+  // never the merchant.
+  static final RegExp _accountTokenRe =
+      RegExp(r'^(?:[x*]+[0-9]*|[0-9]+)$', caseSensitive: false);
+
+  // "Rs 99.00", "1,299" — the amount, captured because it followed "for".
+  static final RegExp _amountLikeRe = RegExp(
+    r'^(?:rs\.?|inr|₹)?[\s.]*[0-9][0-9,.]*$',
+    caseSensitive: false,
+  );
+
+  static final RegExp _refRe = RegExp(
+    r'\b(?:ref(?:no|erence)?|utr|rrn|txn(?:\s*(?:id|no))?|upi)\b[\s:.#/-]*'
+    r'([0-9]{6,20})\b',
+    caseSensitive: false,
+  );
 
   // Max characters of the original SMS body retained on a transaction for the
   // in-app "view original" detail. Enough to identify the message; short enough
   // to keep persisted storage lean.
   static const _bodyPreviewMax = 180;
+  static const _merchantMax = 30;
 
   FinanceTxn? parse({
     required String sender,
@@ -256,10 +557,10 @@ class FinanceMessageParser {
     if (amount == null || amount <= 0) return null;
 
     // 3. Direction. Whichever verb appears first wins; _firstIndexOf returns a
-    // large sentinel when a list has no match, so a single comparison also
-    // handles the debit-only / credit-only cases.
-    final debitAt = _firstIndexOf(lower, _debitWords);
-    final creditAt = _firstIndexOf(lower, _creditWords);
+    // large sentinel when neither matches, so a single comparison also handles
+    // the debit-only / credit-only cases.
+    final debitAt = _firstIndexOf(lower, _debitRe);
+    final creditAt = _firstIndexOf(lower, _creditRe);
     if (debitAt == _noMatch && creditAt == _noMatch) return null;
     var direction =
         debitAt < creditAt ? TxnDirection.debit : TxnDirection.credit;
@@ -279,7 +580,7 @@ class FinanceMessageParser {
     // is never salary even though it may contain "credited").
     final isSalary = !isCardBillPayment &&
         direction == TxnDirection.credit &&
-        _salaryWords.any(lower.contains);
+        _salaryRe.hasMatch(lower);
 
     // 5. Category + merchant (only for spend).
     final merchant = _extractMerchant(body);
@@ -298,6 +599,7 @@ class FinanceMessageParser {
       merchant: merchant,
       sender: sender,
       smsId: smsId,
+      refNo: _refRe.firstMatch(body)?.group(1),
       bodyPreview: _preview(body),
     );
   }
@@ -329,20 +631,32 @@ class FinanceMessageParser {
 
   /// Drops duplicate alerts for the same transaction. Banks and UPI apps often
   /// send two SMS (different sender headers, similar bodies) for one payment;
-  /// keeping both double-counts spend and income. Two txns with the same
-  /// amount, direction and calendar day are treated as one. This can merge two
-  /// genuinely-distinct same-amount payments on the same day, but that is far
-  /// rarer than duplicate alerts and much less distorting.
+  /// keeping both double-counts spend and income.
+  ///
+  /// Prefers the UPI/NEFT reference number, which both alerts for one payment
+  /// share and no two distinct payments share. Without a reference we fall back
+  /// to amount + direction + day + merchant; including the merchant is what
+  /// stops two genuinely different same-amount payments on one day (two ₹50
+  /// chai runs) from collapsing into one, which the earlier key did.
   static List<FinanceTxn> _deduplicate(List<FinanceTxn> txns) {
     final seen = <String>{};
     final out = <FinanceTxn>[];
     for (final t in txns) {
-      final key = '${t.amount}|${t.direction.name}|'
-          '${t.date.year}-${t.date.month}-${t.date.day}';
+      final ref = t.refNo;
+      final key = ref != null && ref.isNotEmpty
+          ? 'ref:$ref'
+          : '${t.amount}|${t.direction.name}|'
+              '${t.date.year}-${t.date.month}-${t.date.day}|'
+              '${_merchantKey(t.merchant)}';
       if (seen.add(key)) out.add(t);
     }
     return out;
   }
+
+  static final RegExp _nonAlphanumeric = RegExp(r'[^a-z0-9]');
+
+  static String _merchantKey(String? merchant) =>
+      (merchant ?? '').toLowerCase().replaceAll(_nonAlphanumeric, '');
 
   // A recurring credit smaller than this is treated as a refund/cashback/P2P,
   // not salary.
@@ -404,9 +718,8 @@ class FinanceMessageParser {
         return (value * multiplier).round();
       }
     }
-    // Prefer an amount that is NOT immediately described as a balance.
+    // Prefer a currency-prefixed amount that is NOT described as a balance.
     final matches = _amountRe.allMatches(lowerBody).toList();
-    if (matches.isEmpty) return null;
     for (final m in matches) {
       final tail = lowerBody.substring(m.end).trimLeft();
       // Skip "...bal is Rs X" style balances.
@@ -420,8 +733,11 @@ class FinanceMessageParser {
       final value = _toInt(m.group(1));
       if (value != null && value > 0) return value;
     }
-    // Fall back to the first amount if all looked like balances.
-    return _toInt(matches.first.group(1));
+    // No usable prefixed amount: try the verb-anchored bare amount.
+    final bare = _toInt(_bareAmountRe.firstMatch(lowerBody)?.group(1));
+    if (bare != null && bare > 0) return bare;
+    // Fall back to the first prefixed amount if all looked like balances.
+    return matches.isEmpty ? null : _toInt(matches.first.group(1));
   }
 
   int? _toInt(String? raw) {
@@ -433,38 +749,68 @@ class FinanceMessageParser {
 
   static const _noMatch = 1 << 30;
 
-  int _firstIndexOf(String body, List<String> words) {
-    var best = _noMatch;
-    for (final w in words) {
-      final i = body.indexOf(w);
-      if (i >= 0 && i < best) best = i;
-    }
-    return best;
-  }
-
-  // Merchant patterns: "at MERCHANT on", "to MERCHANT", "VPA merchant@bank".
-  static final RegExp _merchantRe = RegExp(
-    r'(?:\bat\b|\bto\b|\bfor\b)\s+([A-Za-z0-9&._ -]{2,40}?)(?:\s+on\b|\s+ref\b|\.|,|$)',
-    caseSensitive: false,
-  );
-  static final RegExp _vpaRe =
-      RegExp(r'([a-z0-9._-]+)@[a-z]+', caseSensitive: false);
+  int _firstIndexOf(String body, RegExp pattern) =>
+      pattern.firstMatch(body)?.start ?? _noMatch;
 
   String? _extractMerchant(String body) {
-    final atMatch = _merchantRe.firstMatch(body);
-    final vpaMatch = _vpaRe.firstMatch(body);
-    final raw = atMatch?.group(1)?.trim() ?? vpaMatch?.group(1)?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    return raw.length > 30 ? raw.substring(0, 30) : raw;
+    for (final match in _merchantRe.allMatches(body)) {
+      final cleaned = _cleanMerchant(match.group(1));
+      if (cleaned != null) return cleaned;
+    }
+    return _cleanMerchant(_vpaRe.firstMatch(body)?.group(1));
   }
 
-  String _categorize(String lowerBody, String? merchant) {
-    final haystack = '$lowerBody ${merchant?.toLowerCase() ?? ''}';
-    for (final entry in _categoryKeywords.entries) {
-      for (final kw in entry.value) {
-        if (haystack.contains(kw)) return entry.key;
-      }
+  /// Reduces a raw capture to the merchant name, or null when nothing usable is
+  /// left. Without this the captured span leaked the amount ("Rs 99"), wrapping
+  /// words ("purchase at METRO...") and account tails ("XX12 by NEFT") into the
+  /// merchant shown in the UI and fed to the categoriser.
+  static String? _cleanMerchant(String? raw) {
+    if (raw == null) return null;
+    var value = raw.trim();
+    if (value.isEmpty) return null;
+
+    // "for UPI to SWIGGY" → "SWIGGY".
+    value = value.split(_innerPrepositionRe).last;
+
+    var tokens =
+        value.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    bool isNoise(String token) {
+      final bare = token.toLowerCase().replaceAll(RegExp(r'[.,;:]+$'), '');
+      return bare.isEmpty ||
+          _merchantNoiseTokens.contains(bare) ||
+          _accountTokenRe.hasMatch(bare);
     }
-    return SpendCategory.other;
+
+    while (tokens.isNotEmpty && isNoise(tokens.first)) {
+      tokens = tokens.sublist(1);
+    }
+    while (tokens.isNotEmpty && isNoise(tokens.last)) {
+      tokens = tokens.sublist(0, tokens.length - 1);
+    }
+    if (tokens.isEmpty) return null;
+
+    final merchant = tokens.join(' ').trim().replaceAll(RegExp(r'^[-.]+'), '');
+    if (merchant.length < 2 || _amountLikeRe.hasMatch(merchant)) return null;
+    return merchant.length > _merchantMax
+        ? merchant.substring(0, _merchantMax)
+        : merchant;
+  }
+
+  /// Categorises on the merchant name first and only then on the whole body.
+  /// Matching the merchant alone avoids bank names, reference strings and other
+  /// body noise pulling a transaction into the wrong category.
+  String _categorize(String lowerBody, String? merchant) {
+    if (merchant != null && merchant.isNotEmpty) {
+      final fromMerchant = _matchCategory(merchant.toLowerCase());
+      if (fromMerchant != null) return fromMerchant;
+    }
+    return _matchCategory(lowerBody) ?? SpendCategory.other;
+  }
+
+  static String? _matchCategory(String haystack) {
+    for (final (category, pattern) in _categoryMatchers) {
+      if (pattern.hasMatch(haystack)) return category;
+    }
+    return null;
   }
 }
