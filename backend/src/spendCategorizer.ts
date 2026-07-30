@@ -4,14 +4,21 @@ import { z } from 'zod';
 /// (lib/models/spend_map.dart). These are persisted/synced, so keep them stable.
 export const SPEND_CATEGORIES = [
   'food',
-  'transport',
-  'shopping',
-  'bills',
   'groceries',
+  'transport',
+  'travel',
+  'shopping',
   'entertainment',
+  'subscriptions',
+  'bills',
+  'fees',
   'health',
+  'insurance',
   'rent',
+  'education',
+  'loan',
   'investment',
+  'transfer',
   'cash',
   'other',
 ] as const;
@@ -61,9 +68,17 @@ const SYSTEM_INSTRUCTION =
   'category from the allowed list. Extract a short, human-readable merchant or ' +
   'payee name when one is present (e.g. "Swiggy", "BESCOM", "Uber"), else null. ' +
   'Guidance: food=restaurants/food delivery; groceries=grocery/quick-commerce; ' +
-  'transport=cabs/fuel/travel/tolls; shopping=e-commerce/retail; ' +
-  'bills=utilities/recharge/telecom/insurance premiums; entertainment=OTT/movies/games; ' +
-  'health=pharmacy/hospital/clinic; rent=house rent; investment=SIP/stocks/MF/NPS; ' +
+  'transport=local commute, cabs, fuel, metro, tolls, parking; ' +
+  'travel=flights/trains/intercity buses/hotels/stays/car rentals; ' +
+  'shopping=e-commerce/retail; entertainment=OTT/movies/games (Netflix and ' +
+  'Spotify are entertainment, not subscriptions); subscriptions=software and ' +
+  'digital memberships (iCloud, Adobe, ChatGPT, Google One); ' +
+  'bills=utilities/recharge/telecom/gas/water; fees=bank charges, GST, ' +
+  'penalties, platform and processing fees; health=pharmacy/hospital/clinic; ' +
+  'insurance=any insurance premium; rent=house rent and society maintenance; ' +
+  'education=school/college/tuition/online courses (school fees are education, ' +
+  'not fees); loan=EMI and loan repayments; investment=SIP/stocks/MF/NPS; ' +
+  'transfer=money sent to an individual person rather than a business; ' +
   'cash=ATM/cash withdrawal; other=only when genuinely unclear. Never invent ' +
   'facts not in the text. Return one result per input id.';
 
