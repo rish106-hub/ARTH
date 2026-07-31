@@ -577,7 +577,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final candidates = <int>[];
     for (var i = 0; i < map.txns.length; i++) {
       final t = map.txns[i];
+      // Internal movement is never sent: it needs no category, and paying for a
+      // guess about the user's own transfer wastes a budget shared by everyone.
       if (t.direction == TxnDirection.debit &&
+          !t.isInternalTransfer &&
           t.category == SpendCategory.other &&
           t.categorySource == CategorySource.rules) {
         candidates.add(i);

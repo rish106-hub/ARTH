@@ -210,6 +210,13 @@ Zomato      Zomato (food) -> food;  Zomato District (events) -> entertainment
 Shell       Shell fuel station -> transport.  "SHELL" alone -> low
 LIC         LIC premium -> insurance.  LIC Housing Finance -> loan
 
+WHAT THE MONEY LANDED ON DECIDES WHAT "CREDIT" MEANS. A bank account holds a
+balance; a credit card is a liability. So money arriving at an ACCOUNT is income,
+but money arriving at a CARD is the user repaying it — the spending already
+happened at each purchase, and the repayment is not a second expense. Money
+leaving a card IS a purchase. Never read the word "credit" as income just because
+it appears next to "credit card".
+
 PAYMENT RAILS ARE NOT MERCHANTS. Paytm, PhonePe, GPay, Google Pay, BharatPe,
 Razorpay, BillDesk, CCAvenue, PayU, UPI, VPA, NEFT, IMPS, RTGS, ACH and
 "UPI collect" describe HOW money moved, not who was paid. If the rail is the
