@@ -153,9 +153,20 @@ class AuthService {
         body: {'refreshToken': refreshToken},
       );
       return _persistAuthResponse(response);
+    } on ServerApiException catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthService] refresh failed (${e.statusCode})');
+      }
+      // Only sign out when the SERVER has rejected the refresh token itself.
+      // Anything else — no connectivity, a timeout, a 5xx while the backend
+      // restarts during a deploy, a rate limit — says nothing about whether the
+      // token is still valid, and discarding it there signed every active user
+      // out whenever the backend was redeployed.
+      if (_isCredentialRejection(e.statusCode)) await clearAccount();
+      return null;
     } catch (e) {
+      // Unexpected client-side failure. Keep the session for the same reason.
       if (kDebugMode) debugPrint('[AuthService] refresh failed');
-      await clearAccount();
       return null;
     }
   }
@@ -189,6 +200,12 @@ class AuthService {
     }
     return request(replacementToken);
   }
+
+  /// Whether [statusCode] means the server refused the credential itself, as
+  /// opposed to failing to answer. 401 is an invalid, expired or already-rotated
+  /// refresh token; 403 a revoked one. Only these justify erasing the session.
+  static bool _isCredentialRejection(int statusCode) =>
+      statusCode == 401 || statusCode == 403;
 
   Future<void> clearAccount() async {
     final refreshToken = await _storage.read(
