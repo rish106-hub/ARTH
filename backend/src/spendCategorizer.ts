@@ -379,8 +379,8 @@ function userPrompt(items: CategorizeItem[]): string {
 /// Output allowance, sized to the batch rather than fixed. Reasoning tokens bill
 /// as output, so this is both the real cost driver and the figure the budget
 /// pre-check treats as the worst case — a tight allowance means more calls fit
-/// under the cap. The base covers a minimal-effort model's thinking; ~50 per
-/// item covers a terse result entry with room to spare.
+/// under the cap. The base leaves room for the escalation model, which does
+/// reason; ~50 per item covers a terse result entry with room to spare.
 function outputAllowance(itemCount: number): number {
   return Math.min(16_000, 2_000 + itemCount * 50);
 }
@@ -408,7 +408,7 @@ type ModelCall = {
   model: string;
   items: CategorizeItem[];
   variant: 'primary' | 'second-opinion';
-  reasoningEffort: 'minimal' | 'low';
+  reasoningEffort: 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 };
 
 type ModelCallOutcome = {
@@ -437,6 +437,12 @@ async function callModel(call: ModelCall): Promise<ModelCallOutcome> {
         model: call.model,
         // No temperature: the gpt-5 reasoning family rejects it. Determinism
         // comes from the two-vote agreement check, not from sampling settings.
+        //
+        // Effort is 'none' for the votes: this is a labelling task and the
+        // prompt already states every rule the model would otherwise reason
+        // its way to, so thinking tokens are pure cost. Note 'minimal' is NOT
+        // accepted by gpt-5.4-nano even though other gpt-5 models take it —
+        // the valid set here is none/low/medium/high/xhigh.
         reasoning_effort: call.reasoningEffort,
         max_completion_tokens: maxOutputTokens,
         store: false,
@@ -621,7 +627,7 @@ export async function categorizeTransactions(
   const itemsById = new Map(items.map((item) => [item.id, item]));
 
   const primary = await callAndRecord(
-    { model, items, variant: 'primary', reasoningEffort: 'minimal' },
+    { model, items, variant: 'primary', reasoningEffort: 'none' },
     items.length,
     context,
   );
@@ -659,7 +665,7 @@ export async function categorizeTransactions(
       // Reversed so the two votes do not share the same positional ordering.
       items: [...toVerify].reverse(),
       variant: 'second-opinion',
-      reasoningEffort: 'minimal',
+      reasoningEffort: 'none',
     },
     0, // same items as the first vote, already counted against the user's quota
     context,
