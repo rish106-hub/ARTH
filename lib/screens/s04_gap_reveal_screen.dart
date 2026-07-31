@@ -124,7 +124,7 @@ class _TaxCockpit extends StatelessWidget {
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -168,7 +168,7 @@ class _TaxCockpit extends StatelessWidget {
                         body:
                             'Smart nudges before filing and investment deadlines.',
                       ),
-                      SizedBox(height: 10),
+                      SizedBox(height: 12),
                       _FutureModuleTile(
                         icon: Icons.folder_special_outlined,
                         title: 'Proof vault',
@@ -197,7 +197,7 @@ class _HeroCockpitCard extends StatelessWidget {
     final hasGap = result.totalGapAmount > 0;
     return PremiumGlassPanel(
       elevated: true,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(20),
       tint: PaycheckColors.gold,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +242,7 @@ class _HeroCockpitCard extends StatelessWidget {
             style: PaycheckType.body(color: PaycheckColors.textSecondary),
           ),
           if (result.assumptions.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               '${result.assumptions.length} calculation assumption${result.assumptions.length == 1 ? '' : 's'} active. Add exact inputs to tighten the result.',
               style: PaycheckType.micro(color: PaycheckColors.amber),
@@ -304,7 +304,7 @@ class _NextActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('NEXT BEST ACTION', style: PaycheckType.sectionLabel()),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(gap.title, style: PaycheckType.h2()),
           const SizedBox(height: 8),
           Text(
@@ -355,7 +355,7 @@ class _RegimeInsightCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Best regime today', style: PaycheckType.micro()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   '$regime regime saves ${formatRupeesCompact(result.regimeSavings.round())}',
                   maxLines: 2,
@@ -391,7 +391,7 @@ class _FutureModuleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumGlassPanel(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Icon(icon, color: PaycheckColors.textSecondary, size: 21),
@@ -401,7 +401,7 @@ class _FutureModuleTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.h3()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:

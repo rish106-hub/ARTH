@@ -60,7 +60,7 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
     final duration = MotionPolicy.duration(context, normal: AppMotion.fast);
     final detail = _open
         ? Padding(
-            padding: const EdgeInsets.only(left: 24, right: 4, bottom: 10),
+            padding: const EdgeInsets.only(left: 24, right: 4, bottom: 12),
             child: Text(
               widget.detail,
               style: PaycheckType.caption(color: PaycheckColors.inkSoft),
@@ -83,7 +83,7 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
             borderRadius: AppRadius.control,
             onTap: () => setState(() => _open = !_open),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               child: Row(
                 children: [
                   Icon(widget.icon, size: 16, color: PaycheckColors.inkSoft),
@@ -204,7 +204,7 @@ class ArthPremiumAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
         children: [
           if (leading != null) ...[leading!, const SizedBox(width: 12)],
@@ -219,7 +219,7 @@ class ArthPremiumAppBar extends StatelessWidget {
                       color: PaycheckColors.gold,
                     ).copyWith(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                 ],
                 Text(
                   title,
@@ -258,7 +258,7 @@ class PremiumHeader extends StatelessWidget {
     return PremiumGlassPanel(
       elevated: true,
       tint: PaycheckColors.gold,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -273,7 +273,7 @@ class PremiumHeader extends StatelessWidget {
             ),
             child: Icon(icon, color: PaycheckColors.gold),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,7 +283,7 @@ class PremiumHeader extends StatelessWidget {
                   style: PaycheckType.micro(color: PaycheckColors.gold)
                       .copyWith(fontWeight: FontWeight.w700, letterSpacing: 0),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(title, style: PaycheckType.h1()),
                 const SizedBox(height: 8),
                 Text(
@@ -295,7 +295,7 @@ class PremiumHeader extends StatelessWidget {
             ),
           ),
           if (trailing != null) ...[
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             trailing!,
           ],
         ],
@@ -314,7 +314,7 @@ class PremiumGlassPanel extends StatelessWidget {
   const PremiumGlassPanel({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = const EdgeInsets.all(16),
     this.borderRadius = AppRadius.card,
     this.tint = Colors.white,
     this.elevated = false,
@@ -365,7 +365,7 @@ class TrustBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: color),
-          const SizedBox(width: 7),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
               label,
@@ -396,7 +396,7 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: AppRadius.pill,
@@ -406,7 +406,7 @@ class StatusPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 14),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
               label,
@@ -470,7 +470,7 @@ class ActionDock extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               primaryButton,
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               secondaryButton
             ],
           );
@@ -478,7 +478,7 @@ class ActionDock extends StatelessWidget {
         return Row(
           children: [
             Expanded(child: primaryButton),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(child: secondaryButton),
           ],
         );
@@ -627,7 +627,7 @@ class ArthSection extends StatelessWidget {
               TextButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         child,
       ],
     );
@@ -741,7 +741,7 @@ class ArthStatePanel extends StatelessWidget {
               if (detail != null)
                 ArthDisclosure(label: detailLabel, detail: detail!),
               if (actionLabel != null && onAction != null) ...[
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -784,7 +784,7 @@ class ArthLoadingPanel extends StatelessWidget {
           children: [
             const PremiumGlassPanel(
               borderRadius: AppRadius.card,
-              padding: EdgeInsets.all(22),
+              padding: EdgeInsets.all(20),
               child: Icon(
                 Icons.auto_awesome_rounded,
                 color: PaycheckColors.gold,
@@ -803,7 +803,7 @@ class ArthLoadingPanel extends StatelessWidget {
                   end: const Offset(0.96, 0.96),
                   duration: 900.ms,
                 ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             Text(title, textAlign: TextAlign.center, style: PaycheckType.h2()),
             const SizedBox(height: 8),
             Text(
@@ -811,7 +811,7 @@ class ArthLoadingPanel extends StatelessWidget {
               textAlign: TextAlign.center,
               style: PaycheckType.body(color: PaycheckColors.textSecondary),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             const PremiumSkeleton(height: 8, width: 180),
           ],
         ),

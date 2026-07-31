@@ -198,7 +198,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     return ArthScaffold(
       showAmbientGlow: false,
-      padding: const EdgeInsets.symmetric(horizontal: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: LayoutBuilder(
@@ -243,14 +243,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               });
                             },
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 20),
                           _GoogleButton(
                             loading: _loading,
                             onPressed: _submitGoogle,
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           _AuthErrorText(message: _googleErrorMessage),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               const Expanded(child: Divider()),
@@ -265,7 +265,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               const Expanded(child: Divider()),
                             ],
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 16),
                           if (_isSignUp) ...[
                             _InputField(
                               controller: _nameCtrl,
@@ -280,7 +280,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                           ],
                           _InputField(
                             controller: _emailCtrl,
@@ -295,7 +295,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
                           _InputField(
                             controller: _passwordCtrl,
                             label: 'Password',
@@ -333,7 +333,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                           const SizedBox(height: 16),
                           _AuthErrorText(message: _emailErrorMessage),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
                           _SubmitButton(
                             loading: _loading,
                             label: _isSignUp ? 'Sign up' : 'Sign in',
@@ -342,7 +342,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     Text(
                       'ARTH stores your answers so you can continue later.',
                       textAlign: TextAlign.center,

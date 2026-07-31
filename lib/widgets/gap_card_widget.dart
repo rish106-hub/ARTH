@@ -34,7 +34,7 @@ class GapCardWidget extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         opacity: isDone ? 0.45 : 1.0,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: PaycheckColors.bgCard,
             borderRadius: AppRadius.card,
@@ -59,7 +59,7 @@ class GapCardWidget extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -77,7 +77,7 @@ class GapCardWidget extends StatelessWidget {
                         if (isDone)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
+                              horizontal: 12,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
@@ -103,7 +103,7 @@ class GapCardWidget extends StatelessWidget {
                                   size: 11,
                                   color: PaycheckColors.textSecondary,
                                 ),
-                                const SizedBox(width: 3),
+                                const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
                                     gap.difficultyLabel,
@@ -119,11 +119,11 @@ class GapCardWidget extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
                     // Title
                     Text(gap.title, style: PaycheckType.h3()),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(gap.shortDesc, style: PaycheckType.caption()),
                     const SizedBox(height: 12),
 
@@ -141,7 +141,7 @@ class GapCardWidget extends StatelessWidget {
                                   color: PaycheckColors.textSecondary,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Text(
                                 formatRupeesCompact(gap.gapAmount),
                                 maxLines: 1,
@@ -172,7 +172,7 @@ class GapCardWidget extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
                     // Deadline
                     Row(
@@ -214,7 +214,7 @@ class _SectionBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color:
             (isDone ? PaycheckColors.success : accent).withValues(alpha: 0.12),
@@ -255,7 +255,7 @@ class ActionListItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
         ),
@@ -282,7 +282,7 @@ class ActionListItem extends StatelessWidget {
                     : null,
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
 
             // Title + section
             Expanded(
@@ -297,7 +297,7 @@ class ActionListItem extends StatelessWidget {
                           : PaycheckColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     gap.section,
                     style: PaycheckType.micro(color: PaycheckColors.textGold),

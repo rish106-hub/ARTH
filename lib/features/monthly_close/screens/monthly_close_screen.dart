@@ -32,15 +32,15 @@ class MonthlyCloseScreen extends ConsumerWidget {
       body: SafeArea(
         top: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
             Text(
               snapshot.periodLabel.toUpperCase(),
               style: PaycheckType.sectionLabel(),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text('Your 5-minute pay close', style: PaycheckType.title()),
-            const SizedBox(height: 7),
+            const SizedBox(height: 8),
             Text(
               'Confirm what arrived. Check new bills. Mark claims reviewed.',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -52,16 +52,16 @@ class MonthlyCloseScreen extends ConsumerWidget {
               onChanged: (step, value) =>
                   ref.read(monthlyCloseProvider.notifier).setStep(step, value),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             _EvidenceLedger(health: snapshot.evidenceHealth),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             _AuditLedger(audits: snapshot.figureAudits),
             if (snapshot.cohort.canShowComparison) ...[
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               _CohortCard(cohort: snapshot.cohort),
             ],
             if (!record.isComplete) ...[
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Text(
                 '$completed of ${MonthlyCloseStep.values.length} checks done',
                 textAlign: TextAlign.center,
@@ -104,7 +104,7 @@ class MonthlyCloseEntryCard extends StatelessWidget {
         borderRadius: AppRadius.control,
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
@@ -124,7 +124,7 @@ class MonthlyCloseEntryCard extends StatelessWidget {
                   color: complete ? Colors.white : PaycheckColors.contract,
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +135,7 @@ class MonthlyCloseEntryCard extends StatelessWidget {
                           : 'Close ${snapshot.periodLabel}',
                       style: PaycheckType.bodyStrong(),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
                       complete
                           ? 'Evidence and claims checked'
@@ -176,7 +176,7 @@ class _CloseDocket extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 13, 14, 11),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Row(
               children: [
                 Text('PAYDAY DOCKET', style: PaycheckType.sectionLabel()),
@@ -234,7 +234,7 @@ class _CloseDocket extends StatelessWidget {
           if (record.isComplete) ...[
             const Divider(height: 1, color: PaycheckColors.ink),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   const Icon(
@@ -242,7 +242,7 @@ class _CloseDocket extends StatelessWidget {
                     color: PaycheckColors.matched,
                     size: 20,
                   ),
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'CLOSED ${record.completedAt == null ? '' : _shortDate(record.completedAt!).toUpperCase()}',
@@ -287,7 +287,7 @@ class _CloseStepRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -296,14 +296,14 @@ class _CloseStepRow extends StatelessWidget {
       child: Row(
         children: [
           Text(number, style: PaycheckType.utility()),
-          const SizedBox(width: 9),
+          const SizedBox(width: 8),
           Checkbox(
             value: checked,
             onChanged: enabled ? (value) => onChanged(value ?? false) : null,
             activeColor: PaycheckColors.matched,
             visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 3),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +355,7 @@ class _EvidenceLedger extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: PaycheckColors.paper,
@@ -386,7 +386,7 @@ class _LedgerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -399,7 +399,7 @@ class _LedgerRow extends StatelessWidget {
             size: 19,
             color: item.ready ? PaycheckColors.matched : PaycheckColors.pending,
           ),
-          const SizedBox(width: 11),
+          const SizedBox(width: 12),
           Expanded(child: Text(item.label, style: PaycheckType.bodyStrong())),
           Text(item.detail, style: PaycheckType.utility()),
         ],
@@ -424,7 +424,7 @@ class _AuditLedger extends StatelessWidget {
           'Tap a rupee figure to see where it came from.',
           style: PaycheckType.utility(),
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 8),
         if (audits.isEmpty)
           Container(
             width: double.infinity,
@@ -452,8 +452,8 @@ class _AuditLedger extends StatelessWidget {
                     ),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 13,
+                        horizontal: 16,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
                         border: index == audits.length - 1
@@ -474,7 +474,7 @@ class _AuditLedger extends StatelessWidget {
                             _money(audits[index].amount),
                             style: PaycheckType.money(),
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 4),
                           const Icon(
                             Icons.info_outline_rounded,
                             size: 18,
@@ -503,7 +503,7 @@ class _CohortCard extends StatelessWidget {
     final detail =
         '${cohort.sampleSize} anonymous users in ${cohort.city}, ${cohort.ctcBandLabel}.';
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: PaycheckColors.surfaceMuted,
         borderRadius: AppRadius.card,
@@ -542,20 +542,20 @@ Future<void> showFigureAuditSheet(
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 6, 20, 26),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(audit.label, style: PaycheckType.heading()),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(_money(audit.amount), style: PaycheckType.displaySmall()),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Text(
               audit.editedByUser ? 'YOUR EDIT' : 'SOURCE',
               style: PaycheckType.sectionLabel(),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(audit.source, style: PaycheckType.bodyStrong()),
             const SizedBox(height: 4),
             Text(
@@ -563,7 +563,7 @@ Future<void> showFigureAuditSheet(
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
             if (audit.confirmedAt != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 '${audit.editedByUser ? 'Edited' : 'Confirmed'} ${_shortDate(audit.confirmedAt!)}',
                 style: PaycheckType.utility(

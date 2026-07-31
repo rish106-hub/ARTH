@@ -324,7 +324,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
             children: [
               // Progress bar + back
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Column(
                   children: [
                     Row(
@@ -353,11 +353,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen>
               ),
 
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 child: _ChapterMarker(meta: meta, step: current.visualIndex),
               ),
 
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
 
               // Question content — slides in
               Expanded(
@@ -601,7 +601,7 @@ class _BuildingPlanScreenState extends State<_BuildingPlanScreen>
                     'Building your first plan.',
                     style: PaycheckType.h1().copyWith(fontSize: 40),
                   ),
-                  const SizedBox(height: 34),
+                  const SizedBox(height: 32),
                   _BuildStep(
                     label: 'Compare tax regimes',
                     complete: value > 0.25,
@@ -634,7 +634,7 @@ class _BuildStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           AnimatedContainer(
@@ -653,7 +653,7 @@ class _BuildStep extends StatelessWidget {
               color: complete ? Colors.white : PaycheckColors.textMuted,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Text(label, style: PaycheckType.bodyMedium()),
         ],
       ),
@@ -858,7 +858,7 @@ class _QLayout extends StatelessWidget {
                     height: visualHeight,
                   ),
           ),
-          SizedBox(height: visualHeight == 0 ? 8 : 18),
+          SizedBox(height: visualHeight == 0 ? Spacing.sm : Spacing.lg),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -887,7 +887,7 @@ class _QLayout extends StatelessWidget {
                 child: Text(nextLabel),
               ),
             ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -926,7 +926,7 @@ class _PayslipSourceNote extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PaycheckColors.success.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
@@ -941,13 +941,13 @@ class _PayslipSourceNote extends StatelessWidget {
             color: PaycheckColors.success,
             size: 20,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   detail,
                   style:
@@ -1070,14 +1070,14 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
               detail: 'From ${widget.payslipPrefill!.payPeriod}, '
                   'monthly gross x 12. Adjust for bonuses.',
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
           ],
           // Live display — updates on every setState
           Center(
             child: Column(
               children: [
                 _ResponsiveAmount(displayText),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'Gross Annual Salary (CTC)',
                   style:
@@ -1108,7 +1108,7 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
               fillColor: PaycheckColors.bgCard,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 14,
+                vertical: 16,
               ),
               border: const OutlineInputBorder(
                 borderRadius: AppRadius.control,
@@ -1182,7 +1182,7 @@ class _SlabIndicator extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
@@ -1224,7 +1224,7 @@ class _Q02Employment extends ConsumerWidget {
               title: 'Employer found in your payslip',
               detail: payslipPrefill!.employerName!,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
           ],
           SelectChip(
             label: 'Salaried Employee',
@@ -1238,7 +1238,7 @@ class _Q02Employment extends ConsumerWidget {
             },
           ),
           if (profile.employmentType == EmploymentType.salaried) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             OutlinedButton.icon(
               key: const Key('select_employer'),
               style: AppButtons.outlineGold,
@@ -1466,7 +1466,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                   decoration: BoxDecoration(
                     color: selected
@@ -1496,7 +1496,7 @@ class _Q03CityState extends ConsumerState<_Q03City> {
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
-                            vertical: 3,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: PaycheckColors.teal.withValues(alpha: 0.15),
@@ -1679,7 +1679,7 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                 fillColor: PaycheckColors.bgCard,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 14,
+                  vertical: 16,
                 ),
                 border: const OutlineInputBorder(
                   borderRadius: AppRadius.control,
@@ -1752,7 +1752,7 @@ class _Q05HRA extends ConsumerWidget {
               detail:
                   '${NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(payslipPrefill!.annualHraReceived)} per year from ${payslipPrefill!.payPeriod}.',
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
           ],
           SelectChip(
             label: 'Yes, HRA is in my salary',
@@ -1777,7 +1777,7 @@ class _Q05HRA extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: PaycheckColors.bgCard,
               borderRadius: AppRadius.card,
@@ -1921,7 +1921,7 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
               fillColor: PaycheckColors.bgCard,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 14,
+                vertical: 16,
               ),
               border: const OutlineInputBorder(
                 borderRadius: AppRadius.control,
@@ -1987,7 +1987,7 @@ class _EightyCBar extends StatelessWidget {
             Text('₹1,50,000 limit', style: PaycheckType.micro()),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         ClipRRect(
           borderRadius: AppRadius.pill,
           child: LinearProgressIndicator(
@@ -2121,7 +2121,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: SelectChip(
                       label: 'Let out / Rented',
@@ -2162,7 +2162,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                   fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                   border: const OutlineInputBorder(
                     borderRadius: AppRadius.control,
@@ -2277,7 +2277,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                     .updateField((p) => p.copyWith(hasNPS: true));
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             SelectChip(
               label: 'No NPS',
               selected: _choice == 1,
@@ -2292,7 +2292,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                     );
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             SelectChip(
               label: 'Not sure what NPS is',
               selected: _choice == 2,
@@ -2310,7 +2310,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
             if (_choice == 2) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: PaycheckColors.gold.withValues(alpha: 0.07),
                   borderRadius: AppRadius.card,
@@ -2363,7 +2363,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                   border: const OutlineInputBorder(
                     borderRadius: AppRadius.control,
@@ -2495,7 +2495,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             filled: true,
             fillColor: PaycheckColors.bgCard,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             border: const OutlineInputBorder(
               borderRadius: AppRadius.control,
               borderSide: BorderSide(color: PaycheckColors.border),
@@ -2593,7 +2593,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: SelectChip(
                       label: 'No',
@@ -2768,7 +2768,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                   fillColor: PaycheckColors.bgCard,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                   border: const OutlineInputBorder(
                     borderRadius: AppRadius.control,
@@ -2925,7 +2925,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                   filled: true,
                   fillColor: PaycheckColors.bgCard,
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   border: const OutlineInputBorder(
                     borderRadius: AppRadius.control,
                     borderSide: BorderSide(color: PaycheckColors.border),
@@ -2980,7 +2980,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: SelectChip(
                       label: 'Cash',
@@ -3036,11 +3036,11 @@ class _AmountField extends StatelessWidget {
       children: [
         Text(label, style: PaycheckType.bodyMedium()),
         if (helper != null) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(helper!,
               style: PaycheckType.micro(color: PaycheckColors.textSecondary)),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
@@ -3146,7 +3146,7 @@ class _QBusinessState extends ConsumerState<_QBusiness> {
               ),
             ])
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: SelectChip(
                   label: opt.$2,
                   selected: _scheme == opt.$1,
@@ -3164,7 +3164,7 @@ class _QBusinessState extends ConsumerState<_QBusiness> {
                 label: 'Annual gross receipts / turnover',
                 onChanged: () => setState(_update),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 'Taxable business income ≈ ₹${NumberFormat('#,##,##0', 'en_IN').format(presumptive)}',
                 style: PaycheckType.micro(color: PaycheckColors.textSecondary),
@@ -3249,40 +3249,40 @@ class _QOtherIncomeState extends ConsumerState<_QOtherIncome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _residentRow(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _stcg,
               label: 'Short-term equity gains (STCG)',
               helper: 'Listed shares/funds held < 1 year — taxed at 20%.',
               onChanged: _update,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _ltcgEq,
               label: 'Long-term equity gains (LTCG)',
               helper: 'Listed shares/funds held > 1 year — 12.5% above ₹1.25L.',
               onChanged: _update,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _ltcgOther,
               label: 'Other long-term gains (property, gold…)',
               helper: 'Taxed at 12.5%.',
               onChanged: _update,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _rent,
               label: 'Annual rent received (let-out property)',
               onChanged: _update,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _rentInterest,
               label: 'Interest on that property loan',
               onChanged: _update,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _AmountField(
               controller: _other,
               label: 'Other income (freelance, misc)',
@@ -3472,7 +3472,7 @@ class _Q12Age extends ConsumerWidget {
                     .updateField((p) => p.copyWith(ageGroup: age));
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
           ],
         ],
       ),

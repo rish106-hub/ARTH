@@ -114,7 +114,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               style: PaycheckType.caption(color: PaycheckColors.textSecondary),
               textAlign: TextAlign.center,
             ).animate(delay: 900.ms).fadeIn(duration: 600.ms),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             const TrustBadge(
               icon: Icons.auto_awesome_outlined,
               label: 'Promised · Received · Claimable',

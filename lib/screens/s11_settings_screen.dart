@@ -85,7 +85,7 @@ class SettingsScreen extends ConsumerWidget {
 
                         const SizedBox(height: 24),
                         const _SectionHeader(label: 'TAX PROFILE'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
                         // Tax profile card
                         _GlassSection(
@@ -142,7 +142,7 @@ class SettingsScreen extends ConsumerWidget {
 
                         const SizedBox(height: 24),
                         const _SectionHeader(label: 'PROGRESS'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
                         _ActionTile(
                           icon: Icons.checklist_rounded,
@@ -175,7 +175,7 @@ class SettingsScreen extends ConsumerWidget {
 
                         const SizedBox(height: 24),
                         const _SectionHeader(label: 'ACCOUNT & SECURITY'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
                         if (account != null) ...[
                           _AccountSecurityTile(account: account),
@@ -184,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
 
                         const SizedBox(height: 24),
                         const _SectionHeader(label: 'DATA & PRIVACY'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
                         const _GlassSection(
                           children: [
@@ -302,7 +302,7 @@ class _SettingsHeader extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: PaycheckColors.gold.withValues(alpha: 0.12),
               borderRadius: AppRadius.card,
@@ -411,7 +411,7 @@ class _AccountHeroCard extends StatelessWidget {
                           ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           account.email,
                           style: PaycheckType.caption(
@@ -459,7 +459,7 @@ class _AccountHeroCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -469,7 +469,7 @@ class _AccountHeroCard extends StatelessWidget {
                       onTap: onEdit,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _HeroButton(
                       icon: Icons.logout_rounded,
@@ -517,7 +517,7 @@ class _GuestCard extends StatelessWidget {
               size: 22,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +534,7 @@ class _GuestCard extends StatelessWidget {
           ElevatedButton(
             style: AppButtons.primaryGold.copyWith(
               padding: WidgetStateProperty.all(
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
             onPressed: onSignIn,
@@ -566,7 +566,7 @@ class _HeroButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: AppRadius.control,
@@ -578,7 +578,7 @@ class _HeroButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: color),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   label,
@@ -667,7 +667,7 @@ class _SnapCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         color: highlight
             ? PaycheckColors.gold.withValues(alpha: 0.08)
@@ -688,7 +688,7 @@ class _SnapCell extends StatelessWidget {
             color:
                 highlight ? PaycheckColors.gold : PaycheckColors.textSecondary,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             value,
             style: PaycheckType.bodyStrong(
@@ -697,7 +697,7 @@ class _SnapCell extends StatelessWidget {
             ).copyWith(fontSize: 14),
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             label,
             style: PaycheckType.micro(color: PaycheckColors.textSecondary),
@@ -795,7 +795,7 @@ class _ProfileDetailRow extends StatelessWidget {
           child: Row(
             children: [
               Icon(icon, size: 16, color: PaycheckColors.textSecondary),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
@@ -870,7 +870,7 @@ class _PrivacyRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label, style: PaycheckType.bodyMedium()),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       description,
                       style: PaycheckType.micro(
@@ -926,7 +926,7 @@ class _ActionTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.control,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             borderRadius: AppRadius.control,
             border: Border.all(color: PaycheckColors.border),
@@ -942,7 +942,7 @@ class _ActionTile extends StatelessWidget {
                 ),
                 child: Icon(icon, color: iconColor, size: 18),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,8 +962,8 @@ class _ActionTile extends StatelessWidget {
                         if (badge != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: 8,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               color:
@@ -983,7 +983,7 @@ class _ActionTile extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: PaycheckType.micro(
@@ -1049,7 +1049,7 @@ class _AppFooter extends StatelessWidget {
             ).copyWith(fontSize: 14),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'v1.0  |  Dual-year rules  |  FY2026-27 planning first',
           style: PaycheckType.micro(color: PaycheckColors.textMuted),
@@ -1063,7 +1063,7 @@ class _AppFooter extends StatelessWidget {
           ).copyWith(fontStyle: FontStyle.italic),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -1079,7 +1079,7 @@ class _AppFooter extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,

@@ -50,7 +50,7 @@ class ClaimPackService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(42),
+        margin: const pw.EdgeInsets.all(40),
         build: (_) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -98,7 +98,7 @@ class ClaimPackService {
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
-            pw.SizedBox(height: 10),
+            pw.SizedBox(height: 12),
             ...evidence.asMap().entries.map(
                   (entry) => pw.Container(
                     padding: const pw.EdgeInsets.only(bottom: 12),

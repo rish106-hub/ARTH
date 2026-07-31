@@ -94,7 +94,7 @@ class TaxStoryScreen extends ConsumerWidget {
                       result: result,
                     );
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -107,7 +107,7 @@ class TaxStoryScreen extends ConsumerWidget {
                             icon: Icons.auto_stories_outlined,
                             trailing: TaxRuleBadge(result: result),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
@@ -161,7 +161,7 @@ class TaxStoryScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 StoryPanel(
                                   icon: Icons.account_balance_outlined,
                                   title: 'AIS / 26AS check',
@@ -298,7 +298,7 @@ class _StoryLine extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:

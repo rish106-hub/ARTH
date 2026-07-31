@@ -102,8 +102,8 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
                 onTap: () => context.go('/auth'),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
+                    horizontal: 16,
+                    vertical: 12,
                   ),
                   child: Row(
                     children: [
@@ -112,7 +112,7 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
                         size: 18,
                         color: PaycheckColors.contract,
                       ),
-                      const SizedBox(width: 9),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'You are exploring sample data',
@@ -149,7 +149,7 @@ class _ExploreYouView extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 26, 22, 28),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -234,7 +234,7 @@ class _PaycheckHome extends ConsumerWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -272,7 +272,7 @@ class _PaycheckHome extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 paycheck.salarySmsConnected && paycheck.grossReceived <= 0
                     ? 'Net pay from salary SMS'
@@ -325,7 +325,7 @@ class _PaycheckHome extends ConsumerWidget {
                   title: 'Needs your review',
                   count: actionItems.length,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 ...actionItems.map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -371,7 +371,7 @@ class _PaycheckHome extends ConsumerWidget {
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 26),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +384,7 @@ class _PaycheckHome extends ConsumerWidget {
                 '${_money(item.amount)} · ${item.dueLabel ?? 'No deadline found'}',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               const _ChecklistRow(
                 title: 'Eligibility found',
                 detail: 'Matched to the offer-letter benefit policy.',
@@ -398,7 +398,7 @@ class _PaycheckHome extends ConsumerWidget {
                 detail: 'ARTH prepares the pack. It never submits silently.',
                 pending: true,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -456,7 +456,7 @@ class _IncomeSourceStrip extends StatelessWidget {
         child: InkWell(
           onTap: onEdit,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -563,7 +563,7 @@ Future<void> _editPlanningIncome(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Monthly planning income', style: PaycheckType.h2()),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'One edit updates Home, Spend map, and Money goal. Other income stays separate.',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -696,7 +696,7 @@ class _EmptyPaycheck extends StatelessWidget {
             color: PaycheckColors.contract,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         Text(
           'Add your first payslip',
           key: const Key('paycheck_claimable_amount'),
@@ -707,7 +707,7 @@ class _EmptyPaycheck extends StatelessWidget {
           'Upload your payslip, check the extracted numbers, and confirm your pay.',
           style: PaycheckType.body(color: PaycheckColors.inkSoft),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
           height: 52,
@@ -815,7 +815,7 @@ class _ComparisonCell extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: PaycheckType.utility()),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -840,7 +840,7 @@ class _MatchedPaycheckStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         color: PaycheckColors.matchedSoft,
         borderRadius: AppRadius.card,
@@ -852,7 +852,7 @@ class _MatchedPaycheckStatus extends StatelessWidget {
             color: PaycheckColors.matched,
             size: 20,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Paycheck matched',
@@ -877,7 +877,7 @@ class _PaycheckBreakdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Paycheck summary', style: PaycheckType.heading()),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: PaycheckColors.paper,
@@ -948,7 +948,7 @@ class _AmountLine extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: last
               ? null
@@ -961,7 +961,7 @@ class _AmountLine extends StatelessWidget {
             Expanded(child: Text(label, style: PaycheckType.body())),
             Text(_money(value), style: PaycheckType.money(color: color)),
             if (onTap != null) ...[
-              const SizedBox(width: 7),
+              const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
@@ -1021,7 +1021,7 @@ class _PayBreakdownSheet extends ConsumerWidget {
         maxChildSize: 0.96,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           children: [
             Row(
               children: [
@@ -1044,7 +1044,7 @@ class _PayBreakdownSheet extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             if (kind == _PayBreakdownKind.netPay) ...[
               _PayEquation(
                 earnings: earnings,
@@ -1056,7 +1056,7 @@ class _PayBreakdownSheet extends ConsumerWidget {
                 label: 'Gross earnings',
                 value: paycheck.grossReceived,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _ComponentGroups(
                 components: earnings,
                 kind: PaycheckComponentKind.earning,
@@ -1066,7 +1066,7 @@ class _PayBreakdownSheet extends ConsumerWidget {
                 label: 'Less: deductions',
                 value: paycheck.taxWithheld + paycheck.otherDeductions,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _ComponentGroups(
                 components: deductions,
                 kind: PaycheckComponentKind.deduction,
@@ -1210,14 +1210,14 @@ class _EditComponentRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
             child: InkWell(
               onTap: () => _openEditSingleComponent(context, ref, component),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -1441,13 +1441,13 @@ class _ComponentGroups extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _BreakdownHeading(label: entry.key, value: total),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               ...semanticGroups.entries.expand((semantic) {
                 final semanticTotal =
                     semantic.value.fold<int>(0, (sum, row) => sum + row.amount);
                 return [
                   Padding(
-                    padding: const EdgeInsets.only(top: 9, bottom: 3),
+                    padding: const EdgeInsets.only(top: 8, bottom: 4),
                     child: Row(
                       children: [
                         Expanded(
@@ -1465,7 +1465,7 @@ class _ComponentGroups extends StatelessWidget {
                   ),
                   ...semantic.value.map(
                     (row) => Container(
-                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: const BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: PaycheckColors.line),
@@ -1568,7 +1568,7 @@ class _ReviewRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.control,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(
               color:
@@ -1588,7 +1588,7 @@ class _ReviewRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(item.label, style: PaycheckType.bodyStrong()),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       prepared ? 'Ready to submit' : item.detail,
                       style: PaycheckType.utility(),
@@ -1596,12 +1596,12 @@ class _ReviewRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(_money(item.amount), style: PaycheckType.money()),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     prepared ? 'READY' : 'REVIEW',
                     style: PaycheckType.utility(
@@ -1700,7 +1700,7 @@ class _EvidenceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -1934,18 +1934,18 @@ class _InboxViewState extends ConsumerState<_InboxView> {
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(document.displayName, style: PaycheckType.heading()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 document.parseStatusLabel,
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: () async {
                   await ref.read(taxDocumentProvider.notifier).updateMetadata(
@@ -2015,7 +2015,7 @@ class _InboxViewState extends ConsumerState<_InboxView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
               color: PaycheckColors.matchedSoft,
               borderRadius: AppRadius.card,
@@ -2037,7 +2037,7 @@ class _InboxViewState extends ConsumerState<_InboxView> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -2068,7 +2068,7 @@ class _InboxViewState extends ConsumerState<_InboxView> {
             ),
           ),
           if (_uploadMessage != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             _InboxStatus(
               state: _uploadState,
               message: _uploadMessage!,
@@ -2135,7 +2135,7 @@ class _InboxStatus extends StatelessWidget {
     final complete = state == _InboxUploadState.complete;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: failed
             ? PaycheckColors.claimSoft
@@ -2159,7 +2159,7 @@ class _InboxStatus extends StatelessWidget {
               size: 19,
               color: failed ? PaycheckColors.claim : PaycheckColors.matched,
             ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(child: Text(message, style: PaycheckType.body())),
         ],
       ),
@@ -2340,7 +2340,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
             Expanded(
               child: ListView(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                 children: [
                   Text(
                     widget.document.needsConfirmation
@@ -2348,7 +2348,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                         : 'Payslip details',
                     style: PaycheckType.title(),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     '${_fields['payPeriod'] ?? 'Pay period not found'} · ${_fields['employerName'] ?? 'Employer not found'}',
                     style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -2402,7 +2402,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                   ),
                   const SizedBox(height: 24),
                   Container(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: PaycheckColors.matchedSoft,
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -2417,7 +2417,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                   if (warnings.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: PaycheckColors.claimSoft,
                         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -2427,7 +2427,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                         children: [
                           Text('Check before confirming',
                               style: PaycheckType.bodyStrong()),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           ...warnings.map(
                             (warning) => Padding(
                               padding: const EdgeInsets.only(top: 4),
@@ -2444,9 +2444,9 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                     ),
                   ],
                   if (questions.isNotEmpty) ...[
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: PaycheckColors.contractSoft,
                         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -2456,7 +2456,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                         children: [
                           Text('Details ARTH could not confirm',
                               style: PaycheckType.bodyStrong()),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           ...questions.map(
                             (question) => Padding(
                               padding: const EdgeInsets.only(top: 4),
@@ -2481,7 +2481,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               child: Row(
                 children: [
                   IconButton(
@@ -2489,7 +2489,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                     onPressed: _confirming ? null : _delete,
                     icon: const Icon(Icons.delete_outline_rounded),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: SizedBox(
                       height: 54,
@@ -2670,26 +2670,26 @@ class _TaxOverviewView extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Text('Paycheck tax impact', style: PaycheckType.heading()),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _TaxImpactCard(impact: impact),
           if (hints.isNotEmpty) ...[
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             Text('Payslip tax signals', style: PaycheckType.heading()),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             for (var index = 0; index < hints.length; index++)
               _TaxHintRow(
                 hint: hints[index],
                 last: index == hints.length - 1,
               ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Text(
             'Your confirmed documents stay the source of truth.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -2792,7 +2792,7 @@ class _TaxImpactCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(detail, style: PaycheckType.body()),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Review signal only. Not a filing instruction.',
             style: PaycheckType.utility(),
@@ -2814,7 +2814,7 @@ class _TaxPaceFigure extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: PaycheckType.utility()),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -2835,7 +2835,7 @@ class _TaxHintRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: last
               ? null
@@ -2855,13 +2855,13 @@ class _TaxHintRow extends StatelessWidget {
                 style: PaycheckType.utility(color: PaycheckColors.contract),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(hint.title, style: PaycheckType.bodyStrong()),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     hint.detail,
                     style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -2888,7 +2888,7 @@ class _TaxSummaryLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 13),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -2923,7 +2923,7 @@ class _TopBar extends StatelessWidget {
         const Spacer(),
         if (sample) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: PaycheckColors.contractSoft,
               borderRadius: BorderRadius.circular(99),
@@ -2933,7 +2933,7 @@ class _TopBar extends StatelessWidget {
               style: PaycheckType.utility(color: PaycheckColors.contract),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
         ],
         IconButton(
           tooltip: 'Settings',
@@ -2962,7 +2962,7 @@ class _PageFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2971,9 +2971,9 @@ class _PageFrame extends StatelessWidget {
               spacing: 9,
               wordmarkStyle: PaycheckType.heading(),
             ),
-            const SizedBox(height: 26),
+            const SizedBox(height: 24),
             Text(eyebrow, style: PaycheckType.utility()),
-            const SizedBox(height: 7),
+            const SizedBox(height: 8),
             Text(title, style: PaycheckType.title()),
             const SizedBox(height: 20),
             child,
@@ -3069,7 +3069,7 @@ class _DetectedDocument extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Material(
         color: PaycheckColors.paper,
         borderRadius: AppRadius.card,
@@ -3077,7 +3077,7 @@ class _DetectedDocument extends StatelessWidget {
           onTap: onTap,
           borderRadius: AppRadius.control,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Icon(icon, color: PaycheckColors.inkSoft),
@@ -3103,7 +3103,7 @@ class _DetectedDocument extends StatelessWidget {
                   ),
                 ),
                 if (onTap != null) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   const Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
@@ -3133,7 +3133,7 @@ class _ChecklistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3158,7 +3158,7 @@ class _ChecklistRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyStrong()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   detail,
                   style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -3196,7 +3196,7 @@ class _PaycheckNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(8, 7, 8, 7 + bottom),
+      padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottom),
       decoration: const BoxDecoration(
         color: PaycheckColors.paper,
         border: Border(top: BorderSide(color: PaycheckColors.line)),

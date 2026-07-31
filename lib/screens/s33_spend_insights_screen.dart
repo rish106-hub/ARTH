@@ -247,7 +247,7 @@ Future<void> _editOtherIncome(BuildContext context, WidgetRef ref) {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -399,7 +399,7 @@ Future<void> _editMonthlyIncome(
                       child: const Text('Use detected figure'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: () async {
@@ -538,7 +538,7 @@ Future<void> _editMonthlySpend(
                       child: const Text('Use SMS trend'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: () async {
@@ -747,7 +747,7 @@ class _PeriodPicker extends StatelessWidget {
             );
           }).toList(growable: false),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         Text(
           'Income and spend averages use SMS from ${selected.windowPhrase}. '
           '3 months is a useful recent baseline.',
@@ -827,7 +827,7 @@ class _Insights extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Text('Where it goes', style: PaycheckType.heading()),
         const SizedBox(height: 12),
         _CategoryPie(map: map),
@@ -865,7 +865,7 @@ class _Insights extends ConsumerWidget {
                   '${unclear.length} unclear transaction${unclear.length == 1 ? '' : 's'}',
                   style: PaycheckType.heading(),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'Review only these items. Everything else is already categorized.',
                   style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -970,7 +970,7 @@ class _CoverageEntryCard extends StatelessWidget {
                 children: [
                   Text('Check spend coverage',
                       style: PaycheckType.bodyStrong()),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '${map.txns.length} SMS transactions. Mark missing channels and review repeats.',
                     style: PaycheckType.utility(),
@@ -1060,7 +1060,7 @@ class _SwipeReviewScreenState extends ConsumerState<_SwipeReviewScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Text('${_index + 1} of $total',
                         style: PaycheckType.utility()),
                   ],
@@ -1233,7 +1233,7 @@ class _SwipeReviewCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(money0(txn.amount), style: PaycheckType.display()),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   txn.merchant?.trim().isNotEmpty == true
                       ? txn.merchant!
@@ -1248,7 +1248,7 @@ class _SwipeReviewCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
                       color: PaycheckColors.canvas,
                       borderRadius: AppRadius.control,
@@ -1452,7 +1452,7 @@ class _SwipeReviewDone extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text('All caught up', style: PaycheckType.title()),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           resolved == total
               ? 'Categorized all $total transactions.'
@@ -1479,7 +1479,7 @@ class _CategoryPie extends StatelessWidget {
     final entries = map.topCategories;
     if (entries.isEmpty) return const SizedBox.shrink();
     return _Card(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           SizedBox.square(
@@ -1494,7 +1494,7 @@ class _CategoryPie extends StatelessWidget {
                 final share =
                     map.totalSpent == 0 ? 0 : entry.value / map.totalSpent;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Text(
                     '${SpendCategory.label(entry.key)} ${(share * 100).round()}%',
                     style: PaycheckType.utility(),
@@ -1574,7 +1574,7 @@ class _MonthlyTrend extends StatelessWidget {
     );
     final hasIncome = points.any((p) => p.income > 0);
     return _Card(
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Column(
         children: [
           SizedBox(
@@ -1596,7 +1596,7 @@ class _MonthlyTrend extends StatelessWidget {
                           overflow: TextOverflow.fade,
                           style: PaycheckType.utility(),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1606,7 +1606,7 @@ class _MonthlyTrend extends StatelessWidget {
                               color: PaycheckColors.claim,
                             ),
                             if (hasIncome) ...[
-                              const SizedBox(width: 3),
+                              const SizedBox(width: 4),
                               _Bar(
                                 height: incomeH.toDouble(),
                                 color: PaycheckColors.contract,
@@ -1614,7 +1614,7 @@ class _MonthlyTrend extends StatelessWidget {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           DateFormat('MMM').format(point.month),
                           style: PaycheckType.utility(),
@@ -1627,7 +1627,7 @@ class _MonthlyTrend extends StatelessWidget {
             ),
           ),
           if (hasIncome) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1677,7 +1677,7 @@ class _LegendDot extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Text(label, style: PaycheckType.utility()),
       ],
     );
@@ -1726,7 +1726,7 @@ class _SavingsHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(headline, style: PaycheckType.utility(color: accent)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -1750,7 +1750,7 @@ class _SavingsHero extends StatelessWidget {
               style: PaycheckType.utility(),
             ),
           if (!unknownIncome) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Based on ${period.windowPhrase} averages. Tap income or spend to edit.',
               style: PaycheckType.utility(color: PaycheckColors.inkSoft),
@@ -1769,7 +1769,7 @@ class _SavingsHero extends StatelessWidget {
                   'This figure mixes two sources. Rescan after payday so ARTH can detect your salary credit and give an exact number.',
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(coaching, style: PaycheckType.body()),
         ],
       ),
@@ -1797,7 +1797,7 @@ class _CategoryBars extends StatelessWidget {
               children: [
                 Icon(_iconFor(entry.key),
                     size: 20, color: PaycheckColors.inkSoft),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1812,7 +1812,7 @@ class _CategoryBars extends StatelessWidget {
                               style: PaycheckType.bodyStrong()),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
@@ -1859,7 +1859,7 @@ class _EditableStatTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.card,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: AppRadius.card,
             border: Border.all(
@@ -1881,7 +1881,7 @@ class _EditableStatTile extends StatelessWidget {
                   Icon(Icons.edit_outlined, size: 16, color: color),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(value, style: PaycheckType.title()),
               if (edited) ...[
                 const SizedBox(height: 4),
@@ -1932,7 +1932,7 @@ class _ForecastCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('PROJECTED THIS MONTH', style: PaycheckType.utility()),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(money0(projected), style: PaycheckType.title()),
           const SizedBox(height: 4),
           Row(
@@ -1946,7 +1946,7 @@ class _ForecastCard extends StatelessWidget {
                 size: 18,
                 color: paceColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(paceLine,
                     style: PaycheckType.utility(color: paceColor)),
@@ -1954,12 +1954,12 @@ class _ForecastCard extends StatelessWidget {
             ],
           ),
           if (trends.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text('BIGGEST MOVERS', style: PaycheckType.utility()),
             const SizedBox(height: 8),
             for (final t in trends) _TrendRow(trend: t),
           ] else ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               'Scan a longer window (3–6 months) to unlock per-category trends.',
               style: PaycheckType.utility(color: PaycheckColors.inkSoft),
@@ -1985,14 +1985,14 @@ class _TrendRow extends StatelessWidget {
         children: [
           Icon(_iconFor(trend.category),
               size: 18, color: PaycheckColors.inkSoft),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(SpendCategory.label(trend.category),
                 style: PaycheckType.body()),
           ),
           Icon(up ? Icons.arrow_upward : Icons.arrow_downward,
               size: 14, color: color),
-          const SizedBox(width: 2),
+          const SizedBox(width: 4),
           Text('$pct%', style: PaycheckType.bodyStrong(color: color)),
           const SizedBox(width: 8),
           Text(money0(trend.lastMonth),
@@ -2063,7 +2063,7 @@ class _TransactionRow extends StatelessWidget {
       onTap: () => _showTxnDetail(context, txn, index),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             Container(
@@ -2091,7 +2091,7 @@ class _TransactionRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: PaycheckType.bodyStrong(),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '${DateFormat('d MMM, h:mm a').format(txn.date)} · '
                     '${txn.sender ?? 'unknown'}',
@@ -2113,7 +2113,7 @@ class _TransactionRow extends StatelessWidget {
                         isDebit ? PaycheckColors.ink : PaycheckColors.matched,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   isDebit
                       ? SpendCategory.label(txn.category)
@@ -2193,9 +2193,9 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn, int index) {
                 ),
               ),
             if (txn.bodyPreview?.isNotEmpty == true) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text('ORIGINAL SMS', style: PaycheckType.utility()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),

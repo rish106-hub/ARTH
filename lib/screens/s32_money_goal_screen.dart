@@ -164,7 +164,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                 projection: projection,
                 hasPay: effectiveIncome > 0,
               ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 24),
               Text('Goal', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               TextFormField(
@@ -181,7 +181,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                     : null,
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -193,7 +193,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                   );
                 }).toList(growable: false),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -214,7 +214,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text('Horizon', style: PaycheckType.utility()),
               const SizedBox(height: 8),
               JobDurationSelector(
@@ -241,12 +241,12 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               ),
               const SizedBox(height: 28),
               Text('Monthly commitments', style: PaycheckType.heading()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 'Essential spending only, not your whole outflow.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               _SpendMapHint(
                 onUse: (detectedMonthly) {
                   _essentials.text = detectedMonthly.toString();
@@ -259,7 +259,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
                 requiredPositive: true,
                 onChanged: () => setState(() {}),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               _MoneyField(
                 controller: _family,
                 label: 'Monthly family contribution',
@@ -268,7 +268,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               const SizedBox(height: 24),
               _PlanGuidance(
                   projection: projection, essentials: _number(_essentials)),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _saving ? null : _save,
                 icon: _saving
@@ -308,7 +308,7 @@ class _ProjectionBand extends StatelessWidget {
   Widget build(BuildContext context) {
     final feasible = hasPay && projection.isFeasible;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: PaycheckColors.ink,
         borderRadius: AppRadius.card,
@@ -322,7 +322,7 @@ class _ProjectionBand extends StatelessWidget {
               color: feasible ? PaycheckColors.matched : Colors.white60,
             ),
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           Text(
             money0(projection.requiredMonthly),
             style: PaycheckType.display(color: Colors.white),
@@ -331,7 +331,7 @@ class _ProjectionBand extends StatelessWidget {
             'needed each month for ${projection.monthsRemaining} months',
             style: PaycheckType.body(color: Colors.white70),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text(
             hasPay
                 ? '${money0(projection.availableMonthly)} remains after the commitments entered below.'
@@ -462,7 +462,7 @@ class _SpendMapHint extends ConsumerWidget {
     if (monthly <= 0) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: PaycheckColors.contractSoft,
         borderRadius: AppRadius.card,
@@ -471,7 +471,7 @@ class _SpendMapHint extends ConsumerWidget {
         children: [
           const Icon(Icons.insights_outlined,
               color: PaycheckColors.contract, size: 20),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'SMS spend map: ${money0(monthly)}/mo of essentials detected',

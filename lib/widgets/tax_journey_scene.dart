@@ -157,7 +157,7 @@ class _ChapterPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.92),
         borderRadius: AppRadius.pill,
@@ -588,7 +588,7 @@ class _SnapshotStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: const Color(0xFF102C25).withValues(alpha: 0.94),
       child: Row(
         children: [
@@ -601,7 +601,7 @@ class _SnapshotStrip extends StatelessWidget {
             ),
             child: Icon(snapshot.icon, size: 19, color: Colors.white),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -675,7 +675,7 @@ class _WhyOverlay extends StatelessWidget {
               'Why $chapter matters',
               style: PaycheckType.h3().copyWith(color: Colors.white),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 8),
             Text(
               helper,
               maxLines: 3,
@@ -710,7 +710,7 @@ class _SnapshotPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
@@ -741,7 +741,7 @@ class _SnapshotPanel extends StatelessWidget {
                   style:
                       PaycheckType.micro(color: PaycheckColors.textSecondary),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
                   height: 26,
@@ -841,9 +841,9 @@ class _IncomeBars extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             _Bar(height: 22 + 20 * ratio),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             _Bar(height: 34 + 28 * ratio),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             _Bar(height: 48 + 30 * ratio, dark: true),
           ],
         ),
@@ -883,7 +883,7 @@ class _EmploymentCard extends StatelessWidget {
           child: Container(
             width: 68,
             height: 88,
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: PaycheckColors.bgCard,
               borderRadius: AppRadius.card,
@@ -898,7 +898,7 @@ class _EmploymentCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(height: 5, color: PaycheckColors.textPrimary),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Container(width: 32, height: 4, color: PaycheckColors.border),
               ],
             ),
@@ -931,7 +931,7 @@ class _CityLine extends StatelessWidget {
       Container(
         width: width,
         height: height,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color: dark ? PaycheckColors.textPrimary : PaycheckColors.bgCard,
           border: Border.all(color: PaycheckColors.textPrimary),
@@ -984,7 +984,7 @@ class _ReceiptCheck extends StatelessWidget {
             Container(
               width: 60,
               height: 86,
-              padding: const EdgeInsets.all(11),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                   color: PaycheckColors.bgCard,
                   border: Border.all(color: PaycheckColors.border)),
@@ -992,7 +992,7 @@ class _ReceiptCheck extends StatelessWidget {
                   children: List.generate(
                       4,
                       (i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 9),
+                            padding: const EdgeInsets.only(bottom: 8),
                             child: Container(
                                 height: 4,
                                 color: i == 0
@@ -1064,7 +1064,7 @@ class _CoinStack extends StatelessWidget {
               (i) => Container(
                     width: 62 - i * 7,
                     height: 9,
-                    margin: const EdgeInsets.only(top: 3),
+                    margin: const EdgeInsets.only(top: 4),
                     decoration: BoxDecoration(
                         color: i == 0
                             ? PaycheckColors.textPrimary
@@ -1136,10 +1136,10 @@ class _GivingReceipt extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(active ? Icons.favorite : Icons.favorite_border, size: 32),
-              const SizedBox(height: 11),
+              const SizedBox(height: 12),
               Container(
                   width: 36, height: 5, color: PaycheckColors.textPrimary),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Container(width: 26, height: 4, color: PaycheckColors.border),
             ],
           ),
@@ -1215,7 +1215,7 @@ class _WhyPanel extends StatelessWidget {
                     Icon(Icons.close_rounded, size: 17, color: accent),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
                   helper,
                   maxLines: 2,
