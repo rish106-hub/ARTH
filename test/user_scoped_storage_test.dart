@@ -23,7 +23,8 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.monthlyClose(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendCategoryAiMemory(uid)));
     expect(keys, contains(UserScopedStorageKeys.customSpendCategories(uid)));
-    expect(keys.length, 18);
+    expect(keys, contains(UserScopedStorageKeys.ownedAccounts(uid)));
+    expect(keys.length, 19);
   });
 
   test('durable keys include drafts and exclude auth caches and retry queue',

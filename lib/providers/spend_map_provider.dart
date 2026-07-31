@@ -9,6 +9,7 @@ import '../services/secure_storage_service.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
+import '../features/accounts/providers/account_registry_provider.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
 import 'custom_spend_categories_provider.dart';
@@ -303,6 +304,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final previous = state.map;
     final raw = await _reader.readInbox(since: since);
     final txns = _applyKnownCategories(_parser.parseAll(raw), previous);
+
+    // Learn which accounts and cards these messages are about before anything
+    // reads the map. Ownership is what lets a movement between the user's own
+    // accounts be recognised as a transfer rather than as spending.
+    await ref.read(accountRegistryProvider.notifier).observe(txns);
 
     final map = _buildMap(txns, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
