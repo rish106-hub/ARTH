@@ -82,6 +82,28 @@ class FinanceMessageParser {
     return !_cardCreditExceptions.any(lowerBody.contains);
   }
 
+  // Paying a card bill produces a leg on the paying bank ("debited ... towards
+  // ICICI Credit Card payment") and an acknowledgement from the card itself
+  // ("Payment of Rs X received towards your ICICI Credit Card"). Both describe
+  // the same money, and neither is spending: the spending already happened at
+  // each purchase. Matching requires an explicit "towards <card>" or
+  // "card payment" phrasing, so an ordinary purchase ("spent on your Credit
+  // Card at SWIGGY") is untouched.
+  static final RegExp _cardRepaymentRe = RegExp(
+    r'\btowards\s+(?:your\s+)?(?:\w+\s+){0,3}credit\s*card'
+    r'|credit\s*card\s+(?:bill\s+)?(?:payment|paid)'
+    r'|payment\s+(?:towards|to)\s+(?:your\s+)?(?:\w+\s+){0,3}credit\s*card',
+    caseSensitive: false,
+  );
+
+  /// Whether this message describes repaying the user's own credit card, in
+  /// either direction. A refund or reversal to the card is real money back, so
+  /// it is excluded.
+  static bool _isCardRepayment(String lowerBody) {
+    if (!_cardRepaymentRe.hasMatch(lowerBody)) return false;
+    return !_cardCreditExceptions.any(lowerBody.contains);
+  }
+
   // Skip these outright — not real completed transactions. Note that "autopay"
   // and "e-mandate" are deliberately NOT here: a mandate DEBIT is a real
   // expense (Netflix, SIPs, insurance). Only mandate *registration* and
@@ -630,9 +652,14 @@ class FinanceMessageParser {
         direction == TxnDirection.credit && _isCreditCardBillPayment(lower);
     if (isCardBillPayment) direction = TxnDirection.debit;
 
+    // Repaying a card moves money between the user's own accounts, so it is
+    // recorded but excluded from spend. The purchases on that card are the
+    // expense, and counting the bill as well would count the same money twice.
+    final isCardRepayment = isCardBillPayment || _isCardRepayment(lower);
+
     // 4. Salary detection (only meaningful for credits; a card bill payment
     // is never salary even though it may contain "credited").
-    final isSalary = !isCardBillPayment &&
+    final isSalary = !isCardRepayment &&
         direction == TxnDirection.credit &&
         _salaryRe.hasMatch(lower);
 
@@ -650,6 +677,7 @@ class FinanceMessageParser {
       date: date,
       category: category,
       isSalary: isSalary,
+      isInternalTransfer: isCardRepayment,
       merchant: merchant,
       sender: sender,
       smsId: smsId,
@@ -680,7 +708,9 @@ class FinanceMessageParser {
       );
       if (txn != null) result.add(txn);
     }
-    return inferRecurringSalary(_deduplicate(result));
+    return inferRecurringSalary(
+      _markInternalTransfers(_deduplicate(result)),
+    );
   }
 
   /// Drops duplicate alerts for the same transaction. Banks and UPI apps often
@@ -698,13 +728,57 @@ class FinanceMessageParser {
     for (final t in txns) {
       final ref = t.refNo;
       final key = ref != null && ref.isNotEmpty
-          ? 'ref:$ref'
+          // Direction is part of the key: a transfer between the user's own
+          // accounts reports the SAME reference as a debit on one side and a
+          // credit on the other. Keying on the reference alone silently dropped
+          // whichever leg arrived second, so the surviving leg was decided by
+          // SMS arrival order — and a surviving credit could then be inferred
+          // as salary.
+          ? 'ref:$ref|${t.direction.name}'
           : '${t.amount}|${t.direction.name}|'
               '${t.date.year}-${t.date.month}-${t.date.day}|'
               '${_merchantKey(t.merchant)}';
       if (seen.add(key)) out.add(t);
     }
     return out;
+  }
+
+  /// Marks both ends of a movement between the user's own accounts.
+  ///
+  /// One UPI/NEFT reference appearing as both a debit and a credit is the two
+  /// halves of one transfer — money left one account and arrived in another the
+  /// user also owns. Neither half is spend or income. This is what stops a
+  /// three-hop card payment (bank -> bank -> card) reading as several times the
+  /// money that actually moved.
+  ///
+  /// Deliberately requires a shared reference rather than guessing from equal
+  /// amounts on the same day: a same-size expense and credit that happen to
+  /// coincide would otherwise both be hidden.
+  static List<FinanceTxn> _markInternalTransfers(List<FinanceTxn> txns) {
+    final byRef = <String, List<int>>{};
+    for (var i = 0; i < txns.length; i++) {
+      final ref = txns[i].refNo;
+      if (ref == null || ref.isEmpty) continue;
+      (byRef[ref] ??= <int>[]).add(i);
+    }
+
+    final internal = <int>{};
+    byRef.forEach((_, indices) {
+      if (indices.length < 2) return;
+      final hasDebit =
+          indices.any((i) => txns[i].direction == TxnDirection.debit);
+      final hasCredit =
+          indices.any((i) => txns[i].direction == TxnDirection.credit);
+      if (hasDebit && hasCredit) internal.addAll(indices);
+    });
+
+    if (internal.isEmpty) return txns;
+    return [
+      for (var i = 0; i < txns.length; i++)
+        internal.contains(i)
+            ? txns[i].copyWith(isInternalTransfer: true, isSalary: false)
+            : txns[i],
+    ];
   }
 
   static final RegExp _nonAlphanumeric = RegExp(r'[^a-z0-9]');
@@ -733,6 +807,7 @@ class FinanceMessageParser {
     final buckets = <int, List<int>>{};
     for (var i = 0; i < txns.length; i++) {
       final t = txns[i];
+      if (t.isInternalTransfer) continue;
       if (t.direction != TxnDirection.credit || t.isSalary) continue;
       if (t.amount < _minRecurringSalary) continue;
       final key = (t.amount / _salaryBucketRupees).round();
