@@ -317,6 +317,7 @@ class FinanceTxn {
     this.source,
     this.counterparty,
     this.transferGroupId,
+    this.isLowDetailCardBill = false,
     this.merchant,
     this.sender,
     this.smsId,
@@ -352,6 +353,11 @@ class FinanceTxn {
   /// ordinary transaction.
   final String? transferGroupId;
 
+  /// True when this is a card bill counted as spend because the card never
+  /// itemised its purchases. The amount is real; the breakdown is not available,
+  /// and the UI should say so rather than implying a single ₹40,000 purchase.
+  final bool isLowDetailCardBill;
+
   /// A debit that actually reduces net worth. Internal movement is excluded, so
   /// paying a card bill from another bank does not read as spending twice.
   bool get countsAsSpend =>
@@ -386,6 +392,7 @@ class FinanceTxn {
     TxnEndpoint? source,
     TxnEndpoint? counterparty,
     String? transferGroupId,
+    bool? isLowDetailCardBill,
     String? merchant,
     CategorySource? categorySource,
   }) =>
@@ -399,6 +406,7 @@ class FinanceTxn {
         source: source ?? this.source,
         counterparty: counterparty ?? this.counterparty,
         transferGroupId: transferGroupId ?? this.transferGroupId,
+        isLowDetailCardBill: isLowDetailCardBill ?? this.isLowDetailCardBill,
         merchant: merchant ?? this.merchant,
         sender: sender,
         smsId: smsId,
@@ -417,6 +425,7 @@ class FinanceTxn {
         if (source != null) 'source': source!.toJson(),
         if (counterparty != null) 'counterparty': counterparty!.toJson(),
         if (transferGroupId != null) 'transferGroupId': transferGroupId,
+        if (isLowDetailCardBill) 'isLowDetailCardBill': true,
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
         if (smsId != null) 'smsId': smsId,
@@ -438,6 +447,7 @@ class FinanceTxn {
         source: TxnEndpoint.fromJson(json['source']),
         counterparty: TxnEndpoint.fromJson(json['counterparty']),
         transferGroupId: json['transferGroupId']?.toString(),
+        isLowDetailCardBill: json['isLowDetailCardBill'] == true,
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
         smsId: (json['smsId'] as num?)?.toInt(),
