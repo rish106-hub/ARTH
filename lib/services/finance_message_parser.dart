@@ -1,4 +1,5 @@
 import '../models/spend_map.dart';
+import 'transfer_correlator.dart';
 
 /// Parses bank/UPI/wallet SMS (and short email snippets) into [FinanceTxn]s
 /// entirely on-device with regex + keyword heuristics. No network, no LLM.
@@ -832,8 +833,11 @@ class FinanceMessageParser {
       );
       if (txn != null) result.add(txn);
     }
+    // Correlation runs with no ownership knowledge here, so only the
+    // reference-based rule applies. The scan calls the correlator again with the
+    // account registry, which adds the endpoint rule on top.
     return inferRecurringSalary(
-      _markInternalTransfers(_deduplicate(result)),
+      const TransferCorrelator().correlate(_deduplicate(result)),
     );
   }
 
@@ -865,44 +869,6 @@ class FinanceMessageParser {
       if (seen.add(key)) out.add(t);
     }
     return out;
-  }
-
-  /// Marks both ends of a movement between the user's own accounts.
-  ///
-  /// One UPI/NEFT reference appearing as both a debit and a credit is the two
-  /// halves of one transfer — money left one account and arrived in another the
-  /// user also owns. Neither half is spend or income. This is what stops a
-  /// three-hop card payment (bank -> bank -> card) reading as several times the
-  /// money that actually moved.
-  ///
-  /// Deliberately requires a shared reference rather than guessing from equal
-  /// amounts on the same day: a same-size expense and credit that happen to
-  /// coincide would otherwise both be hidden.
-  static List<FinanceTxn> _markInternalTransfers(List<FinanceTxn> txns) {
-    final byRef = <String, List<int>>{};
-    for (var i = 0; i < txns.length; i++) {
-      final ref = txns[i].refNo;
-      if (ref == null || ref.isEmpty) continue;
-      (byRef[ref] ??= <int>[]).add(i);
-    }
-
-    final internal = <int>{};
-    byRef.forEach((_, indices) {
-      if (indices.length < 2) return;
-      final hasDebit =
-          indices.any((i) => txns[i].direction == TxnDirection.debit);
-      final hasCredit =
-          indices.any((i) => txns[i].direction == TxnDirection.credit);
-      if (hasDebit && hasCredit) internal.addAll(indices);
-    });
-
-    if (internal.isEmpty) return txns;
-    return [
-      for (var i = 0; i < txns.length; i++)
-        internal.contains(i)
-            ? txns[i].copyWith(isInternalTransfer: true, isSalary: false)
-            : txns[i],
-    ];
   }
 
   static final RegExp _nonAlphanumeric = RegExp(r'[^a-z0-9]');

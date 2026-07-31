@@ -6,6 +6,7 @@ import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
 import '../services/merchant_category_rules.dart';
 import '../services/secure_storage_service.dart';
+import '../services/transfer_correlator.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
@@ -308,9 +309,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     // Learn which accounts and cards these messages are about before anything
     // reads the map. Ownership is what lets a movement between the user's own
     // accounts be recognised as a transfer rather than as spending.
-    await ref.read(accountRegistryProvider.notifier).observe(txns);
+    final registry = ref.read(accountRegistryProvider.notifier);
+    await registry.observe(txns);
 
-    final map = _buildMap(txns, since);
+    // Correlate again now that ownership is known. parseAll already applied the
+    // reference rule, which needs no registry; this pass adds the endpoint rule,
+    // which catches the transfers where a bank quoted no reference at all.
+    final correlated =
+        const TransferCorrelator().correlate(txns, owns: registry.owns);
+
+    final map = _buildMap(correlated, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(
       map: _applyUserContext(map),

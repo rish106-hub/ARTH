@@ -316,6 +316,7 @@ class FinanceTxn {
     this.isInternalTransfer = false,
     this.source,
     this.counterparty,
+    this.transferGroupId,
     this.merchant,
     this.sender,
     this.smsId,
@@ -345,6 +346,11 @@ class FinanceTxn {
   /// leg's source is what identifies a transfer between the user's own
   /// accounts even when the two banks quote no shared reference.
   final TxnEndpoint? counterparty;
+
+  /// Shared by every leg of one movement, so the UI can show "you moved ₹25,000
+  /// from SBI to your ICICI card" instead of three unexplained rows. Null for an
+  /// ordinary transaction.
+  final String? transferGroupId;
 
   /// A debit that actually reduces net worth. Internal movement is excluded, so
   /// paying a card bill from another bank does not read as spending twice.
@@ -379,6 +385,7 @@ class FinanceTxn {
     bool? isInternalTransfer,
     TxnEndpoint? source,
     TxnEndpoint? counterparty,
+    String? transferGroupId,
     String? merchant,
     CategorySource? categorySource,
   }) =>
@@ -391,6 +398,7 @@ class FinanceTxn {
         isInternalTransfer: isInternalTransfer ?? this.isInternalTransfer,
         source: source ?? this.source,
         counterparty: counterparty ?? this.counterparty,
+        transferGroupId: transferGroupId ?? this.transferGroupId,
         merchant: merchant ?? this.merchant,
         sender: sender,
         smsId: smsId,
@@ -408,6 +416,7 @@ class FinanceTxn {
         if (isInternalTransfer) 'isInternalTransfer': true,
         if (source != null) 'source': source!.toJson(),
         if (counterparty != null) 'counterparty': counterparty!.toJson(),
+        if (transferGroupId != null) 'transferGroupId': transferGroupId,
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
         if (smsId != null) 'smsId': smsId,
@@ -428,6 +437,7 @@ class FinanceTxn {
         isInternalTransfer: json['isInternalTransfer'] == true,
         source: TxnEndpoint.fromJson(json['source']),
         counterparty: TxnEndpoint.fromJson(json['counterparty']),
+        transferGroupId: json['transferGroupId']?.toString(),
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
         smsId: (json['smsId'] as num?)?.toInt(),
