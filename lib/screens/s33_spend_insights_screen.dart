@@ -615,14 +615,13 @@ class _Loading extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.only(top: 60),
-      child: Center(
-        child: Column(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Reading & categorising your SMS…'),
-          ],
-        ),
+      child: ArthLoadingPanel(
+        title: 'Reading your SMS',
+        insights: [
+          'Matching transactional senders.',
+          'Separating transfers from real spend.',
+          'Categorising each payee.',
+        ],
       ),
     );
   }

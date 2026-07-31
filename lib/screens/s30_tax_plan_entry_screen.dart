@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/user_profile_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
+import '../widgets/premium_ui.dart';
 
 class TaxPlanEntryScreen extends ConsumerWidget {
   const TaxPlanEntryScreen({super.key});
@@ -82,10 +83,9 @@ class TaxPlanEntryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               complete.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: PaycheckColors.contract,
-                  ),
+                loading: () => const ArthLoadingPanel(
+                  title: 'Checking your diagnostic',
+                  insights: ['Looking for saved answers.'],
                 ),
                 error: (_, __) => const _TaxActions(complete: false),
                 data: (isComplete) => _TaxActions(complete: isComplete),
