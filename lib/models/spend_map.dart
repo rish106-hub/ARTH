@@ -25,6 +25,9 @@ class SpendCategory {
   static const fees = 'fees';
   static const subscriptions = 'subscriptions';
   static const transfer = 'transfer';
+  static const pets = 'pets';
+  static const gifts = 'gifts';
+  static const personalCare = 'personal_care';
   static const other = 'other';
 
   // Insurance sub-types
@@ -59,6 +62,9 @@ class SpendCategory {
     loan,
     investment,
     transfer,
+    pets,
+    gifts,
+    personalCare,
     cash,
     other,
   ];
@@ -86,7 +92,8 @@ class SpendCategory {
   ];
 
   /// "insurance:car" → "insurance". Anything without a sub-type is its own
-  /// parent.
+  /// parent. A user category's parent is the bare `custom` marker, which is in
+  /// no built-in list, so custom spend is discretionary by default.
   static String parentOf(String category) {
     final separator = category.indexOf(':');
     return separator < 0 ? category : category.substring(0, separator);
@@ -97,6 +104,40 @@ class SpendCategory {
   /// a plain [essentials] membership check silently missed every sub-type.
   static bool isEssential(String category) =>
       essentials.contains(parentOf(category));
+
+  /// Marks a category the user created, e.g. `custom:tax`. Built-in ids never
+  /// carry this prefix, so the two can share one namespace safely.
+  static const customPrefix = 'custom:';
+
+  /// Keeps `custom:<slug>` inside the 40-character limit the backend accepts for
+  /// a spend-by-category key.
+  static const maxCustomSlugLength = 24;
+
+  static bool isCustom(String category) => category.startsWith(customPrefix);
+
+  /// Builds the stable id for a user-typed category name, or null when the text
+  /// holds nothing usable. Returns the built-in id when the text names one, so
+  /// typing "Rent" reuses the existing category instead of shadowing it.
+  static String? idForUserText(String rawLabel) {
+    final slug = _slugify(rawLabel);
+    if (slug.isEmpty) return null;
+    if (all.contains(slug)) return slug;
+    for (final builtIn in all) {
+      if (_slugify(label(builtIn)) == slug) return builtIn;
+    }
+    return '$customPrefix$slug';
+  }
+
+  static String _slugify(String raw) {
+    final collapsed = raw
+        .toLowerCase()
+        .replaceAll(RegExp('[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    if (collapsed.length <= maxCustomSlugLength) return collapsed;
+    return collapsed
+        .substring(0, maxCustomSlugLength)
+        .replaceAll(RegExp(r'_+$'), '');
+  }
 
   static String label(String category) {
     switch (category) {
@@ -144,9 +185,57 @@ class SpendCategory {
         return 'Subscriptions';
       case transfer:
         return 'Sent to people';
+      case pets:
+        return 'Pets';
+      case gifts:
+        return 'Gifts & donations';
+      case personalCare:
+        return 'Personal care';
       default:
+        // A custom id carries its own readable name, so screens that know
+        // nothing about the user's category list still render a real word
+        // rather than a raw `custom:` id.
+        if (isCustom(category)) {
+          return _humanize(category.substring(customPrefix.length));
+        }
         return 'Other';
     }
+  }
+
+  static String _humanize(String slug) {
+    final words = slug.split('_').where((word) => word.isNotEmpty).toList();
+    if (words.isEmpty) return 'Other';
+    final first = words.first;
+    return [
+      first[0].toUpperCase() + first.substring(1),
+      ...words.skip(1),
+    ].join(' ');
+  }
+}
+
+/// A spend category the user added themselves, kept so it stays clickable for
+/// every later transaction. [label] preserves the text as typed; [id] is the
+/// stable value written onto transactions and synced.
+class CustomSpendCategory {
+  const CustomSpendCategory({required this.id, required this.label});
+
+  /// Upper bound on how many a user can keep, so the synced payload and the
+  /// category picker both stay manageable.
+  static const maxPerUser = 24;
+
+  final String id;
+  final String label;
+
+  Map<String, dynamic> toJson() => {'id': id, 'label': label};
+
+  static CustomSpendCategory? fromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
+    if (!SpendCategory.isCustom(id)) return null;
+    final label = json['label']?.toString().trim();
+    return CustomSpendCategory(
+      id: id,
+      label: label == null || label.isEmpty ? SpendCategory.label(id) : label,
+    );
   }
 }
 

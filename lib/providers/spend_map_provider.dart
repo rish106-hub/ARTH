@@ -11,6 +11,7 @@ import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
+import 'custom_spend_categories_provider.dart';
 import 'other_income_provider.dart';
 import 'paycheck_provider.dart';
 import 'spend_map_adjustments_provider.dart';
@@ -456,7 +457,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     if (current == null ||
         transactionIndex < 0 ||
         transactionIndex >= current.txns.length ||
-        !SpendCategory.assignable.contains(category)) {
+        !_isAssignableCategory(category)) {
       return;
     }
     final txns = [...current.txns];
@@ -478,6 +479,19 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     try {
       await _sync.push(updated);
     } catch (_) {}
+  }
+
+  /// A manual correction may use a built-in category or one the user created.
+  /// Unknown custom ids are rejected so a stale id cannot be filed against a
+  /// category that no longer exists in the picker.
+  /// Whether [category] is something a transaction may actually hold: a built-in
+  /// (including the insurance sub-types, which `all` omits because it is the flat
+  /// picker list), or a custom category the user currently has. A stale custom id
+  /// whose category has since been deleted is refused.
+  bool _isAssignableCategory(String category) {
+    if (SpendCategory.assignable.contains(category)) return true;
+    if (!SpendCategory.isCustom(category)) return false;
+    return ref.read(customSpendCategoriesProvider.notifier).contains(category);
   }
 
   // Runs of 5+ digits (account/card numbers, phone numbers) stripped before any

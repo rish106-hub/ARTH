@@ -124,6 +124,7 @@ const userStateNamespaces = [
   'spend-map',
   'spend-map-adjustments',
   'spend-category-rules',
+  'custom-spend-categories',
   'spend-completeness',
   'other-income',
   'other-income-asked',

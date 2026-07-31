@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/spend_map.dart';
 import '../models/spend_scan_period_copy.dart';
+import '../providers/custom_spend_categories_provider.dart';
 import '../providers/other_income_provider.dart';
 import '../providers/spend_map_adjustments_provider.dart';
 import '../providers/spend_map_provider.dart';
@@ -1250,9 +1251,69 @@ class _SwipeReviewCard extends StatelessWidget {
   }
 }
 
+/// Asks for a category name. Returns the raw text so the caller decides whether
+/// it names a built-in category or a new one.
+class _NewCategoryDialog extends StatefulWidget {
+  const _NewCategoryDialog();
+
+  @override
+  State<_NewCategoryDialog> createState() => _NewCategoryDialogState();
+}
+
+class _NewCategoryDialogState extends State<_NewCategoryDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.pop(context, _controller.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Name this category'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            key: const Key('custom_category_field'),
+            controller: _controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            maxLength: 30,
+            decoration: const InputDecoration(
+              hintText: 'Income tax',
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+          Text(
+            'It stays clickable for future transactions.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const Key('save_custom_category'),
+          onPressed: _submit,
+          child: const Text('Save and file'),
+        ),
+      ],
+    );
+  }
+}
+
 /// The category picker. Shared by the unclear-transaction review and the
 /// "change category" action on a transaction, so both offer the same choices.
-class _CategoryChips extends StatelessWidget {
+class _CategoryChips extends ConsumerWidget {
   const _CategoryChips({required this.onCategory, this.selected});
 
   final ValueChanged<String> onCategory;
@@ -1262,12 +1323,16 @@ class _CategoryChips extends StatelessWidget {
   final String? selected;
 
   @override
-  Widget build(BuildContext context) {
-    // `other` is excluded: it is the state the user is filing away from, and
-    // the parent insurance entry opens the sub-type sheet instead of applying.
-    final categories = SpendCategory.all
-        .where((category) => category != SpendCategory.other)
-        .toList(growable: false);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The picker provider yields the built-ins the user can file into plus the
+    // categories they created. `other` is absent: it is the state they are
+    // filing away from, and the parent insurance entry opens the sub-type sheet
+    // instead of applying directly.
+    final categories = ref.watch(spendCategoryPickerProvider);
+    final customLabels = {
+      for (final category in ref.watch(customSpendCategoriesProvider))
+        category.id: category.label,
+    };
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 8,
@@ -1276,7 +1341,8 @@ class _CategoryChips extends StatelessWidget {
         for (final category in categories)
           ActionChip(
             avatar: Icon(_iconFor(category), size: 16),
-            label: Text(SpendCategory.label(category)),
+            label:
+                Text(customLabels[category] ?? SpendCategory.label(category)),
             backgroundColor:
                 _isSelected(category) ? PaycheckColors.matchedSoft : null,
             onPressed: () {
@@ -1287,8 +1353,54 @@ class _CategoryChips extends StatelessWidget {
               }
             },
           ),
+        ActionChip(
+          key: const Key('add_custom_category'),
+          avatar: const Icon(Icons.add_rounded, size: 16),
+          label: const Text('Add your own'),
+          onPressed: () => _addCategoryAndApply(context, ref),
+        ),
       ],
     );
+  }
+
+  /// Names a category the built-in list does not cover — income tax, a premium,
+  /// a fee — files this transaction under it, and keeps it in the picker for
+  /// every later one.
+  Future<void> _addCategoryAndApply(BuildContext context, WidgetRef ref) async {
+    final atLimit = ref.read(customSpendCategoriesProvider).length >=
+        CustomSpendCategory.maxPerUser;
+    if (atLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You already have the maximum number of your own categories.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final typed = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => const _NewCategoryDialog(),
+    );
+    final trimmed = typed?.trim() ?? '';
+    if (trimmed.isEmpty) return;
+
+    final id = await ref
+        .read(customSpendCategoriesProvider.notifier)
+        .addFromUserText(trimmed);
+    if (id == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('That name has no letters or numbers to save.'),
+          ),
+        );
+      }
+      return;
+    }
+    onCategory(id);
   }
 
   bool _isSelected(String category) {
@@ -2245,6 +2357,14 @@ IconData _iconFor(String category) {
       return Icons.autorenew_outlined;
     case SpendCategory.transfer:
       return Icons.send_outlined;
+    case SpendCategory.pets:
+      return Icons.pets_outlined;
+    case SpendCategory.gifts:
+      return Icons.card_giftcard_outlined;
+    case SpendCategory.personalCare:
+      return Icons.spa_outlined;
+    case String() when SpendCategory.isCustom(category):
+      return Icons.sell_outlined;
     default:
       return Icons.category_outlined;
   }
