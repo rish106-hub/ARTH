@@ -6,6 +6,7 @@ import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
 import '../services/merchant_category_rules.dart';
 import '../services/secure_storage_service.dart';
+import '../services/card_spend_integrity.dart';
 import '../services/transfer_correlator.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
@@ -318,7 +319,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final correlated =
         const TransferCorrelator().correlate(txns, owns: registry.owns);
 
-    final map = _buildMap(correlated, since);
+    // Last: keep a card's spending visible when the issuer never itemised it.
+    // Runs after correlation so it can see which bills were classed as internal.
+    final reconciled = const CardSpendIntegrity().apply(correlated);
+
+    final map = _buildMap(reconciled, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(
       map: _applyUserContext(map),
