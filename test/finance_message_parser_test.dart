@@ -576,6 +576,143 @@ void main() {
     });
   });
 
+  group('money moved between the user\'s own accounts is not spend or income',
+      () {
+    ({int? id, String sender, String body, DateTime date}) msg(
+      String sender,
+      String body,
+      DateTime when,
+    ) =>
+        (id: null, sender: sender, body: body, date: when);
+
+    test('a card bill paid via an intermediate bank counts once, at purchase',
+        () {
+      // One ₹25,000 bill payment produces four legs: SBI debits, ICICI credits,
+      // ICICI debits to the card, and the card acknowledges. Plus one real
+      // purchase. Only the purchase is spending.
+      final txns = parser.parseAll([
+        msg(
+            'VM-SBIINB',
+            'Rs 25000 debited from A/c XX1234 and credited to XX9012 ICICI '
+                'BANK via IMPS Ref 419203847362',
+            DateTime(2026, 8, 5, 10)),
+        msg(
+            'VM-ICICIB',
+            'Rs 25000 credited to your ICICI Bank Account XX9012 via IMPS '
+                'Ref 419203847362',
+            DateTime(2026, 8, 5, 10)),
+        msg(
+            'VM-ICICIB',
+            'Rs 25000 debited from ICICI Bank Account XX9012 towards ICICI '
+                'Credit Card XX4321 payment',
+            DateTime(2026, 8, 5, 11)),
+        msg(
+            'VM-ICICIC',
+            'Payment of Rs 25000 received towards your ICICI Credit Card XX4321.',
+            DateTime(2026, 8, 5, 12)),
+        msg(
+            'VM-ICICIC',
+            'Rs 1299 spent on your ICICI Credit Card XX4321 at AMAZON.',
+            DateTime(2026, 8, 2)),
+      ]);
+      final map = SpendMap(
+        txns: txns,
+        windowStart: DateTime(2026, 8, 1),
+        windowEnd: DateTime(2026, 8, 31),
+        generatedAt: DateTime(2026, 8, 31),
+      );
+
+      expect(map.totalSpent, 1299);
+      expect(map.salaryCredited, 0);
+      expect(map.otherCredited, 0);
+      expect(map.spendByCategory[SpendCategory.shopping], 1299);
+    });
+
+    test('both ends of a shared-reference transfer survive but count for nil',
+        () {
+      final txns = parser.parseAll([
+        msg('VM-SBIINB', 'Rs 25000 debited from A/c XX1234 Ref 111222333444',
+            DateTime(2026, 8, 5)),
+        msg('VM-ICICIB', 'Rs 25000 credited to A/c XX9012 Ref 111222333444',
+            DateTime(2026, 8, 5)),
+      ]);
+
+      // Kept as a record — the SMS happened — but neither is spend or income.
+      expect(txns.length, 2);
+      expect(txns.every((t) => t.isInternalTransfer), isTrue);
+      expect(txns.every((t) => !t.countsAsSpend), isTrue);
+      expect(txns.every((t) => !t.isSalary), isTrue);
+    });
+
+    test('a monthly self-transfer is never inferred as salary', () {
+      // The dangerous case: a same-size credit recurring across months looks
+      // exactly like a salary credit. Paying a card bill every month must not
+      // inflate income.
+      final txns = parser.parseAll([
+        for (final month in [6, 7, 8]) ...[
+          msg(
+              'VM-SBIINB',
+              'Rs 50000 debited from A/c XX1234 Ref 90000000000$month',
+              DateTime(2026, month, 5)),
+          msg(
+              'VM-ICICIB',
+              'Rs 50000 credited to A/c XX9012 Ref 90000000000$month',
+              DateTime(2026, month, 5)),
+        ],
+      ]);
+
+      expect(txns.any((t) => t.isSalary), isFalse);
+      final map = SpendMap(
+        txns: txns,
+        windowStart: DateTime(2026, 6, 1),
+        windowEnd: DateTime(2026, 8, 31),
+        generatedAt: DateTime(2026, 8, 31),
+      );
+      expect(map.salaryCredited, 0);
+      expect(map.totalSpent, 0);
+    });
+
+    test('an unpaired reference is left alone', () {
+      // A normal payment quoting a reference is still ordinary spend.
+      final txns = parser.parseAll([
+        msg('VM-HDFCBK', 'Rs 499 debited to SWIGGY Ref 555666777888',
+            DateTime(2026, 8, 5)),
+      ]);
+      expect(txns.single.isInternalTransfer, isFalse);
+      expect(txns.single.countsAsSpend, isTrue);
+    });
+
+    test('a refund to the card is still real money back, not internal', () {
+      final txn = parse(
+        'Rs 500 refund credited to your ICICI Credit Card ending 9012.',
+      );
+      expect(txn!.isInternalTransfer, isFalse);
+      expect(txn.direction, TxnDirection.credit);
+    });
+
+    test('an ordinary card purchase is still spend', () {
+      final txn = parse('Rs 899 spent on your Axis Credit Card at SWIGGY.');
+      expect(txn!.isInternalTransfer, isFalse);
+      expect(txn.countsAsSpend, isTrue);
+      expect(txn.category, SpendCategory.food);
+    });
+
+    test('the internal flag round-trips through JSON', () {
+      final map = SpendMap(
+        txns: [
+          parse('Rs 25000 debited towards ICICI Credit Card payment.')!,
+          parse('Rs 499 debited to SWIGGY.')!,
+        ],
+        windowStart: DateTime(2026, 8, 1),
+        windowEnd: DateTime(2026, 8, 31),
+        generatedAt: DateTime(2026, 8, 31),
+      );
+      final restored = SpendMap.fromJsonString(map.toJsonString());
+      expect(restored.totalSpent, 499);
+      expect(restored.txns.first.isInternalTransfer, isTrue);
+    });
+  });
+
   group('credit card bill payments are not mistaken for income', () {
     test('"received...credited to your credit card" is a debit, not salary',
         () {

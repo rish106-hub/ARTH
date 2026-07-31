@@ -247,6 +247,7 @@ class FinanceTxn {
     required this.date,
     required this.category,
     required this.isSalary,
+    this.isInternalTransfer = false,
     this.merchant,
     this.sender,
     this.smsId,
@@ -260,6 +261,18 @@ class FinanceTxn {
   final DateTime date;
   final String category;
   final bool isSalary;
+
+  /// True when this leg only moves money between the user's own accounts, or
+  /// repays their own credit card. Such a leg is real — the SMS happened — but
+  /// it is neither spend nor income, and counting it as either inflates the
+  /// figures. A single card bill paid via an intermediate bank produces three or
+  /// four legs for one payment.
+  final bool isInternalTransfer;
+
+  /// A debit that actually reduces net worth. Internal movement is excluded, so
+  /// paying a card bill from another bank does not read as spending twice.
+  bool get countsAsSpend =>
+      direction == TxnDirection.debit && !isInternalTransfer;
   final String? merchant;
   final String? sender;
 
@@ -286,6 +299,7 @@ class FinanceTxn {
   FinanceTxn copyWith({
     String? category,
     bool? isSalary,
+    bool? isInternalTransfer,
     String? merchant,
     CategorySource? categorySource,
   }) =>
@@ -295,6 +309,7 @@ class FinanceTxn {
         date: date,
         category: category ?? this.category,
         isSalary: isSalary ?? this.isSalary,
+        isInternalTransfer: isInternalTransfer ?? this.isInternalTransfer,
         merchant: merchant ?? this.merchant,
         sender: sender,
         smsId: smsId,
@@ -309,6 +324,7 @@ class FinanceTxn {
         'date': date.toIso8601String(),
         'category': category,
         'isSalary': isSalary,
+        if (isInternalTransfer) 'isInternalTransfer': true,
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
         if (smsId != null) 'smsId': smsId,
@@ -326,6 +342,7 @@ class FinanceTxn {
             DateTime.fromMillisecondsSinceEpoch(0),
         category: json['category']?.toString() ?? SpendCategory.other,
         isSalary: json['isSalary'] == true,
+        isInternalTransfer: json['isInternalTransfer'] == true,
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
         smsId: (json['smsId'] as num?)?.toInt(),
@@ -536,14 +553,13 @@ class SpendMap {
   /// averaged over its own coverage so income and spend stay on the same
   /// per-month basis regardless of which months each happens to touch.
   int get _salaryMonths => _distinctMonths(isTrustedSalaryTransaction);
-  int get _spendMonths =>
-      _distinctMonths((t) => t.direction == TxnDirection.debit);
+  int get _spendMonths => _distinctMonths((t) => t.countsAsSpend);
 
-  int get totalSpent => txns
-      .where((t) => t.direction == TxnDirection.debit)
-      .fold(0, (sum, t) => sum + t.amount);
+  int get totalSpent =>
+      txns.where((t) => t.countsAsSpend).fold(0, (sum, t) => sum + t.amount);
 
   bool isTrustedSalaryTransaction(FinanceTxn txn) {
+    if (txn.isInternalTransfer) return false;
     if (txn.direction != TxnDirection.credit || !txn.isSalary) return false;
     final trusted = trustedSalarySourceId;
     if (trusted == null || trusted.isEmpty) return true;
@@ -557,12 +573,15 @@ class SpendMap {
       trustedSalaryTransactions.fold(0, (sum, t) => sum + t.amount);
 
   int get otherCredited => txns
-      .where((t) => t.direction == TxnDirection.credit && !t.isSalary)
+      .where((t) =>
+          t.direction == TxnDirection.credit &&
+          !t.isSalary &&
+          !t.isInternalTransfer)
       .fold(0, (sum, t) => sum + t.amount);
 
   Map<String, int> get spendByCategory {
     final map = <String, int>{};
-    for (final t in txns.where((t) => t.direction == TxnDirection.debit)) {
+    for (final t in txns.where((t) => t.countsAsSpend)) {
       map[t.category] = (map[t.category] ?? 0) + t.amount;
     }
     return map;
@@ -584,8 +603,7 @@ class SpendMap {
           values[key] ?? MonthlySpendPoint(month: month, spent: 0, income: 0);
       values[key] = MonthlySpendPoint(
         month: month,
-        spent: current.spent +
-            (txn.direction == TxnDirection.debit ? txn.amount : 0),
+        spent: current.spent + (txn.countsAsSpend ? txn.amount : 0),
         income:
             current.income + (isTrustedSalaryTransaction(txn) ? txn.amount : 0),
       );
@@ -610,9 +628,7 @@ class SpendMap {
   /// savings-goal "essentials" field without discretionary spend inflating it.
   int get monthlyEssentialSpend {
     final essentialTotal = txns
-        .where((t) =>
-            t.direction == TxnDirection.debit &&
-            SpendCategory.isEssential(t.category))
+        .where((t) => t.countsAsSpend && SpendCategory.isEssential(t.category))
         .fold<int>(0, (sum, t) => sum + t.amount);
     return (essentialTotal / _spendMonths).round();
   }
@@ -722,8 +738,7 @@ class SpendMap {
   int get currentMonthSpend {
     final key = _monthKey(windowEnd);
     return txns
-        .where((t) =>
-            t.direction == TxnDirection.debit && _monthKey(t.date) == key)
+        .where((t) => t.countsAsSpend && _monthKey(t.date) == key)
         .fold(0, (sum, t) => sum + t.amount);
   }
 
@@ -751,7 +766,7 @@ class SpendMap {
   /// (monthKey, amount). Used to derive per-category trends.
   Map<String, Map<int, int>> get _monthlyByCategory {
     final out = <String, Map<int, int>>{};
-    for (final t in txns.where((t) => t.direction == TxnDirection.debit)) {
+    for (final t in txns.where((t) => t.countsAsSpend)) {
       final byMonth = out[t.category] ??= <int, int>{};
       final key = _monthKey(t.date);
       byMonth[key] = (byMonth[key] ?? 0) + t.amount;
