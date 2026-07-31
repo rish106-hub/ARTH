@@ -2357,6 +2357,12 @@ IconData _iconFor(String category) {
       return Icons.autorenew_outlined;
     case SpendCategory.transfer:
       return Icons.send_outlined;
+    case SpendCategory.pets:
+      return Icons.pets_outlined;
+    case SpendCategory.gifts:
+      return Icons.card_giftcard_outlined;
+    case SpendCategory.personalCare:
+      return Icons.spa_outlined;
     case String() when SpendCategory.isCustom(category):
       return Icons.sell_outlined;
     default:

@@ -25,6 +25,9 @@ class SpendCategory {
   static const fees = 'fees';
   static const subscriptions = 'subscriptions';
   static const transfer = 'transfer';
+  static const pets = 'pets';
+  static const gifts = 'gifts';
+  static const personalCare = 'personal_care';
   static const other = 'other';
 
   // Insurance sub-types
@@ -59,6 +62,9 @@ class SpendCategory {
     loan,
     investment,
     transfer,
+    pets,
+    gifts,
+    personalCare,
     cash,
     other,
   ];
@@ -179,6 +185,12 @@ class SpendCategory {
         return 'Subscriptions';
       case transfer:
         return 'Sent to people';
+      case pets:
+        return 'Pets';
+      case gifts:
+        return 'Gifts & donations';
+      case personalCare:
+        return 'Personal care';
       default:
         // A custom id carries its own readable name, so screens that know
         // nothing about the user's category list still render a real word

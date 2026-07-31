@@ -34,8 +34,11 @@ describe('spend categorizer', () => {
   it('keeps the category list in sync with the app', () => {
     // These strings are persisted and synced, and the Flutter app validates
     // incoming categories against its own copy in lib/models/spend_map.dart.
-    assert.equal(SPEND_CATEGORIES.length, 18);
-    for (const required of ['food', 'transfer', 'loan', 'fees', 'other']) {
+    assert.equal(SPEND_CATEGORIES.length, 21);
+    for (const required of [
+      'food', 'transfer', 'loan', 'fees', 'pets', 'gifts', 'personal_care',
+      'other',
+    ]) {
       assert.ok(SPEND_CATEGORIES.includes(required as never), required);
     }
   });
