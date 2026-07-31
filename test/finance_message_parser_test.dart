@@ -773,6 +773,74 @@ void main() {
     });
   });
 
+  group('direction follows the instrument, not the wording', () {
+    test('a real bank credit that merely mentions a card is still income', () {
+      // The old rule fired on the phrase "credit card" appearing anywhere, so
+      // this message — money genuinely arriving in a bank account, with a card
+      // statement mentioned in passing — was booked as a card repayment and
+      // written off as worth nothing. Judging the instrument of the SUBJECT
+      // account is what fixes it.
+      final txn = parse(
+        'Rs 5000 credited to your HDFC Bank A/c XX1234. Your HDFC Credit Card '
+        'statement is generated.',
+      );
+      expect(txn, isNotNull);
+      expect(txn!.direction, TxnDirection.credit);
+      expect(txn.isInternalTransfer, isFalse);
+      expect(txn.source?.kind, InstrumentKind.bankAccount);
+    });
+
+    test('money arriving at a card is a repayment, not income', () {
+      final txn = parse(
+        'Payment of Rs 25000 received towards your ICICI Credit Card XX4321.',
+      );
+      expect(txn!.source?.kind, InstrumentKind.creditCard);
+      // Recorded as an outflow so both legs of one payment agree on direction.
+      expect(txn.direction, TxnDirection.debit);
+      expect(txn.isInternalTransfer, isTrue);
+      expect(txn.countsAsSpend, isFalse);
+    });
+
+    test('money leaving a card is a purchase', () {
+      final txn = parse(
+          'Rs 1299 spent on your ICICI Credit Card ending 4321 at AMAZON.');
+      expect(txn!.source?.kind, InstrumentKind.creditCard);
+      expect(txn.direction, TxnDirection.debit);
+      expect(txn.isInternalTransfer, isFalse);
+      expect(txn.countsAsSpend, isTrue);
+      expect(txn.category, SpendCategory.shopping);
+    });
+
+    test('a refund to a card is money back, not a repayment', () {
+      final txn = parse(
+        'Rs 500 refund credited to your ICICI Credit Card ending 9012.',
+      );
+      expect(txn!.direction, TxnDirection.credit);
+      expect(txn.isInternalTransfer, isFalse);
+    });
+
+    test('the bank-side leg of a card payment is still recognised', () {
+      // Here the card is the DESTINATION, so the subject instrument is a bank
+      // account and the instrument rule alone cannot see it.
+      final txn = parse(
+        'Rs 25000 debited from ICICI Bank Account XX9012 towards ICICI Credit '
+        'Card XX4321 payment',
+      );
+      expect(txn!.source?.kind, InstrumentKind.bankAccount);
+      expect(txn.isInternalTransfer, isTrue);
+      expect(txn.countsAsSpend, isFalse);
+    });
+
+    test('a salary credit to an account is untouched', () {
+      final txn = parse(
+        'Rs.54,500.00 credited to a/c XX1234 on 01-07-26 towards SALARY.',
+      );
+      expect(txn!.direction, TxnDirection.credit);
+      expect(txn.isSalary, isTrue);
+      expect(txn.isInternalTransfer, isFalse);
+    });
+  });
+
   group('credit card bill payments are not mistaken for income', () {
     test('"received...credited to your credit card" is a debit, not salary',
         () {
