@@ -145,9 +145,11 @@ class SecureStorageService {
     try {
       return await _storage.read(key: key);
     } catch (_) {
-      try {
-        await _storage.delete(key: key);
-      } catch (_) {}
+      // Deliberately does NOT delete the entry. A read can fail transiently —
+      // the Android Keystore is briefly unavailable before the device is
+      // unlocked, or a platform channel dies mid-call — and deleting on the
+      // first failure turned a momentary error into permanent credential loss,
+      // signing the user out with no way back.
       return null;
     }
   }
