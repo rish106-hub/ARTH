@@ -58,6 +58,16 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
   @override
   Widget build(BuildContext context) {
     final duration = MotionPolicy.duration(context, normal: AppMotion.fast);
+    final detail = _open
+        ? Padding(
+            padding: const EdgeInsets.only(left: 24, right: 4, bottom: 10),
+            child: Text(
+              widget.detail,
+              style: PaycheckType.caption(color: PaycheckColors.inkSoft),
+            ),
+          )
+        : const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -79,11 +89,16 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
                   Icon(widget.icon, size: 16, color: PaycheckColors.inkSoft),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      widget.label,
-                      style: PaycheckType.caption(
-                        color: PaycheckColors.inkSoft,
-                      ).copyWith(fontWeight: FontWeight.w600),
+                    // The enclosing Semantics already carries this label. Left
+                    // in, the row announces it twice; excluding the whole
+                    // subtree instead would also drop the InkWell's tap action.
+                    child: ExcludeSemantics(
+                      child: Text(
+                        widget.label,
+                        style: PaycheckType.caption(
+                          color: PaycheckColors.inkSoft,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                   AnimatedRotation(
@@ -101,26 +116,18 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
             ),
           ),
         ),
-        AnimatedSize(
-          duration: duration,
-          curve: AppMotion.standard,
-          alignment: Alignment.topCenter,
-          child: _open
-              ? Padding(
-                  padding: const EdgeInsets.only(
-                    left: 24,
-                    right: 4,
-                    bottom: 10,
-                  ),
-                  child: Text(
-                    widget.detail,
-                    style: PaycheckType.caption(
-                      color: PaycheckColors.inkSoft,
-                    ),
-                  ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
+        // AnimatedSize asserts if handed a zero duration, which is exactly what
+        // MotionPolicy returns on a small screen or with animations disabled.
+        // Reduced motion should snap anyway, so drop the wrapper entirely.
+        if (duration == Duration.zero)
+          detail
+        else
+          AnimatedSize(
+            duration: duration,
+            curve: AppMotion.standard,
+            alignment: Alignment.topLeft,
+            child: detail,
+          ),
       ],
     );
   }
