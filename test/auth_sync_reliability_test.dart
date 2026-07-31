@@ -55,6 +55,78 @@ void main() {
     expect(api.postCalls, contains('/auth/refresh'));
   });
 
+  group('a failed refresh only signs out when the server rejects the token',
+      () {
+    Future<AuthService> signedIn(_FakeApi api) async {
+      final expired =
+          _jwtWithExpiry(DateTime.now().subtract(const Duration(minutes: 5)));
+      api.postResponses['/auth/sign-in'] = _authResponse(expired, 'refresh-1');
+      final auth = AuthService(api: api);
+      await auth.signIn(email: 'user@example.com', password: 'CorrectHorse9');
+      return auth;
+    }
+
+    test('a backend restart mid-deploy keeps the session', () async {
+      final api = _FakeApi();
+      final auth = await signedIn(api);
+      // 503 is what a redeploying backend returns. It says nothing about
+      // whether the refresh token is still good.
+      api.postErrors['/auth/refresh'] =
+          const ServerApiException(503, 'Service unavailable');
+
+      expect(await auth.getValidAccessToken(), isNull);
+      expect(await auth.loadAccount(), isNotNull);
+
+      // Once the backend is back, the same stored token still works — the user
+      // never saw a sign-in screen.
+      final fresh =
+          _jwtWithExpiry(DateTime.now().add(const Duration(minutes: 15)));
+      api.postErrors.remove('/auth/refresh');
+      api.postResponses['/auth/refresh'] = _authResponse(fresh, 'refresh-2');
+      expect(await auth.getValidAccessToken(), fresh);
+    });
+
+    test('no connectivity keeps the session', () async {
+      final api = _FakeApi();
+      final auth = await signedIn(api);
+      api.postErrors['/auth/refresh'] =
+          const ServerApiException(0, 'Network request failed');
+
+      expect(await auth.getValidAccessToken(), isNull);
+      expect(await auth.loadAccount(), isNotNull);
+    });
+
+    test('a rate limit keeps the session', () async {
+      final api = _FakeApi();
+      final auth = await signedIn(api);
+      api.postErrors['/auth/refresh'] =
+          const ServerApiException(429, 'Too many requests');
+
+      expect(await auth.getValidAccessToken(), isNull);
+      expect(await auth.loadAccount(), isNotNull);
+    });
+
+    test('a rejected refresh token does sign out', () async {
+      final api = _FakeApi();
+      final auth = await signedIn(api);
+      api.postErrors['/auth/refresh'] =
+          const ServerApiException(401, 'Invalid refresh token');
+
+      expect(await auth.getValidAccessToken(), isNull);
+      expect(await auth.loadAccount(), isNull);
+    });
+
+    test('a revoked session does sign out', () async {
+      final api = _FakeApi();
+      final auth = await signedIn(api);
+      api.postErrors['/auth/refresh'] =
+          const ServerApiException(403, 'Session revoked');
+
+      expect(await auth.getValidAccessToken(), isNull);
+      expect(await auth.loadAccount(), isNull);
+    });
+  });
+
   test('server-rejected access token refreshes once and retries requests',
       () async {
     final stale =
