@@ -28,6 +28,9 @@ export const SPEND_CATEGORIES = [
   'loan',
   'investment',
   'transfer',
+  'pets',
+  'gifts',
+  'personal_care',
   'cash',
   'other',
 ] as const;
@@ -155,6 +158,13 @@ investment    Money moved into an asset: SIPs, mutual funds, stocks, demat and
               fixed and recurring deposits, gold savings schemes.
 transfer      Money sent to an individual person rather than a business — a
               friend, family member, domestic help, landlord's personal UPI.
+pets          Vets, pet food and supplies, grooming for an animal, Supertails,
+              Heads Up For Tails.
+gifts         Gifts bought for someone else, donations, charity, NGO giving,
+              temple/gurudwara/church offerings, gift cards, Ferns N Petals.
+personal_care Salon, spa, barber, parlour, grooming and beauty services for the
+              user themselves. Urban Company salon-at-home. NOT medical — a
+              dermatologist is health.
 cash          ATM withdrawals, cash withdrawal, cardless cash.
 other         Use ONLY when no category above is a reasonable fit. Do NOT use
               "other" as a way of expressing doubt — that is what the confidence

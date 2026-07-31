@@ -500,6 +500,34 @@ void main() {
           SpendCategory.subscriptions);
     });
 
+    test('vet bill → pets', () {
+      expect(parse('Rs 1200 paid to CITY VET CLINIC via UPI.')!.category,
+          SpendCategory.pets);
+    });
+
+    test('a donation → gifts, not fees', () {
+      expect(
+          parse('Rs 2500 debited towards DONATION to relief trust.')!.category,
+          SpendCategory.gifts);
+    });
+
+    test('salon → personal care, and a clinic is still health', () {
+      expect(parse('Rs 800 paid to LAKME SALON via UPI.')!.category,
+          SpendCategory.personalCare);
+      expect(parse('Rs 800 paid to SKIN CLINIC via UPI.')!.category,
+          SpendCategory.health);
+    });
+
+    test('none of the three count as essential spend', () {
+      for (final category in [
+        SpendCategory.pets,
+        SpendCategory.gifts,
+        SpendCategory.personalCare,
+      ]) {
+        expect(SpendCategory.isEssential(category), isFalse, reason: category);
+      }
+    });
+
     test('loan EMI and school fees count as essential spend', () {
       expect(SpendCategory.isEssential(SpendCategory.loan), isTrue);
       expect(SpendCategory.isEssential(SpendCategory.education), isTrue);
