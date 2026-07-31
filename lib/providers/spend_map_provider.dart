@@ -9,6 +9,7 @@ import '../services/secure_storage_service.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
+import '../features/accounts/providers/account_registry_provider.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
 import 'custom_spend_categories_provider.dart';
@@ -304,6 +305,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final raw = await _reader.readInbox(since: since);
     final txns = _applyKnownCategories(_parser.parseAll(raw), previous);
 
+    // Learn which accounts and cards these messages are about before anything
+    // reads the map. Ownership is what lets a movement between the user's own
+    // accounts be recognised as a transfer rather than as spending.
+    await ref.read(accountRegistryProvider.notifier).observe(txns);
+
     final map = _buildMap(txns, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(
@@ -497,6 +503,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   // Runs of 5+ digits (account/card numbers, phone numbers) stripped before any
   // text leaves the device.
   static final RegExp _longDigitRun = RegExp(r'\d{5,}');
+  // Masked account and card tails ("A/c XX1234", "card ending 4321"). These are
+  // only three or four digits, so the rule above lets them through — and four
+  // digits of a real account number is not something to hand a third party for
+  // a category guess. The parsed endpoint stays on the device; nothing about
+  // which account moved is ever needed to name a payee.
+  static final RegExp _maskedTail = RegExp(
+    r'(?:a\/c|ac|acct|account|card|ending|xx+)[\s:.#-]*(?:no\.?\s*)?'
+    r'[x*]{0,6}\s*\d{3,6}\b',
+    caseSensitive: false,
+  );
   // Currency amounts (Rs/INR/₹ 1,234.56). Not needed to categorize, so dropped.
   static final RegExp _amountToken = RegExp(
       r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
@@ -512,6 +528,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final body = txn.bodyPreview ?? '';
     return body
         .replaceAll(_amountToken, '')
+        .replaceAll(_maskedTail, '')
         .replaceAll(_longDigitRun, '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();

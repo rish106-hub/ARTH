@@ -31,6 +31,11 @@ class UserScopedStorageKeys {
   static String spendCompleteness(String uid) => 'arth_spend_completeness_$uid';
   static String customSpendCategories(String uid) =>
       'arth_custom_spend_categories_$uid';
+
+  /// Accounts and cards found in the user's SMS, with whether they confirmed
+  /// each is theirs. Durable: re-deriving it needs a full inbox rescan, and the
+  /// confirmations are answers only the user can give.
+  static String ownedAccounts(String uid) => 'arth_owned_accounts_$uid';
   static String otherIncome(String uid) => 'arth_other_income_$uid';
   static String otherIncomeAsked(String uid) => 'arth_other_income_asked_$uid';
   static String paycheckOverrides(String uid) => 'arth_paycheck_overrides_$uid';
@@ -48,6 +53,7 @@ class UserScopedStorageKeys {
         'spend-category-rules': spendCategoryRules(uid),
         'spend-completeness': spendCompleteness(uid),
         'custom-spend-categories': customSpendCategories(uid),
+        'owned-accounts': ownedAccounts(uid),
         'other-income': otherIncome(uid),
         'other-income-asked': otherIncomeAsked(uid),
         'paycheck-overrides': paycheckOverrides(uid),
@@ -81,6 +87,7 @@ class UserScopedStorageKeys {
         spendCategoryAiMemory(uid),
         spendCompleteness(uid),
         customSpendCategories(uid),
+        ownedAccounts(uid),
         otherIncome(uid),
         otherIncomeAsked(uid),
         paycheckOverrides(uid),
