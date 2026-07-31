@@ -84,7 +84,8 @@ class TaxDossierScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'A single view of your income profile, regime insight, missing proofs, and filing handoff readiness.',
+                                  'Profile, regime, proofs and filing '
+                                  'readiness in one view.',
                                   style: PaycheckType.body(
                                     color: PaycheckColors.textSecondary,
                                   ),

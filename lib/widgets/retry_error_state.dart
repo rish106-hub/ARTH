@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 
 class RetryErrorState extends StatelessWidget {
@@ -44,7 +45,7 @@ class RetryErrorState extends StatelessWidget {
                     foregroundColor: PaycheckColors.gold,
                     side: const BorderSide(color: PaycheckColors.gold),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                   ),
                 ),

@@ -220,10 +220,15 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                       style: PaycheckType.h3()),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'This does not file ITR and does not change your profile unless you apply it. Tax shown follows the active rule set and current profile assumptions.',
+                                    'Nothing changes unless you apply it.',
                                     style: PaycheckType.caption(
                                       color: PaycheckColors.textSecondary,
                                     ),
+                                  ),
+                                  const ArthDisclosure(
+                                    label: 'What this screen does not do',
+                                    detail:
+                                        'It does not file an ITR and does not touch your profile. Tax shown follows the active rule set and your current assumptions.',
                                   ),
                                 ],
                               ),

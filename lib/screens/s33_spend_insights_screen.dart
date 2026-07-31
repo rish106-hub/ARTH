@@ -11,8 +11,10 @@ import '../providers/other_income_provider.dart';
 import '../providers/spend_map_adjustments_provider.dart';
 import '../providers/spend_map_provider.dart';
 import '../services/merchant_category_rules.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
+import '../widgets/premium_ui.dart';
 
 class SpendInsightsScreen extends ConsumerWidget {
   const SpendInsightsScreen({super.key});
@@ -45,11 +47,13 @@ class SpendInsightsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'ARTH reads only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on-device, and the resulting transaction history is encrypted and backed up to your ARTH account.',
-                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              const ArthDisclosure(
+                label: 'Transaction SMS only, parsed on this device',
+                icon: Icons.lock_outline,
+                detail:
+                    'ARTH reads only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on-device, and the resulting transaction history is encrypted and backed up to your ARTH account.',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               _PeriodPicker(
                 selected: state.selectedPeriod,
                 onSelected: (period) =>
@@ -106,9 +110,8 @@ Future<void> _askOtherIncomeQuestion(BuildContext context, WidgetRef ref) {
     builder: (dialogContext) => AlertDialog(
       title: const Text('Any other income?'),
       content: const Text(
-        'Besides your salary, do you have other income to factor into your '
-        "savings projection — freelance work, rent, a side business? It's "
-        'kept only on this device and never sent to our servers.',
+        'Freelance work, rent, a side business? '
+        'Kept on this device only.',
       ),
       actions: [
         TextButton(
@@ -583,7 +586,7 @@ class _IncomeSourceRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         border: Border.all(color: PaycheckColors.line),
       ),
       child: Row(
@@ -641,10 +644,15 @@ class _EmptyCard extends StatelessWidget {
           Text('Build your spend map', style: PaycheckType.title()),
           const SizedBox(height: 8),
           Text(
-            'We will scan ${period.windowPhrase} of bank and UPI SMS, detect salary credits and spends, and estimate what you can realistically save.',
+            'From ${period.windowPhrase} of bank and UPI SMS.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
-          const SizedBox(height: 16),
+          const ArthDisclosure(
+            label: 'What the scan works out',
+            detail:
+                'ARTH detects salary credits and spends, separates internal transfers from real expenses, and estimates what you can realistically save each month.',
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -677,10 +685,15 @@ class _PermissionCard extends StatelessWidget {
           Text('SMS access needed', style: PaycheckType.title()),
           const SizedBox(height: 8),
           Text(
-            'ARTH needs permission to read SMS to build your spend map. Nothing leaves your phone during parsing. Grant it in the prompt, or enable it in Settings › Apps › ARTH › Permissions.',
+            'Grant SMS access to build your spend map.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
-          const SizedBox(height: 16),
+          const ArthDisclosure(
+            label: 'Already denied it?',
+            detail:
+                'Nothing leaves your phone during parsing. If the prompt no longer appears, enable SMS under Settings › Apps › ARTH › Permissions, then try again.',
+          ),
+          const SizedBox(height: 12),
           FilledButton(onPressed: onRetry, child: const Text('Try again')),
         ],
       ),
@@ -908,10 +921,14 @@ class _RecalculationNotice extends StatelessWidget {
                     style: PaycheckType.bodyStrong()),
                 const SizedBox(height: 4),
                 Text(
-                  'Card transfers and duplicate transactions are now handled more accurately. Your spend and savings may look different.',
+                  'Spend and savings may look different.',
                   style: PaycheckType.utility(color: PaycheckColors.inkSoft),
                 ),
-                const SizedBox(height: 8),
+                const ArthDisclosure(
+                  label: 'What changed',
+                  detail:
+                      'Card transfers and duplicate transactions are now handled more accurately, so a bill paid from another account is no longer counted twice.',
+                ),
                 TextButton(
                   onPressed: onDismiss,
                   child: const Text('Got it'),
@@ -1232,9 +1249,9 @@ class _SwipeReviewCard extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: PaycheckColors.canvas,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.control,
                     ),
                     child:
                         Text(txn.bodyPreview!, style: PaycheckType.utility()),
@@ -1702,7 +1719,7 @@ class _SavingsHero extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: softBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: accent.withValues(alpha: 0.4)),
       ),
       child: Column(
@@ -1742,10 +1759,14 @@ class _SavingsHero extends StatelessWidget {
           if (map.netMixesSources) ...[
             const SizedBox(height: 8),
             Text(
-              'Heads up: income here is a payslip estimate while spend comes '
-              'from SMS, so this balance mixes two sources. Rescan after payday '
-              'to detect your salary credit for an exact figure.',
+              'Income is a payslip estimate, spend is from SMS.',
               style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+            ),
+            const ArthDisclosure(
+              label: 'Why this balance is approximate',
+              icon: Icons.help_outline,
+              detail:
+                  'This figure mixes two sources. Rescan after payday so ARTH can detect your salary credit and give an exact number.',
             ),
           ],
           const SizedBox(height: 10),
@@ -1833,14 +1854,14 @@ class _EditableStatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: PaycheckColors.paper,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
             border: Border.all(
               color:
                   edited ? color.withValues(alpha: 0.45) : PaycheckColors.line,
@@ -2048,9 +2069,9 @@ class _TransactionRow extends StatelessWidget {
             Container(
               width: 34,
               height: 34,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: PaycheckColors.canvas,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.control,
               ),
               child: Icon(
                 isDebit ? _iconFor(txn.category) : Icons.south_west,
@@ -2180,7 +2201,7 @@ Future<void> _showTxnDetail(BuildContext context, FinanceTxn txn, int index) {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: PaycheckColors.canvas,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.control,
                   border: Border.all(color: PaycheckColors.line),
                 ),
                 child: Text(txn.bodyPreview!, style: PaycheckType.body()),
@@ -2311,7 +2332,7 @@ class _Card extends StatelessWidget {
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: PaycheckColors.line),
       ),
       child: child,

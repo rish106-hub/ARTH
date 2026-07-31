@@ -122,7 +122,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   String _googleSignInError(GoogleSignInException error) {
     return switch (error.code) {
       GoogleSignInExceptionCode.canceled =>
-        'Google did not complete sign-in. If you selected an account, this build may still need an updated OAuth client.',
+        'Google sign-in did not complete. This build may need an '
+            'updated OAuth client.',
       GoogleSignInExceptionCode.clientConfigurationError =>
         'Google sign-in is not configured for this Android build.',
       GoogleSignInExceptionCode.providerConfigurationError =>
@@ -157,7 +158,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
     if (error.statusCode == 503 ||
         error.code == 'backend_temporarily_unavailable') {
-      return 'ARTH is still connecting to its secure database. We retried once; please try again in a moment.';
+      return 'ARTH is still connecting to its database. '
+          'Try again in a moment.';
     }
     if (error.statusCode >= 500) {
       return 'ARTH server had a problem. Please try again in a moment.';
@@ -388,9 +390,9 @@ class _ModeSwitch extends StatelessWidget {
     return Container(
       height: 44,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
@@ -489,25 +491,25 @@ class _InputField extends StatelessWidget {
         fillColor: PaycheckColors.bgCard,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.border),
+        border: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.border),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.border),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.border),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.4),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.gold, width: 1.4),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.alert),
+        errorBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.alert),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.alert, width: 1.4),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.alert, width: 1.4),
         ),
         errorStyle: PaycheckType.micro(color: PaycheckColors.alert),
       ),
@@ -532,7 +534,7 @@ class _AuthErrorText extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: PaycheckColors.alert.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.card,
                 border: Border.all(
                     color: PaycheckColors.alert.withValues(alpha: 0.24)),
               ),
@@ -562,7 +564,7 @@ class _GoogleButton extends StatelessWidget {
           foregroundColor: PaycheckColors.textPrimary,
           backgroundColor: PaycheckColors.surface,
           side: const BorderSide(color: PaycheckColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
         ),
         icon: Image.asset(
           'assets/images/google_logo.png',
@@ -596,7 +598,7 @@ class _SubmitButton extends StatelessWidget {
           backgroundColor: PaycheckColors.gold,
           foregroundColor: Colors.white,
           disabledBackgroundColor: PaycheckColors.gold.withValues(alpha: 0.42),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
           elevation: 0,
         ),
         child: loading

@@ -11,10 +11,12 @@ import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/app_update_service.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/session_cleanup.dart';
 import '../widgets/arth_brand_mark.dart';
 import '../widgets/employer_picker.dart';
+import '../widgets/premium_ui.dart';
 
 class ProfessionalProfileView extends ConsumerWidget {
   final PaycheckState paycheck;
@@ -539,7 +541,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
             const SizedBox(height: 28),
             const _FormSectionTitle('Optional exact salary values'),
             Text(
-              'Use annual values from your offer letter or Form 16. Leave a field empty when you do not know it.',
+              'Annual values from your offer letter or Form 16. '
+              'Leave what you do not know empty.',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
             const SizedBox(height: 14),
@@ -568,8 +571,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               style: FilledButton.styleFrom(
                 backgroundColor: PaycheckColors.ink,
                 minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.control,
                 ),
               ),
               onPressed: _saving ? null : _save,
@@ -693,7 +696,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
                 onTap: () => _showConnectorDisclosure(
                   context,
                   title: 'Gmail is not connected',
-                  body:
+                  detail:
                       'Reading salary emails requires a restricted Gmail scope, Google verification and a reviewed server-side data policy. ARTH will not request broad inbox access before that work is complete.',
                 ),
               ),
@@ -705,7 +708,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
                 onTap: () => _showConnectorDisclosure(
                   context,
                   title: 'Bank feed is not connected',
-                  body:
+                  detail:
                       'Indian bank data should be connected through a consent-based Account Aggregator. ARTH still needs an approved provider before it can request or receive this data.',
                 ),
                 isLast: true,
@@ -715,9 +718,9 @@ class ProfileConnectionsScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: PaycheckColors.contractSoft,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,9 +731,19 @@ class ProfileConnectionsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Payment apps are not listed as salary sources because transaction notifications are incomplete evidence. Payslips, bank credits and employer documents are stronger inputs.',
-                    style: PaycheckType.body(color: PaycheckColors.ink),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payment apps are not salary sources.',
+                        style: PaycheckType.body(color: PaycheckColors.ink),
+                      ),
+                      const ArthDisclosure(
+                        label: 'Why not',
+                        detail:
+                            'Transaction notifications are incomplete evidence. Payslips, bank credits and employer documents are stronger inputs.',
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -744,7 +757,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
   void _showConnectorDisclosure(
     BuildContext context, {
     required String title,
-    required String body,
+    required String detail,
   }) {
     showModalBottomSheet<void>(
       context: context,
@@ -759,7 +772,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
             children: [
               Text(title, style: PaycheckType.title()),
               const SizedBox(height: 12),
-              Text(body,
+              Text(detail,
                   style: PaycheckType.body(color: PaycheckColors.inkSoft)),
               const SizedBox(height: 22),
               SizedBox(
@@ -976,7 +989,8 @@ class ProfilePrivacyScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete financial data?'),
         content: const Text(
-          'This removes your tax profile and paycheck information. Uploaded documents must be removed separately from Documents.',
+          'Removes your tax profile and paycheck data. '
+          'Documents must be deleted separately.',
         ),
         actions: [
           TextButton(
@@ -1098,9 +1112,9 @@ class _CompletenessPanel extends StatelessWidget {
     final progress = completion / 8;
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.ink,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1211,7 +1225,7 @@ class _ProfileGroup extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: PaycheckColors.line),
       ),
       child: Column(children: children),

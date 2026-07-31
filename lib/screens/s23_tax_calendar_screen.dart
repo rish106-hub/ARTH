@@ -60,10 +60,15 @@ class TaxCalendarScreen extends ConsumerWidget {
                         Text(activeYear.displayLabel, style: PaycheckType.h1()),
                         const SizedBox(height: 8),
                         Text(
-                          'A readiness timeline for proofs, official-record review, accuracy cleanup, and filing handoff. No reminders or push notifications yet.',
+                          'Readiness timeline. No reminders yet.',
                           style: PaycheckType.body(
                             color: PaycheckColors.textSecondary,
                           ),
+                        ),
+                        const ArthDisclosure(
+                          label: 'What the timeline covers',
+                          detail:
+                              'Proofs, official-record review, accuracy cleanup and filing handoff. Push notifications are not built yet.',
                         ),
                       ],
                     ),

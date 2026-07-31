@@ -1,5 +1,6 @@
-import 'dart:ui';
+import '../theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -21,7 +22,7 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(8);
+    final radius = borderRadius ?? AppRadius.card;
     return ClipRRect(
       borderRadius: radius,
       child: BackdropFilter(

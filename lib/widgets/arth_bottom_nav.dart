@@ -72,7 +72,7 @@ class ArthBottomNav extends StatelessWidget {
               button: true,
               label: item.label,
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.control,
                 onTap: () => onTap(i),
                 child: SizedBox(
                   height: 56,
@@ -88,7 +88,7 @@ class ArthBottomNav extends StatelessWidget {
                           color: selected
                               ? PaycheckColors.ink
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.card,
                         ),
                         child: Icon(
                           selected ? item.activeIcon : item.icon,

@@ -210,8 +210,8 @@ class _SalarySourceCard extends ConsumerWidget {
     return _SectionCard(
       eyebrow: 'INCOME SOURCE',
       title: 'Pick the salary account',
-      body:
-          'ARTH will use only this sender for detected salary income. This choice stays on this phone.',
+      body: 'Only this sender counts as salary income. '
+          'The choice stays on this phone.',
       child: sources.isEmpty
           ? Text(
               'No salary credit sender was found in this scan.',

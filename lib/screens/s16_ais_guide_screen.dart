@@ -64,10 +64,16 @@ class AisGuideScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'ARTH does not fetch AIS, ask for income-tax OTP, or store official statements. This guide tells you what to inspect in the official Income Tax portal or AIS app.',
+                          'What to inspect in the portal or AIS app.',
                           style: PaycheckType.body(
                             color: PaycheckColors.textSecondary,
                           ),
+                        ),
+                        const ArthDisclosure(
+                          label: 'What ARTH does not do',
+                          icon: Icons.lock_outline,
+                          detail:
+                              'ARTH never fetches AIS, asks for an income-tax OTP, or stores official statements.',
                         ),
                         const SizedBox(height: 16),
                         OutlinedButton.icon(

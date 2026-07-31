@@ -183,8 +183,8 @@ class _ActionPlanEmptyState extends StatelessWidget {
           ArthStatePanel(
             icon: Icons.checklist_rounded,
             title: 'Actions start with your diagnostic',
-            message:
-                'You can still prepare documents now. Complete the diagnostic to unlock personal deduction tasks.',
+            message: 'Complete it to unlock your deduction tasks. '
+                'You can prepare documents now either way.',
             actionLabel: 'Start diagnostic',
             onAction: () => context.go('/questions'),
           ),
@@ -267,9 +267,9 @@ class _ActionPlanHeader extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.ink,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

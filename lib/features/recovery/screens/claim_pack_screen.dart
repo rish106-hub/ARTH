@@ -8,6 +8,7 @@ import '../../../models/paycheck.dart';
 import '../../../models/tax_document.dart';
 import '../../../providers/paycheck_provider.dart';
 import '../../../providers/tax_document_provider.dart';
+import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
 import '../models/recovery_models.dart';
 import '../providers/recovery_provider.dart';
@@ -285,8 +286,8 @@ class _ClaimPackBody extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: PaycheckColors.ink,
               minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.control,
               ),
             ),
             icon: exporting
@@ -323,7 +324,7 @@ class _ClaimContextCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
         border: Border.all(color: PaycheckColors.line),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         children: [
@@ -397,7 +398,7 @@ class _EvidenceChoice extends StatelessWidget {
         border: Border.all(
           color: selected ? PaycheckColors.matched : PaycheckColors.line,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: CheckboxListTile(
         value: selected,
@@ -425,9 +426,9 @@ class _EmptyEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.contractSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
