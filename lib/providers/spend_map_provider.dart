@@ -497,6 +497,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   // Runs of 5+ digits (account/card numbers, phone numbers) stripped before any
   // text leaves the device.
   static final RegExp _longDigitRun = RegExp(r'\d{5,}');
+  // Masked account and card tails ("A/c XX1234", "card ending 4321"). These are
+  // only three or four digits, so the rule above lets them through — and four
+  // digits of a real account number is not something to hand a third party for
+  // a category guess. The parsed endpoint stays on the device; nothing about
+  // which account moved is ever needed to name a payee.
+  static final RegExp _maskedTail = RegExp(
+    r'(?:a\/c|ac|acct|account|card|ending|xx+)[\s:.#-]*(?:no\.?\s*)?'
+    r'[x*]{0,6}\s*\d{3,6}\b',
+    caseSensitive: false,
+  );
   // Currency amounts (Rs/INR/₹ 1,234.56). Not needed to categorize, so dropped.
   static final RegExp _amountToken = RegExp(
       r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
@@ -512,6 +522,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final body = txn.bodyPreview ?? '';
     return body
         .replaceAll(_amountToken, '')
+        .replaceAll(_maskedTail, '')
         .replaceAll(_longDigitRun, '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();

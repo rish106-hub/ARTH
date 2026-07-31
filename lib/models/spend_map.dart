@@ -239,6 +239,72 @@ class CustomSpendCategory {
   }
 }
 
+/// What kind of money instrument an endpoint is. The distinction carries real
+/// meaning: a bank account holds a balance, a credit card is a liability, and
+/// that alone decides whether money arriving at it is income or a repayment.
+enum InstrumentKind {
+  bankAccount,
+  creditCard,
+  wallet,
+  unknown;
+
+  static InstrumentKind fromName(String? name) => switch (name) {
+        'bankAccount' => InstrumentKind.bankAccount,
+        'creditCard' => InstrumentKind.creditCard,
+        'wallet' => InstrumentKind.wallet,
+        _ => InstrumentKind.unknown,
+      };
+}
+
+/// One end of a money movement: which institution, which account, what kind.
+///
+/// [tail] is the masked last-4 the SMS already shows ("XX1234" -> "1234"). It
+/// stays on the device — endpoints are never included in anything sent for AI
+/// categorisation, because four digits of a real account number is not
+/// something to hand to a third party for a category guess.
+class TxnEndpoint {
+  const TxnEndpoint(
+      {this.institution, this.tail, this.kind = InstrumentKind.unknown});
+
+  /// Institution code taken from the DLT sender header: "VM-HDFCBK" -> "HDFCBK".
+  final String? institution;
+
+  /// Last four digits of the account or card, when the message shows them.
+  final String? tail;
+
+  final InstrumentKind kind;
+
+  /// Stable identity for matching one endpoint against another, and the key the
+  /// account registry stores ownership under. Null when there is not enough to
+  /// identify anything.
+  String? get id {
+    if (tail == null || tail!.isEmpty) return null;
+    return '${institution ?? 'unknown'}:${kind.name}:$tail';
+  }
+
+  bool get isEmpty =>
+      institution == null && tail == null && kind == InstrumentKind.unknown;
+
+  Map<String, dynamic> toJson() => {
+        if (institution != null) 'institution': institution,
+        if (tail != null) 'tail': tail,
+        'kind': kind.name,
+      };
+
+  static TxnEndpoint? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final endpoint = TxnEndpoint(
+      institution: json['institution']?.toString(),
+      tail: json['tail']?.toString(),
+      kind: InstrumentKind.fromName(json['kind']?.toString()),
+    );
+    return endpoint.isEmpty ? null : endpoint;
+  }
+
+  @override
+  String toString() => id ?? 'TxnEndpoint(unidentified)';
+}
+
 /// A single money movement parsed from one message.
 class FinanceTxn {
   const FinanceTxn({
@@ -248,6 +314,8 @@ class FinanceTxn {
     required this.category,
     required this.isSalary,
     this.isInternalTransfer = false,
+    this.source,
+    this.counterparty,
     this.merchant,
     this.sender,
     this.smsId,
@@ -268,6 +336,15 @@ class FinanceTxn {
   /// figures. A single card bill paid via an intermediate bank produces three or
   /// four legs for one payment.
   final bool isInternalTransfer;
+
+  /// The user's side of the movement — the account or card the message is about.
+  final TxnEndpoint? source;
+
+  /// The other side, when the message names one ("debited from A/c XX1234 and
+  /// credited to XX9012"). Matching one leg's counterparty against another
+  /// leg's source is what identifies a transfer between the user's own
+  /// accounts even when the two banks quote no shared reference.
+  final TxnEndpoint? counterparty;
 
   /// A debit that actually reduces net worth. Internal movement is excluded, so
   /// paying a card bill from another bank does not read as spending twice.
@@ -300,6 +377,8 @@ class FinanceTxn {
     String? category,
     bool? isSalary,
     bool? isInternalTransfer,
+    TxnEndpoint? source,
+    TxnEndpoint? counterparty,
     String? merchant,
     CategorySource? categorySource,
   }) =>
@@ -310,6 +389,8 @@ class FinanceTxn {
         category: category ?? this.category,
         isSalary: isSalary ?? this.isSalary,
         isInternalTransfer: isInternalTransfer ?? this.isInternalTransfer,
+        source: source ?? this.source,
+        counterparty: counterparty ?? this.counterparty,
         merchant: merchant ?? this.merchant,
         sender: sender,
         smsId: smsId,
@@ -325,6 +406,8 @@ class FinanceTxn {
         'category': category,
         'isSalary': isSalary,
         if (isInternalTransfer) 'isInternalTransfer': true,
+        if (source != null) 'source': source!.toJson(),
+        if (counterparty != null) 'counterparty': counterparty!.toJson(),
         if (merchant != null) 'merchant': merchant,
         if (sender != null) 'sender': sender,
         if (smsId != null) 'smsId': smsId,
@@ -343,6 +426,8 @@ class FinanceTxn {
         category: json['category']?.toString() ?? SpendCategory.other,
         isSalary: json['isSalary'] == true,
         isInternalTransfer: json['isInternalTransfer'] == true,
+        source: TxnEndpoint.fromJson(json['source']),
+        counterparty: TxnEndpoint.fromJson(json['counterparty']),
         merchant: json['merchant']?.toString(),
         sender: json['sender']?.toString(),
         smsId: (json['smsId'] as num?)?.toInt(),

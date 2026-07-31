@@ -594,6 +594,98 @@ class FinanceMessageParser {
     'your',
   };
 
+  // ------------------------------------------------------------- endpoints
+
+  // The masked account or card tail as banks actually print it: "A/c XX1234",
+  // "a/c no. x1234", "Card ending 4321", "****9012", "Acct XX123". Captures the
+  // trailing digits. The same shapes were already being recognised in order to
+  // strip them out of merchant names — here they are kept, because which
+  // account moved is the single most useful fact for correlating legs.
+  static final RegExp _maskedTailRe = RegExp(
+    r'(?:a\/c|ac|acct|account|card|ending|ending\s+with|xx+|no\.?)'
+    r'[\s:.#-]*(?:no\.?\s*)?[x*]{0,6}\s*([0-9]{3,6})\b',
+    caseSensitive: false,
+  );
+
+  // A tail introduced as the destination rather than the subject: "credited to
+  // XX9012", "transferred to a/c 5678", "to card ending 4321". Whichever tail
+  // follows one of these is the OTHER side of the movement.
+  static final RegExp _counterpartyTailRe = RegExp(
+    r'\b(?:credited\s+to|to\s+a\/c|to\s+account|to\s+card|beneficiary)'
+    r'[\s:.#-]*(?:no\.?\s*)?(?:a\/c|ac|acct|account|card|ending|xx+)?'
+    r'[\s:.#-]*[x*]{0,6}\s*([0-9]{3,6})\b',
+    caseSensitive: false,
+  );
+
+  // Instrument wording. Cards say "credit card" or "card ending"; deposit
+  // accounts say "a/c" or "account"; wallets name themselves.
+  static final RegExp _cardInstrumentRe = RegExp(
+    r'\b(?:credit\s*card|debit\s*card|card\s+(?:ending|no)|\bcc\b)',
+    caseSensitive: false,
+  );
+  static final RegExp _bankInstrumentRe = RegExp(
+    r'\b(?:a\/c|acct|account|savings|current\s+a)',
+    caseSensitive: false,
+  );
+  static final RegExp _walletInstrumentRe = RegExp(
+    r'\b(?:wallet|paytm\s+wallet|amazon\s+pay\s+balance|phonepe\s+wallet)',
+    caseSensitive: false,
+  );
+
+  // Institution code inside a TRAI/DLT header: "VM-HDFCBK" -> "HDFCBK",
+  // "AD-SBIINB" -> "SBIINB", "VMICICI" -> "VMICICI". The two-letter operator
+  // prefix carries no meaning, so it is dropped when clearly present.
+  static final RegExp _senderInstitutionRe =
+      RegExp(r'^[A-Z]{2}[-_]?(?=[A-Z]{4,})', caseSensitive: false);
+
+  static String? _institutionFrom(String? sender) {
+    final trimmed = (sender ?? '').trim().toUpperCase();
+    if (trimmed.isEmpty) return null;
+    final withoutOperator = trimmed.replaceFirst(_senderInstitutionRe, '');
+    final cleaned = withoutOperator.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
+  static InstrumentKind _instrumentFrom(String lowerBody) {
+    if (_walletInstrumentRe.hasMatch(lowerBody)) return InstrumentKind.wallet;
+    // Checked before the bank pattern: a card statement mentions both the card
+    // and the account it settles from.
+    if (_cardInstrumentRe.hasMatch(lowerBody)) return InstrumentKind.creditCard;
+    if (_bankInstrumentRe.hasMatch(lowerBody)) {
+      return InstrumentKind.bankAccount;
+    }
+    return InstrumentKind.unknown;
+  }
+
+  /// The user's endpoint: the account or card this message is about. The first
+  /// masked tail in a bank SMS is the subject — "A/c XX1234 debited" — so the
+  /// counterparty tail is excluded before picking it.
+  static TxnEndpoint? _extractSource(String body, String? sender) {
+    final lower = body.toLowerCase();
+    final counterpartyTail = _counterpartyTailRe.firstMatch(lower)?.group(1);
+    String? tail;
+    for (final match in _maskedTailRe.allMatches(lower)) {
+      final candidate = match.group(1);
+      if (candidate == null || candidate == counterpartyTail) continue;
+      tail = candidate;
+      break;
+    }
+    final endpoint = TxnEndpoint(
+      institution: _institutionFrom(sender),
+      tail: tail,
+      kind: _instrumentFrom(lower),
+    );
+    return endpoint.isEmpty ? null : endpoint;
+  }
+
+  /// The other side, when the message names it. Institution is left null: the
+  /// sender header identifies who SENT the alert, not who received the money.
+  static TxnEndpoint? _extractCounterparty(String body) {
+    final tail = _counterpartyTailRe.firstMatch(body.toLowerCase())?.group(1);
+    if (tail == null) return null;
+    return TxnEndpoint(tail: tail, kind: InstrumentKind.unknown);
+  }
+
   // A masked account tail ("XX1234", "x1234", "****9012") or a bare number is
   // never the merchant.
   static final RegExp _accountTokenRe =
@@ -678,6 +770,8 @@ class FinanceMessageParser {
       category: category,
       isSalary: isSalary,
       isInternalTransfer: isCardRepayment,
+      source: _extractSource(body, sender),
+      counterparty: _extractCounterparty(body),
       merchant: merchant,
       sender: sender,
       smsId: smsId,

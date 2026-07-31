@@ -576,6 +576,66 @@ void main() {
     });
   });
 
+  group('endpoint identity', () {
+    FinanceTxn? at(String sender, String body) =>
+        parser.parse(sender: sender, body: body, date: date);
+
+    test('captures the account the message is about', () {
+      final txn = at('VM-HDFCBK',
+          'Sent Rs.120.00 From HDFC Bank A/C x5678 To ZEPTO On 12/07/26');
+      expect(txn!.source?.institution, 'HDFCBK');
+      expect(txn.source?.tail, '5678');
+      expect(txn.source?.kind, InstrumentKind.bankAccount);
+    });
+
+    test('captures both sides when the message names a destination', () {
+      // This is what lets a transfer be recognised with no shared reference:
+      // one leg's counterparty is the other leg's source.
+      final txn = at('VM-SBIINB',
+          'Rs 25000 debited from A/c XX1234 and credited to XX9012 ICICI BANK');
+      expect(txn!.source?.tail, '1234');
+      expect(txn.counterparty?.tail, '9012');
+    });
+
+    test('the receiving leg of that transfer reports the same account', () {
+      final sent = at('VM-SBIINB',
+          'Rs 25000 debited from A/c XX1234 and credited to XX9012 ICICI BANK');
+      final received = at('VM-ICICIB',
+          'Rs 25000 credited to your ICICI Bank Account XX9012 via IMPS');
+      expect(received!.source?.tail, sent!.counterparty?.tail);
+    });
+
+    test('a card is identified as a card, not an account', () {
+      final txn = at('VM-ICICIC',
+          'Rs 1299 spent on your ICICI Credit Card ending 4321 at AMAZON.');
+      expect(txn!.source?.kind, InstrumentKind.creditCard);
+      expect(txn.source?.tail, '4321');
+    });
+
+    test('endpoint id is stable and null without a tail', () {
+      final withTail = at('VM-ICICIC',
+          'Payment of Rs 25000 received towards your ICICI Credit Card XX4321.');
+      expect(withTail!.source?.id, 'ICICIC:creditCard:4321');
+
+      final withoutTail = at('VM-BANK', 'Rs 300 debited at LOCAL STORE.');
+      expect(withoutTail!.source?.id, isNull);
+    });
+
+    test('endpoints round-trip through JSON', () {
+      final txn = at('VM-SBIINB',
+          'Rs 25000 debited from A/c XX1234 and credited to XX9012 ICICI BANK')!;
+      final map = SpendMap(
+        txns: [txn],
+        windowStart: DateTime(2026, 7, 1),
+        windowEnd: DateTime(2026, 7, 31),
+        generatedAt: DateTime(2026, 7, 31),
+      );
+      final restored = SpendMap.fromJsonString(map.toJsonString()).txns.single;
+      expect(restored.source?.id, txn.source?.id);
+      expect(restored.counterparty?.tail, '9012');
+    });
+  });
+
   group('money moved between the user\'s own accounts is not spend or income',
       () {
     ({int? id, String sender, String body, DateTime date}) msg(
