@@ -44,7 +44,7 @@ void main() {
 /// Current count of rendered strings over [ArthCopy.panelMessage].
 ///
 /// Only ever goes down.
-const int _baseline = 53;
+const int _baseline = 45;
 
 const List<String> _scannedRoots = [
   'lib/screens',
@@ -85,9 +85,13 @@ List<_Blob> _scanCopyBlobs() {
         // Dart concatenates adjacent literals, so a paragraph wrapped over
         // several source lines is one string on screen. Join it back together
         // or every long blob measures as a set of harmless short ones.
+        //
+        // A trailing comma ends the expression, which is what separates a
+        // wrapped paragraph from the elements of a list of short bullet
+        // strings — those are rendered as separate rows and must not be joined.
         final buffer = StringBuffer(literals.join());
         var next = i + 1;
-        while (next < lines.length) {
+        while (next < lines.length && !_endsExpression(lines[next - 1])) {
           final continuation = _wholeLineLiteral(lines[next]);
           if (continuation == null) break;
           buffer.write(continuation);
@@ -155,6 +159,16 @@ bool _isDetailArgument(List<String> lines, int index) {
     return previous.endsWith('detail:');
   }
   return false;
+}
+
+/// Whether the line closes the expression it is part of, so nothing after it
+/// concatenates onto the same string.
+bool _endsExpression(String line) {
+  final trimmed = line.trimRight();
+  return trimmed.endsWith(',') ||
+      trimmed.endsWith(';') ||
+      trimmed.endsWith(')') ||
+      trimmed.endsWith(']');
 }
 
 /// The literal on a line that holds nothing but a literal, which is how the
