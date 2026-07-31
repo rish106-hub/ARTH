@@ -6,16 +6,16 @@ class TaxDocumentService {
   final ServerApiService _api;
   final AuthService _auth;
 
-  TaxDocumentService({
-    ServerApiService? api,
-    AuthService? auth,
-  })  : _api = api ?? ServerApiService(),
+  TaxDocumentService({ServerApiService? api, AuthService? auth})
+      : _api = api ?? ServerApiService(),
         _auth = auth ?? AuthService();
 
   Future<List<TaxDocument>> fetchDocuments() async {
     final token = await _auth.getValidAccessToken();
-    if (token == null) return const [];
-    final response = await _api.getJson('/documents', bearerToken: token);
+    if (token == null || token.isEmpty) return const [];
+    final response = await _auth.withFreshAccessToken(
+      (token) => _api.getJson('/documents', bearerToken: token),
+    );
     final documents = response['documents'] as List<dynamic>? ?? const [];
     return documents
         .map((item) => TaxDocument.fromJson(item as Map<String, dynamic>))
@@ -23,9 +23,9 @@ class TaxDocumentService {
   }
 
   Future<List<int>> downloadDocument(String id) async {
-    final token = await _auth.getValidAccessToken();
-    if (token == null) throw StateError('not signed in');
-    return _api.getBytes('/documents/$id/download', bearerToken: token);
+    return _auth.withFreshAccessToken(
+      (token) => _api.getBytes('/documents/$id/download', bearerToken: token),
+    );
   }
 
   Future<TaxDocument> updateDocument(
@@ -36,18 +36,15 @@ class TaxDocumentService {
     String? vaultStatus,
     String? reviewStatus,
   }) async {
-    final token = await _auth.getValidAccessToken();
-    if (token == null) throw StateError('not signed in');
     final body = <String, dynamic>{};
     if (userLabel != null) body['userLabel'] = userLabel;
     if (notes != null) body['notes'] = notes;
     if (tags != null) body['tags'] = tags;
     if (vaultStatus != null) body['vaultStatus'] = vaultStatus;
     if (reviewStatus != null) body['reviewStatus'] = reviewStatus;
-    final response = await _api.patchJson(
-      '/documents/$id',
-      bearerToken: token,
-      body: body,
+    final response = await _auth.withFreshAccessToken(
+      (token) =>
+          _api.patchJson('/documents/$id', bearerToken: token, body: body),
     );
     return TaxDocument.fromJson(
       response['document'] as Map<String, dynamic>? ?? const {},
@@ -61,19 +58,19 @@ class TaxDocumentService {
     required List<int> bytes,
     String? ocrText,
   }) async {
-    final token = await _auth.getValidAccessToken();
-    if (token == null) throw StateError('not signed in');
-    final response = await _api.uploadMultipart(
-      '/documents',
-      bearerToken: token,
-      fields: {
-        'documentType': documentType,
-        if (ocrText != null) 'ocrText': ocrText,
-      },
-      fieldName: 'file',
-      filename: filename,
-      contentType: mimeType,
-      bytes: bytes,
+    final response = await _auth.withFreshAccessToken(
+      (token) => _api.uploadMultipart(
+        '/documents',
+        bearerToken: token,
+        fields: {
+          'documentType': documentType,
+          if (ocrText != null) 'ocrText': ocrText,
+        },
+        fieldName: 'file',
+        filename: filename,
+        contentType: mimeType,
+        bytes: bytes,
+      ),
     );
     return TaxDocument.fromJson(
       response['document'] as Map<String, dynamic>? ?? const {},
@@ -81,21 +78,21 @@ class TaxDocumentService {
   }
 
   Future<void> deleteDocument(String id) async {
-    final token = await _auth.getValidAccessToken();
-    if (token == null) throw StateError('not signed in');
-    await _api.delete('/documents/$id', bearerToken: token);
+    await _auth.withFreshAccessToken(
+      (token) => _api.delete('/documents/$id', bearerToken: token),
+    );
   }
 
   Future<TaxDocument> confirmParsedFields(
     String id, {
     Map<String, dynamic>? fields,
   }) async {
-    final token = await _auth.getValidAccessToken();
-    if (token == null) throw StateError('not signed in');
-    final response = await _api.postJson(
-      '/documents/$id/confirm',
-      body: fields == null ? null : {'fields': fields},
-      bearerToken: token,
+    final response = await _auth.withFreshAccessToken(
+      (token) => _api.postJson(
+        '/documents/$id/confirm',
+        body: fields == null ? null : {'fields': fields},
+        bearerToken: token,
+      ),
     );
     return TaxDocument.fromJson(
       response['document'] as Map<String, dynamic>? ?? const {},

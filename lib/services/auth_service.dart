@@ -6,10 +6,7 @@ import 'secure_storage_service.dart';
 import 'server_api_service.dart';
 
 class AuthenticatedSession {
-  const AuthenticatedSession({
-    required this.uid,
-    required this.accessToken,
-  });
+  const AuthenticatedSession({required this.uid, required this.accessToken});
 
   final String uid;
   final String accessToken;
@@ -25,6 +22,7 @@ class AuthService {
   final ServerApiService _api;
   final SecureStorageService _storage;
   bool _googleInitialized = false;
+  Future<UserAccount?>? _refreshInFlight;
 
   static const _googleServerClientId = String.fromEnvironment(
     'GOOGLE_OAUTH_SERVER_CLIENT_ID',
@@ -125,7 +123,24 @@ class AuthService {
     return AuthenticatedSession(uid: uid, accessToken: accessToken);
   }
 
-  Future<UserAccount?> refreshSession() async {
+  Future<UserAccount?> refreshSession() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+
+    final refresh = _refreshSession();
+    _refreshInFlight = refresh;
+    refresh.then(
+      (_) {
+        if (identical(_refreshInFlight, refresh)) _refreshInFlight = null;
+      },
+      onError: (_) {
+        if (identical(_refreshInFlight, refresh)) _refreshInFlight = null;
+      },
+    );
+    return refresh;
+  }
+
+  Future<UserAccount?> _refreshSession() async {
     final refreshToken = await _storage.read(
       _refreshTokenKey,
       migrateFromPrefs: true,
@@ -143,6 +158,36 @@ class AuthService {
       await clearAccount();
       return null;
     }
+  }
+
+  /// Retries once after the server rejects a locally unexpired access token.
+  /// This happens after a signing-key rotation or server-side session revoke.
+  Future<T> withFreshAccessToken<T>(
+    Future<T> Function(String accessToken) request,
+  ) async {
+    final initialToken = await getValidAccessToken();
+    if (initialToken == null || initialToken.isEmpty) {
+      throw StateError('not signed in');
+    }
+
+    try {
+      return await request(initialToken);
+    } on ServerApiException catch (error) {
+      if (error.statusCode != 401) rethrow;
+    }
+
+    final account = await refreshSession();
+    final replacementToken = await getAccessToken();
+    if (account == null ||
+        replacementToken == null ||
+        replacementToken.isEmpty) {
+      throw const ServerApiException(
+        401,
+        'Your session has expired. Please sign in again.',
+        code: 'session_expired',
+      );
+    }
+    return request(replacementToken);
   }
 
   Future<void> clearAccount() async {
