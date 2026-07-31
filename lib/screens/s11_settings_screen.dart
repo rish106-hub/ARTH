@@ -305,7 +305,7 @@ class _SettingsHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: PaycheckColors.gold.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
               border:
                   Border.all(color: PaycheckColors.gold.withValues(alpha: 0.3)),
             ),
@@ -350,7 +350,7 @@ class _AccountHeroCard extends StatelessWidget {
         : 'A';
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
@@ -364,7 +364,7 @@ class _AccountHeroCard extends StatelessWidget {
                 Colors.white.withValues(alpha: 0.04),
               ],
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
             border: Border.all(
               color: PaycheckColors.gold.withValues(alpha: 0.3),
               width: 1,
@@ -432,7 +432,7 @@ class _AccountHeroCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: PaycheckColors.teal.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.card,
                       border: Border.all(
                         color: PaycheckColors.teal.withValues(alpha: 0.4),
                       ),
@@ -498,7 +498,7 @@ class _GuestCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: PaycheckColors.bgCard,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: PaycheckColors.border),
       ),
       child: Row(
@@ -569,7 +569,7 @@ class _HeroButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.control,
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Padding(
@@ -672,7 +672,7 @@ class _SnapCell extends StatelessWidget {
         color: highlight
             ? PaycheckColors.gold.withValues(alpha: 0.08)
             : PaycheckColors.bgCard,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(
           color: highlight
               ? PaycheckColors.gold.withValues(alpha: 0.3)
@@ -720,9 +720,9 @@ class _SnapshotSkeleton extends StatelessWidget {
           child: Container(
             height: 72,
             margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: PaycheckColors.bgCard,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
           ),
         ),
@@ -763,7 +763,7 @@ class _GlassSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: PaycheckColors.bgCard,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: PaycheckColors.border),
       ),
       child: Column(children: children),
@@ -860,7 +860,7 @@ class _PrivacyRow extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.card,
                 ),
                 child: Icon(icon, size: 17, color: iconColor),
               ),
@@ -921,14 +921,14 @@ class _ActionTile extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).width < 360;
     return Material(
       color: PaycheckColors.bgCard,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.control,
             border: Border.all(color: PaycheckColors.border),
           ),
           child: Row(
@@ -938,7 +938,7 @@ class _ActionTile extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.card,
                 ),
                 child: Icon(icon, color: iconColor, size: 18),
               ),
@@ -1142,9 +1142,9 @@ class _ArthDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: PaycheckColors.bgCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: PaycheckColors.border),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.control,
+        side: BorderSide(color: PaycheckColors.border),
       ),
       title: Text(title, style: PaycheckType.h3()),
       content: Text(

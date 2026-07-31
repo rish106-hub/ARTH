@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/user_profile.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 
 /// Selector for how many months a job, income engagement, or goal runs.
@@ -95,15 +96,15 @@ class _DurationChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? PaycheckColors.ink : PaycheckColors.paper,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         onTap: onTap,
         child: Container(
           height: 52,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
             border: Border.all(
               color: selected ? PaycheckColors.ink : PaycheckColors.line,
             ),

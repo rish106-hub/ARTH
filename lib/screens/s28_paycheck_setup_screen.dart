@@ -7,9 +7,11 @@ import '../providers/paycheck_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/on_device_document_ocr_service.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 import '../widgets/job_duration_selector.dart';
+import '../widgets/premium_ui.dart';
 
 class PaycheckSetupScreen extends ConsumerStatefulWidget {
   const PaycheckSetupScreen({super.key});
@@ -134,9 +136,9 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: PaycheckColors.contract,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.card,
                 ),
                 child: const Icon(
                   Icons.receipt_long_rounded,
@@ -151,15 +153,20 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
               ),
               const SizedBox(height: 14),
               Text(
-                'Add an offer letter. ARTH turns each pay component into a monthly checklist, then matches it against payslips and salary alerts.',
+                'Add an offer letter.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const ArthDisclosure(
+                label: 'What ARTH does with it',
+                detail:
+                    'Each pay component becomes a monthly checklist, then ARTH matches it against your payslips and salary alerts.',
               ),
               const SizedBox(height: 30),
               Text('How long does this job run?',
                   style: PaycheckType.bodyStrong()),
               const SizedBox(height: 6),
               Text(
-                'Not every job lasts the full year. We annualize your salary over these months for accurate tax.',
+                'Salary is annualised over these months.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 12),
@@ -204,8 +211,8 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                     backgroundColor: PaycheckColors.ink,
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.control,
                     ),
                   ),
                   onPressed: _openingFile

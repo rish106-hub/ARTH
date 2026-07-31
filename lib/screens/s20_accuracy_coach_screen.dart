@@ -86,10 +86,15 @@ class AccuracyCoachScreen extends ConsumerWidget {
                                 style: PaycheckType.h1()),
                             const SizedBox(height: 8),
                             Text(
-                              'Replace assumptions with exact payslip, proof, and interest values. This can change old/new regime comparison.',
+                              'Replace assumptions with exact values.',
                               style: PaycheckType.body(
                                 color: PaycheckColors.textSecondary,
                               ),
+                            ),
+                            const ArthDisclosure(
+                              label: 'Why it matters',
+                              detail:
+                                  'Exact payslip, proof and interest values can change which regime comes out ahead.',
                             ),
                             const SizedBox(height: 14),
                             TrustBadge(

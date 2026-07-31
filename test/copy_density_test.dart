@@ -3,48 +3,30 @@ import 'dart:io';
 import 'package:arth/widgets/premium_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards against screens greeting the user with a paragraph.
+/// Guards against a screen greeting the user with a paragraph.
 ///
-/// Long-form copy is not banned — it is moved behind [ArthDisclosure], where it
-/// costs nothing until the user asks for it. This test measures how much prose
-/// is still rendered unconditionally and holds that number down. The baseline
-/// only ever decreases. Raising it is the same as deleting the test.
+/// Long-form copy is not banned. It belongs behind an [ArthDisclosure], where
+/// it costs the user nothing until they ask for it. What is banned is prose past
+/// [ArthCopy.panelMessage] rendered whether the user wanted it or not, which is
+/// what made the app read as dense.
 void main() {
-  test('screens render no more unconditional prose than the baseline', () {
+  test('no screen renders prose past the copy budget', () {
     final offenders = _scanCopyBlobs();
 
-    // Sorted worst-first so the next screen to fix is obvious from the failure.
+    // Worst first, so the line to fix is the first line of the failure.
     final report = offenders
-        .take(12)
         .map((b) => '  ${b.file}:${b.line}  ${b.length}ch  ${b.preview}')
         .join('\n');
 
     expect(
-      offenders.length,
-      lessThanOrEqualTo(_baseline),
-      reason: 'Unconditional prose count rose to ${offenders.length}, '
-          'baseline is $_baseline. Move the detail into an ArthDisclosure '
-          'instead of growing the line.\nWorst offenders:\n$report',
-    );
-  });
-
-  test('baseline is not stale', () {
-    // Keeps the ratchet honest: once screens improve, the baseline has to be
-    // lowered in the same commit, or this fails and says by how much.
-    final offenders = _scanCopyBlobs();
-    expect(
-      offenders.length,
-      _baseline,
-      reason: 'Prose count is now ${offenders.length}. Lower _baseline to '
-          'match, in this commit.',
+      offenders,
+      isEmpty,
+      reason: '${offenders.length} string(s) run past '
+          '${ArthCopy.panelMessage} rendered characters. Lead with the point '
+          'and move the rest into an ArthDisclosure.\n$report',
     );
   });
 }
-
-/// Current count of rendered strings over [ArthCopy.panelMessage].
-///
-/// Only ever goes down.
-const int _baseline = 28;
 
 const List<String> _scannedRoots = [
   'lib/screens',
@@ -70,6 +52,9 @@ List<_Blob> _scanCopyBlobs() {
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
+        // Services render nothing. Their long strings are documents — a PDF
+        // disclaimer, an export header — not copy a screen greets anyone with.
+        .where((f) => !f.path.contains('/services/'))
         .toList()
       ..sort((a, b) => a.path.compareTo(b.path));
 

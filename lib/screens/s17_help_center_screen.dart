@@ -20,7 +20,8 @@ class HelpCenterScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeYear = ref.watch(activeTaxYearProvider);
     final safeContext =
-        'Tax year: ${activeYear.displayLabel} / ${activeYear.assessmentYear}\nDo not include PAN, passwords, tokens, or uploaded documents in this email.\n\n';
+        'Tax year: ${activeYear.displayLabel} / ${activeYear.assessmentYear}\n'
+        'Do not include PAN, passwords or documents.\n\n';
     return ArthScaffold(
       bottomNavigationBar: ArthBottomNav(
         selectedIndex: 3,
@@ -59,10 +60,15 @@ class HelpCenterScreen extends ConsumerWidget {
                         Text('Need help with ARTH?', style: PaycheckType.h1()),
                         const SizedBox(height: 8),
                         Text(
-                          'Use this for product issues, tax-readiness questions, and data/privacy help. ARTH does not provide official tax filing or legal advice.',
+                          'Product, tax-readiness and privacy questions.',
                           style: PaycheckType.body(
                             color: PaycheckColors.textSecondary,
                           ),
+                        ),
+                        const ArthDisclosure(
+                          label: 'What this is not',
+                          detail:
+                              'ARTH does not provide official tax filing or legal advice.',
                         ),
                         const SizedBox(height: 16),
                         Wrap(

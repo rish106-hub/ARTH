@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../models/paycheck.dart';
-import '../models/tax_document.dart';
 import '../features/money_signals/providers/money_signal_provider.dart';
-import '../models/money_signal_models.dart';
 import '../features/monthly_close/models/monthly_close_models.dart';
 import '../features/monthly_close/providers/monthly_close_provider.dart';
 import '../features/monthly_close/screens/monthly_close_screen.dart';
+import '../models/money_signal_models.dart';
+import '../models/paycheck.dart';
+import '../models/tax_document.dart';
 import '../providers/auth_provider.dart';
 import '../providers/paycheck_override_provider.dart';
 import '../providers/paycheck_provider.dart';
@@ -19,6 +19,7 @@ import '../providers/spend_map_adjustments_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../services/on_device_document_ocr_service.dart';
 import '../services/server_api_service.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 import 's31_profile_screens.dart';
@@ -174,8 +175,8 @@ class _ExploreYouView extends StatelessWidget {
                 onPressed: () => context.go('/auth'),
                 style: FilledButton.styleFrom(
                   backgroundColor: PaycheckColors.ink,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.control,
                   ),
                 ),
                 icon: const Icon(Icons.person_add_alt_1_rounded),
@@ -303,8 +304,8 @@ class _PaycheckHome extends ConsumerWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: PaycheckColors.matched,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.control,
                       ),
                     ),
                     icon: const Icon(Icons.fact_check_outlined, size: 20),
@@ -404,8 +405,8 @@ class _PaycheckHome extends ConsumerWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: PaycheckColors.ink,
                     minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.control,
                     ),
                   ),
                   onPressed: () {
@@ -632,10 +633,10 @@ class _RecoveryLedgerLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: PaycheckColors.ink,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -686,9 +687,9 @@ class _EmptyPaycheck extends StatelessWidget {
         Container(
           width: 48,
           height: 48,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: PaycheckColors.contractSoft,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: const Icon(
             Icons.description_outlined,
@@ -716,8 +717,8 @@ class _EmptyPaycheck extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: PaycheckColors.ink,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.control,
               ),
             ),
             icon: const Icon(Icons.upload_file_outlined),
@@ -757,7 +758,7 @@ class _ComparisonStrip extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
         border: Border.all(color: PaycheckColors.line),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
@@ -840,9 +841,9 @@ class _MatchedPaycheckStatus extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.matchedSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
@@ -881,7 +882,7 @@ class _PaycheckBreakdown extends StatelessWidget {
           decoration: BoxDecoration(
             color: PaycheckColors.paper,
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Column(
             children: [
@@ -1375,7 +1376,7 @@ class _PayEquation extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PaycheckColors.canvas,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         border: Border.all(color: PaycheckColors.line),
       ),
       child: Column(
@@ -1562,10 +1563,10 @@ class _ReviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: prepared ? PaycheckColors.matchedSoft : PaycheckColors.paper,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1573,7 +1574,7 @@ class _ReviewRow extends StatelessWidget {
               color:
                   prepared ? PaycheckColors.matchedSoft : PaycheckColors.line,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: Row(
             children: [
@@ -1656,7 +1657,7 @@ class _EvidenceStatus extends StatelessWidget {
           decoration: BoxDecoration(
             color: PaycheckColors.paper,
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: Column(
             children: [
@@ -2015,9 +2016,9 @@ class _InboxViewState extends ConsumerState<_InboxView> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: PaycheckColors.matchedSoft,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2045,8 +2046,8 @@ class _InboxViewState extends ConsumerState<_InboxView> {
                 minimumSize: const Size.fromHeight(54),
                 backgroundColor: PaycheckColors.ink,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.control,
                 ),
               ),
               onPressed: _uploadState == _InboxUploadState.parsing
@@ -2141,7 +2142,7 @@ class _InboxStatus extends StatelessWidget {
             : complete
                 ? PaycheckColors.matchedSoft
                 : PaycheckColors.contractSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
@@ -2404,7 +2405,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: PaycheckColors.matchedSoft,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: _PayslipAmountRow(
                       label: 'Net salary',
@@ -2419,7 +2420,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: PaycheckColors.claimSoft,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2448,7 +2449,7 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: PaycheckColors.contractSoft,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2499,8 +2500,8 @@ class _PayslipReviewSheetState extends ConsumerState<_PayslipReviewSheet> {
                                 : _confirm,
                         style: FilledButton.styleFrom(
                           backgroundColor: PaycheckColors.ink,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppRadius.control,
                           ),
                         ),
                         icon: const Icon(Icons.check_circle_outline_rounded),
@@ -2560,9 +2561,9 @@ class _PayslipGrid extends StatelessWidget {
             .map(
               (item) => Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: PaycheckColors.canvas,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.card,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2649,7 +2650,7 @@ class _TaxOverviewView extends ConsumerWidget {
             decoration: BoxDecoration(
               color: PaycheckColors.paper,
               border: Border.all(color: PaycheckColors.line),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
             child: Column(
               children: [
@@ -2685,7 +2686,7 @@ class _TaxOverviewView extends ConsumerWidget {
           ],
           const SizedBox(height: 18),
           Text(
-            'ARTH compares tax regimes using versioned rules. Your confirmed documents remain the source of truth.',
+            'Your confirmed documents stay the source of truth.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
           const SizedBox(height: 22),
@@ -2698,8 +2699,8 @@ class _TaxOverviewView extends ConsumerWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: PaycheckColors.ink,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.control,
                 ),
               ),
               icon: const Icon(Icons.calculate_outlined),
@@ -2760,7 +2761,7 @@ class _TaxImpactCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         border: Border.all(color: color.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3005,7 +3006,7 @@ class _SourceRow extends StatelessWidget {
               color: source.connected
                   ? PaycheckColors.matchedSoft
                   : PaycheckColors.paper,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
             child: Icon(
               source.connected ? Icons.check_rounded : Icons.add_rounded,
@@ -3071,10 +3072,10 @@ class _DetectedDocument extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.control,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -3211,7 +3212,7 @@ class _PaycheckNav extends StatelessWidget {
               label: item.$3,
               child: InkWell(
                 key: Key('paycheck_nav_${item.$3.toLowerCase()}'),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.control,
                 onTap: () => onSelected(index),
                 child: SizedBox(
                   height: 58,

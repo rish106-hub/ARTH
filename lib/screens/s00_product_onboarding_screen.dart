@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../widgets/arth_brand_mark.dart';
 
@@ -85,7 +86,7 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.card,
                     ),
                     child: const Padding(
                       padding:
@@ -104,8 +105,8 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                         horizontal: 13,
                         vertical: 10,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.control,
                       ),
                     ),
                     icon: const Icon(Icons.explore_outlined, size: 19),
@@ -162,8 +163,8 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: PaycheckColors.ink,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.control,
                       ),
                     ),
                     icon: Icon(

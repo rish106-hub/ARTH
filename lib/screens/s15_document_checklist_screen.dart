@@ -560,7 +560,8 @@ class DocumentChecklistScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Enter the printed gross pay, deductions, and net pay. You can also add any salary rows shown on this payslip.',
+                                'Enter the printed gross pay, deductions '
+                                'and net pay.',
                                 style: PaycheckType.caption(
                                   color: PaycheckColors.textSecondary,
                                 ),
@@ -1606,8 +1607,8 @@ class _ParserTimeline extends StatelessWidget {
           _TimelineRow(
             done: document.reviewed,
             title: 'User confirmed',
-            body:
-                'Confirmed fields are kept separate from parser metadata and do not update tax calculations silently.',
+            body: 'Kept separate from parser metadata. Never changes '
+                'tax calculations silently.',
           ),
         ],
       ),

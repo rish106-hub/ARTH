@@ -110,9 +110,8 @@ Future<void> _askOtherIncomeQuestion(BuildContext context, WidgetRef ref) {
     builder: (dialogContext) => AlertDialog(
       title: const Text('Any other income?'),
       content: const Text(
-        'Besides your salary, do you have other income to factor into your '
-        "savings projection — freelance work, rent, a side business? It's "
-        'kept only on this device and never sent to our servers.',
+        'Freelance work, rent, a side business? '
+        'Kept on this device only.',
       ),
       actions: [
         TextButton(

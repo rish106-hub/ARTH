@@ -122,8 +122,8 @@ class _ProgressEmptyState extends StatelessWidget {
           ArthStatePanel(
             icon: Icons.timeline_rounded,
             title: 'Progress starts after diagnostic',
-            message:
-                'Your timeline is visible now. Complete the diagnostic to track savings progress and completed actions.',
+            message: 'The timeline is visible now. Complete the '
+                'diagnostic to track savings progress.',
             actionLabel: 'Start diagnostic',
             onAction: () => context.go('/questions'),
           ),
@@ -152,8 +152,13 @@ class _ReadinessProgressCard extends StatelessWidget {
           Text('Filing readiness', style: PaycheckType.h3()),
           const SizedBox(height: 8),
           Text(
-            'Document checklist is $documentPercent% ready. Keep AIS/26AS review separate and use official records before filing.',
+            'Document checklist is $documentPercent% ready.',
             style: PaycheckType.caption(color: PaycheckColors.textSecondary),
+          ),
+          const ArthDisclosure(
+            label: 'Before you file',
+            detail:
+                'Keep the AIS and 26AS review separate, and check the official records before any filing handoff.',
           ),
           const SizedBox(height: 14),
           Row(

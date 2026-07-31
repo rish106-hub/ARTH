@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
 import '../models/monthly_close_models.dart';
 import '../providers/monthly_close_provider.dart';
@@ -96,11 +97,11 @@ class MonthlyCloseEntryCard extends StatelessWidget {
         side: BorderSide(
           color: complete ? PaycheckColors.matched : PaycheckColors.contract,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
       ),
       child: InkWell(
         key: const Key('open_monthly_close'),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(15),
@@ -359,7 +360,7 @@ class _EvidenceLedger extends StatelessWidget {
           decoration: BoxDecoration(
             color: PaycheckColors.paper,
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Column(
             children: [
@@ -439,7 +440,7 @@ class _AuditLedger extends StatelessWidget {
             decoration: BoxDecoration(
               color: PaycheckColors.paper,
               border: Border.all(color: PaycheckColors.line),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
             ),
             child: Column(
               children: [
@@ -503,9 +504,9 @@ class _CohortCard extends StatelessWidget {
         '${cohort.sampleSize} anonymous users in ${cohort.city}, ${cohort.ctcBandLabel}.';
     return Container(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

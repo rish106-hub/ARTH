@@ -35,8 +35,8 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
           files: [
             XFile.fromData(image, mimeType: 'image/png', name: 'arth_gap.png'),
           ],
-          text:
-              'I just found ₹${_fmt(totalGap)} in deduction opportunities with ARTH.\n\nBuild your tax readiness cockpit → https://arth-website.vercel.app/',
+          text: 'I found ₹${_fmt(totalGap)} in deduction opportunities '
+              'with ARTH.\n\nhttps://arth-website.vercel.app/',
         ),
       );
     } finally {
@@ -105,7 +105,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
                       const SizedBox(height: 20),
 
                       Text(
-                        'Tap Share to post on WhatsApp, Instagram, or LinkedIn.\nNo PAN, no salary — only section names and amounts.',
+                        'No PAN, no salary — section names and amounts only.',
                         style: PaycheckType.micro(
                           color: PaycheckColors.textSecondary,
                         ),

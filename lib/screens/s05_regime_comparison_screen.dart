@@ -161,9 +161,7 @@ class _RegimeContent extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        result.isOldBetter
-                            ? 'This comparison uses amounts you entered plus modeled rent/HRA. Health-insurance and bank-interest deductions are not auto-applied without rupee inputs.'
-                            : 'This comparison is conservative: it uses entered amounts plus modeled rent/HRA, and does not auto-claim insurance or bank-interest deductions.',
+                        'Uses your entered amounts plus modeled rent/HRA.',
                         style: PaycheckType.micro(
                           color: PaycheckColors.textSecondary,
                         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
 import '../models/recovery_models.dart';
 import '../providers/recovery_provider.dart';
@@ -273,9 +274,9 @@ class _DeadlineNudge extends StatelessWidget {
     final days = benefit.deadline!.difference(DateTime.now()).inDays + 1;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.claimSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [
@@ -312,9 +313,9 @@ class _PaydayCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.ink,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,16 +409,16 @@ class _ClaimRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: ListTile(
             onTap: onOpen,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+            shape: const RoundedRectangleBorder(
+              borderRadius: AppRadius.control,
             ),
             contentPadding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
             leading: Container(
@@ -473,16 +474,16 @@ class _BenefitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: PaycheckColors.paper,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.card,
       child: InkWell(
         onTap: onEdit,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.control,
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,18 +544,18 @@ class _HistoryCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: PaycheckColors.paper,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: PaycheckColors.line),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.card,
           ),
           child: ExpansionTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+            shape: const RoundedRectangleBorder(
+              borderRadius: AppRadius.control,
             ),
-            collapsedShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+            collapsedShape: const RoundedRectangleBorder(
+              borderRadius: AppRadius.control,
             ),
             tilePadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -663,9 +664,9 @@ class _PlaybookCard extends StatelessWidget {
     final named = playbook != null && playbook.key != 'generic';
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.contractSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -725,7 +726,7 @@ class _EmptyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
         border: Border.all(color: PaycheckColors.line),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Text(text, style: PaycheckType.body()),
     );

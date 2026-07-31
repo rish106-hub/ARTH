@@ -73,7 +73,7 @@ class SelectChip extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.control,
           child: AnimatedContainer(
             duration: AppMotion.fast,
             constraints: const BoxConstraints(minHeight: 52),
@@ -82,7 +82,7 @@ class SelectChip extends StatelessWidget {
             decoration: BoxDecoration(
               color:
                   selected ? PaycheckColors.primarySoft : PaycheckColors.bgCard,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.card,
               border: Border.all(
                 color:
                     selected ? PaycheckColors.primary : PaycheckColors.border,
@@ -100,7 +100,7 @@ class SelectChip extends StatelessWidget {
                       color: selected
                           ? PaycheckColors.primarySoft
                           : PaycheckColors.bgSurface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.card,
                     ),
                     child: Icon(
                       icon!,

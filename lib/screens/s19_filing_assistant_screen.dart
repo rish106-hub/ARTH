@@ -106,10 +106,15 @@ class FilingAssistantScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Prepare the numbers, documents, assumptions, and missing items you would hand to a CA, employer portal, or the official tax portal.',
+                                      'Everything you would hand to a CA.',
                                       style: PaycheckType.body(
                                         color: PaycheckColors.textSecondary,
                                       ),
+                                    ),
+                                    const ArthDisclosure(
+                                      label: 'What the pack contains',
+                                      detail:
+                                          'Your numbers, documents, assumptions and missing items, ready for a CA, an employer portal or the official tax portal.',
                                     ),
                                     const SizedBox(height: 14),
                                     TaxRuleBadge(result: result),
@@ -265,8 +270,9 @@ class _FilingEmpty extends StatelessWidget {
     return ArthStatePanel(
       icon: Icons.inventory_2_outlined,
       title: 'Prepare your filing pack',
-      message:
-          'Complete the diagnostic first. ARTH will then map your result, proofs, and assumptions into a filing handoff checklist.',
+      message: 'Complete the diagnostic first.',
+      detail:
+          'ARTH then maps your result, proofs and assumptions into a filing handoff checklist.',
       actionLabel: 'Start diagnostic',
       onAction: () => context.go('/questions'),
     );

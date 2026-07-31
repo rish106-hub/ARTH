@@ -165,8 +165,8 @@ class TaxStoryScreen extends ConsumerWidget {
                                 StoryPanel(
                                   icon: Icons.account_balance_outlined,
                                   title: 'AIS / 26AS check',
-                                  body:
-                                      'Use official records to compare TDS, interest, dividends, and reported income before filing handoff.',
+                                  body: 'Compare TDS, interest, dividends '
+                                      'and reported income.',
                                   color: PaycheckColors.info,
                                   trailing: IconButton(
                                     tooltip: 'Open guide',
