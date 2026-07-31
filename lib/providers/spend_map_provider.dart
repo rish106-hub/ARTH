@@ -4,6 +4,7 @@ import '../engine/reconciliation_engine.dart';
 import '../engine/money_signal_engine.dart';
 import '../models/spend_map.dart';
 import '../services/finance_message_parser.dart';
+import '../services/merchant_category_rules.dart';
 import '../services/secure_storage_service.dart';
 import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
@@ -112,6 +113,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
   SpendScanPeriod? _pendingPeriod;
 
+  /// Merchant → category rules taught by the user's manual corrections. These
+  /// always win: the user is the authority on their own spending.
+  MerchantCategoryRules _categoryRules = const MerchantCategoryRules.empty();
+
+  /// Payees a previous AI pass already resolved. Consulted before deciding what
+  /// to send, so a payee is never paid for twice — the shared budget is a fixed
+  /// total across all users, not an allowance per scan.
+  MerchantCategoryRules _aiMemory = const MerchantCategoryRules.empty();
+  bool _categoryMemoryLoaded = false;
+
   @override
   SpendMapState build() {
     Future.microtask(_loadCached);
@@ -191,8 +202,24 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         );
   }
 
+  /// Loads both merchant memories once per session. Called from the cache load
+  /// and the scan path, because a first-run scan can start before (or without)
+  /// any cached map being read.
+  Future<void> _ensureCategoryMemoryLoaded() async {
+    if (_categoryMemoryLoaded) return;
+    _categoryMemoryLoaded = true;
+    final uid = _uid();
+    _categoryRules = MerchantCategoryRules.fromJsonString(
+      await _storage.read(UserScopedStorageKeys.spendCategoryRules(uid)),
+    );
+    _aiMemory = MerchantCategoryRules.fromJsonString(
+      await _storage.read(UserScopedStorageKeys.spendCategoryAiMemory(uid)),
+    );
+  }
+
   Future<void> _loadCached() async {
     final uid = _uid();
+    await _ensureCategoryMemoryLoaded();
     final json = await _storage.read(_spendMapKey(uid));
     if (json == null) return;
     try {
@@ -270,9 +297,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   /// runs the AI categorization fallback, and best-effort syncs a summary.
   /// Assumes SMS permission is already granted.
   Future<void> _performScan(SpendScanPeriod selected) async {
+    await _ensureCategoryMemoryLoaded();
     final since = selected.since(DateTime.now());
+    final previous = state.map;
     final raw = await _reader.readInbox(since: since);
-    final txns = _parser.parseAll(raw);
+    final txns = _applyKnownCategories(_parser.parseAll(raw), previous);
 
     final map = _buildMap(txns, since);
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
@@ -294,6 +323,121 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     } catch (_) {}
   }
 
+  /// Stable identity for a parsed transaction. A list index cannot be used to
+  /// recognise a transaction across scans — a scan rebuilds the whole list from
+  /// the inbox — so we key on the payment reference, else the source SMS id,
+  /// else the amount/direction/day/merchant signature.
+  static String _txnIdentity(FinanceTxn txn) {
+    final ref = txn.refNo;
+    if (ref != null && ref.isNotEmpty) return 'ref:$ref';
+    final smsId = txn.smsId;
+    if (smsId != null) return 'sms:$smsId';
+    return 'sig:${txn.amount}|${txn.direction.name}|'
+        '${txn.date.year}-${txn.date.month}-${txn.date.day}|'
+        '${MerchantCategoryRules.keyFor(txn.merchant) ?? ''}';
+  }
+
+  /// Re-applies everything already known about a payee to a freshly parsed scan,
+  /// so a re-scan neither loses work nor pays for it twice.
+  ///
+  /// A scan rebuilds every transaction from the inbox, and switching the period
+  /// chip (1 / 3 / 6 / 12 months, for the trend charts) triggers exactly that.
+  /// Four sources are re-applied, strongest first:
+  ///
+  ///   1. the user's correction of this exact transaction
+  ///   2. the user's rule for this payee
+  ///   3. the AI answer for this exact transaction
+  ///   4. the AI answer for this payee, from any earlier scan
+  ///
+  /// 3 and 4 are what keep the shared budget intact: once a payee has been
+  /// classified it is never sent again, so widening the window from one month to
+  /// twelve only ever pays for payees genuinely seen for the first time.
+  List<FinanceTxn> _applyKnownCategories(
+    List<FinanceTxn> txns,
+    SpendMap? previous,
+  ) {
+    final knownByIdentity =
+        <String, ({String category, CategorySource source})>{};
+    for (final txn in previous?.txns ?? const <FinanceTxn>[]) {
+      if (txn.categorySource == CategorySource.manual ||
+          txn.categorySource == CategorySource.ai) {
+        knownByIdentity[_txnIdentity(txn)] =
+            (category: txn.category, source: txn.categorySource);
+      }
+    }
+    if (knownByIdentity.isEmpty &&
+        _categoryRules.isEmpty &&
+        _aiMemory.isEmpty) {
+      return txns;
+    }
+    return [
+      for (final txn in txns) _withKnownCategory(txn, knownByIdentity),
+    ];
+  }
+
+  FinanceTxn _withKnownCategory(
+    FinanceTxn txn,
+    Map<String, ({String category, CategorySource source})> knownByIdentity,
+  ) {
+    if (txn.direction != TxnDirection.debit) return txn;
+
+    final manualRule = _categoryRules.categoryFor(txn.merchant);
+    final known = knownByIdentity[_txnIdentity(txn)];
+    // A manual rule outranks a carried-over AI answer even for the same
+    // transaction: the user corrected the payee, so that verdict stands.
+    final (String? chosen, CategorySource source) = switch (known) {
+      final k? when k.source == CategorySource.manual => (
+          k.category,
+          CategorySource.manual
+        ),
+      _ when manualRule != null => (manualRule, CategorySource.manual),
+      final k? => (k.category, CategorySource.ai),
+      _ => (_aiMemory.categoryFor(txn.merchant), CategorySource.ai),
+    };
+
+    // A stale or hand-edited blob must not be able to inject a category the app
+    // does not understand.
+    if (chosen == null || !SpendCategory.assignable.contains(chosen)) {
+      return txn;
+    }
+    return txn.copyWith(category: chosen, categorySource: source);
+  }
+
+  /// Stores the payees this AI pass resolved, so no later scan pays to classify
+  /// them again. Written once per pass rather than per payee.
+  Future<void> _rememberAiCategories(Map<String, String> resolved) async {
+    var memory = _aiMemory;
+    for (final entry in resolved.entries) {
+      if (MerchantCategoryRules.keyFor(entry.key) == null) continue;
+      if (memory.categoryFor(entry.key) == entry.value) continue;
+      memory = memory.withRule(entry.key, entry.value);
+    }
+    // withRule returns a new instance only when it actually stored something,
+    // so identity is enough to detect "nothing new to write".
+    if (identical(memory, _aiMemory)) return;
+    _aiMemory = memory;
+    await _storage.write(
+      UserScopedStorageKeys.spendCategoryAiMemory(_uid()),
+      _aiMemory.toJsonString(),
+    );
+  }
+
+  /// Records "this merchant means this category" so later scans file it without
+  /// asking again. Silently ignored when the transaction has no merchant name
+  /// long enough to key a rule on.
+  Future<void> _rememberMerchantCategory(
+    String? merchant,
+    String category,
+  ) async {
+    if (MerchantCategoryRules.keyFor(merchant) == null) return;
+    if (_categoryRules.categoryFor(merchant) == category) return;
+    _categoryRules = _categoryRules.withRule(merchant, category);
+    await _storage.write(
+      UserScopedStorageKeys.spendCategoryRules(_uid()),
+      _categoryRules.toJsonString(),
+    );
+  }
+
   /// Changes the scan window. If a map already exists, immediately re-scans so
   /// the figures reflect the new window (the period chips are otherwise inert).
   /// Before the first scan we only record the choice and wait for the explicit
@@ -306,17 +450,22 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
   Future<void> recategorize(int transactionIndex, String category) async {
     final current = state.map;
+    // Validated against `assignable`, not `all`: `all` is the flat picker list
+    // and omits the insurance sub-types, so choosing "Car insurance" used to be
+    // rejected here and silently did nothing.
     if (current == null ||
         transactionIndex < 0 ||
         transactionIndex >= current.txns.length ||
-        !SpendCategory.all.contains(category)) {
+        !SpendCategory.assignable.contains(category)) {
       return;
     }
     final txns = [...current.txns];
-    txns[transactionIndex] = txns[transactionIndex].copyWith(
+    final corrected = txns[transactionIndex].copyWith(
       category: category,
       categorySource: CategorySource.manual,
     );
+    txns[transactionIndex] = corrected;
+    await _rememberMerchantCategory(corrected.merchant, category);
     final updated = SpendMap(
       txns: txns,
       windowStart: current.windowStart,
@@ -354,9 +503,30 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         .trim();
   }
 
+  /// Coarse size band for a transaction. The exact figure is redacted before
+  /// anything leaves the device; a band still lets the classifier use size as a
+  /// weak tiebreaker (₹8,000 at "APOLLO" leans tyres over a pharmacy strip)
+  /// without shipping the amount itself.
+  static String _amountBand(int amount) {
+    if (amount < 200) return '<₹200';
+    if (amount < 500) return '₹200-500';
+    if (amount < 1000) return '₹500-1k';
+    if (amount < 5000) return '₹1k-5k';
+    if (amount < 20000) return '₹5k-20k';
+    return '₹20k+';
+  }
+
+  /// Max distinct payees per request. Matches the backend's cap.
+  static const _aiBatchLimit = 60;
+
   /// Sends the still-`other` debit transactions to the AI fallback and merges
   /// back any confident category/merchant. Returns an updated, persisted map,
   /// or null when nothing changed (no candidates, signed out, AI unavailable).
+  ///
+  /// Requests are grouped by payee, not by transaction: a hundred Swiggy orders
+  /// are one item to classify and one answer to apply. That is what keeps the
+  /// shared budget viable, and it also means every transaction from one payee
+  /// gets the same category instead of drifting apart between scans.
   Future<SpendMap?> _enrichCategoriesWithAi(SpendMap map) async {
     // Only debits the rules could not place, that the user has not already
     // corrected by hand.
@@ -371,14 +541,39 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     }
     if (candidates.isEmpty) return null;
 
-    // Build minimal redacted items; drop any with nothing useful left to send.
-    // Cap per request; the backend also enforces a max.
-    final items = <({String id, String text})>[];
+    // Group by normalised merchant. Transactions with no readable payee cannot
+    // be grouped and go one at a time, keyed by index.
+    final groups = <String, List<int>>{};
     for (final i in candidates) {
-      final text = _redactForAi(map.txns[i]);
+      final key = MerchantCategoryRules.keyFor(map.txns[i].merchant);
+      final id = key == null ? 't:$i' : 'm:$key';
+      final group = groups.putIfAbsent(id, () => <int>[]);
+      group.add(i);
+      if (groups.length > _aiBatchLimit) {
+        groups.remove(id);
+        break;
+      }
+    }
+
+    // Build minimal redacted items; drop any with nothing useful left to send.
+    final items = <({
+      String id,
+      String text,
+      String? merchant,
+      String? sender,
+      String? amountBand,
+    })>[];
+    for (final entry in groups.entries) {
+      final txn = map.txns[entry.value.first];
+      final text = _redactForAi(txn);
       if (text.isEmpty) continue;
-      items.add((id: i.toString(), text: text));
-      if (items.length >= 40) break;
+      items.add((
+        id: entry.key,
+        text: text,
+        merchant: txn.merchant,
+        sender: txn.sender,
+        amountBand: _amountBand(txn.amount),
+      ));
     }
     if (items.isEmpty) return null;
 
@@ -387,19 +582,28 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
 
     final txns = [...map.txns];
     var changed = false;
+    final resolved = <String, String>{};
     guesses.forEach((id, guess) {
-      final index = int.tryParse(id);
-      if (index == null || index < 0 || index >= txns.length) return;
+      final indices = groups[id];
+      if (indices == null) return;
       if (guess.confidence == 'low') return; // keep 'other' when unsure
       if (!SpendCategory.all.contains(guess.category)) return;
-      txns[index] = txns[index].copyWith(
-        category: guess.category,
-        merchant: guess.merchant?.isNotEmpty == true ? guess.merchant : null,
-        categorySource: CategorySource.ai,
-      );
-      changed = true;
+      for (final index in indices) {
+        if (index < 0 || index >= txns.length) continue;
+        final merchant = txns[index].merchant;
+        txns[index] = txns[index].copyWith(
+          category: guess.category,
+          merchant: guess.merchant?.isNotEmpty == true ? guess.merchant : null,
+          categorySource: CategorySource.ai,
+        );
+        // Remember against the merchant as PARSED, not as the model rewrote it
+        // for display — the next scan looks up the parsed name.
+        if (merchant != null) resolved[merchant] = guess.category;
+        changed = true;
+      }
     });
     if (!changed) return null;
+    await _rememberAiCategories(resolved);
 
     final updated = SpendMap(
       txns: txns,

@@ -19,6 +19,15 @@ class UserScopedStorageKeys {
       'arth_spend_map_recalculation_notice_$uid';
   static String spendMapAdjustments(String uid) =>
       'arth_spend_map_adjustments_$uid';
+  static String spendCategoryRules(String uid) =>
+      'arth_spend_category_rules_$uid';
+
+  /// Payees the AI pass has already resolved. Local-only, unlike
+  /// [spendCategoryRules]: it is a paid-lookup cache rather than the user's own
+  /// corrections, and the server can regenerate it, so it is not worth a durable
+  /// namespace. Its job is to stop a re-scan paying to classify a payee twice.
+  static String spendCategoryAiMemory(String uid) =>
+      'arth_spend_category_ai_memory_$uid';
   static String spendCompleteness(String uid) => 'arth_spend_completeness_$uid';
   static String otherIncome(String uid) => 'arth_other_income_$uid';
   static String otherIncomeAsked(String uid) => 'arth_other_income_asked_$uid';
@@ -34,6 +43,7 @@ class UserScopedStorageKeys {
         'document-checklist': documentChecklist(uid),
         'spend-map': spendMap(uid),
         'spend-map-adjustments': spendMapAdjustments(uid),
+        'spend-category-rules': spendCategoryRules(uid),
         'spend-completeness': spendCompleteness(uid),
         'other-income': otherIncome(uid),
         'other-income-asked': otherIncomeAsked(uid),
@@ -64,6 +74,8 @@ class UserScopedStorageKeys {
         spendMap(uid),
         spendMapRecalculationNotice(uid),
         spendMapAdjustments(uid),
+        spendCategoryRules(uid),
+        spendCategoryAiMemory(uid),
         spendCompleteness(uid),
         otherIncome(uid),
         otherIncomeAsked(uid),

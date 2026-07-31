@@ -13,6 +13,7 @@
     "scan:secrets": "tsx src/scripts/scan-secrets.ts",
     "test": "tsx --test test/**/*.test.ts",
     "test:security": "tsx --test test/security.test.ts",
+    "test:categorize": "tsx src/scripts/test-openai-categorize.ts",
     "seed:test-account": "tsx src/scripts/seed-test-account.ts",
     "provision:neon": "tsx src/scripts/provision-neon.ts"
   },

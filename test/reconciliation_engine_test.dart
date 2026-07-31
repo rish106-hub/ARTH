@@ -137,8 +137,8 @@ void main() {
 
     test('surfaces claimable reimbursement when receipt evidence exists', () {
       final output = ReconciliationEngine.reconcile(
-        ReconciliationInput(
-          offerFields: const {
+        const ReconciliationInput(
+          offerFields: {
             'components': [
               {
                 'label': 'Internet reimbursement',
@@ -148,8 +148,8 @@ void main() {
               },
             ],
           },
-          components: const [],
-          evidence: const [
+          components: [],
+          evidence: [
             PaycheckEvidence(
               id: 'bill-1',
               name: 'Broadband bill July',
@@ -211,8 +211,8 @@ void main() {
 
     test('uses salary SMS net when no payslip net is available', () {
       final output = ReconciliationEngine.reconcile(
-        ReconciliationInput(
-          salarySms: const SalarySmsSnapshot(
+        const ReconciliationInput(
+          salarySms: SalarySmsSnapshot(
             latestCreditAmount: 43210,
             latestCreditDate: null,
           ),

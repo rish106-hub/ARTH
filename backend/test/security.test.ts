@@ -1477,7 +1477,8 @@ describe('backend security harness', () => {
     assert.equal(account.json().pan.status, 'missing');
     const clearedState = fakeDb.rawUserState()
       .filter((item) => item.user_id === alice.user.id);
-    assert.equal(clearedState.length, 12);
+    // One tombstone per durable namespace (see userStateNamespaces).
+    assert.equal(clearedState.length, 13);
     assert.ok(clearedState.every((item) =>
       item.deleted === true && item.payload_ciphertext === null));
 

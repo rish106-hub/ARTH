@@ -63,14 +63,20 @@ class SpendMapService {
     );
   }
 
-  /// Hybrid categorization fallback. Sends only the transactions the on-device
-  /// rules could not categorize (as `{id, text}`, text already redacted by the
-  /// caller) and returns the AI's category/merchant guesses keyed by id.
+  /// Hybrid categorization fallback. Sends one item per DISTINCT payee the
+  /// on-device rules could not categorize and returns the resulting
+  /// category/merchant guesses keyed by the caller's id.
   ///
-  /// Returns an empty map when signed out, when the backend/Gemini is
-  /// unavailable, or on any error — callers keep their on-device categories.
+  /// `text` is already redacted by the caller. `sender` is the bank's DLT header
+  /// (`VM-HDFCBK`) and `amountBand` a coarse size band rather than the figure —
+  /// both are signals the classifier needs to tell apart businesses that share a
+  /// brand name, and neither identifies a person.
+  ///
+  /// Returns an empty map when signed out, when the backend or model is
+  /// unavailable, when the shared spend cap is exhausted, or on any error —
+  /// callers keep their on-device categories.
   Future<Map<String, AiCategoryGuess>> categorize(
-    List<({String id, String text})> items,
+    List<CategorizeItem> items,
   ) async {
     if (items.isEmpty) return const {};
     final token = await _auth.getValidAccessToken();
@@ -81,7 +87,13 @@ class SpendMapService {
         bearerToken: token,
         body: {
           'items': items
-              .map((it) => {'id': it.id, 'text': it.text})
+              .map((it) => {
+                    'id': it.id,
+                    'text': it.text,
+                    if (it.merchant != null) 'merchant': it.merchant,
+                    if (it.sender != null) 'sender': it.sender,
+                    if (it.amountBand != null) 'amountBand': it.amountBand,
+                  })
               .toList(growable: false),
         },
       );
@@ -105,6 +117,16 @@ class SpendMapService {
     }
   }
 }
+
+/// One distinct payee sent for classification. `id` is the caller's grouping
+/// key, so the answer applies to every transaction with that payee.
+typedef CategorizeItem = ({
+  String id,
+  String text,
+  String? merchant,
+  String? sender,
+  String? amountBand,
+});
 
 /// An AI-suggested category for one transaction.
 class AiCategoryGuess {
