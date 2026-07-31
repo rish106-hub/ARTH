@@ -59,28 +59,15 @@ class FinanceMessageParser {
     caseSensitive: false,
   );
 
-  // Credit-card BILL PAYMENTS read as a literal credit ("Payment of Rs X
-  // received... credited to your SBI Credit Card ending 1234") because the
-  // words "received"/"credited" appear before any debit verb. From the user's
-  // perspective this is money LEAVING their bank account to pay a card bill —
-  // an expense, not income. Matched on the phrase "credit card" appearing
-  // anywhere in the body; excludes refund/cashback SMS, where a credit TO the
-  // card really is money back and the normal credit-word heuristic is correct.
-  static final RegExp _creditCardMentionRe = RegExp(
-    r'\bcredit\s*card\b',
-    caseSensitive: false,
-  );
+  // Wording that means money genuinely came BACK to a card, rather than the user
+  // repaying it. Without this a refund would be booked as a repayment and
+  // silently written off as worth nothing.
   static const _cardCreditExceptions = [
     'refund',
     'cashback',
     'reversed',
     'reversal'
   ];
-
-  static bool _isCreditCardBillPayment(String lowerBody) {
-    if (!_creditCardMentionRe.hasMatch(lowerBody)) return false;
-    return !_cardCreditExceptions.any(lowerBody.contains);
-  }
 
   // Paying a card bill produces a leg on the paying bank ("debited ... towards
   // ICICI Credit Card payment") and an acknowledgement from the card itself
@@ -646,6 +633,27 @@ class FinanceMessageParser {
     return cleaned.isEmpty ? null : cleaned;
   }
 
+  /// Instrument of the account at [tailAt], judged from the wording immediately
+  /// before it rather than from anywhere in the message.
+  ///
+  /// This matters: "Rs 5000 credited to A/c XX1234, your credit card bill is
+  /// due" mentions a card but is about a bank account. Reading the whole body
+  /// would call it a card and, under the rule below, book real income as a card
+  /// repayment worth nothing.
+  static InstrumentKind _instrumentNear(
+      String lowerBody, int tailAt, int tailEnd) {
+    const window = 40;
+    final start = tailAt - window < 0 ? 0 : tailAt - window;
+    // Includes the matched text itself: the instrument word is usually part of
+    // the match ("a/c XX1234", "Card ending 4321"), so a window that stopped
+    // short of it saw nothing and fell through to the whole body.
+    final context = lowerBody.substring(start, tailEnd);
+    final near = _instrumentFrom(context);
+    // Nothing conclusive next to the tail: fall back to the whole body, which is
+    // right for the many alerts that name the instrument only once, up front.
+    return near == InstrumentKind.unknown ? _instrumentFrom(lowerBody) : near;
+  }
+
   static InstrumentKind _instrumentFrom(String lowerBody) {
     if (_walletInstrumentRe.hasMatch(lowerBody)) return InstrumentKind.wallet;
     // Checked before the bank pattern: a card statement mentions both the card
@@ -664,16 +672,22 @@ class FinanceMessageParser {
     final lower = body.toLowerCase();
     final counterpartyTail = _counterpartyTailRe.firstMatch(lower)?.group(1);
     String? tail;
+    var tailAt = -1;
+    var tailEnd = -1;
     for (final match in _maskedTailRe.allMatches(lower)) {
       final candidate = match.group(1);
       if (candidate == null || candidate == counterpartyTail) continue;
       tail = candidate;
+      tailAt = match.start;
+      tailEnd = match.end;
       break;
     }
     final endpoint = TxnEndpoint(
       institution: _institutionFrom(sender),
       tail: tail,
-      kind: _instrumentFrom(lower),
+      kind: tailAt < 0
+          ? _instrumentFrom(lower)
+          : _instrumentNear(lower, tailAt, tailEnd),
     );
     return endpoint.isEmpty ? null : endpoint;
   }
@@ -733,31 +747,47 @@ class FinanceMessageParser {
     var direction =
         debitAt < creditAt ? TxnDirection.debit : TxnDirection.credit;
 
-    // A credit-card BILL PAYMENT ("Payment of Rs X received towards your HDFC
-    // Credit Card") only reaches here as a credit because "received"/"credited"
-    // literally appears — but it's money LEAVING the user's account, not
-    // income. Only reclassify when the heuristic above actually got it wrong
-    // (i.e. it picked credit); an ordinary card purchase ("spent on your
-    // Credit Card at SWIGGY") already resolves to debit and is untouched, so
-    // its merchant-based category isn't clobbered into "bills".
-    final isCardBillPayment =
-        direction == TxnDirection.credit && _isCreditCardBillPayment(lower);
-    if (isCardBillPayment) direction = TxnDirection.debit;
+    // 3b. Correct the direction from WHAT KIND of account moved, not from which
+    // verb the bank happened to write first.
+    //
+    // "Credit" means three different things depending on the instrument, which
+    // is why matching on the phrase "credit card" needed an ever-growing list of
+    // exceptions. A credit card is a liability, not a balance, so money arriving
+    // at one is not income — it is the user repaying it from a bank account, and
+    // that money already left somewhere else. Money arriving at a bank account
+    // is income. One fact, no phrase list:
+    //
+    //   card, money in   -> repayment (recorded, worth nothing)  unless a refund
+    //   card, money out  -> purchase (real spend)
+    //   account, money in  -> income
+    //   account, money out -> spend
+    final source = _extractSource(body, sender);
+    final isCard = source?.kind == InstrumentKind.creditCard;
+    final isMoneyBack = _cardCreditExceptions.any(lower.contains);
 
-    // Repaying a card moves money between the user's own accounts, so it is
-    // recorded but excluded from spend. The purchases on that card are the
-    // expense, and counting the bill as well would count the same money twice.
-    final isCardRepayment = isCardBillPayment || _isCardRepayment(lower);
+    final isCardRepayment = isCard &&
+        !isMoneyBack &&
+        (direction == TxnDirection.credit || _isCardRepayment(lower));
+    // The bank-side leg of a card payment names the card as the destination
+    // rather than the subject, so instrument alone cannot see it.
+    final isBankSideRepayment = !isCard && _isCardRepayment(lower);
+
+    // Money arriving at a card left a bank account: record it as an outflow so
+    // the two legs of one payment agree on direction.
+    if (isCardRepayment && direction == TxnDirection.credit) {
+      direction = TxnDirection.debit;
+    }
+    final isInternal = isCardRepayment || isBankSideRepayment;
 
     // 4. Salary detection (only meaningful for credits; a card bill payment
     // is never salary even though it may contain "credited").
-    final isSalary = !isCardRepayment &&
+    final isSalary = !isInternal &&
         direction == TxnDirection.credit &&
         _salaryRe.hasMatch(lower);
 
     // 5. Category + merchant (only for spend).
     final merchant = _extractMerchant(body);
-    final category = isCardBillPayment
+    final category = isInternal
         ? SpendCategory.bills
         : direction == TxnDirection.debit
             ? _categorize(lower, merchant)
@@ -769,8 +799,8 @@ class FinanceMessageParser {
       date: date,
       category: category,
       isSalary: isSalary,
-      isInternalTransfer: isCardRepayment,
-      source: _extractSource(body, sender),
+      isInternalTransfer: isInternal,
+      source: source,
       counterparty: _extractCounterparty(body),
       merchant: merchant,
       sender: sender,
