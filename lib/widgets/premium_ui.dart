@@ -6,6 +6,126 @@ import '../theme/paycheck_theme.dart';
 import 'arth_bottom_nav.dart';
 import 'ui_policy.dart';
 
+/// Length limits for copy that a screen shows before the user asks for it.
+///
+/// A screen's opening line has to be readable at a glance, so it is budgeted
+/// like a label rather than a sentence. Anything longer is detail, and detail
+/// belongs behind [ArthDisclosure] where it costs the user nothing until they
+/// want it. `test/copy_density_test.dart` holds the codebase to these numbers.
+class ArthCopy {
+  const ArthCopy._();
+
+  /// Opening line under a screen or panel title. Roughly one phone line.
+  static const int leadLine = 72;
+
+  /// Message inside an empty, error or permission panel. Two lines at 15px on
+  /// a 360dp phone, which is about where a subtitle stops being scannable.
+  static const int panelMessage = 90;
+}
+
+/// A collapsed row that reveals longer explanation on demand.
+///
+/// Exists so that trust copy — what ARTH reads, what leaves the device, why a
+/// source is not supported yet — stays available without greeting the user with
+/// a paragraph. Collapsed by default, always.
+class ArthDisclosure extends StatefulWidget {
+  /// The tappable summary, e.g. "What ARTH reads". Kept to a few words.
+  final String label;
+
+  /// The detail. This is the one place long-form copy is allowed.
+  final String detail;
+
+  final IconData icon;
+
+  /// Draws a hairline above the row, for use directly under a card's content.
+  final bool showDivider;
+
+  const ArthDisclosure({
+    super.key,
+    required this.label,
+    required this.detail,
+    this.icon = Icons.info_outline,
+    this.showDivider = false,
+  });
+
+  @override
+  State<ArthDisclosure> createState() => _ArthDisclosureState();
+}
+
+class _ArthDisclosureState extends State<ArthDisclosure> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = MotionPolicy.duration(context, normal: AppMotion.fast);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.showDivider) ...[
+          const Divider(height: 1, color: PaycheckColors.line),
+          const SizedBox(height: 4),
+        ],
+        Semantics(
+          button: true,
+          expanded: _open,
+          label: widget.label,
+          child: InkWell(
+            borderRadius: AppRadius.control,
+            onTap: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: Row(
+                children: [
+                  Icon(widget.icon, size: 16, color: PaycheckColors.inkSoft),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      style: PaycheckType.caption(
+                        color: PaycheckColors.inkSoft,
+                      ).copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _open ? 0.5 : 0,
+                    duration: duration,
+                    curve: AppMotion.standard,
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: PaycheckColors.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: duration,
+          curve: AppMotion.standard,
+          alignment: Alignment.topCenter,
+          child: _open
+              ? Padding(
+                  padding: const EdgeInsets.only(
+                    left: 24,
+                    right: 4,
+                    bottom: 10,
+                  ),
+                  child: Text(
+                    widget.detail,
+                    style: PaycheckType.caption(
+                      color: PaycheckColors.inkSoft,
+                    ),
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
+  }
+}
+
 class ArthScaffold extends StatelessWidget {
   final Widget child;
   final Widget? bottomNavigationBar;
@@ -569,6 +689,11 @@ class ArthStatePanel extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
+
+  /// Longer explanation, collapsed behind [detailLabel]. Use this for anything
+  /// that does not fit [ArthCopy.panelMessage] rather than growing [message].
+  final String? detail;
+  final String detailLabel;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -577,6 +702,8 @@ class ArthStatePanel extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
+    this.detail,
+    this.detailLabel = 'Why this happens',
     this.actionLabel,
     this.onAction,
   });
@@ -604,6 +731,8 @@ class ArthStatePanel extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: PaycheckType.body(color: PaycheckColors.textSecondary),
               ),
+              if (detail != null)
+                ArthDisclosure(label: detailLabel, detail: detail!),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: 18),
                 SizedBox(

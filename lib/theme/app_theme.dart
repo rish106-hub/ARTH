@@ -233,7 +233,7 @@ class AppTheme {
         }),
         checkColor: WidgetStateProperty.all(Colors.white),
         side: const BorderSide(color: AppColors.border, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
       dividerColor: AppColors.divider,
       dividerTheme: const DividerThemeData(
@@ -270,24 +270,23 @@ class AppTheme {
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         hintStyle: TextStyle(fontFamily: 'Anek', color: AppColors.textMuted),
         border: OutlineInputBorder(
-          borderRadius: AppRadius.card,
+          borderRadius: AppRadius.control,
           borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: AppRadius.card,
+          borderRadius: AppRadius.control,
           borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: AppRadius.card,
+          borderRadius: AppRadius.control,
           borderSide: BorderSide(color: AppColors.gold, width: 1.5),
         ),
       ),
-      snackBarTheme: SnackBarThemeData(
+      snackBarTheme: const SnackBarThemeData(
         backgroundColor: AppColors.textPrimary,
-        contentTextStyle:
-            const TextStyle(fontFamily: 'Anek', color: Colors.white),
+        contentTextStyle: TextStyle(fontFamily: 'Anek', color: Colors.white),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.control),
       ),
       useMaterial3: true,
     );
@@ -302,7 +301,7 @@ class AppButtons {
     elevation: 0,
     minimumSize: const Size(0, 52),
     maximumSize: const Size(double.infinity, 52),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
     padding: const EdgeInsets.symmetric(horizontal: 20),
     textStyle: const TextStyle(
       fontFamily: 'Anek',
@@ -317,7 +316,7 @@ class AppButtons {
     side: const BorderSide(color: AppColors.gold, width: 1.5),
     minimumSize: const Size(0, 52),
     maximumSize: const Size(double.infinity, 52),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
     padding: const EdgeInsets.symmetric(horizontal: 20),
     textStyle: const TextStyle(
         fontFamily: 'Anek', fontSize: 15, fontWeight: FontWeight.w600),
@@ -334,13 +333,20 @@ class Spacing {
   static const double xxl = 48;
 }
 
-// Border radius
+// Border radius. Two working steps only: `control` for anything a finger acts
+// on, `card` for anything that holds content. A single shared value made every
+// surface read as the same generic box, so the two steps are deliberately far
+// enough apart to be legible side by side.
 class AppRadius {
   static const double sm = 8;
-  static const double md = 8;
-  static const double lg = 8;
-  static const double xl = 8;
-  static const BorderRadius card = BorderRadius.all(Radius.circular(8));
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+  static const BorderRadius control = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius card = BorderRadius.all(Radius.circular(lg));
+  static const BorderRadius sheet = BorderRadius.vertical(
+    top: Radius.circular(xl),
+  );
   static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
 }
 
