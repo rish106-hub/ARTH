@@ -55,6 +55,39 @@ void main() {
     expect(api.postCalls, contains('/auth/refresh'));
   });
 
+  test('server-rejected access token refreshes once and retries requests',
+      () async {
+    final stale =
+        _jwtWithExpiry(DateTime.now().add(const Duration(minutes: 15)));
+    final fresh =
+        _jwtWithExpiry(DateTime.now().add(const Duration(minutes: 30)));
+    final api = _FakeApi()
+      ..postResponses['/auth/sign-in'] = _authResponse(stale, 'refresh-1')
+      ..postResponses['/auth/refresh'] = _authResponse(fresh, 'refresh-2');
+    final auth = AuthService(api: api);
+    final usedTokens = <String>[];
+
+    await auth.signIn(email: 'user@example.com', password: 'CorrectHorse9');
+
+    Future<String> request(String token) async {
+      usedTokens.add(token);
+      if (token == stale) {
+        throw const ServerApiException(401, 'Invalid or expired access token');
+      }
+      return 'ok';
+    }
+
+    final results = await Future.wait([
+      auth.withFreshAccessToken(request),
+      auth.withFreshAccessToken(request),
+    ]);
+
+    expect(results, ['ok', 'ok']);
+    expect(
+        api.postCalls.where((path) => path == '/auth/refresh'), hasLength(1));
+    expect(usedTokens.where((token) => token == fresh), hasLength(2));
+  });
+
   test('version migration retains the account and every existing cache',
       () async {
     final storage = const SecureStorageService();
