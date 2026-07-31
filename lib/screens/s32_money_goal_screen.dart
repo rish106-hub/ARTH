@@ -9,6 +9,7 @@ import '../models/user_profile.dart';
 import '../features/money_signals/providers/money_signal_provider.dart';
 import '../providers/money_goal_provider.dart';
 import '../providers/spend_map_provider.dart';
+import '../theme/app_theme.dart';
 import '../theme/paycheck_theme.dart';
 import '../utils/money_format.dart';
 import '../widgets/job_duration_selector.dart';
@@ -242,7 +243,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               Text('Monthly commitments', style: PaycheckType.heading()),
               const SizedBox(height: 6),
               Text(
-                'Use essential spending, not your entire bank outflow. Family support is optional and stays separate.',
+                'Essential spending only, not your whole outflow.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
               const SizedBox(height: 14),
@@ -308,9 +309,9 @@ class _ProjectionBand extends StatelessWidget {
     final feasible = hasPay && projection.isFeasible;
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.ink,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,18 +354,28 @@ class _PlanGuidance extends StatelessWidget {
   Widget build(BuildContext context) {
     final bufferTarget = essentials * 3;
     final shortfall = -projection.monthlyHeadroom;
-    final message = projection.alreadyFunded
-        ? 'This goal is already fully funded. Keep at least ${money0(bufferTarget)} as a three-month safety buffer, or set a new target.'
+    final (String verdict, String advice) = projection.alreadyFunded
+        ? (
+            'This goal is already fully funded.',
+            'Keep ${money0(bufferTarget)} as a three-month buffer, '
+                'or set a new target.',
+          )
         : projection.isFeasible
-            ? 'Keep at least ${money0(bufferTarget)} as a three-month safety buffer. Then automate ${money0(projection.requiredMonthly)} monthly toward this goal.'
-            : 'The current target is short by ${money0(shortfall)} per month. Extend the date, lower the target, or reduce a flexible commitment before choosing an investment product.';
+            ? (
+                'Automate ${money0(projection.requiredMonthly)} monthly.',
+                'Keep ${money0(bufferTarget)} as a three-month buffer first.',
+              )
+            : (
+                'Short by ${money0(shortfall)} per month.',
+                'Extend the date, lower the target, or cut a commitment.',
+              );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: projection.isFeasible
             ? PaycheckColors.matchedSoft
             : PaycheckColors.claimSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +387,19 @@ class _PlanGuidance extends StatelessWidget {
                 : PaycheckColors.claim,
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(message, style: PaycheckType.bodyStrong())),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(verdict, style: PaycheckType.bodyStrong()),
+                const SizedBox(height: 4),
+                Text(
+                  advice,
+                  style: PaycheckType.caption(color: PaycheckColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -440,9 +463,9 @@ class _SpendMapHint extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PaycheckColors.contractSoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.card,
       ),
       child: Row(
         children: [

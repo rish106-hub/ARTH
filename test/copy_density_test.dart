@@ -44,7 +44,7 @@ void main() {
 /// Current count of rendered strings over [ArthCopy.panelMessage].
 ///
 /// Only ever goes down.
-const int _baseline = 38;
+const int _baseline = 28;
 
 const List<String> _scannedRoots = [
   'lib/screens',
@@ -148,8 +148,11 @@ bool _isDisclosedDetail(List<String> lines, int index) {
   return false;
 }
 
-/// Widgets that collapse their `detail` behind a tap.
-final RegExp _disclosingWidget = RegExp(r'\b(ArthDisclosure|ArthStatePanel)\(');
+/// Anything that puts its `detail` behind a tap: the [ArthDisclosure] and
+/// [ArthStatePanel] widgets, and any helper named for what it does, such as a
+/// `_showConnectorDisclosure` bottom sheet.
+final RegExp _disclosingWidget =
+    RegExp(r'\b(\w*Disclosure|ArthStatePanel)\s*\(');
 
 bool _isDetailArgument(List<String> lines, int index) {
   if (lines[index].contains('detail:')) return true;
