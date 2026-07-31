@@ -110,7 +110,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                             : PaycheckColors.success,
                         elevation: 0,
                         shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(
                           color: isDone
                               ? PaycheckColors.border
@@ -194,7 +194,7 @@ class _HeroBanner extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 5,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: gap.accentColor.withValues(alpha: 0.12),
@@ -293,7 +293,7 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
         borderRadius: AppRadius.card,
@@ -327,7 +327,7 @@ class _DetailSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Key Points', style: PaycheckType.h3()),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         ...details.map(
           (d) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -397,7 +397,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -406,7 +406,7 @@ class _ActionButton extends StatelessWidget {
             foregroundColor: accentColor,
             elevation: 0,
             shape: const RoundedRectangleBorder(borderRadius: AppRadius.card),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             side: BorderSide(color: accentColor.withValues(alpha: 0.4)),
           ),
           onPressed: () async {

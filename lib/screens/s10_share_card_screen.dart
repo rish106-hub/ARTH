@@ -239,7 +239,7 @@ class _ShareCard extends StatelessWidget {
 
           // Section breakdown
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Column(
               children: items.map((item) => _ShareItemRow(item: item)).toList(),
             ),
@@ -250,7 +250,7 @@ class _ShareCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: PaycheckColors.bgCard,
                 borderRadius: AppRadius.card,
@@ -301,7 +301,7 @@ class _ShareItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 360;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Expanded(
@@ -310,8 +310,8 @@ class _ShareItemRow extends StatelessWidget {
                 Flexible(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 3,
+                      horizontal: 12,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: PaycheckColors.gold.withValues(alpha: 0.1),

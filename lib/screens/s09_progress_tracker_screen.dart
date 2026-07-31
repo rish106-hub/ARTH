@@ -160,7 +160,7 @@ class _ReadinessProgressCard extends StatelessWidget {
             detail:
                 'Keep the AIS and 26AS review separate, and check the official records before any filing handoff.',
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -171,7 +171,7 @@ class _ReadinessProgressCard extends StatelessWidget {
                   label: const Text('Documents'),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
                   style: AppButtons.outlineGold,
@@ -225,7 +225,7 @@ class _FYTimeline extends ConsumerWidget {
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
+                    horizontal: 12,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
@@ -460,7 +460,7 @@ class _DeadlineRow extends StatelessWidget {
     final color =
         deadline.isUrgent ? PaycheckColors.alert : PaycheckColors.amber;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
       ),
@@ -508,7 +508,7 @@ class _GapStatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: PaycheckColors.bgCard,
         borderRadius: AppRadius.card,

@@ -66,7 +66,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                 final tasks = buildAccuracyTasks(profile);
                 final result = ref.watch(taxResultProvider).asData?.value;
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -96,7 +96,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                               detail:
                                   'Exact payslip, proof and interest values can change which regime comes out ahead.',
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             TrustBadge(
                               icon: Icons.speed_rounded,
                               label: result == null
@@ -110,7 +110,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       if (tasks.isEmpty)
                         ArthStatePanel(
                           icon: Icons.task_alt_rounded,
@@ -127,7 +127,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                             children: [
                               for (final task in tasks) ...[
                                 _AccuracyTaskCard(task: task),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                               ],
                             ],
                           ),

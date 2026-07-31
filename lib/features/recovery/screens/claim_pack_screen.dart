@@ -219,7 +219,7 @@ class _ClaimPackBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
           Text('CLAIM CASEFILE', style: PaycheckType.sectionLabel()),
           const SizedBox(height: 8),
@@ -229,7 +229,7 @@ class _ClaimPackBody extends StatelessWidget {
             _money(claim.amount),
             style: PaycheckType.displaySmall(color: PaycheckColors.matched),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _ClaimContextCard(claim: claim, paycheck: paycheck),
           const SizedBox(height: 24),
           Text('Evidence spine', style: PaycheckType.heading()),
@@ -251,7 +251,7 @@ class _ClaimPackBody extends StatelessWidget {
                         onToggleEvidence(entry.value.id, value),
                   ),
                 ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           Text('Note for HR', style: PaycheckType.heading()),
           const SizedBox(height: 8),
           TextField(
@@ -278,7 +278,7 @@ class _ClaimPackBody extends StatelessWidget {
               style: PaycheckType.utility(),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           FilledButton.icon(
             key: const Key('export_claim_pack'),
             onPressed:
@@ -356,7 +356,7 @@ class _ContextRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         border: last
             ? null

@@ -117,7 +117,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
       backgroundColor: PaycheckColors.canvas,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -151,7 +151,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                 'Start with what you were promised',
                 style: PaycheckType.title().copyWith(fontSize: 30),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 'Add an offer letter.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -161,10 +161,10 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                 detail:
                     'Each pay component becomes a monthly checklist, then ARTH matches it against your payslips and salary alerts.',
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
               Text('How long does this job run?',
                   style: PaycheckType.bodyStrong()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 'Salary is annualised over these months.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -180,7 +180,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                     .updateField((profile) =>
                         profile.copyWith(jobDurationMonths: months)),
               ),
-              const SizedBox(height: 34),
+              const SizedBox(height: 32),
               const _SetupStep(
                 number: '01',
                 title: 'Add your offer letter',
@@ -203,7 +203,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                 detail: 'See promised, received and still claimable money.',
                 stateLabel: 'About 2 min',
               ),
-              const SizedBox(height: 34),
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -289,7 +289,7 @@ class _SetupStep extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +301,7 @@ class _SetupStep extends StatelessWidget {
                   Text(stateLabel, style: PaycheckType.utility()),
                 ],
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
                 detail,
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -322,7 +322,7 @@ class _SetupConnector extends StatelessWidget {
     return Container(
       width: 1,
       height: 24,
-      margin: const EdgeInsets.only(left: 19),
+      margin: const EdgeInsets.only(left: 20),
       color: PaycheckColors.line,
     );
   }

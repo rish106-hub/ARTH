@@ -28,7 +28,7 @@ class RetryErrorState extends StatelessWidget {
                 color: PaycheckColors.gold,
                 size: 32,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 message,
                 style: PaycheckType.body(color: PaycheckColors.textPrimary),

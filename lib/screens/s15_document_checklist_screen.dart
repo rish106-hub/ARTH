@@ -66,7 +66,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
             child: RefreshIndicator(
               onRefresh: () => ref.read(taxDocumentProvider.notifier).refresh(),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -81,7 +81,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                       title: 'Needed documents',
                       helper: '$remainingCount remaining',
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _NeededDocumentsPanel(
                       items: neededItems,
                       checklist: checklist,
@@ -175,7 +175,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Text('Upload ${item.title}', style: PaycheckType.h2()),
               const SizedBox(height: 8),
               Text(
@@ -191,7 +191,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                     color: PaycheckColors.gold,
                     size: 20,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'PDF · JPG · PNG   Maximum 8 MB',
@@ -202,7 +202,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               ElevatedButton.icon(
                 style: AppButtons.primaryGold,
                 onPressed: () => Navigator.pop(sheetContext, true),
@@ -502,7 +502,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           counterText: '',
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: tagsController,
                         decoration: const InputDecoration(
@@ -510,7 +510,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           hintText: 'salary, form16',
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: notesController,
                         maxLines: 3,
@@ -546,7 +546,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           document.extractedFields.isEmpty) ...[
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: PaycheckColors.info.withValues(alpha: 0.08),
                             borderRadius: AppRadius.card,
@@ -558,7 +558,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                                 'No reliable details were found',
                                 style: PaycheckType.bodyMedium(),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Text(
                                 'Enter the printed gross pay, deductions '
                                 'and net pay.',
@@ -587,14 +587,14 @@ class DocumentChecklistScreen extends ConsumerWidget {
                         ),
                       ],
                       if (error != null) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Text(
                           error!,
                           style:
                               PaycheckType.caption(color: PaycheckColors.alert),
                         ),
                       ],
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       ElevatedButton.icon(
                         style: AppButtons.primaryGold,
                         onPressed: saving ? null : () => saveMetadata(),
@@ -841,19 +841,19 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                 style:
                     PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               TextField(
                 controller: _employer,
                 decoration:
                     const InputDecoration(labelText: 'Employer (optional)'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _payPeriod,
                 decoration:
                     const InputDecoration(labelText: 'Pay period (optional)'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _gross,
                 keyboardType:
@@ -861,7 +861,7 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                 inputFormatters: numberFormatters,
                 decoration: const InputDecoration(labelText: 'Gross earnings'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _deductions,
                 keyboardType:
@@ -870,7 +870,7 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                 decoration:
                     const InputDecoration(labelText: 'Total deductions'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _net,
                 keyboardType:
@@ -886,7 +886,7 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                 onAdd: () => _addRow(_earnings),
                 onRemove: (row) => _removeRow(_earnings, row),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               _ManualPayRows(
                 title: 'Deductions',
                 rows: _deductionRows,
@@ -901,7 +901,7 @@ class _ManualPayslipEditorState extends State<_ManualPayslipEditor> {
                   style: PaycheckType.caption(color: PaycheckColors.alert),
                 ),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               ElevatedButton.icon(
                 style: AppButtons.primaryGold,
                 onPressed: _saving ? null : _submit,
@@ -1051,9 +1051,9 @@ class _FriendlyExtractedFields extends StatelessWidget {
               value: _value(entry.key, entry.value),
             ),
         if (attendance.isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text('Attendance', style: PaycheckType.bodyMedium()),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           for (final entry in attendance.entries)
             _ParsedFieldRow(
               label: _label(entry.key),
@@ -1094,7 +1094,7 @@ class _FriendlyExtractedFields extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(title, style: PaycheckType.bodyMedium()),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           for (final row in rows)
             _ParsedFieldRow(
               label: row['label']?.toString() ?? 'Item',
@@ -1109,7 +1109,7 @@ class _FriendlyExtractedFields extends StatelessWidget {
 
   Widget _messageSection(String title, List<String> messages, Color color) {
     return Container(
-      margin: const EdgeInsets.only(top: 14),
+      margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: color, borderRadius: AppRadius.card),
       child: Column(
@@ -1183,12 +1183,12 @@ class _VaultSummary extends StatelessWidget {
           message,
           style: PaycheckType.h1().copyWith(fontSize: 32, height: 1.08),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Text(
           '${summary.active} uploaded · ${summary.needsReview} need review',
           style: PaycheckType.caption(color: PaycheckColors.textSecondary),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         ClipRRect(
           borderRadius: AppRadius.pill,
           child: LinearProgressIndicator(
@@ -1257,7 +1257,7 @@ class VaultHero extends StatelessWidget {
                   style:
                       PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 8),
                 Text(
                   percent == 100
                       ? 'Your document checklist is complete.'
@@ -1315,7 +1315,7 @@ class _DocumentLane extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _VaultSectionHeader(title: title, helper: '${documents.length}'),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         for (final document in documents) ...[
           DocumentStatusCard(
             document: document,
@@ -1412,7 +1412,7 @@ class _NeededDocumentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Row(
         children: [
           Checkbox(
@@ -1425,7 +1425,7 @@ class _NeededDocumentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   item.subtitle,
                   maxLines: 2,
@@ -1434,7 +1434,7 @@ class _NeededDocumentRow extends StatelessWidget {
                       PaycheckType.caption(color: PaycheckColors.textSecondary),
                 ),
                 if (ready) ...[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     'Marked ready',
                     style: PaycheckType.micro(color: PaycheckColors.success),
@@ -1480,13 +1480,13 @@ class _EmptyUploads extends StatelessWidget {
               color: PaycheckColors.gold,
             ),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('No uploads yet', style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   'Use the upload icon beside any document to begin.',
                   style:
@@ -1525,7 +1525,7 @@ class DocumentStatusCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1541,7 +1541,7 @@ class DocumentStatusCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: PaycheckType.bodyMedium(),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
                       '${formatFileSize(document.byteSize)} • ${document.originalFilename}',
                       maxLines: 1,
@@ -1587,13 +1587,13 @@ class _ParserTimeline extends StatelessWidget {
     final insight = document.parseSummary['insight'] as String? ??
         'Stored in encrypted document vault.';
     return PremiumGlassPanel(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       tint: _statusColor(document),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Parser timeline', style: PaycheckType.h3()),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           const _TimelineRow(
             done: true,
             title: 'Stored encrypted',
@@ -1630,7 +1630,7 @@ class _TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1639,13 +1639,13 @@ class _TimelineRow extends StatelessWidget {
             color: done ? PaycheckColors.success : PaycheckColors.textMuted,
             size: 20,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:
@@ -1672,7 +1672,7 @@ class _ParsedFieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

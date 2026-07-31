@@ -53,133 +53,6 @@ class AppColors {
   static const Color info = primary;
 }
 
-class AppTextStyles {
-  // Numbers remain neutral. Green is reserved for action and positive state.
-  static TextStyle display({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 38,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0,
-        height: 1.05,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
-
-  static TextStyle displaySmall({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 32,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0,
-        height: 1.08,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
-
-  // Headings
-  static TextStyle h1({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 28,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0,
-        height: 1.2,
-      );
-
-  static TextStyle h2({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0,
-        height: 1.3,
-      );
-
-  static TextStyle h3({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-        color: color,
-        height: 1.3,
-      );
-
-  // Body
-  static TextStyle body({Color color = AppColors.textPrimary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: color,
-        height: 1.5,
-      );
-
-  static TextStyle bodyMedium({Color color = AppColors.textPrimary}) =>
-      TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-        color: color,
-        height: 1.5,
-      );
-
-  static TextStyle bodyStrong({Color color = AppColors.textPrimary}) =>
-      TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: color,
-        height: 1.5,
-      );
-
-  // Section labels are functional, not decorative.
-  static TextStyle sectionLabel({Color color = AppColors.gold}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0,
-      );
-
-  // Micro-copy
-  static TextStyle micro({Color color = AppColors.textSecondary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        color: color,
-        height: 1.4,
-      );
-
-  static TextStyle caption({Color color = AppColors.textSecondary}) =>
-      TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        color: color,
-        height: 1.4,
-      );
-
-  static TextStyle money({
-    Color color = AppColors.textPrimary,
-    double size = 15,
-    FontWeight weight = FontWeight.w600,
-  }) =>
-      TextStyle(
-        fontFamily: 'Anek',
-        fontSize: size,
-        fontWeight: weight,
-        fontFeatures: const [FontFeature.tabularFigures()],
-        color: color,
-        height: 1.15,
-      );
-
-  // Button
-  static TextStyle button({Color color = AppColors.bgPrimary}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: 0.2,
-      );
-}
-
 class AppTheme {
   static ThemeData get light {
     final baseTextTheme = ThemeData.light().textTheme.apply(fontFamily: 'Anek');
@@ -267,7 +140,7 @@ class AppTheme {
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.bgCard,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         hintStyle: TextStyle(fontFamily: 'Anek', color: AppColors.textMuted),
         border: OutlineInputBorder(
           borderRadius: AppRadius.control,
@@ -323,14 +196,18 @@ class AppButtons {
   );
 }
 
-// Spacing constants
+// Spacing. Every gap and inset in the app is a multiple of 4, which is what
+// `test/spacing_grid_test.dart` enforces. Use these names rather than a bare
+// number so the grid stays visible at the call site.
 class Spacing {
   static const double xs = 4;
   static const double sm = 8;
-  static const double md = 16;
-  static const double lg = 24;
-  static const double xl = 32;
-  static const double xxl = 48;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double section = 32;
+  static const double hero = 48;
 }
 
 // Border radius. Two working steps only: `control` for anything a finger acts

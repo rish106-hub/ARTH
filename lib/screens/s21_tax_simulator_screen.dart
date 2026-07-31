@@ -132,7 +132,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                               .clamp(0, double.infinity)
                               .round();
                       return SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -157,12 +157,12 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                       color: PaycheckColors.textSecondary,
                                     ),
                                   ),
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 16),
                                   TaxRuleBadge(result: current),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
                                 Expanded(
@@ -210,7 +210,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                               onChanged: (value) =>
                                   setState(() => _health80d = value),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             PremiumGlassPanel(
                               tint: PaycheckColors.teal,
                               child: Column(
@@ -218,7 +218,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                 children: [
                                   Text('Assumption guardrail',
                                       style: PaycheckType.h3()),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 8),
                                   Text(
                                     'Nothing changes unless you apply it.',
                                     style: PaycheckType.caption(

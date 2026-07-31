@@ -90,7 +90,7 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                     ),
                     child: const Padding(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       child: ArthBrandMark(size: 30),
                     ),
                   ),
@@ -102,8 +102,8 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                       foregroundColor: PaycheckColors.ink,
                       backgroundColor: Colors.white.withValues(alpha: 0.94),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 10,
+                        horizontal: 12,
+                        vertical: 12,
                       ),
                       shape: const RoundedRectangleBorder(
                         borderRadius: AppRadius.control,
@@ -137,7 +137,7 @@ class _ProductOnboardingScreenState extends State<ProductOnboardingScreen> {
                               : const Duration(milliseconds: 220),
                           width: index == _page ? 24 : 7,
                           height: 7,
-                          margin: const EdgeInsets.only(right: 6),
+                          margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
                             color: index == _page
                                 ? _pages[_page].accent
@@ -230,7 +230,7 @@ class _OnboardingPage extends StatelessWidget {
           height: 292,
           width: double.infinity,
           color: PaycheckColors.paper,
-          padding: const EdgeInsets.fromLTRB(22, 24, 22, 112),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 112),
           child: AnimatedOpacity(
             opacity: active ? 1 : 0.45,
             duration: reduceMotion
@@ -243,13 +243,13 @@ class _OnboardingPage extends StatelessWidget {
                   data.eyebrow,
                   style: PaycheckType.utility(color: data.accent),
                 ),
-                const SizedBox(height: 9),
+                const SizedBox(height: 8),
                 Text(
                   data.title,
                   maxLines: 2,
                   style: PaycheckType.title().copyWith(fontSize: 30),
                 ),
-                const SizedBox(height: 9),
+                const SizedBox(height: 8),
                 Text(
                   data.body,
                   maxLines: 3,

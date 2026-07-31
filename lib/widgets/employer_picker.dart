@@ -165,13 +165,13 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('Select your employer', style: PaycheckType.h2()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 'This is saved to your profile. It does not connect to the company.',
                 style:
                     PaycheckType.caption(color: PaycheckColors.textSecondary),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextField(
                 controller: _search,
                 autofocus: true,
@@ -181,7 +181,7 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
                 ),
                 onChanged: _searchChanged,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               if (_loading) const LinearProgressIndicator(minHeight: 2),
               Expanded(
                 child: ListView(
@@ -209,7 +209,7 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
                 ),
               ),
               if (_showOther) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextField(
                   key: const Key('employer_other_input'),
                   controller: _other,
@@ -221,7 +221,7 @@ class _EmployerPickerSheetState extends State<_EmployerPickerSheet> {
                     counterText: '',
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: _savingOther ? null : _useOther,
                   icon: _savingOther
