@@ -693,7 +693,17 @@ class _PermissionCard extends StatelessWidget {
                 'Nothing leaves your phone during parsing. If the prompt no longer appears, enable SMS under Settings › Apps › ARTH › Permissions, then try again.',
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: PaycheckColors.ink,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: onRetry,
+              child: const Text('Try again'),
+            ),
+          ),
         ],
       ),
     );
@@ -715,7 +725,17 @@ class _ErrorCard extends StatelessWidget {
           Text(message,
               style: PaycheckType.body(color: PaycheckColors.inkSoft)),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: PaycheckColors.ink,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ),
         ],
       ),
     );
