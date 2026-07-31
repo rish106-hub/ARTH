@@ -430,6 +430,37 @@ void main() {
     });
   });
 
+  group('brands too ambiguous to guess are left for the AI pass or the user',
+      () {
+    test('a bare ambiguous brand is not categorised by the rules', () {
+      // Apollo is a pharmacy, a hospital, a tyre maker and an insurer. Guessing
+      // one silently is worse than routing it onward as `other`.
+      for (final body in [
+        'Rs 8000 paid to APOLLO via UPI.',
+        'Rs 300 debited at METRO on 12-Jul.',
+        'Rs 4500 paid to INDIGO via UPI.',
+      ]) {
+        expect(parse(body)!.category, SpendCategory.other, reason: body);
+      }
+    });
+
+    test('the qualified form of each brand still resolves', () {
+      expect(parse('Rs 800 paid to APOLLO 24|7 via UPI.')!.category,
+          SpendCategory.health);
+      expect(parse('Rs 8000 paid to APOLLO TYRES via UPI.')!.category,
+          SpendCategory.transport);
+      expect(
+          parse('Rs 2400 debited at METRO CASH AND CARRY on 12-Jul.')!.category,
+          SpendCategory.groceries);
+      expect(parse('Rs 200 paid to METRO RAIL card recharge.')!.category,
+          SpendCategory.transport);
+      expect(parse('Rs 4500 paid to INDIGO AIRLINES via UPI.')!.category,
+          SpendCategory.travel);
+      expect(parse('Rs 1200 paid to INDIGO PAINTS via UPI.')!.category,
+          SpendCategory.shopping);
+    });
+  });
+
   group('categories added for common Indian spend', () {
     test('home loan EMI → loan', () {
       expect(

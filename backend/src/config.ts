@@ -27,7 +27,13 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(20).optional(),
   GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
   GEMINI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(25_000),
-  OPENAI_API_KEY: z.string().min(20).optional(),
+  // A blank value counts as unset rather than invalid: hosting panels routinely
+  // leave an empty string behind when a variable is cleared, and that should
+  // disable the AI pass, not refuse to boot the server.
+  OPENAI_API_KEY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(20).optional(),
+  ),
   // Classification is an easy task, so the cheapest model in the 5.4 family
   // runs it and only genuine disagreements reach ESCALATION_MODEL. Larger
   // models are priced in aiSpendLedger and can be set here, but note gpt-5.5

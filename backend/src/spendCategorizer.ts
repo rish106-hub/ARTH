@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { env } from './config.js';
 import {
   evaluateBudget,
-  readSpend,
   recordSpend,
+  tryReadSpend,
   worstCaseMicroUsd,
   type TokenUsage,
 } from './aiSpendLedger.js';
@@ -556,7 +556,9 @@ async function callAndRecord(
   const promptTokens = estimateTokens(
     systemPrompt(call.variant) + userPrompt(call.items),
   );
-  const snapshot = await readSpend(context.userId);
+  const snapshot = await tryReadSpend(context.userId);
+  // No readable ledger means no way to prove the call stays inside the cap.
+  if (!snapshot) return null;
   const budget = evaluateBudget(
     snapshot,
     worstCaseMicroUsd(
@@ -573,12 +575,19 @@ async function callAndRecord(
 
   const outcome = await callModel(call);
   if (outcome) {
-    await recordSpend({
-      userId: context.userId,
-      model: call.model,
-      usage: outcome.usage,
-      items: quotaItems,
-    });
+    try {
+      await recordSpend({
+        userId: context.userId,
+        model: call.model,
+        usage: outcome.usage,
+        items: quotaItems,
+      });
+    } catch (error) {
+      // The tokens are already spent; losing the record is bad but returning a
+      // 500 to the client over it would be worse. The next call re-reads the
+      // ledger and will simply see a slightly low total.
+      console.warn('[ai-spend] failed to record usage', error);
+    }
   }
   return outcome;
 }
@@ -593,8 +602,10 @@ export async function categorizeTransactions(
   items: CategorizeItem[],
   context: CategorizeContext = { userId: null },
 ): Promise<CategorizeResult[] | null> {
-  if (!env.OPENAI_API_KEY) return null;
+  // Nothing asked, nothing to answer — checked before the key so an empty batch
+  // is trivially successful rather than reported as "AI unavailable".
   if (items.length === 0) return [];
+  if (!env.OPENAI_API_KEY) return null;
 
   const model = env.OPENAI_MODEL;
   const itemsById = new Map(items.map((item) => [item.id, item]));

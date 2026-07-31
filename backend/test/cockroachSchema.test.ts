@@ -26,6 +26,14 @@ const verifier = await readFile(
   new URL('../src/scripts/verify-cockroach.ts', import.meta.url),
   'utf8',
 );
+const aiSpendCockroach = await readFile(
+  new URL('../sql/cockroach/004_ai_spend_and_merchant_cache.sql', import.meta.url),
+  'utf8',
+);
+const aiSpendPostgres = await readFile(
+  new URL('../sql/018_ai_spend_and_merchant_cache.sql', import.meta.url),
+  'utf8',
+);
 
 describe('Cockroach secure schema', () => {
   it('contains required domain schemas and ownership controls', () => {
@@ -77,5 +85,49 @@ describe('Cockroach secure schema', () => {
     assert.match(durableStateHardening, /length\(namespace\) <= 64/);
     assert.match(postgresDurableStateHardening, /length\(namespace\) <= 64/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
+  });
+});
+
+describe('AI spend ledger and merchant cache', () => {
+  it('creates both tables in both dialects', () => {
+    for (const sql of [aiSpendPostgres, aiSpendCockroach]) {
+      assert.match(sql, /CREATE TABLE IF NOT EXISTS ai_spend_ledger/);
+      assert.match(sql, /CREATE TABLE IF NOT EXISTS merchant_category_cache/);
+    }
+  });
+
+  it('leaves both tables outside row-level security, on purpose', () => {
+    // The cap is one global figure: the runtime has to SUM every user's rows, and
+    // an isolation policy would silently turn a single $1.50 cap into $1.50 per
+    // user. The cache is shared across users because that sharing IS the saving.
+    // Both migrations must explain this, since it reads like an omission.
+    for (const sql of [aiSpendPostgres, aiSpendCockroach]) {
+      assert.doesNotMatch(sql, /ROW LEVEL SECURITY/);
+      assert.doesNotMatch(sql, /CREATE POLICY/);
+      // The reasoning must be written down, or the next reader "fixes" it.
+      assert.match(sql, /global/i);
+    }
+  });
+
+  it('keeps no readable merchant text in the shared cache', () => {
+    for (const sql of [aiSpendPostgres, aiSpendCockroach]) {
+      assert.match(sql, /merchant_hash/);
+      assert.doesNotMatch(sql, /merchant_name|merchant_text/);
+      // Only a keyed digest of a bounded length is accepted.
+      assert.match(sql, /length\(merchant_hash\) BETWEEN 32 AND 128/);
+    }
+  });
+
+  it('stores money as an integer and forbids negative usage', () => {
+    for (const sql of [aiSpendPostgres, aiSpendCockroach]) {
+      assert.match(sql, /micro_usd/);
+      assert.doesNotMatch(sql, /micro_usd\s+(?:NUMERIC|REAL|FLOAT|DECIMAL|DOUBLE)/i);
+      assert.match(sql, /ai_spend_ledger_non_negative/);
+    }
+  });
+
+  it('restricts table access in the idiom of each dialect', () => {
+    assert.match(aiSpendPostgres, /REVOKE ALL ON TABLE ai_spend_ledger FROM PUBLIC/);
+    assert.match(aiSpendCockroach, /GRANT SELECT, INSERT ON TABLE ai_spend_ledger TO arth_app_runtime/);
   });
 });

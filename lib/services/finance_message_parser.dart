@@ -117,7 +117,18 @@ class FinanceMessageParser {
   // merchant/keyword → category. Order matters: the first category whose
   // keywords match wins, so narrower categories are listed before the broader
   // ones they would otherwise be swallowed by ("metro cash" as groceries
-  // before "metro" as transport; "school" as education before "fee" as fees).
+  // before "metro rail" as transport; "school" as education before "fee" as
+  // fees).
+  //
+  // Bare brand names that belong to several unrelated businesses are
+  // DELIBERATELY ABSENT — "apollo" (pharmacy, hospital, tyres, insurance),
+  // "metro" (wholesale grocer, city rail, shoe shop), "indigo" (airline,
+  // paint), "shell" (fuel), "reliance", "tata", "bajaj", "lic". Only their
+  // qualified forms appear. Guessing from the bare name is how a transaction
+  // ends up confidently mis-filed with nobody ever asked about it; left
+  // unmatched it falls through to the AI pass and then to the user, which is
+  // the correct outcome for a name that genuinely does not identify a business.
+  // Do not "helpfully" add the short forms back.
   static const Map<String, List<String>> _categoryKeywords = {
     SpendCategory.insurance: [
       'insurance',
@@ -244,7 +255,8 @@ class FinanceMessageParser {
       'airbnb',
       'agoda',
       'booking.com',
-      'indigo',
+      'indigo airlines',
+      'goindigo',
       'air india',
       'vistara',
       'spicejet',
@@ -275,9 +287,13 @@ class FinanceMessageParser {
       'iocl',
       'bpcl',
       'indian oil',
-      'shell',
+      'shell petrol',
+      'shell fuel',
       'nayara',
-      'metro',
+      'metro rail',
+      'metro card',
+      'dmrc',
+      'bmrcl',
       'fastag',
       'toll',
       'parking',
@@ -290,7 +306,7 @@ class FinanceMessageParser {
     ],
     SpendCategory.health: [
       'pharmeasy',
-      'apollo',
+      'apollo 24',
       '1mg',
       'netmeds',
       'hospital',
@@ -363,6 +379,7 @@ class FinanceMessageParser {
       'lenskart',
       'decathlon',
       'ikea',
+      'indigo paints',
       'zudio',
       'pantaloons',
       'westside',

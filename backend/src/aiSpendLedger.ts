@@ -140,6 +140,24 @@ export async function readSpend(
   };
 }
 
+/// Spend so far, or null when the ledger cannot be read at all — a missing table
+/// because migrations have not run yet, or a database blip.
+///
+/// Callers must treat null as "refuse to spend". Failing closed is the only safe
+/// reading: with no way to verify what has been spent, there is no way to know
+/// the next call stays inside the cap.
+export async function tryReadSpend(
+  userId: string | null,
+  handle: Queryable = db,
+): Promise<SpendSnapshot | null> {
+  try {
+    return await readSpend(userId, handle);
+  } catch (error) {
+    console.warn('[ai-spend] ledger unreadable; refusing to spend', error);
+    return null;
+  }
+}
+
 export async function recordSpend(
   entry: {
     userId: string | null;
