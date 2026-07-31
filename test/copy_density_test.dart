@@ -44,7 +44,7 @@ void main() {
 /// Current count of rendered strings over [ArthCopy.panelMessage].
 ///
 /// Only ever goes down.
-const int _baseline = 58;
+const int _baseline = 53;
 
 const List<String> _scannedRoots = [
   'lib/screens',
@@ -95,7 +95,9 @@ List<_Blob> _scanCopyBlobs() {
         }
         final joined = buffer.toString();
         final rendered = _renderedLength(joined);
-        if (rendered > ArthCopy.panelMessage && _looksLikeProse(joined)) {
+        if (rendered > ArthCopy.panelMessage &&
+            _looksLikeProse(joined) &&
+            !_isDisclosedDetail(lines, i)) {
           blobs.add(_Blob(file.path, i + 1, rendered, _preview(joined)));
         }
         i = next;
@@ -125,6 +127,34 @@ int _firstQuoteIndex(String line) {
   if (single < 0) return double;
   if (double < 0) return single;
   return single < double ? single : double;
+}
+
+/// Whether this copy is the collapsed detail of a disclosure, which is the
+/// sanctioned home for long-form explanation and so is exempt.
+///
+/// `detail:` alone is not enough — it is also the argument name on several
+/// ordinary row widgets whose subtitle the user sees immediately. The literal
+/// has to be a `detail:` argument *of a disclosing widget*, so both the argument
+/// name and the constructor are required.
+bool _isDisclosedDetail(List<String> lines, int index) {
+  if (!_isDetailArgument(lines, index)) return false;
+  for (var back = index; back >= 0 && back >= index - 8; back--) {
+    if (_disclosingWidget.hasMatch(lines[back])) return true;
+  }
+  return false;
+}
+
+/// Widgets that collapse their `detail` behind a tap.
+final RegExp _disclosingWidget = RegExp(r'\b(ArthDisclosure|ArthStatePanel)\(');
+
+bool _isDetailArgument(List<String> lines, int index) {
+  if (lines[index].contains('detail:')) return true;
+  for (var back = index - 1; back >= 0 && back >= index - 2; back--) {
+    final previous = lines[back].trimRight();
+    if (previous.isEmpty) continue;
+    return previous.endsWith('detail:');
+  }
+  return false;
 }
 
 /// The literal on a line that holds nothing but a literal, which is how the
