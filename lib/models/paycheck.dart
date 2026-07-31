@@ -224,14 +224,14 @@ final demoPaycheck = PaycheckState(
   inboxConnected: true,
   preparedClaims: {},
   items: [
-    PaycheckItem(
+    const PaycheckItem(
       id: 'fixed-pay',
       label: 'Fixed pay',
       detail: 'Matched to July payslip',
       amount: 45000,
       status: PaycheckItemStatus.matched,
     ),
-    PaycheckItem(
+    const PaycheckItem(
       id: 'internet',
       label: 'Internet reimbursement',
       detail: 'Bill found in your inbox',
@@ -239,7 +239,7 @@ final demoPaycheck = PaycheckState(
       status: PaycheckItemStatus.claimable,
       dueLabel: 'Claim by 31 Jul',
     ),
-    PaycheckItem(
+    const PaycheckItem(
       id: 'wellness',
       label: 'Wellness allowance',
       detail: '₹20,000 annual allowance',
@@ -247,7 +247,7 @@ final demoPaycheck = PaycheckState(
       status: PaycheckItemStatus.claimable,
       dueLabel: '₹5,200 available now',
     ),
-    PaycheckItem(
+    const PaycheckItem(
       id: 'variable',
       label: 'Quarterly variable pay',
       detail: 'Expected with September payroll',
@@ -255,14 +255,14 @@ final demoPaycheck = PaycheckState(
       status: PaycheckItemStatus.pending,
       dueLabel: 'Due in 62 days',
     ),
-    PaycheckItem(
+    const PaycheckItem(
       id: 'tds',
       label: 'Tax withheld',
       detail: 'Recorded from payslip',
       amount: 3260,
       status: PaycheckItemStatus.deduction,
     ),
-    PaycheckItem(
+    const PaycheckItem(
       id: 'pf',
       label: 'Provident fund',
       detail: 'Employee and employer contribution',
@@ -272,35 +272,35 @@ final demoPaycheck = PaycheckState(
     ),
   ],
   components: [
-    PaycheckComponent(
+    const PaycheckComponent(
       label: 'Basic pay',
       canonicalKey: 'basic_pay',
       classification: 'basic_pay',
       amount: 45000,
       kind: PaycheckComponentKind.earning,
     ),
-    PaycheckComponent(
+    const PaycheckComponent(
       label: 'House rent allowance',
       canonicalKey: 'house_rent_allowance',
       classification: 'hra',
       amount: 5200,
       kind: PaycheckComponentKind.earning,
     ),
-    PaycheckComponent(
+    const PaycheckComponent(
       label: 'Performance pay',
       canonicalKey: 'performance_pay',
       classification: 'variable_pay',
       amount: 2500,
       kind: PaycheckComponentKind.earning,
     ),
-    PaycheckComponent(
+    const PaycheckComponent(
       label: 'Income tax',
       canonicalKey: 'income_tax',
       classification: 'income_tax',
       amount: 3260,
       kind: PaycheckComponentKind.deduction,
     ),
-    PaycheckComponent(
+    const PaycheckComponent(
       label: 'Provident fund',
       canonicalKey: 'employee_provident_fund',
       classification: 'employee_pf',
@@ -309,31 +309,31 @@ final demoPaycheck = PaycheckState(
     ),
   ],
   sources: [
-    PaycheckSource(
+    const PaycheckSource(
       name: 'Offer letter',
       detail: 'Compensation promise',
       connected: true,
     ),
-    PaycheckSource(
+    const PaycheckSource(
       name: 'Gmail receipts',
       detail: 'Payslips and eligible bills',
       connected: true,
     ),
-    PaycheckSource(
+    const PaycheckSource(
       name: 'Salary SMS',
       detail: 'Net credit confirmation',
       connected: true,
     ),
   ],
   evidence: [
-    PaycheckEvidence(
+    const PaycheckEvidence(
       id: 'july-payslip',
       name: 'July payslip',
       detail: '6 compensation lines extracted',
       statusLabel: 'MATCHED',
       kind: PaycheckEvidenceKind.payslip,
     ),
-    PaycheckEvidence(
+    const PaycheckEvidence(
       id: 'broadband-bill',
       name: 'Broadband bill',
       detail: 'Eligible for internet reimbursement',
@@ -341,7 +341,7 @@ final demoPaycheck = PaycheckState(
       kind: PaycheckEvidenceKind.receipt,
       needsAction: true,
     ),
-    PaycheckEvidence(
+    const PaycheckEvidence(
       id: 'gym-receipt',
       name: 'Gym receipt',
       detail: 'Eligible under wellness allowance',
