@@ -489,25 +489,25 @@ class _InputField extends StatelessWidget {
         fillColor: PaycheckColors.bgCard,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.border),
+        border: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.border),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.border),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.border),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.gold, width: 1.4),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.gold, width: 1.4),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.alert),
+        errorBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.alert),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PaycheckColors.alert, width: 1.4),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderRadius: AppRadius.control,
+          borderSide: BorderSide(color: PaycheckColors.alert, width: 1.4),
         ),
         errorStyle: PaycheckType.micro(color: PaycheckColors.alert),
       ),

@@ -44,7 +44,7 @@ void main() {
 /// Current count of rendered strings over [ArthCopy.panelMessage].
 ///
 /// Only ever goes down.
-const int _baseline = 45;
+const int _baseline = 38;
 
 const List<String> _scannedRoots = [
   'lib/screens',

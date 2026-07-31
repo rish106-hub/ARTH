@@ -700,21 +700,21 @@ class _Q00NameState extends ConsumerState<_Q00Name> {
       content: TextField(
         controller: _textCtrl,
         onChanged: _onTextChanged,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: 'Enter your name',
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.border),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.border),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.border),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.gold, width: 2),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.gold, width: 2),
           ),
-          contentPadding: const EdgeInsets.all(16),
+          contentPadding: EdgeInsets.all(16),
         ),
         style: PaycheckType.body(
           color: PaycheckColors.textPrimary,
@@ -771,21 +771,21 @@ class _Q00EmailState extends ConsumerState<_Q00Email> {
         controller: _textCtrl,
         onChanged: _onTextChanged,
         keyboardType: TextInputType.emailAddress,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: 'your.email@domain.com',
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.border),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.border),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.border),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: PaycheckColors.gold, width: 2),
+            borderRadius: AppRadius.control,
+            borderSide: BorderSide(color: PaycheckColors.gold, width: 2),
           ),
-          contentPadding: const EdgeInsets.all(16),
+          contentPadding: EdgeInsets.all(16),
         ),
         style: PaycheckType.body(
           color: PaycheckColors.textPrimary,
@@ -1067,8 +1067,8 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
           if (widget.payslipPrefill?.annualGrossSalary != null) ...[
             _PayslipSourceNote(
               title: 'Annual salary prefilled',
-              detail:
-                  'Based on ${widget.payslipPrefill!.payPeriod}. This is monthly gross x 12, so adjust it if your CTC includes bonuses or employer benefits.',
+              detail: 'From ${widget.payslipPrefill!.payPeriod}, '
+                  'monthly gross x 12. Adjust for bonuses.',
             ),
             const SizedBox(height: 18),
           ],
@@ -1110,18 +1110,17 @@ class _Q01CTCState extends ConsumerState<_Q01CTC> {
                 horizontal: 16,
                 vertical: 14,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.border),
+              border: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.border),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: PaycheckColors.gold, width: 1.5),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -1315,8 +1314,7 @@ class _QRegime extends ConsumerWidget {
 
     return _QLayout(
       question: 'How should we pick your tax regime?',
-      microCopy: 'The new regime is the default. We only ask about deductions '
-          'if the old regime could actually save you more.',
+      microCopy: 'The new regime is the default.',
       onNext: onNext,
       content: SingleChildScrollView(
         child: Column(
@@ -1336,10 +1334,9 @@ class _QRegime extends ConsumerWidget {
               ),
               child: Text(
                 autoLikelyNew
-                    ? 'At your income, the new regime likely makes tax ₹0 — we can '
-                        'skip the deduction questions entirely.'
-                    : 'At your income the old regime can still win with strong '
-                        'deductions, so we will ask a few targeted questions.',
+                    ? 'At your income, new regime likely means ₹0 tax. '
+                        'We can skip the deduction questions.'
+                    : 'Old regime can still win here with strong deductions.',
                 style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
             ),
@@ -1684,17 +1681,17 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
                   horizontal: 16,
                   vertical: 14,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: PaycheckColors.border),
+                border: const OutlineInputBorder(
+                  borderRadius: AppRadius.control,
+                  borderSide: BorderSide(color: PaycheckColors.border),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: PaycheckColors.border),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.control,
+                  borderSide: BorderSide(color: PaycheckColors.border),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.control,
+                  borderSide: BorderSide(
                     color: PaycheckColors.gold,
                     width: 1.5,
                   ),
@@ -1786,9 +1783,10 @@ class _Q05HRA extends ConsumerWidget {
               borderRadius: AppRadius.card,
               border: Border.all(color: PaycheckColors.border),
             ),
-            child: Text(
-              'If you don\'t receive HRA but pay rent, you may still be able to claim deduction under Section 80GG.',
-              style: PaycheckType.micro(color: PaycheckColors.textSecondary),
+            child: const ArthDisclosure(
+              label: 'Paying rent without HRA?',
+              detail:
+                  'If you do not receive HRA but pay rent, you may still be able to claim a deduction under Section 80GG.',
             ),
           ),
         ],
@@ -1925,18 +1923,17 @@ class _Q06EightyCState extends ConsumerState<_Q06EightyC> {
                 horizontal: 16,
                 vertical: 14,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.border),
+              border: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: PaycheckColors.border),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.border),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: PaycheckColors.gold, width: 1.5),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: AppRadius.control,
+                borderSide: BorderSide(color: PaycheckColors.gold, width: 1.5),
               ),
             ),
             onChanged: _onTextChanged,
@@ -2167,17 +2164,17 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(
                       color: PaycheckColors.gold,
                       width: 1.5,
                     ),
@@ -2325,16 +2322,14 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'What is NPS?',
+                      '₹50,000 extra deduction, on top of 80C',
                       style:
                           PaycheckType.bodyMedium(color: PaycheckColors.gold),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'National Pension System (NPS) is a government-backed retirement savings scheme. Opening an NPS Tier-1 account and contributing ₹50,000/year gives you an EXTRA ₹50,000 deduction under Section 80CCD(1B) — over and above your 80C limit.',
-                      style: PaycheckType.micro(
-                        color: PaycheckColors.textSecondary,
-                      ),
+                    const ArthDisclosure(
+                      label: 'What is NPS?',
+                      detail:
+                          'The National Pension System is a government-backed retirement savings scheme. Contributing ₹50,000 a year to an NPS Tier-1 account earns a deduction under Section 80CCD(1B), over and above your 80C limit.',
                     ),
                   ],
                 ),
@@ -2370,17 +2365,17 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(
                       color: PaycheckColors.gold,
                       width: 1.5,
                     ),
@@ -2501,18 +2496,17 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             fillColor: PaycheckColors.bgCard,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.border),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.border),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.border),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.border),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: PaycheckColors.gold, width: 1.5),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => _update(),
@@ -2776,17 +2770,17 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(
                       color: PaycheckColors.gold,
                       width: 1.5,
                     ),
@@ -2932,18 +2926,18 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                   fillColor: PaycheckColors.bgCard,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: PaycheckColors.border),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide: BorderSide(color: PaycheckColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                        color: PaycheckColors.gold, width: 1.5),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.control,
+                    borderSide:
+                        BorderSide(color: PaycheckColors.gold, width: 1.5),
                   ),
                 ),
                 onChanged: (_) => setState(_update),
@@ -3009,8 +3003,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                     borderRadius: AppRadius.card,
                   ),
                   child: Text(
-                    'Cash donations above ₹2,000 are not eligible for 80G. '
-                    'Pay digitally or by cheque to claim this deduction.',
+                    'Cash over ₹2,000 cannot be claimed. Pay digitally.',
                     style: PaycheckType.micro(color: PaycheckColors.alert),
                   ),
                 ),
@@ -3062,18 +3055,17 @@ class _AmountField extends StatelessWidget {
             fillColor: PaycheckColors.bgCard,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.border),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.border),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: PaycheckColors.border),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.border),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: PaycheckColors.gold, width: 1.5),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.control,
+              borderSide: BorderSide(color: PaycheckColors.gold, width: 1.5),
             ),
           ),
           onChanged: (_) => onChanged(),
