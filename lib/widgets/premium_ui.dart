@@ -40,12 +40,18 @@ class ArthDisclosure extends StatefulWidget {
   /// Draws a hairline above the row, for use directly under a card's content.
   final bool showDivider;
 
+  /// Centres the row and its detail, for panels whose other content is centred.
+  /// Left as false the row hugs the leading edge, which is right everywhere the
+  /// surrounding content is left-aligned.
+  final bool centered;
+
   const ArthDisclosure({
     super.key,
     required this.label,
     required this.detail,
     this.icon = Icons.info_outline,
     this.showDivider = false,
+    this.centered = false,
   });
 
   @override
@@ -60,16 +66,24 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
     final duration = MotionPolicy.duration(context, normal: AppMotion.fast);
     final detail = _open
         ? Padding(
-            padding: const EdgeInsets.only(left: 24, right: 4, bottom: 12),
+            // Indented to the label's text, past the icon, so the detail reads
+            // as belonging to the row that revealed it. Centred rows have no
+            // icon column to clear.
+            padding: widget.centered
+                ? const EdgeInsets.only(bottom: 12)
+                : const EdgeInsets.only(left: 24, bottom: 12),
             child: Text(
               widget.detail,
+              textAlign: widget.centered ? TextAlign.center : TextAlign.start,
               style: PaycheckType.caption(color: PaycheckColors.inkSoft),
             ),
           )
         : const SizedBox.shrink();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: widget.centered
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       children: [
         if (widget.showDivider) ...[
           const Divider(height: 1, color: PaycheckColors.line),
@@ -82,25 +96,37 @@ class _ArthDisclosureState extends State<ArthDisclosure> {
           child: InkWell(
             borderRadius: AppRadius.control,
             onTap: () => setState(() => _open = !_open),
+            // No horizontal padding: the row has to line up with the gutter of
+            // whatever contains it, or it reads as indented from the content it
+            // belongs to.
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(
+                mainAxisAlignment: widget.centered
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
                 children: [
                   Icon(widget.icon, size: 16, color: PaycheckColors.inkSoft),
                   const SizedBox(width: 8),
-                  Expanded(
+                  // Flexible rather than Expanded, so the chevron sits against
+                  // the label instead of being pushed to the far edge where it
+                  // reads as an unrelated control.
+                  Flexible(
                     // The enclosing Semantics already carries this label. Left
                     // in, the row announces it twice; excluding the whole
                     // subtree instead would also drop the InkWell's tap action.
                     child: ExcludeSemantics(
                       child: Text(
                         widget.label,
+                        // Regular weight: this is an affordance, not a heading.
+                        // At w600 it competed with the content above it.
                         style: PaycheckType.caption(
                           color: PaycheckColors.inkSoft,
-                        ).copyWith(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 4),
                   AnimatedRotation(
                     turns: _open ? 0.5 : 0,
                     duration: duration,
@@ -739,7 +765,11 @@ class ArthStatePanel extends StatelessWidget {
                 style: PaycheckType.body(color: PaycheckColors.textSecondary),
               ),
               if (detail != null)
-                ArthDisclosure(label: detailLabel, detail: detail!),
+                ArthDisclosure(
+                  label: detailLabel,
+                  detail: detail!,
+                  centered: true,
+                ),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: 16),
                 SizedBox(
