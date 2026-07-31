@@ -7,6 +7,11 @@ import { buildRevision } from './buildRevision.js';
 import { db, Queryable, runSerializableTransaction } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { categorizeTransactions } from './spendCategorizer.js';
+import {
+  merchantHash,
+  readMerchantCategories,
+  writeMerchantCategories,
+} from './merchantCategoryCache.js';
 import { sendPushToUser } from './pushNotifications.js';
 import { env } from './config.js';
 import {
@@ -219,11 +224,22 @@ const deviceTokenSchema = z.object({
 const deviceTokenDeleteSchema = deviceTokenSchema.pick({ fcmToken: true });
 
 const categorizeRequestSchema = z.object({
+  // One item per DISTINCT payee, not per transaction — the client groups its
+  // unresolved debits by merchant before sending, so a hundred orders from one
+  // merchant cost a single classification.
   items: z.array(z.object({
     id: z.string().min(1).max(64),
     // Redacted SMS/merchant text. Never persisted; used only to call the model.
     text: z.string().min(1).max(300),
-  })).min(1).max(40),
+    // Payee name as parsed on-device, when the SMS carried one.
+    merchant: z.string().max(60).nullish(),
+    // DLT sender header ("VM-HDFCBK"): often the only thing separating two
+    // businesses that share a brand name, and it identifies no person.
+    sender: z.string().max(32).nullish(),
+    // Coarse band ("₹1k-5k") rather than the figure, so the client's amount
+    // redaction still holds while a weak size signal survives.
+    amountBand: z.string().max(16).nullish(),
+  })).min(1).max(60),
 });
 
 const employerSubmissionSchema = z.object({
@@ -1733,16 +1749,59 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   // Hybrid categorization fallback: the client parses & categorizes on-device
-  // with rules, then sends only the transactions it could not confidently
-  // categorize (redacted text — no account/card numbers) for an AI pass. When
-  // Gemini is unconfigured or errors, returns an empty result set so the client
-  // simply keeps its on-device categories.
+  // with rules, then sends only the payees it could not confidently categorize
+  // (redacted text — no account/card numbers) for an AI pass.
+  //
+  // Three layers, cheapest first. The shared merchant cache answers anything
+  // another user has already had resolved, at no model cost. Whatever is left
+  // goes to the model, under a hard server-side spend cap. When the model is
+  // unconfigured, the budget is spent, or the call fails, the result set is
+  // simply short and the client keeps its on-device categories.
   app.post('/spend-map/categorize', dataRateLimit, async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return;
     const { items } = categorizeRequestSchema.parse(request.body);
-    const results = await categorizeTransactions(items);
-    return { results: results ?? [] };
+
+    const cached = await readMerchantCategories(items.map((item) => item.merchant));
+    const results: Array<{
+      id: string;
+      category: string;
+      merchant: string | null;
+      confidence: string;
+    }> = [];
+    const unresolved: typeof items = [];
+    for (const item of items) {
+      const hash = merchantHash(item.merchant);
+      const hit = hash ? cached.get(hash) : undefined;
+      if (hit) {
+        results.push({
+          id: item.id,
+          category: hit.category,
+          merchant: item.merchant ?? null,
+          confidence: hit.confidence,
+        });
+      } else {
+        unresolved.push(item);
+      }
+    }
+
+    if (unresolved.length > 0) {
+      const fresh = await categorizeTransactions(unresolved, { userId: auth.userId });
+      if (fresh) {
+        results.push(...fresh);
+        const merchantById = new Map(
+          unresolved.map((item) => [item.id, item.merchant ?? null]),
+        );
+        await writeMerchantCategories(fresh.map((result) => ({
+          merchant: result.merchant ?? merchantById.get(result.id) ?? null,
+          category: result.category,
+          confidence: result.confidence,
+          model: env.OPENAI_MODEL,
+        })));
+      }
+    }
+
+    return { results };
   });
 
   app.post('/money-goals', dataRateLimit, async (request, reply) => {

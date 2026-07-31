@@ -34,7 +34,7 @@ class _NoopSync extends SpendMapService {
 
   @override
   Future<Map<String, AiCategoryGuess>> categorize(
-    List<({String id, String text})> items,
+    List<CategorizeItem> items,
   ) async =>
       const {};
 }
@@ -177,13 +177,11 @@ void main() {
     final notifier = container.read(spendMapProvider.notifier);
     notifier.debugInjectDependencies(
       reader: reader,
-      sync: _StubCategorizer({
-        '0': const AiCategoryGuess(
-          category: SpendCategory.entertainment,
-          confidence: 'high',
-          merchant: 'Quikpay',
-        ),
-      }),
+      sync: _StubCategorizer(const AiCategoryGuess(
+        category: SpendCategory.entertainment,
+        confidence: 'high',
+        merchant: 'Quikpay',
+      )),
     );
     await container.read(otherIncomeProvider.notifier).markAsked();
 
@@ -192,6 +190,125 @@ void main() {
     expect(txn.category, SpendCategory.entertainment);
     expect(txn.merchant, 'Quikpay');
     expect(txn.categorySource, CategorySource.ai);
+  });
+
+  test('one payee is classified once and applied to all its transactions',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      for (final day in [3, 11, 24])
+        (
+          id: null,
+          sender: 'VMBANK',
+          body: 'Rs ${day * 10} debited via UPI to QUIKPAY SERVICES.',
+          date: DateTime(2026, 7, day),
+        ),
+    ]);
+    final stub = _StubCategorizer(const AiCategoryGuess(
+      category: SpendCategory.entertainment,
+      confidence: 'high',
+      merchant: 'Quikpay',
+    ));
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: stub);
+    await container.read(otherIncomeProvider.notifier).markAsked();
+
+    await notifier.scan();
+
+    // Three transactions, one payee → one billable item, three updates.
+    expect(stub.received.length, 1);
+    expect(stub.received.single.merchant, 'QUIKPAY SERVICES');
+    expect(stub.received.single.sender, 'VMBANK');
+    expect(stub.received.single.amountBand, isNotNull);
+    final txns = container.read(spendMapProvider).map!.txns;
+    expect(txns.length, 3);
+    expect(
+      txns.every((t) => t.category == SpendCategory.entertainment),
+      isTrue,
+    );
+  });
+
+  test('a payee already classified is never sent again on a re-scan', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final messages = <RawSms>[
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 640 debited via UPI to QUIKPAY SERVICES.',
+        date: DateTime(2026, 7, 4),
+      ),
+    ];
+    final stub = _StubCategorizer(const AiCategoryGuess(
+      category: SpendCategory.entertainment,
+      confidence: 'high',
+      merchant: 'Quikpay',
+    ));
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: _FakeReader(messages),
+      sync: stub,
+    );
+
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    expect(stub.received.length, 1);
+
+    // Widening the window (what a period-chip tap does) re-reads the inbox and
+    // re-parses everything. The already-classified payee must not be re-sent —
+    // the spend cap is one fixed total across all users, not per scan.
+    stub.received.clear();
+    messages.add((
+      id: null,
+      sender: 'VMBANK',
+      body: 'Rs 900 debited via UPI to QUIKPAY SERVICES.',
+      date: DateTime(2026, 5, 9),
+    ));
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await container.read(spendMapProvider.notifier).scan();
+
+    expect(stub.received, isEmpty);
+    final txns = container.read(spendMapProvider).map!.txns;
+    expect(txns.length, 2);
+    expect(
+      txns.every((t) =>
+          t.category == SpendCategory.entertainment &&
+          t.categorySource == CategorySource.ai),
+      isTrue,
+    );
+  });
+
+  test('a manual correction outranks the remembered AI answer', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final messages = <RawSms>[
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 640 debited via UPI to QUIKPAY SERVICES.',
+        date: DateTime(2026, 7, 4),
+      ),
+    ];
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: _FakeReader(messages),
+      sync: _StubCategorizer(const AiCategoryGuess(
+        category: SpendCategory.entertainment,
+        confidence: 'high',
+      )),
+    );
+
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    await notifier.recategorize(0, SpendCategory.fees);
+
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+
+    final txn = container.read(spendMapProvider).map!.txns.single;
+    expect(txn.category, SpendCategory.fees);
+    expect(txn.categorySource, CategorySource.manual);
   });
 
   test('AI fallback keeps "other" when confidence is low', () async {
@@ -208,12 +325,10 @@ void main() {
     final notifier = container.read(spendMapProvider.notifier);
     notifier.debugInjectDependencies(
       reader: reader,
-      sync: _StubCategorizer({
-        '0': const AiCategoryGuess(
-          category: SpendCategory.entertainment,
-          confidence: 'low',
-        ),
-      }),
+      sync: _StubCategorizer(const AiCategoryGuess(
+        category: SpendCategory.entertainment,
+        confidence: 'low',
+      )),
     );
     await container.read(otherIncomeProvider.notifier).markAsked();
 
@@ -402,16 +517,22 @@ void main() {
 }
 
 /// Sync stub that returns canned AI category guesses keyed by transaction index.
+/// Answers every payee it is asked about with the same guess, and records what
+/// it was asked. Item ids are grouping keys chosen by the provider, so a stub
+/// that hard-coded them would be testing the key format rather than the merge.
 class _StubCategorizer extends SpendMapService {
-  _StubCategorizer(this.guesses);
-  final Map<String, AiCategoryGuess> guesses;
+  _StubCategorizer(this.guess);
+  final AiCategoryGuess guess;
+  final List<CategorizeItem> received = [];
 
   @override
   Future<void> push(SpendMap map) async {}
 
   @override
   Future<Map<String, AiCategoryGuess>> categorize(
-    List<({String id, String text})> items,
-  ) async =>
-      guesses;
+    List<CategorizeItem> items,
+  ) async {
+    received.addAll(items);
+    return {for (final item in items) item.id: guess};
+  }
 }

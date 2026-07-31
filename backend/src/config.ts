@@ -27,6 +27,19 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(20).optional(),
   GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
   GEMINI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(25_000),
+  OPENAI_API_KEY: z.string().min(20).optional(),
+  // Classification is an easy task, so the cheapest model in the 5.4 family
+  // runs it and only genuine disagreements reach ESCALATION_MODEL. Larger
+  // models are priced in aiSpendLedger and can be set here, but note gpt-5.5
+  // bills output at 24x gpt-5.4-nano for no gain on a labelling task.
+  OPENAI_MODEL: z.string().default('gpt-5.4-nano'),
+  OPENAI_ESCALATION_MODEL: z.string().default('gpt-5.4-mini'),
+  OPENAI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(20_000),
+  // Hard lifetime ceiling on paid categorization, in USD. Enforced server-side
+  // against recorded usage — see aiSpendLedger.
+  AI_SPEND_CAP_USD: z.coerce.number().min(0).max(1_000).default(1.5),
+  // Per-account daily item allowance, so one inbox cannot drain the shared cap.
+  AI_ITEMS_PER_USER_PER_DAY: z.coerce.number().int().min(0).max(10_000).default(200),
   SARVAM_API_KEY: z.string().min(10).optional(),
   SARVAM_API_BASE_URL: z.string().url().default('https://api.sarvam.ai'),
   SARVAM_DOCUMENT_LANGUAGE: z.string().regex(/^[a-z]{2,3}-[A-Z]{2}$/).default('hi-IN'),

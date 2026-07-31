@@ -1,11 +1,15 @@
 import 'dart:convert';
 
-/// Merchant → category rules the user taught the app by correcting a
-/// transaction's category by hand.
+/// A merchant → category memory, keyed on a normalised merchant name so
+/// "SWIGGY", "Swiggy " and "swiggy" are one entry.
 ///
-/// A scan rebuilds every transaction from the SMS inbox, so without these the
-/// same payee had to be re-filed after every scan. Rules are keyed on a
-/// normalised merchant name so "SWIGGY", "Swiggy " and "swiggy" are one rule.
+/// Two instances are stored per user, because a scan rebuilds every transaction
+/// from the SMS inbox and would otherwise lose both kinds of knowledge:
+///
+///  - the user's own corrections, which must survive and take precedence;
+///  - payees the paid AI pass has already resolved, so widening the scan window
+///    from one month to twelve re-uses those answers instead of paying for them
+///    again.
 class MerchantCategoryRules {
   const MerchantCategoryRules._(this._byMerchant);
 
