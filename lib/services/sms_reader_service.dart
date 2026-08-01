@@ -35,6 +35,37 @@ class SmsReaderService {
     return granted ?? false;
   }
 
+  /// Calls [onTransactionalSms] for each new message that arrives while the app
+  /// is in the foreground, filtered to transactional senders by the same rule
+  /// [readInbox] uses — so a personal message never reaches the callback.
+  ///
+  /// Foreground only. Background delivery needs a top-level entrypoint and a
+  /// second isolate; a resume-time catch-up covers the same ground without
+  /// that, because the message is in the inbox by then either way.
+  ///
+  /// Safe to call when unsupported: it simply does nothing.
+  void listenForNewSms(void Function(RawSms) onTransactionalSms) {
+    if (!isSupported) return;
+    _telephony.listenIncomingSms(
+      listenInBackground: false,
+      onNewMessage: (message) {
+        final body = message.body;
+        if (body == null || body.isEmpty) return;
+        final sender = message.address ?? 'unknown';
+        if (!_isTransactionalSender(sender)) return;
+        final millis = message.date;
+        onTransactionalSms((
+          id: message.id,
+          sender: sender,
+          body: body,
+          date: millis == null
+              ? DateTime.now()
+              : DateTime.fromMillisecondsSinceEpoch(millis),
+        ));
+      },
+    );
+  }
+
   /// Reads inbox SMS, newest first, optionally limited to messages on/after
   /// [since], and only from transactional (bank/UPI) senders. Returns
   /// lightweight [RawSms] records; personal messages are never read into

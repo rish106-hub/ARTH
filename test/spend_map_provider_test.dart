@@ -10,9 +10,13 @@ import 'package:arth/services/spend_map_service.dart';
 /// Fake reader returning the same messages we inject into the emulator inbox.
 class _FakeReader extends SmsReaderService {
   _FakeReader(this.messages);
-  final List<RawSms> messages;
+  List<RawSms> messages;
   bool granted = true;
   DateTime? lastSince;
+  int inboxReads = 0;
+
+  /// Captured so a test can deliver an SMS without a platform channel.
+  void Function(RawSms)? onNewSms;
 
   @override
   bool get isSupported => true;
@@ -21,8 +25,14 @@ class _FakeReader extends SmsReaderService {
   Future<bool> requestPermission() async => granted;
 
   @override
+  void listenForNewSms(void Function(RawSms) onTransactionalSms) {
+    onNewSms = onTransactionalSms;
+  }
+
+  @override
   Future<List<RawSms>> readInbox({DateTime? since}) async {
     lastSince = since;
+    inboxReads++;
     return messages;
   }
 }
@@ -125,6 +135,73 @@ void main() {
     final state = container.read(spendMapProvider);
     expect(state.permissionDenied, isTrue);
     expect(state.hasData, isFalse);
+  });
+
+  test('a salary credit arriving while the app is open updates the map',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 700 debited via UPI to LOCAL STORE.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _NoopSync(),
+      liveScanDebounce: const Duration(milliseconds: 10),
+    );
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+
+    final readsAfterFirstScan = reader.inboxReads;
+    // No salary credit in SMS yet, so income is still the CTC fallback.
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+
+    // The salary lands in the inbox, then the bank's alert arrives.
+    reader.messages = [
+      ...reader.messages,
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 54500 credited to A/c XX1234 by SALARY from ACME PVT LTD.',
+        date: DateTime.now(),
+      ),
+    ];
+    reader.onNewSms!(reader.messages.last);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+
+    expect(reader.inboxReads, greaterThan(readsAfterFirstScan));
+    expect(container.read(spendMapProvider).map!.salaryCredited, 54500);
+  });
+
+  test('an arriving SMS does not start a scan the user never asked for',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader(const []);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _NoopSync(),
+      liveScanDebounce: const Duration(milliseconds: 10),
+    );
+
+    // No scan has ever run, so there is no map to refresh.
+    reader.onNewSms!((
+      id: null,
+      sender: 'VMBANK',
+      body: 'Rs 200 debited via UPI to LOCAL STORE.',
+      date: DateTime.now(),
+    ));
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+
+    expect(reader.inboxReads, 0);
+    expect(container.read(spendMapProvider).map, isNull);
   });
 
   test('scan uses the selected period and supports limited recategorization',
