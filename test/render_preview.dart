@@ -9,6 +9,9 @@ import 'dart:ui' as ui;
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/providers/user_profile_provider.dart';
+import 'package:arth/features/spend_completeness/models/spend_completeness_models.dart';
+import 'package:arth/features/spend_completeness/providers/spend_completeness_provider.dart';
+import 'package:arth/features/spend_completeness/screens/spend_completeness_screen.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/models/spend_map.dart';
 import 'package:arth/screens/s00_auth_screen.dart';
@@ -92,6 +95,11 @@ class _SamplePaycheck extends PaycheckNotifier {
   PaycheckState build() => demoPaycheck;
 }
 
+class _FixedSpendCompleteness extends SpendCompletenessNotifier {
+  @override
+  SpendCompletenessState build() => const SpendCompletenessState();
+}
+
 final _sampleSpendMap = SpendMap(
   txns: [
     for (final month in [5, 6, 7]) ...[
@@ -155,6 +163,25 @@ Widget _screen(SpendMapState state, {double height = 780}) {
   );
 }
 
+Widget _coverageScreen() => ProviderScope(
+      overrides: [
+        spendMapProvider.overrideWith(
+          () => _FixedSpendMap(SpendMapState(map: _sampleSpendMap)),
+        ),
+        spendCompletenessProvider.overrideWith(_FixedSpendCompleteness.new),
+      ],
+      child: RepaintBoundary(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const MediaQuery(
+            data: MediaQueryData(size: Size(390, 780)),
+            child: SpendCompletenessScreen(),
+          ),
+        ),
+      ),
+    );
+
 void main() {
   setUpAll(_loadAnek);
 
@@ -190,6 +217,16 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _shoot(tester, '06_spend_populated');
+  });
+
+  testWidgets('spend coverage, first view', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_coverageScreen());
+    await tester.pumpAndSettle();
+    await _shoot(tester, '07_spend_coverage');
   });
 
   testWidgets('paycheck home, sample data', (tester) async {
