@@ -24,3 +24,11 @@
 -dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
 -dontwarn com.google.android.play.core.splitinstall.**
 -dontwarn com.google.android.play.core.tasks.**
+
+# ML Kit text recognition loads these language-specific recognizers only when
+# their optional artifacts are present. The Latin recognizer used by ARTH does
+# not need them, so R8 must not fail the release build when they are absent.
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**
