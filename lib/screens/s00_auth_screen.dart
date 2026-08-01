@@ -121,9 +121,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   String _googleSignInError(GoogleSignInException error) {
     return switch (error.code) {
-      GoogleSignInExceptionCode.canceled =>
-        'Google sign-in did not complete. This build may need an '
-            'updated OAuth client.',
+      GoogleSignInExceptionCode.canceled => 'Google sign-in did not complete.',
       GoogleSignInExceptionCode.clientConfigurationError =>
         'Google sign-in is not configured for this Android build.',
       GoogleSignInExceptionCode.providerConfigurationError =>

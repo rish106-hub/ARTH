@@ -1335,7 +1335,7 @@ class _QRegime extends ConsumerWidget {
               child: Text(
                 autoLikelyNew
                     ? 'At your income, new regime likely means ₹0 tax. '
-                        'We can skip the deduction questions.'
+                        'Choose it to skip the deduction questions.'
                     : 'Old regime can still win here with strong deductions.',
                 style: PaycheckType.micro(color: PaycheckColors.textSecondary),
               ),
