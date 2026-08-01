@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'features/month_on_month/screens/month_on_month_screen.dart';
 import 'features/monthly_close/screens/monthly_close_screen.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
@@ -175,6 +176,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/spend-map',
       builder: (_, __) => const SpendInsightsScreen(),
+    ),
+    GoRoute(
+      path: '/spend-map/months',
+      builder: (_, __) => const MonthOnMonthScreen(),
     ),
     GoRoute(
       path: '/spend-map/coverage',
