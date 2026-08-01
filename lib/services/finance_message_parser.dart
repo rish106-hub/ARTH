@@ -67,7 +67,7 @@ class FinanceMessageParser {
     'refund',
     'cashback',
     'reversed',
-    'reversal'
+    'reversal',
   ];
 
   // Paying a card bill produces a leg on the paying bank ("debited ... towards
@@ -119,8 +119,10 @@ class FinanceMessageParser {
 
   // Match skip words on word boundaries so a substring inside a merchant name
   // (e.g. "declined" appearing in a brand) cannot wrongly drop a real txn.
-  static final RegExp _skipRe =
-      RegExp('\\b(?:${_skipWords.join('|')})\\b', caseSensitive: false);
+  static final RegExp _skipRe = RegExp(
+    '\\b(?:${_skipWords.join('|')})\\b',
+    caseSensitive: false,
+  );
 
   // ------------------------------------------------------------ categories
 
@@ -490,12 +492,7 @@ class FinanceMessageParser {
       'society maintenance',
       'flat maintenance',
     ],
-    SpendCategory.cash: [
-      'atm',
-      'cash withdrawal',
-      'cash wdl',
-      'cardless cash',
-    ],
+    SpendCategory.cash: ['atm', 'cash withdrawal', 'cash wdl', 'cardless cash'],
   };
 
   static final RegExp _regexSpecials = RegExp(r'[.*+?^${}()|[\]\\]');
@@ -534,13 +531,17 @@ class FinanceMessageParser {
     caseSensitive: false,
   );
 
-  static final RegExp _vpaRe =
-      RegExp(r'([a-z0-9._-]+)@[a-z]+', caseSensitive: false);
+  static final RegExp _vpaRe = RegExp(
+    r'([a-z0-9._-]+)@[a-z]+',
+    caseSensitive: false,
+  );
 
   // "for UPI to SWIGGY" / "for purchase at METRO CASH AND CARRY" — the real
   // merchant is the last segment, after the innermost preposition.
-  static final RegExp _innerPrepositionRe =
-      RegExp(r'\s+(?:to|at)\s+', caseSensitive: false);
+  static final RegExp _innerPrepositionRe = RegExp(
+    r'\s+(?:to|at)\s+',
+    caseSensitive: false,
+  );
 
   // Tokens that are transport wrapping, not part of the merchant name.
   static const _merchantNoiseTokens = {
@@ -623,8 +624,10 @@ class FinanceMessageParser {
   // Institution code inside a TRAI/DLT header: "VM-HDFCBK" -> "HDFCBK",
   // "AD-SBIINB" -> "SBIINB", "VMICICI" -> "VMICICI". The two-letter operator
   // prefix carries no meaning, so it is dropped when clearly present.
-  static final RegExp _senderInstitutionRe =
-      RegExp(r'^[A-Z]{2}[-_]?(?=[A-Z]{4,})', caseSensitive: false);
+  static final RegExp _senderInstitutionRe = RegExp(
+    r'^[A-Z]{2}[-_]?(?=[A-Z]{4,})',
+    caseSensitive: false,
+  );
 
   static String? _institutionFrom(String? sender) {
     final trimmed = (sender ?? '').trim().toUpperCase();
@@ -642,7 +645,10 @@ class FinanceMessageParser {
   /// would call it a card and, under the rule below, book real income as a card
   /// repayment worth nothing.
   static InstrumentKind _instrumentNear(
-      String lowerBody, int tailAt, int tailEnd) {
+    String lowerBody,
+    int tailAt,
+    int tailEnd,
+  ) {
     const window = 40;
     final start = tailAt - window < 0 ? 0 : tailAt - window;
     // Includes the matched text itself: the instrument word is usually part of
@@ -703,8 +709,10 @@ class FinanceMessageParser {
 
   // A masked account tail ("XX1234", "x1234", "****9012") or a bare number is
   // never the merchant.
-  static final RegExp _accountTokenRe =
-      RegExp(r'^(?:[x*]+[0-9]*|[0-9]+)$', caseSensitive: false);
+  static final RegExp _accountTokenRe = RegExp(
+    r'^(?:[x*]+[0-9]*|[0-9]+)$',
+    caseSensitive: false,
+  );
 
   // "Rs 99.00", "1,299" — the amount, captured because it followed "for".
   static final RegExp _amountLikeRe = RegExp(
@@ -816,6 +824,82 @@ class FinanceMessageParser {
     return trimmed.length > _bodyPreviewMax
         ? '${trimmed.substring(0, _bodyPreviewMax)}…'
         : trimmed;
+  }
+
+  // A stated balance: "Avl Bal Rs 12,345.67", "available balance is Rs.5000",
+  // "Clear Bal INR 900", "Bal: 45000.00". The label has to come FIRST — a bare
+  // amount is the movement, and reading it as the balance would report the
+  // payment as the account's position.
+  static final RegExp _balanceRe = RegExp(
+    r'(?:avl|available|avbl|clear|closing|a\/c|acct|account)?\s*'
+    r'\bbal(?:ance)?\b[\s:.\-]*(?:is|of)?[\s:.\-]*'
+    r'(?:rs\.?|inr|₹)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)',
+    caseSensitive: false,
+  );
+
+  /// The balance a message states for the account it is about, if any.
+  ///
+  /// Runs over every message, including ones that are also transactions —
+  /// a debit alert routinely ends with the resulting balance, and that is the
+  /// freshest position the phone can know without an Account Aggregator.
+  ///
+  /// Returns null unless the account can be identified, because a balance that
+  /// cannot be attributed to an account is not useful and would be worse than
+  /// nothing if shown as a total.
+  AccountBalance? parseBalance({
+    required String sender,
+    required String body,
+    required DateTime date,
+  }) {
+    final lower = body.toLowerCase();
+    if (_skipRe.hasMatch(lower)) return null;
+
+    final match = _balanceRe.firstMatch(lower);
+    if (match == null) return null;
+    final amount = _toInt(match.group(1));
+    if (amount == null || amount < 0) return null;
+
+    final source = _extractSource(body, sender);
+    final id = source?.id;
+    final tail = source?.tail;
+    if (id == null || tail == null) return null;
+
+    // A credit card statement quotes an outstanding amount, not money the user
+    // holds. Counting it as a balance would inflate what they think they have.
+    if (source!.kind == InstrumentKind.creditCard) return null;
+
+    return AccountBalance(
+      endpointId: id,
+      tail: tail,
+      amount: amount,
+      observedAt: date,
+      institution: source.institution,
+    );
+  }
+
+  /// Latest stated balance per account across [messages].
+  ///
+  /// Newest wins per account: an older message's balance is superseded, never
+  /// summed. Summing balances across time would be nonsense.
+  List<AccountBalance> parseBalances(
+    Iterable<({int? id, String sender, String body, DateTime date})> messages,
+  ) {
+    final latest = <String, AccountBalance>{};
+    for (final m in messages) {
+      final balance = parseBalance(
+        sender: m.sender,
+        body: m.body,
+        date: m.date,
+      );
+      if (balance == null) continue;
+      final held = latest[balance.endpointId];
+      if (held == null || balance.observedAt.isAfter(held.observedAt)) {
+        latest[balance.endpointId] = balance;
+      }
+    }
+    final result = latest.values.toList(growable: false)
+      ..sort((a, b) => b.observedAt.compareTo(a.observedAt));
+    return result;
   }
 
   /// Parse a batch, dropping non-transactions and duplicate alerts, then infer

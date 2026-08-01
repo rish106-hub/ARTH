@@ -137,7 +137,8 @@ class SpendCompletenessEngine {
         final gaps = <int>[];
         for (var i = 1; i < occurrences.length; i++) {
           gaps.add(
-              occurrences[i].date.difference(occurrences[i - 1].date).inDays);
+            occurrences[i].date.difference(occurrences[i - 1].date).inDays,
+          );
         }
         final averageGap =
             gaps.fold<int>(0, (sum, gap) => sum + gap) / gaps.length;
@@ -145,12 +146,10 @@ class SpendCompletenessEngine {
 
         final representative = occurrences.last;
         final kind = _kindFor(representative);
-        final typicalAmount = (occurrences.fold<int>(
-                  0,
-                  (sum, txn) => sum + txn.amount,
-                ) /
-                occurrences.length)
-            .round();
+        final typicalAmount =
+            (occurrences.fold<int>(0, (sum, txn) => sum + txn.amount) /
+                    occurrences.length)
+                .round();
         final source = _recurringIdentity(representative);
         final id =
             '${kind.name}-${_safeId(source)}-${(typicalAmount / 100).round()}';
@@ -161,8 +160,9 @@ class SpendCompletenessEngine {
             kind: kind,
             typicalAmount: typicalAmount,
             occurrences: occurrences.length,
-            nextExpectedDate:
-                occurrences.last.date.add(Duration(days: averageGap.round())),
+            nextExpectedDate: occurrences.last.date.add(
+              Duration(days: averageGap.round()),
+            ),
             highConfidence: occurrences.length >= 3,
           ),
         );
@@ -194,13 +194,18 @@ class SpendCompletenessEngine {
     final currentMonth = map.windowEnd.year * 12 + map.windowEnd.month;
     final result = <CategoryBudgetSuggestion>[];
     for (final entry in monthlyTotals.entries) {
-      final total =
-          entry.value.values.fold<int>(0, (sum, amount) => sum + amount);
+      final total = entry.value.values.fold<int>(
+        0,
+        (sum, amount) => sum + amount,
+      );
       final average = (total / allSpendMonths.length).round();
       if (average <= 0) continue;
       final currentSpend = entry.value[currentMonth] ?? 0;
-      final daysInMonth =
-          DateTime(map.windowEnd.year, map.windowEnd.month + 1, 0).day;
+      final daysInMonth = DateTime(
+        map.windowEnd.year,
+        map.windowEnd.month + 1,
+        0,
+      ).day;
       final projected = currentSpend <= 0 || map.windowEnd.day >= daysInMonth
           ? currentSpend
           : (currentSpend / map.windowEnd.day * daysInMonth).round();

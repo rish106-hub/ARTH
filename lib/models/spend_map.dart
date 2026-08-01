@@ -263,8 +263,11 @@ enum InstrumentKind {
 /// categorisation, because four digits of a real account number is not
 /// something to hand to a third party for a category guess.
 class TxnEndpoint {
-  const TxnEndpoint(
-      {this.institution, this.tail, this.kind = InstrumentKind.unknown});
+  const TxnEndpoint({
+    this.institution,
+    this.tail,
+    this.kind = InstrumentKind.unknown,
+  });
 
   /// Institution code taken from the DLT sender header: "VM-HDFCBK" -> "HDFCBK".
   final String? institution;
@@ -453,9 +456,8 @@ class FinanceTxn {
         smsId: (json['smsId'] as num?)?.toInt(),
         refNo: json['refNo']?.toString(),
         bodyPreview: json['bodyPreview']?.toString(),
-        categorySource: CategorySource.fromName(
-          json['categorySource']?.toString(),
-        ),
+        categorySource:
+            CategorySource.fromName(json['categorySource']?.toString()),
       );
 }
 
@@ -475,6 +477,55 @@ enum CategorySource {
         return CategorySource.rules;
     }
   }
+}
+
+/// A balance a bank stated in an SMS, for one account, at one moment.
+///
+/// This is a statement of position, not a movement, and is deliberately kept
+/// out of [FinanceTxn]: adding it as a transaction would double-count the
+/// payment that the same message usually reports.
+///
+/// Stands in for an Account Aggregator feed. It is strictly weaker than one —
+/// it only knows accounts that send balance SMS, and only as recently as the
+/// last message — so it is presented as "as of" a time, never as live truth.
+class AccountBalance {
+  const AccountBalance({
+    required this.endpointId,
+    required this.tail,
+    required this.amount,
+    required this.observedAt,
+    this.institution,
+  });
+
+  /// [TxnEndpoint.id] of the account, so a balance can be tied to the same
+  /// account the transactions and the ownership registry use.
+  final String endpointId;
+
+  /// Masked tail as printed, kept for display: "XX1234".
+  final String tail;
+
+  /// Rupees. Balances are whole-rupee for display; paise are not useful here.
+  final int amount;
+
+  final DateTime observedAt;
+  final String? institution;
+
+  Map<String, dynamic> toJson() => {
+        'endpointId': endpointId,
+        'tail': tail,
+        'amount': amount,
+        'observedAt': observedAt.toIso8601String(),
+        if (institution != null) 'institution': institution,
+      };
+
+  factory AccountBalance.fromJson(Map<String, dynamic> json) => AccountBalance(
+        endpointId: json['endpointId']?.toString() ?? '',
+        tail: json['tail']?.toString() ?? '',
+        amount: (json['amount'] as num?)?.round() ?? 0,
+        observedAt: DateTime.tryParse(json['observedAt']?.toString() ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+        institution: json['institution']?.toString(),
+      );
 }
 
 class MonthlySpendPoint {
@@ -525,6 +576,7 @@ class SpendMap {
     this.manualMonthlySpend,
     this.trustedSalarySourceId,
     this.incomeSignal,
+    this.balances = const [],
   });
 
   final List<FinanceTxn> txns;
@@ -558,6 +610,13 @@ class SpendMap {
   /// rebuilt from live sources whenever the map loads or those sources change.
   final IncomeSignal? incomeSignal;
 
+  /// Latest balance each account stated in SMS, newest first.
+  ///
+  /// A weaker signal than an Account Aggregator feed and never presented as
+  /// live truth: it only knows accounts that send balance SMS, and only as of
+  /// the last one. Always shown with its observation time.
+  final List<AccountBalance> balances;
+
   /// Returns a copy carrying [income] as the fallback monthly income.
   SpendMap withFallbackIncome(int? income) => SpendMap(
         txns: txns,
@@ -569,6 +628,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        balances: balances,
         incomeSignal: null,
       );
 
@@ -583,6 +643,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        balances: balances,
         incomeSignal: null,
       );
 
@@ -600,6 +661,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        balances: balances,
         incomeSignal: null,
       );
 
@@ -613,6 +675,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: sourceId,
+        balances: balances,
         incomeSignal: null,
       );
 
@@ -626,6 +689,7 @@ class SpendMap {
         manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
         manualMonthlySpend: manualMonthlySpend,
         trustedSalarySourceId: trustedSalarySourceId,
+        balances: balances,
         incomeSignal: signal,
       );
 
@@ -678,10 +742,12 @@ class SpendMap {
       trustedSalaryTransactions.fold(0, (sum, t) => sum + t.amount);
 
   int get otherCredited => txns
-      .where((t) =>
-          t.direction == TxnDirection.credit &&
-          !t.isSalary &&
-          !t.isInternalTransfer)
+      .where(
+        (t) =>
+            t.direction == TxnDirection.credit &&
+            !t.isSalary &&
+            !t.isInternalTransfer,
+      )
       .fold(0, (sum, t) => sum + t.amount);
 
   Map<String, int> get spendByCategory {
@@ -893,21 +959,39 @@ class SpendMap {
       final priorAvg =
           priorKeys.fold<int>(0, (s, k) => s + byMonth[k]!) / priorKeys.length;
       if (priorAvg <= 0) return;
-      trends.add(CategoryTrend(
-        category: category,
-        lastMonth: last,
-        priorAverage: priorAvg.round(),
-      ));
+      trends.add(
+        CategoryTrend(
+          category: category,
+          lastMonth: last,
+          priorAverage: priorAvg.round(),
+        ),
+      );
     });
     trends.sort((a, b) => b.changeMagnitude.compareTo(a.changeMagnitude));
     return trends;
   }
+
+  /// Returns a copy carrying the balances observed in this scan.
+  SpendMap withBalances(List<AccountBalance> observed) => SpendMap(
+        txns: txns,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        generatedAt: generatedAt,
+        fallbackMonthlyIncome: fallbackMonthlyIncome,
+        otherMonthlyIncome: otherMonthlyIncome,
+        manualPrimaryMonthlyIncome: manualPrimaryMonthlyIncome,
+        manualMonthlySpend: manualMonthlySpend,
+        trustedSalarySourceId: trustedSalarySourceId,
+        incomeSignal: incomeSignal,
+        balances: observed,
+      );
 
   Map<String, dynamic> toJson() => {
         'txns': txns.map((t) => t.toJson()).toList(),
         'windowStart': windowStart.toIso8601String(),
         'windowEnd': windowEnd.toIso8601String(),
         'generatedAt': generatedAt.toIso8601String(),
+        'balances': balances.map((b) => b.toJson()).toList(),
       };
 
   factory SpendMap.fromJson(Map<String, dynamic> json) {
@@ -923,6 +1007,10 @@ class SpendMap {
       windowEnd: DateTime.tryParse(json['windowEnd']?.toString() ?? '') ?? now,
       generatedAt:
           DateTime.tryParse(json['generatedAt']?.toString() ?? '') ?? now,
+      balances: (json['balances'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AccountBalance.fromJson)
+          .toList(),
     );
   }
 

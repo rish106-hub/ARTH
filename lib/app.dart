@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'theme/app_theme.dart';
+import 'features/month_on_month/screens/month_on_month_screen.dart';
+import 'features/monthly_close/screens/monthly_close_screen.dart';
+import 'features/recovery/screens/claim_pack_screen.dart';
+import 'features/recovery/screens/recovery_hub_screen.dart';
+import 'features/spend_completeness/screens/spend_completeness_screen.dart';
+import 'models/gap_card.dart';
+import 'providers/spend_map_provider.dart';
 import 'screens/s00_auth_screen.dart';
 import 'screens/s00_product_onboarding_screen.dart';
 import 'screens/s01_splash_screen.dart';
@@ -29,11 +35,7 @@ import 'screens/s30_tax_plan_entry_screen.dart';
 import 'screens/s31_profile_screens.dart';
 import 'screens/s32_money_goal_screen.dart';
 import 'screens/s33_spend_insights_screen.dart';
-import 'models/gap_card.dart';
-import 'features/recovery/screens/claim_pack_screen.dart';
-import 'features/recovery/screens/recovery_hub_screen.dart';
-import 'features/spend_completeness/screens/spend_completeness_screen.dart';
-import 'features/monthly_close/screens/monthly_close_screen.dart';
+import 'theme/app_theme.dart';
 
 String _initialLocation() {
   final platformRoute =
@@ -63,22 +65,13 @@ final appRouter = GoRouter(
       path: '/paycheck-setup',
       builder: (_, __) => const PaycheckSetupScreen(),
     ),
-    GoRoute(
-      path: '/paycheck',
-      builder: (_, __) => const PaycheckShellScreen(),
-    ),
+    GoRoute(path: '/paycheck', builder: (_, __) => const PaycheckShellScreen()),
     GoRoute(
       path: '/monthly-close',
       builder: (_, __) => const MonthlyCloseScreen(),
     ),
-    GoRoute(
-      path: '/paycheck/promise',
-      redirect: (_, __) => '/paycheck',
-    ),
-    GoRoute(
-      path: '/paycheck/inbox',
-      redirect: (_, __) => '/paycheck/evidence',
-    ),
+    GoRoute(path: '/paycheck/promise', redirect: (_, __) => '/paycheck'),
+    GoRoute(path: '/paycheck/inbox', redirect: (_, __) => '/paycheck/evidence'),
     GoRoute(
       path: '/paycheck/evidence',
       builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
@@ -91,10 +84,7 @@ final appRouter = GoRouter(
       path: '/paycheck/you',
       builder: (_, __) => const PaycheckShellScreen(initialIndex: 3),
     ),
-    GoRoute(
-      path: '/tax-plan',
-      builder: (_, __) => const TaxPlanEntryScreen(),
-    ),
+    GoRoute(path: '/tax-plan', builder: (_, __) => const TaxPlanEntryScreen()),
     GoRoute(
       path: '/tax-plan/questions',
       builder: (_, __) => const QuestionsScreen(paycheckMode: true),
@@ -157,8 +147,9 @@ final appRouter = GoRouter(
     GoRoute(path: '/you', redirect: (_, __) => '/paycheck/you'),
     GoRoute(path: '/settings', redirect: (_, __) => '/paycheck/you'),
     GoRoute(
-        path: '/documents',
-        builder: (_, __) => const DocumentChecklistScreen()),
+      path: '/documents',
+      builder: (_, __) => const DocumentChecklistScreen(),
+    ),
     GoRoute(path: '/vault', redirect: (_, __) => '/documents'),
     GoRoute(path: '/ais-guide', builder: (_, __) => const AisGuideScreen()),
     GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
@@ -181,37 +172,59 @@ final appRouter = GoRouter(
       path: '/budget-alert',
       builder: (_, __) => const BudgetAlertScreen(),
     ),
-    GoRoute(
-      path: '/money-goal',
-      builder: (_, __) => const MoneyGoalScreen(),
-    ),
+    GoRoute(path: '/money-goal', builder: (_, __) => const MoneyGoalScreen()),
     GoRoute(
       path: '/spend-map',
       builder: (_, __) => const SpendInsightsScreen(),
     ),
     GoRoute(
+      path: '/spend-map/months',
+      builder: (_, __) => const MonthOnMonthScreen(),
+    ),
+    GoRoute(
       path: '/spend-map/coverage',
       builder: (_, __) => const SpendCompletenessScreen(),
     ),
-    GoRoute(
-      path: '/recovery',
-      builder: (_, __) => const RecoveryHubScreen(),
-    ),
+    GoRoute(path: '/recovery', builder: (_, __) => const RecoveryHubScreen()),
     GoRoute(
       path: '/recovery/claim/:id',
-      builder: (_, state) => ClaimPackScreen(
-        claimId: state.pathParameters['id'] ?? '',
-      ),
+      builder: (_, state) =>
+          ClaimPackScreen(claimId: state.pathParameters['id'] ?? ''),
     ),
     GoRoute(path: '/control-room-demo', redirect: (_, __) => '/paycheck'),
   ],
 );
 
-class ArthApp extends ConsumerWidget {
+class ArthApp extends ConsumerStatefulWidget {
   const ArthApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArthApp> createState() => _ArthAppState();
+}
+
+class _ArthAppState extends ConsumerState<ArthApp> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // The spend map's live listener only fires while the app is in the
+    // foreground, so anything that arrived while it was backgrounded or killed
+    // — a salary credit overnight, most obviously — would otherwise sit unread
+    // until the user pulled a manual rescan.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(spendMapProvider.notifier).refreshIfStale(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'ARTH - Know your paycheck',
       debugShowCheckedModeBanner: false,

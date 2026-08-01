@@ -18,8 +18,9 @@ class SpendCompletenessNotifier extends Notifier<SpendCompletenessState> {
   }
 
   Future<void> _load(String uid) async {
-    final raw =
-        await _storage.read(UserScopedStorageKeys.spendCompleteness(uid));
+    final raw = await _storage.read(
+      UserScopedStorageKeys.spendCompleteness(uid),
+    );
     if (raw == null || !ref.mounted || uid != _uid) return;
     try {
       state = SpendCompletenessState.fromJsonString(raw);
@@ -34,14 +35,35 @@ class SpendCompletenessNotifier extends Notifier<SpendCompletenessState> {
       );
 
   Future<void> setTrustedSalarySource(String? sourceId) async {
-    state = SpendCompletenessState(
+    state = state.copyWith(
       trustedSalarySourceId:
           sourceId == null ? null : normalizeSalarySource(sourceId),
-      missingSources: state.missingSources,
-      confirmedRecurringIds: state.confirmedRecurringIds,
-      dismissedRecurringIds: state.dismissedRecurringIds,
-      household: state.household,
-      categoryBudgets: state.categoryBudgets,
+      clearTrustedSalarySource: sourceId == null,
+    );
+    await _persist();
+  }
+
+  /// Records that [sender] pays the user's salary, whether or not the parser
+  /// worked that out on its own.
+  ///
+  /// The user is the authority here for the same reason they are on categories:
+  /// a keyword list cannot know that "NEFT CR-ACME TECHNOLOGIES" is payday and
+  /// they do.
+  Future<void> markSenderAsSalary(String sender) async {
+    final key = normalizeSalarySource(sender);
+    if (key.isEmpty) return;
+    state =
+        state.copyWith(userSalarySenders: {...state.userSalarySenders, key});
+    await _persist();
+  }
+
+  Future<void> unmarkSenderAsSalary(String sender) async {
+    final key = normalizeSalarySource(sender);
+    if (!state.userSalarySenders.contains(key)) return;
+    state = state.copyWith(
+      userSalarySenders: {...state.userSalarySenders}..remove(key),
+      // A source the user no longer calls salary cannot stay the trusted one.
+      clearTrustedSalarySource: state.trustedSalarySourceId == key,
     );
     await _persist();
   }
@@ -52,65 +74,33 @@ class SpendCompletenessNotifier extends Notifier<SpendCompletenessState> {
   ) async {
     final updated = {...state.missingSources};
     isMissing ? updated.add(source) : updated.remove(source);
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: updated,
-      confirmedRecurringIds: state.confirmedRecurringIds,
-      dismissedRecurringIds: state.dismissedRecurringIds,
-      household: state.household,
-      categoryBudgets: state.categoryBudgets,
-    );
+    state = state.copyWith(missingSources: updated);
     await _persist();
   }
 
   Future<void> confirmRecurring(String id) async {
-    final confirmed = {...state.confirmedRecurringIds, id};
-    final dismissed = {...state.dismissedRecurringIds}..remove(id);
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: state.missingSources,
-      confirmedRecurringIds: confirmed,
-      dismissedRecurringIds: dismissed,
-      household: state.household,
-      categoryBudgets: state.categoryBudgets,
+    state = state.copyWith(
+      confirmedRecurringIds: {...state.confirmedRecurringIds, id},
+      dismissedRecurringIds: {...state.dismissedRecurringIds}..remove(id),
     );
     await _persist();
   }
 
   Future<void> dismissRecurring(String id) async {
-    final confirmed = {...state.confirmedRecurringIds}..remove(id);
-    final dismissed = {...state.dismissedRecurringIds, id};
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: state.missingSources,
-      confirmedRecurringIds: confirmed,
-      dismissedRecurringIds: dismissed,
-      household: state.household,
-      categoryBudgets: state.categoryBudgets,
+    state = state.copyWith(
+      confirmedRecurringIds: {...state.confirmedRecurringIds}..remove(id),
+      dismissedRecurringIds: {...state.dismissedRecurringIds, id},
     );
     await _persist();
   }
 
   Future<void> restoreDismissedRecurring() async {
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: state.missingSources,
-      confirmedRecurringIds: state.confirmedRecurringIds,
-      household: state.household,
-      categoryBudgets: state.categoryBudgets,
-    );
+    state = state.copyWith(dismissedRecurringIds: const {});
     await _persist();
   }
 
   Future<void> setHousehold(HouseholdPlan household) async {
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: state.missingSources,
-      confirmedRecurringIds: state.confirmedRecurringIds,
-      dismissedRecurringIds: state.dismissedRecurringIds,
-      household: household,
-      categoryBudgets: state.categoryBudgets,
-    );
+    state = state.copyWith(household: household);
     await _persist();
   }
 
@@ -121,14 +111,7 @@ class SpendCompletenessNotifier extends Notifier<SpendCompletenessState> {
     } else {
       budgets[category] = amount;
     }
-    state = SpendCompletenessState(
-      trustedSalarySourceId: state.trustedSalarySourceId,
-      missingSources: state.missingSources,
-      confirmedRecurringIds: state.confirmedRecurringIds,
-      dismissedRecurringIds: state.dismissedRecurringIds,
-      household: state.household,
-      categoryBudgets: budgets,
-    );
+    state = state.copyWith(categoryBudgets: budgets);
     await _persist();
   }
 

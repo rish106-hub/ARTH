@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../engine/reconciliation_engine.dart';
@@ -12,6 +14,7 @@ import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import '../features/accounts/providers/account_registry_provider.dart';
+import '../features/spend_completeness/engine/spend_completeness_engine.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
 import 'custom_spend_categories_provider.dart';
@@ -110,9 +113,16 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   void debugInjectDependencies({
     SmsReaderService? reader,
     SpendMapService? sync,
+    Duration? liveScanDebounce,
   }) {
-    if (reader != null) _reader = reader;
+    if (liveScanDebounce != null) _liveScanDebounce = liveScanDebounce;
     if (sync != null) _sync = sync;
+    if (reader != null) {
+      _reader = reader;
+      // build() already registered a listener on the previous reader. Register
+      // again so the injected one is what drives live updates.
+      _listenForNewSms();
+    }
   }
 
   SpendScanPeriod? _pendingPeriod;
@@ -143,7 +153,43 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     ref.listen(otherIncomeProvider, (_, __) => _refreshUserContext());
     ref.listen(spendMapAdjustmentsProvider, (_, __) => _refreshUserContext());
     ref.listen(spendCompletenessProvider, (_, __) => _refreshUserContext());
+    _listenForNewSms();
+    ref.onDispose(() => _liveScanTimer?.cancel());
     return const SpendMapState();
+  }
+
+  Timer? _liveScanTimer;
+  Duration _liveScanDebounce = const Duration(seconds: 3);
+
+  /// A salary credit or a spend alert arriving while the app is open used to sit
+  /// there until the user pulled a manual rescan, which made the map look stale
+  /// exactly when it mattered most.
+  ///
+  /// The new message is not parsed and grafted on directly. It re-runs the
+  /// normal scan, so correlation, ownership inference, card-bill integrity and
+  /// the category memory all apply to it — a second ingestion path would drift
+  /// from those rules the first time one of them changed.
+  void _listenForNewSms() {
+    _reader.listenForNewSms((_) {
+      // Banks often send two alerts for one payment a second apart. Debouncing
+      // collapses that burst into a single scan.
+      _liveScanTimer?.cancel();
+      _liveScanTimer = Timer(_liveScanDebounce, () {
+        // Only refresh a map the user has already built. Arriving SMS is not a
+        // reason to start scanning on someone who never asked for it.
+        if (state.map == null || state.loading) return;
+        _performScan(state.selectedPeriod).ignore();
+      });
+    });
+  }
+
+  /// Catches up on anything that arrived while the app was backgrounded or shut,
+  /// where the foreground listener could not fire. Cheap when nothing changed:
+  /// the scan is bounded by the selected window.
+  Future<void> refreshIfStale() async {
+    if (state.map == null || state.loading) return;
+    if (!_reader.isSupported) return;
+    await _performScan(state.selectedPeriod);
   }
 
   String _uid() => ref.read(authProvider)?.uid ?? 'guest';
@@ -271,10 +317,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       final alreadyAsked = ref.read(otherIncomeProvider.notifier).hasAsked;
       if (!alreadyAsked) {
         _pendingPeriod = selected;
-        state = state.copyWith(
-          loading: false,
-          awaitingOtherIncomeAnswer: true,
-        );
+        state = state.copyWith(loading: false, awaitingOtherIncomeAnswer: true);
         return;
       }
 
@@ -305,7 +348,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final since = selected.since(DateTime.now());
     final previous = state.map;
     final raw = await _reader.readInbox(since: since);
-    final txns = _applyKnownCategories(_parser.parseAll(raw), previous);
+    final txns = _applyUserSalarySenders(
+      _applyKnownCategories(_parser.parseAll(raw), previous),
+    );
 
     // Learn which accounts and cards these messages are about before anything
     // reads the map. Ownership is what lets a movement between the user's own
@@ -316,19 +361,22 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     // Correlate again now that ownership is known. parseAll already applied the
     // reference rule, which needs no registry; this pass adds the endpoint rule,
     // which catches the transfers where a bank quoted no reference at all.
-    final correlated =
-        const TransferCorrelator().correlate(txns, owns: registry.owns);
+    final correlated = const TransferCorrelator().correlate(
+      txns,
+      owns: registry.owns,
+    );
 
     // Last: keep a card's spending visible when the issuer never itemised it.
     // Runs after correlation so it can see which bills were classed as internal.
     final reconciled = const CardSpendIntegrity().apply(correlated);
 
-    final map = _buildMap(reconciled, since);
+    // Balances come from the same messages, but are read separately: a stated
+    // balance is a position, not a movement, and the message that carries it is
+    // usually also reporting a payment that is already counted.
+    final map =
+        _buildMap(reconciled, since).withBalances(_parser.parseBalances(raw));
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
-    state = state.copyWith(
-      map: _applyUserContext(map),
-      loading: false,
-    );
+    state = state.copyWith(map: _applyUserContext(map), loading: false);
     _bridgeSalarySms(state.map);
 
     // Hybrid pass: refine the transactions the on-device rules left as
@@ -341,6 +389,28 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     try {
       await _sync.push(finalMap);
     } catch (_) {}
+  }
+
+  /// Marks credits from senders the user has named as their salary payer.
+  ///
+  /// Runs on every scan rather than being written into stored data, so the
+  /// answer follows the user's current choice: unmark a sender and the next
+  /// scan stops treating it as salary, with nothing left behind to clean up.
+  ///
+  /// Only credits are eligible. Naming a sender cannot turn money leaving the
+  /// account into income, however the message is worded.
+  List<FinanceTxn> _applyUserSalarySenders(List<FinanceTxn> txns) {
+    final senders = ref.read(spendCompletenessProvider).userSalarySenders;
+    if (senders.isEmpty) return txns;
+    return [
+      for (final txn in txns)
+        if (txn.direction == TxnDirection.credit &&
+            !txn.isSalary &&
+            senders.contains(normalizeSalarySource(txn.sender)))
+          txn.copyWith(isSalary: true)
+        else
+          txn,
+    ];
   }
 
   /// Stable identity for a parsed transaction. A list index cannot be used to
@@ -381,8 +451,10 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     for (final txn in previous?.txns ?? const <FinanceTxn>[]) {
       if (txn.categorySource == CategorySource.manual ||
           txn.categorySource == CategorySource.ai) {
-        knownByIdentity[_txnIdentity(txn)] =
-            (category: txn.category, source: txn.categorySource);
+        knownByIdentity[_txnIdentity(txn)] = (
+          category: txn.category,
+          source: txn.categorySource,
+        );
       }
     }
     if (knownByIdentity.isEmpty &&
@@ -390,9 +462,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
         _aiMemory.isEmpty) {
       return txns;
     }
-    return [
-      for (final txn in txns) _withKnownCategory(txn, knownByIdentity),
-    ];
+    return [for (final txn in txns) _withKnownCategory(txn, knownByIdentity)];
   }
 
   FinanceTxn _withKnownCategory(
@@ -408,7 +478,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final (String? chosen, CategorySource source) = switch (known) {
       final k? when k.source == CategorySource.manual => (
           k.category,
-          CategorySource.manual
+          CategorySource.manual,
         ),
       _ when manualRule != null => (manualRule, CategorySource.manual),
       final k? => (k.category, CategorySource.ai),
@@ -528,8 +598,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   );
   // Currency amounts (Rs/INR/₹ 1,234.56). Not needed to categorize, so dropped.
   static final RegExp _amountToken = RegExp(
-      r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
-      caseSensitive: false);
+    r'(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?',
+    caseSensitive: false,
+  );
 
   /// Builds the minimal text sent to the AI — only what categorization needs.
   /// Prefers the merchant/payee alone (nothing else leaves the device); falls
@@ -698,5 +769,6 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   }
 }
 
-final spendMapProvider =
-    NotifierProvider<SpendMapNotifier, SpendMapState>(SpendMapNotifier.new);
+final spendMapProvider = NotifierProvider<SpendMapNotifier, SpendMapState>(
+  SpendMapNotifier.new,
+);

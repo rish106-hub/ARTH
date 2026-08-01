@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:arth/models/spend_map.dart';
+import 'package:arth/features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'package:arth/providers/other_income_provider.dart';
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/services/sms_reader_service.dart';
@@ -10,9 +11,13 @@ import 'package:arth/services/spend_map_service.dart';
 /// Fake reader returning the same messages we inject into the emulator inbox.
 class _FakeReader extends SmsReaderService {
   _FakeReader(this.messages);
-  final List<RawSms> messages;
+  List<RawSms> messages;
   bool granted = true;
   DateTime? lastSince;
+  int inboxReads = 0;
+
+  /// Captured so a test can deliver an SMS without a platform channel.
+  void Function(RawSms)? onNewSms;
 
   @override
   bool get isSupported => true;
@@ -21,8 +26,14 @@ class _FakeReader extends SmsReaderService {
   Future<bool> requestPermission() async => granted;
 
   @override
+  void listenForNewSms(void Function(RawSms) onTransactionalSms) {
+    onNewSms = onTransactionalSms;
+  }
+
+  @override
   Future<List<RawSms>> readInbox({DateTime? since}) async {
     lastSince = since;
+    inboxReads++;
     return messages;
   }
 }
@@ -125,6 +136,135 @@ void main() {
     final state = container.read(spendMapProvider);
     expect(state.permissionDenied, isTrue);
     expect(state.hasData, isFalse);
+  });
+
+  test('marking a sender as salary rescues a credit the parser missed',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    // A plain NEFT credit with no salary wording anywhere in it.
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VM-ACMEPL',
+        body: 'Rs 61000 credited to A/c XX1234 by NEFT CR-ACMEPL-REF9931.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+    await container.read(otherIncomeProvider.notifier).markAsked();
+
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .markSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 61000);
+
+    // Unmarking releases it again, with nothing stale left behind.
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .unmarkSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+  });
+
+  test('marking a sender cannot turn a debit into income', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VM-ACMEPL',
+        body: 'Rs 900 debited from A/c XX1234 to ACMEPL.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .markSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+
+    await notifier.scan();
+
+    final map = container.read(spendMapProvider).map!;
+    expect(map.salaryCredited, 0);
+    expect(map.txns.single.isSalary, isFalse);
+  });
+
+  test('a salary credit arriving while the app is open updates the map',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 700 debited via UPI to LOCAL STORE.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _NoopSync(),
+      liveScanDebounce: const Duration(milliseconds: 10),
+    );
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+
+    final readsAfterFirstScan = reader.inboxReads;
+    // No salary credit in SMS yet, so income is still the CTC fallback.
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+
+    // The salary lands in the inbox, then the bank's alert arrives.
+    reader.messages = [
+      ...reader.messages,
+      (
+        id: null,
+        sender: 'VMBANK',
+        body: 'Rs 54500 credited to A/c XX1234 by SALARY from ACME PVT LTD.',
+        date: DateTime.now(),
+      ),
+    ];
+    reader.onNewSms!(reader.messages.last);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+
+    expect(reader.inboxReads, greaterThan(readsAfterFirstScan));
+    expect(container.read(spendMapProvider).map!.salaryCredited, 54500);
+  });
+
+  test('an arriving SMS does not start a scan the user never asked for',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader(const []);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(
+      reader: reader,
+      sync: _NoopSync(),
+      liveScanDebounce: const Duration(milliseconds: 10),
+    );
+
+    // No scan has ever run, so there is no map to refresh.
+    reader.onNewSms!((
+      id: null,
+      sender: 'VMBANK',
+      body: 'Rs 200 debited via UPI to LOCAL STORE.',
+      date: DateTime.now(),
+    ));
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+
+    expect(reader.inboxReads, 0);
+    expect(container.read(spendMapProvider).map, isNull);
   });
 
   test('scan uses the selected period and supports limited recategorization',
