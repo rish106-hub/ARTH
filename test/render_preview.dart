@@ -9,6 +9,7 @@ import 'dart:ui' as ui;
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/models/paycheck.dart';
+import 'package:arth/screens/s00_auth_screen.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:arth/screens/s00_product_onboarding_screen.dart';
 import 'package:arth/screens/s33_spend_insights_screen.dart';
@@ -151,6 +152,30 @@ void main() {
     await _shoot(tester, '06_paycheck_home');
   });
 
+  testWidgets('paycheck, explore account prompt', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(
+            initialIndex: 3,
+            exploreMode: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '07_explore_account_prompt');
+  });
+
   testWidgets('onboarding, first page', (tester) async {
     tester.view.physicalSize = const Size(780, 1560);
     tester.view.devicePixelRatio = 2;
@@ -185,6 +210,28 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     await _shoot(tester, '09_onboarding_third_page');
+  });
+
+  testWidgets('authentication, sign-up', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const AuthScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '10_auth_sign_up');
+
+    await tester.tap(find.text('Sign in'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await _shoot(tester, '11_auth_sign_in');
   });
 
   Future<void> spendCard(

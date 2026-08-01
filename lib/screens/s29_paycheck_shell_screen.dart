@@ -62,9 +62,7 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
   @override
   void dispose() {
     if (widget.exploreMode) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _paycheckNotifier.closeSampleData();
-      });
+      _paycheckNotifier.closeSampleData();
     }
     super.dispose();
   }

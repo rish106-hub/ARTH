@@ -212,11 +212,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     const SizedBox(height: 20),
                     _AuthHero(isSignUp: _isSignUp),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
                     Text(
                       headline,
                       style: PaycheckType.h1().copyWith(
-                        fontSize: 40,
+                        fontSize: 36,
                         height: 1.04,
                       ),
                     ),
@@ -372,7 +372,7 @@ class _AuthHero extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const ArthBrandMark(size: 42),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         AuthMotionScene(isSignUp: isSignUp),
       ],
     );
