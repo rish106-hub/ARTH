@@ -22,6 +22,10 @@ const postgresDurableStateHardening = await readFile(
   new URL('../sql/017_durable_user_state_hardening.sql', import.meta.url),
   'utf8',
 );
+const postgresTenantRls = await readFile(
+  new URL('../sql/019_tenant_rls.sql', import.meta.url),
+  'utf8',
+);
 const verifier = await readFile(
   new URL('../src/scripts/verify-cockroach.ts', import.meta.url),
   'utf8',
@@ -85,6 +89,18 @@ describe('Cockroach secure schema', () => {
     assert.match(durableStateHardening, /length\(namespace\) <= 64/);
     assert.match(postgresDurableStateHardening, /length\(namespace\) <= 64/);
     assert.doesNotMatch(durableStateSchema, /\spayload\s+STRING/);
+  });
+
+  it('adds flat-schema tenant RLS helpers and policies', () => {
+    assert.match(postgresTenantRls, /arth_request_user_id/);
+    assert.match(postgresTenantRls, /arth_is_system_request/);
+    assert.match(postgresTenantRls, /arth_tenant_visible/);
+    assert.match(postgresTenantRls, /FORCE ROW LEVEL SECURITY/);
+    assert.match(postgresTenantRls, /tax_documents/);
+    assert.match(postgresTenantRls, /device_tokens/);
+    assert.match(postgresTenantRls, /app_user_state_isolation/);
+    assert.doesNotMatch(postgresTenantRls, /FOREACH/i);
+    assert.doesNotMatch(postgresTenantRls, /DO \$\$/i);
   });
 });
 

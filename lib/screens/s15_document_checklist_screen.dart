@@ -528,7 +528,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           document.isPayslip
                               ? 'Check your payslip details'
                               : 'Check extracted details',
-                          style: PaycheckType.heading(),
+                          style: PaycheckType.h3(),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1250,7 +1250,7 @@ class VaultHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Proof readiness', style: PaycheckType.heading()),
+                Text('Proof readiness', style: PaycheckType.h3()),
                 const SizedBox(height: 4),
                 Text(
                   '$yearLabel · ${summary.active} uploaded · ${summary.needsReview} to review',
@@ -1287,7 +1287,7 @@ class _VaultSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(title, style: PaycheckType.heading())),
+        Expanded(child: Text(title, style: PaycheckType.h3())),
         if (helper != null)
           Text(
             helper!,
@@ -1460,10 +1460,43 @@ class _EmptyUploads extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ArthInlineEmpty(
-      icon: Icons.folder_open_outlined,
-      title: 'No uploads yet',
-      message: 'Use the upload icon beside any document to begin.',
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: PaycheckColors.bgSurface,
+        borderRadius: AppRadius.card,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: PaycheckColors.bgCard,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.folder_open_outlined,
+              color: PaycheckColors.gold,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('No uploads yet', style: PaycheckType.bodyMedium()),
+                const SizedBox(height: 4),
+                Text(
+                  'Use the upload icon beside any document to begin.',
+                  style:
+                      PaycheckType.caption(color: PaycheckColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1559,7 +1592,7 @@ class _ParserTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Parser timeline', style: PaycheckType.heading()),
+          Text('Parser timeline', style: PaycheckType.h3()),
           const SizedBox(height: 12),
           const _TimelineRow(
             done: true,

@@ -6,12 +6,30 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:arth/providers/spend_map_provider.dart';
+import 'package:arth/providers/paycheck_provider.dart';
+import 'package:arth/providers/user_profile_provider.dart';
+import 'package:arth/features/spend_completeness/models/spend_completeness_models.dart';
+import 'package:arth/features/spend_completeness/providers/spend_completeness_provider.dart';
+import 'package:arth/features/spend_completeness/screens/spend_completeness_screen.dart';
+import 'package:arth/models/paycheck.dart';
+import 'package:arth/models/spend_map.dart';
+import 'package:arth/models/money_goal.dart';
+import 'package:arth/providers/money_goal_provider.dart';
+import 'package:arth/screens/s00_auth_screen.dart';
+import 'package:arth/screens/s32_money_goal_screen.dart';
+import 'package:arth/screens/s28_paycheck_setup_screen.dart';
+import 'package:arth/screens/s29_paycheck_shell_screen.dart';
+import 'package:arth/screens/s30_tax_plan_entry_screen.dart';
+import 'package:arth/screens/s00_product_onboarding_screen.dart';
+import 'package:arth/screens/s33_spend_insights_screen.dart';
 import 'package:arth/theme/app_theme.dart';
 import 'package:arth/theme/paycheck_theme.dart';
 import 'package:arth/widgets/premium_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _loadAnek() async {
@@ -64,8 +82,349 @@ Widget _frame(Widget child, {double width = 390, double height = 450}) {
   );
 }
 
+/// Pins the spend map to a fixed state so a screen state can be rendered
+/// without an inbox, a network, or a device.
+class _FixedSpendMap extends SpendMapNotifier {
+  _FixedSpendMap(this._fixed);
+
+  final SpendMapState _fixed;
+
+  @override
+  SpendMapState build() => _fixed;
+}
+
+class _SamplePaycheck extends PaycheckNotifier {
+  @override
+  PaycheckState build() => demoPaycheck;
+}
+
+class _FixedSpendCompleteness extends SpendCompletenessNotifier {
+  @override
+  SpendCompletenessState build() => const SpendCompletenessState();
+}
+
+class _FixedMoneyGoals extends MoneyGoalNotifier {
+  @override
+  Future<List<MoneyGoal>> build() async => const [];
+}
+
+final _sampleSpendMap = SpendMap(
+  txns: [
+    for (final month in [5, 6, 7]) ...[
+      FinanceTxn(
+        amount: 52000,
+        direction: TxnDirection.credit,
+        date: DateTime(2026, month, 1),
+        category: SpendCategory.other,
+        isSalary: true,
+        sender: 'VM-ACME',
+      ),
+      FinanceTxn(
+        amount: 18000,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 3),
+        category: SpendCategory.rent,
+        isSalary: false,
+        merchant: 'Landlord',
+        sender: 'VM-HDFC',
+      ),
+      FinanceTxn(
+        amount: 7200,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 9),
+        category: SpendCategory.food,
+        isSalary: false,
+        merchant: 'Zepto',
+        sender: 'VM-HDFC',
+      ),
+      FinanceTxn(
+        amount: 3400,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 14),
+        category: SpendCategory.transport,
+        isSalary: false,
+        merchant: 'Uber',
+        sender: 'VM-HDFC',
+      ),
+    ],
+  ],
+  windowStart: DateTime(2026, 5, 1),
+  windowEnd: DateTime(2026, 7, 28),
+  generatedAt: DateTime(2026, 7, 28),
+);
+
+Widget _screen(SpendMapState state, {double height = 780}) {
+  return ProviderScope(
+    overrides: [
+      spendMapProvider.overrideWith(() => _FixedSpendMap(state)),
+    ],
+    child: RepaintBoundary(
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, height)),
+          child: const SpendInsightsScreen(),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _coverageScreen() => ProviderScope(
+      overrides: [
+        spendMapProvider.overrideWith(
+          () => _FixedSpendMap(SpendMapState(map: _sampleSpendMap)),
+        ),
+        spendCompletenessProvider.overrideWith(_FixedSpendCompleteness.new),
+      ],
+      child: RepaintBoundary(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const MediaQuery(
+            data: MediaQueryData(size: Size(390, 780)),
+            child: SpendCompletenessScreen(),
+          ),
+        ),
+      ),
+    );
+
+Widget _moneyGoalScreen() => ProviderScope(
+      overrides: [
+        moneyGoalProvider.overrideWith(_FixedMoneyGoals.new),
+      ],
+      child: RepaintBoundary(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const MediaQuery(
+            data: MediaQueryData(size: Size(390, 780)),
+            child: MoneyGoalScreen(),
+          ),
+        ),
+      ),
+    );
+
 void main() {
   setUpAll(_loadAnek);
+
+  testWidgets('spend map, empty state', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_screen(const SpendMapState()));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '04_spend_empty');
+  });
+
+  testWidgets('spend map, permission denied', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _screen(const SpendMapState(permissionDenied: true)),
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '05_spend_permission');
+  });
+
+  testWidgets('spend map, populated', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _screen(SpendMapState(map: _sampleSpendMap)),
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '06_spend_populated');
+  });
+
+  testWidgets('spend coverage, first view', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_coverageScreen());
+    await tester.pumpAndSettle();
+    await _shoot(tester, '07_spend_coverage');
+  });
+
+  testWidgets('money goal, entry', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_moneyGoalScreen());
+    await tester.pumpAndSettle();
+    await _shoot(tester, '08_money_goal_entry');
+  });
+
+  testWidgets('paycheck home, sample data', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '06_paycheck_home');
+  });
+
+  testWidgets('paycheck, explore account prompt', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(
+            initialIndex: 3,
+            exploreMode: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '07_explore_account_prompt');
+  });
+
+  testWidgets('profile, signed-in shell', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(initialIndex: 3),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '09_profile_signed_in');
+  });
+
+  testWidgets('onboarding, first page', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const ProductOnboardingScreen(),
+      ),
+    );
+    await tester.runAsync(
+      () async {
+        final context = tester.element(find.byType(ProductOnboardingScreen));
+        for (final asset in const [
+          'assets/images/onboarding_offer.jpg',
+          'assets/images/onboarding_paycheck.jpg',
+          'assets/images/onboarding_claim.jpg',
+        ]) {
+          await precacheImage(AssetImage(asset), context);
+        }
+      },
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '07_onboarding_first_page');
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '08_onboarding_second_page');
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '09_onboarding_third_page');
+  });
+
+  testWidgets('authentication, sign-up', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const AuthScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '10_auth_sign_up');
+
+    await tester.tap(find.text('Sign in'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await _shoot(tester, '11_auth_sign_in');
+  });
+
+  testWidgets('paycheck setup', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckSetupScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '12_paycheck_setup');
+  });
+
+  testWidgets('tax plan entry', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          completedTaxProfileProvider.overrideWith((ref) async => false),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const TaxPlanEntryScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1));
+    await _shoot(tester, '13_tax_plan_entry');
+  });
 
   Future<void> spendCard(
     WidgetTester tester,

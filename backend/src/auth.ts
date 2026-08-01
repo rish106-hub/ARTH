@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { db } from './db.js';
+import { db, withUserContext } from './db.js';
 import { verifyAccessToken } from './security.js';
 
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
@@ -39,4 +39,14 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
     });
     return null;
   }
+}
+
+export async function withAuthUser<T>(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  handler: (userId: string) => Promise<T>,
+): Promise<T | undefined> {
+  const auth = await requireAuth(request, reply);
+  if (!auth) return undefined;
+  return withUserContext(auth.userId, () => handler(auth.userId));
 }

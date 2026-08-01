@@ -62,9 +62,7 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
   @override
   void dispose() {
     if (widget.exploreMode) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _paycheckNotifier.closeSampleData();
-      });
+      _paycheckNotifier.closeSampleData();
     }
     super.dispose();
   }
@@ -448,90 +446,83 @@ class _IncomeSourceStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: PaycheckColors.paper,
+        color: PaycheckColors.contractSoft,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: PaycheckColors.ink),
-          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(
+            color: PaycheckColors.contract.withValues(alpha: 0.18),
+          ),
+          borderRadius: AppRadius.card,
         ),
         child: InkWell(
           onTap: onEdit,
+          borderRadius: AppRadius.card,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: PaycheckColors.paper,
+                    borderRadius: AppRadius.control,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 20,
+                    color: PaycheckColors.contract,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            'MONTHLY PLANNING INCOME',
-                            style: PaycheckType.sectionLabel(
-                              color: PaycheckColors.ink,
+                          Expanded(
+                            child: Text(
+                              'Planning income',
+                              style: PaycheckType.bodyStrong(),
                             ),
                           ),
-                          const SizedBox(height: 4),
                           InkWell(
                             onTap: income.hasIncome ? onAudit : onEdit,
                             child: Text(
                               income.hasIncome
                                   ? _money(income.monthlyIncome)
                                   : 'Not set',
-                              style: PaycheckType.h2(),
-                            ),
-                          ),
-                          Text(
-                            income.sourceLabel,
-                            style: PaycheckType.utility(
-                              color: income.isEdited
-                                  ? PaycheckColors.pending
-                                  : PaycheckColors.matched,
+                              style: PaycheckType.bodyStrong(),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Edit planning income',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        income.sourceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: PaycheckType.utility(
+                          color: income.isEdited
+                              ? PaycheckColors.pending
+                              : PaycheckColors.matched,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const _MoneySignalPath(),
+                IconButton(
+                  tooltip: 'Edit planning income',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                ),
               ],
             ),
           ),
         ),
       );
-}
-
-class _MoneySignalPath extends StatelessWidget {
-  const _MoneySignalPath();
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = ['PAYCHECK', 'SPEND', 'GOAL', 'TAX'];
-    return Row(
-      children: [
-        for (var index = 0; index < labels.length; index++) ...[
-          if (index > 0)
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Divider(color: PaycheckColors.line),
-              ),
-            ),
-          Text(labels[index], style: PaycheckType.utility()),
-        ],
-      ],
-    );
-  }
 }
 
 Future<void> _editPlanningIncome(

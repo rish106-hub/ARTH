@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'api_tls_pinning.dart';
+
 class ServerApiException implements Exception {
   final int statusCode;
   final String? code;
@@ -30,13 +32,19 @@ class ServerApiService {
   final String _baseUrl;
 
   ServerApiService({HttpClient? client, String? baseUrl})
-      : _client = client ?? HttpClient(),
+      : _client = client ?? _createClient(),
         _baseUrl = baseUrl ??
             const String.fromEnvironment(
               'ARTH_API_BASE_URL',
               defaultValue: _defaultBaseUrl,
             ) {
     _client.connectionTimeout = _requestTimeout;
+  }
+
+  static HttpClient _createClient() {
+    final client = HttpClient();
+    ApiTlsPinning.configure(client);
+    return client;
   }
 
   Future<Map<String, dynamic>> getJson(

@@ -1,5 +1,8 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Pool, types } from 'pg';
 import { env } from './config.js';
+
+const userTxStorage = new AsyncLocalStorage<DbClient>();
 
 // CockroachDB types every INTEGER column as INT8, which node-postgres returns
 // as a STRING to avoid precision loss. Clients (Flutter) parse these fields as
@@ -96,10 +99,46 @@ async function withDbRetry<T>(operation: () => Promise<T>): Promise<T> {
   throw lastError;
 }
 
+export function getUserTxClient(): DbClient | undefined {
+  return userTxStorage.getStore();
+}
+
+export async function setUserDbContext(
+  client: Queryable,
+  userId: string,
+): Promise<void> {
+  const safeUserId = userId.replaceAll("'", "''");
+  await client.query(`select set_config('application_name', 'arth.${safeUserId}', true)`);
+}
+
+export async function withUserContext<T>(
+  userId: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  return runSerializableTransaction(async (client) => {
+    await client.query('set transaction isolation level read committed');
+    await setUserDbContext(client, userId);
+    return userTxStorage.run(client, operation);
+  });
+}
+
+export async function runAsSystem<T>(operation: () => Promise<T>): Promise<T> {
+  return runSerializableTransaction(async (client) => {
+    await client.query('set transaction isolation level read committed');
+    await client.query(`select set_config('arth.system', 'true', true)`);
+    return userTxStorage.run(client, operation);
+  });
+}
+
 export async function runSerializableTransaction<T>(
   operation: (client: DbClient) => Promise<T>,
   handle: DbHandle = db,
 ): Promise<T> {
+  const existingClient = userTxStorage.getStore();
+  if (existingClient) {
+    return operation(existingClient);
+  }
+
   const delays = [50, 150, 500, 1_200];
   let lastError: unknown;
 
@@ -107,7 +146,7 @@ export async function runSerializableTransaction<T>(
     const client = await handle.connect();
     try {
       await client.query('begin');
-      const result = await operation(client);
+      const result = await userTxStorage.run(client, () => operation(client));
       await client.query('commit');
       return result;
     } catch (error) {
@@ -126,9 +165,20 @@ export async function runSerializableTransaction<T>(
   throw lastError;
 }
 
+function queryThroughUserTx(
+  sql: string,
+  params?: unknown[],
+): Promise<QueryResultLike> {
+  const txClient = userTxStorage.getStore();
+  if (txClient) {
+    return txClient.query(sql, params);
+  }
+  return withDbRetry(() => activeDb.query(sql, params));
+}
+
 export const db: DbHandle = {
   query(sql, params) {
-    return withDbRetry(() => activeDb.query(sql, params));
+    return queryThroughUserTx(sql, params);
   },
   connect() {
     return withDbRetry(() => activeDb.connect());

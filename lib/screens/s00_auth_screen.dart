@@ -121,9 +121,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   String _googleSignInError(GoogleSignInException error) {
     return switch (error.code) {
-      GoogleSignInExceptionCode.canceled =>
-        'Google sign-in did not complete. This build may need an '
-            'updated OAuth client.',
+      GoogleSignInExceptionCode.canceled => 'Google sign-in did not complete.',
       GoogleSignInExceptionCode.clientConfigurationError =>
         'Google sign-in is not configured for this Android build.',
       GoogleSignInExceptionCode.providerConfigurationError =>
@@ -191,9 +189,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final headline = _isSignUp ? 'Know what reached you.' : 'Welcome back.';
+    final headline = _isSignUp ? 'Your pay, in view.' : 'Welcome back.';
     final subhead = _isSignUp
-        ? 'Keep your offer letter, payslips, and confirmed pay in one private record.'
+        ? 'Offer letters, payslips, and confirmed pay. Kept private.'
         : 'Sign in to continue reviewing your pay evidence.';
 
     return ArthScaffold(
@@ -212,21 +210,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     const SizedBox(height: 20),
                     _AuthHero(isSignUp: _isSignUp),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
                     Text(
                       headline,
                       style: PaycheckType.h1().copyWith(
-                        fontSize: 40,
+                        fontSize: 32,
                         height: 1.04,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       subhead,
                       style: PaycheckType.body(
                           color: PaycheckColors.textSecondary),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
                     Form(
                       key: _formKey,
                       child: Column(
@@ -372,7 +370,7 @@ class _AuthHero extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const ArthBrandMark(size: 42),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         AuthMotionScene(isSignUp: isSignUp),
       ],
     );

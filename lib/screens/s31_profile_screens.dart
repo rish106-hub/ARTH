@@ -1111,10 +1111,13 @@ class _CompletenessPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = completion / 8;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: PaycheckColors.ink,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PaycheckColors.contractSoft,
         borderRadius: AppRadius.card,
+        border: Border.all(
+          color: PaycheckColors.contract.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1126,30 +1129,30 @@ class _CompletenessPanel extends StatelessWidget {
                   completion == 8
                       ? 'Profile complete'
                       : 'Improve result accuracy',
-                  style: PaycheckType.heading(color: Colors.white),
+                  style: PaycheckType.bodyStrong(),
                 ),
               ),
               Text(
                 '$completion of 8',
-                style: PaycheckType.utility(color: Colors.white70),
+                style: PaycheckType.utility(color: PaycheckColors.contract),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             completion == 8
-                ? 'ARTH has the core identity, income and evidence fields.'
-                : 'Add exact salary values, PAN or documents to replace assumptions.',
-            style: PaycheckType.body(color: Colors.white70),
+                ? 'Core identity, income, and evidence are on file.'
+                : 'Add salary values, PAN, or documents.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 7,
-              backgroundColor: Colors.white12,
-              valueColor: const AlwaysStoppedAnimation(PaycheckColors.pending),
+              minHeight: 6,
+              backgroundColor: PaycheckColors.paper,
+              valueColor: const AlwaysStoppedAnimation(PaycheckColors.contract),
             ),
           ),
         ],

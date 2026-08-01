@@ -34,11 +34,6 @@ class SpendCompletenessScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'See what your SMS data proves, what it misses, and which repeats are likely.',
-                    style: PaycheckType.body(color: PaycheckColors.inkSoft),
-                  ),
-                  const SizedBox(height: 16),
                   _CoverageReceipt(map: map, settings: settings),
                   const SizedBox(height: 16),
                   _SalarySourceCard(map: map, settings: settings),
@@ -210,8 +205,7 @@ class _SalarySourceCard extends ConsumerWidget {
     return _SectionCard(
       eyebrow: 'INCOME SOURCE',
       title: 'Pick the salary account',
-      body: 'Only this sender counts as salary income. '
-          'The choice stays on this phone.',
+      body: 'Choose the SMS sender ARTH counts as salary.',
       child: sources.isEmpty
           ? Text(
               'No salary credit sender was found in this scan.',
@@ -261,8 +255,7 @@ class _MissingSpendCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => _SectionCard(
         eyebrow: 'KNOWN GAPS',
         title: 'What SMS misses',
-        body:
-            'Mark channels you use. ARTH will flag the map as partial. It will not invent a rupee gap.',
+        body: 'Mark gaps. ARTH keeps the map partial.',
         child: Column(
           children: [
             for (final source in MissingSpendSource.values)
@@ -296,8 +289,7 @@ class _RecurringCard extends ConsumerWidget {
     return _SectionCard(
       eyebrow: 'LOCAL PATTERNS',
       title: 'Likely recurring spend',
-      body:
-          'A repeat needs at least two similar monthly debits. Confirmed items stay local.',
+      body: 'Repeated debits seen in two or more months.',
       trailing: settings.dismissedRecurringIds.isEmpty
           ? null
           : TextButton(
@@ -319,9 +311,8 @@ class _RecurringCard extends ConsumerWidget {
                   if (index > 0) const Divider(height: 24),
                   _RecurringRow(
                     item: visible[index],
-                    confirmed: settings.confirmedRecurringIds.contains(
-                      visible[index].id,
-                    ),
+                    confirmed: settings.confirmedRecurringIds
+                        .contains(visible[index].id),
                   ),
                 ],
               ],
@@ -343,8 +334,12 @@ class _RecurringRow extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                  child: Text(item.label, style: PaycheckType.bodyStrong())),
-              Text(money0(item.typicalAmount), style: PaycheckType.money()),
+                child: Text(item.label, style: PaycheckType.bodyStrong()),
+              ),
+              Text(
+                money0(item.typicalAmount),
+                style: PaycheckType.money(),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -403,8 +398,7 @@ class _HouseholdCard extends ConsumerWidget {
     return _SectionCard(
       eyebrow: 'OPTIONAL',
       title: 'Shared household',
-      body:
-          'Plan with one other person. ARTH does not merge logins, inboxes, or transaction data.',
+      body: 'Add another person without merging records.',
       trailing: Switch(
         value: plan.enabled,
         onChanged: (enabled) =>
@@ -464,8 +458,7 @@ class _BudgetCard extends ConsumerWidget {
     return _SectionCard(
       eyebrow: 'SOFT LIMITS',
       title: 'Category budgets',
-      body:
-          'Suggestions use your observed monthly trend. They warn you. They do not block spending.',
+      body: 'Suggested limits. ARTH only warns.',
       child: suggestions.isEmpty
           ? Text(
               'Not enough categorized spend yet.',
@@ -552,8 +545,12 @@ class _BudgetRow extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () =>
-                    _editBudget(context, ref, suggestion.category, limit),
+                onPressed: () => _editBudget(
+                  context,
+                  ref,
+                  suggestion.category,
+                  limit,
+                ),
                 child: const Text('Edit'),
               ),
             ],
@@ -617,8 +614,10 @@ class _SectionCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(body,
-                  style: PaycheckType.body(color: PaycheckColors.inkSoft)),
+              Text(
+                body,
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
               const SizedBox(height: 16),
               child,
             ],
@@ -642,9 +641,8 @@ Future<void> _editHousehold(
     text:
         current.sharedEssentials > 0 ? current.sharedEssentials.toString() : '',
   );
-  final share = TextEditingController(
-    text: current.yourSharePercent.toString(),
-  );
+  final share =
+      TextEditingController(text: current.yourSharePercent.toString());
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -670,23 +668,27 @@ Future<void> _editHousehold(
               ),
             ),
             const SizedBox(height: 12),
-            _NumberField(controller: income, label: 'Their monthly income'),
+            _NumberField(
+              controller: income,
+              label: 'Their monthly income',
+            ),
             const SizedBox(height: 12),
             _NumberField(
               controller: essentials,
               label: 'Total shared rent + essentials',
             ),
             const SizedBox(height: 12),
-            _NumberField(controller: share, label: 'Your share (%)'),
+            _NumberField(
+              controller: share,
+              label: 'Your share (%)',
+            ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: () async {
-                  final shareValue = (int.tryParse(share.text) ?? 50).clamp(
-                    0,
-                    100,
-                  );
+                  final shareValue =
+                      (int.tryParse(share.text) ?? 50).clamp(0, 100);
                   await ref
                       .read(spendCompletenessProvider.notifier)
                       .setHousehold(

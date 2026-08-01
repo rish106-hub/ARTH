@@ -39,6 +39,7 @@ dependencies:
 
   # Formatting
   intl: ^0.20.3
+  crypto: ^3.0.6
 
   # Icons
   cupertino_icons: ^1.0.9

@@ -51,7 +51,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // Plain English explanation
-                  Text('What is this?', style: PaycheckType.heading()),
+                  Text('What is this?', style: PaycheckType.h3()),
                   const SizedBox(height: 8),
                   Text(gap.message, style: PaycheckType.body()),
 
@@ -86,7 +86,7 @@ class DeductionDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // Actions
-                  Text('Take Action', style: PaycheckType.heading()),
+                  Text('Take Action', style: PaycheckType.h3()),
                   const SizedBox(height: 12),
                   ...gap.actions.map(
                     (action) => _ActionButton(
@@ -306,7 +306,7 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 4),
           RupeeText(
             amount: value,
-            style: PaycheckType.heading(color: color),
+            style: PaycheckType.h3(color: color),
           ),
         ],
       ),
@@ -326,7 +326,7 @@ class _DetailSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Key Points', style: PaycheckType.heading()),
+        Text('Key Points', style: PaycheckType.h3()),
         const SizedBox(height: 12),
         ...details.map(
           (d) => Padding(

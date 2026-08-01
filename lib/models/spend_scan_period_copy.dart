@@ -19,21 +19,20 @@ extension SpendScanPeriodCopy on SpendScanPeriod {
         SpendScanPeriod.yearToDate => 'YTD',
       };
 
-  /// Title for the income stat tile, e.g. "Avg monthly income (last 3 months)".
-  String get avgMonthlyIncomeTitle => 'Avg monthly income ($windowPhrase)';
+  /// The selected analysis window is already visible above the tiles, so their
+  /// labels stay short enough to scan side by side.
+  String get avgMonthlyIncomeTitle => 'Monthly income';
 
   /// Title for the spend stat tile.
-  String get avgMonthlySpendTitle => 'Avg monthly spend ($windowPhrase)';
+  String get avgMonthlySpendTitle => 'Monthly spend';
 
   /// Explains how spend was derived from SMS in the selected window.
   String spendTrendCaption({
     required int monthsWithSpend,
     required int totalTransactions,
   }) {
-    final monthWord = monthsWithSpend == 1 ? 'month' : 'months';
-    return 'Trend from bank/UPI SMS in the $windowPhrase — '
-        '${monthsWithSpend == 0 ? 'no spend months yet' : 'averaged across $monthsWithSpend $monthWord with spend'} '
-        '($totalTransactions transaction${totalTransactions == 1 ? '' : 's'}).';
+    if (totalTransactions == 0) return 'No spend SMS yet.';
+    return '$totalTransactions SMS · $monthsWithSpend mo.';
   }
 
   /// Explains how income was derived (SMS, payslip, or manual).
@@ -43,21 +42,17 @@ extension SpendScanPeriodCopy on SpendScanPeriod {
     required bool includesOtherIncome,
     required bool isManual,
   }) {
-    if (isManual) {
-      return 'You set this figure. It replaces the SMS/payslip estimate for the '
-          '$windowPhrase view.';
-    }
+    if (isManual) return 'You set this figure.';
     if (sourceLabel == 'Salary SMS average') {
-      final monthWord = monthsWithSalary == 1 ? 'month' : 'months';
-      return 'Salary credits in the $windowPhrase, averaged across '
-          '$monthsWithSalary $monthWord with a detected credit.'
-          '${includesOtherIncome ? ' Other income is added on top.' : ''}';
+      return includesOtherIncome
+          ? 'Salary SMS + other income'
+          : 'Salary SMS · $monthsWithSalary mo.';
     }
     if (sourceLabel == 'Payslip estimate') {
-      return 'No salary credit in SMS for the $windowPhrase — using your '
-          'confirmed payslip/CTC as a monthly estimate.'
-          '${includesOtherIncome ? ' Other income is added on top.' : ''}';
+      return includesOtherIncome
+          ? 'Payslip + other income'
+          : 'Confirmed payslip';
     }
-    return 'Tap to add or correct your monthly income for the $windowPhrase view.';
+    return 'Tap to add income.';
   }
 }
