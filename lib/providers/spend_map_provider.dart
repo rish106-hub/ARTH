@@ -14,6 +14,7 @@ import '../services/user_scoped_storage.dart';
 import '../services/sms_reader_service.dart';
 import '../services/spend_map_service.dart';
 import '../features/accounts/providers/account_registry_provider.dart';
+import '../features/spend_completeness/engine/spend_completeness_engine.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'auth_provider.dart';
 import 'custom_spend_categories_provider.dart';
@@ -347,7 +348,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     final since = selected.since(DateTime.now());
     final previous = state.map;
     final raw = await _reader.readInbox(since: since);
-    final txns = _applyKnownCategories(_parser.parseAll(raw), previous);
+    final txns = _applyUserSalarySenders(
+      _applyKnownCategories(_parser.parseAll(raw), previous),
+    );
 
     // Learn which accounts and cards these messages are about before anything
     // reads the map. Ownership is what lets a movement between the user's own
@@ -382,6 +385,28 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     try {
       await _sync.push(finalMap);
     } catch (_) {}
+  }
+
+  /// Marks credits from senders the user has named as their salary payer.
+  ///
+  /// Runs on every scan rather than being written into stored data, so the
+  /// answer follows the user's current choice: unmark a sender and the next
+  /// scan stops treating it as salary, with nothing left behind to clean up.
+  ///
+  /// Only credits are eligible. Naming a sender cannot turn money leaving the
+  /// account into income, however the message is worded.
+  List<FinanceTxn> _applyUserSalarySenders(List<FinanceTxn> txns) {
+    final senders = ref.read(spendCompletenessProvider).userSalarySenders;
+    if (senders.isEmpty) return txns;
+    return [
+      for (final txn in txns)
+        if (txn.direction == TxnDirection.credit &&
+            !txn.isSalary &&
+            senders.contains(normalizeSalarySource(txn.sender)))
+          txn.copyWith(isSalary: true)
+        else
+          txn,
+    ];
   }
 
   /// Stable identity for a parsed transaction. A list index cannot be used to

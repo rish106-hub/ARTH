@@ -319,8 +319,9 @@ class _RecurringCard extends ConsumerWidget {
                   if (index > 0) const Divider(height: 24),
                   _RecurringRow(
                     item: visible[index],
-                    confirmed: settings.confirmedRecurringIds
-                        .contains(visible[index].id),
+                    confirmed: settings.confirmedRecurringIds.contains(
+                      visible[index].id,
+                    ),
                   ),
                 ],
               ],
@@ -342,12 +343,8 @@ class _RecurringRow extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: Text(item.label, style: PaycheckType.bodyStrong()),
-              ),
-              Text(
-                money0(item.typicalAmount),
-                style: PaycheckType.money(),
-              ),
+                  child: Text(item.label, style: PaycheckType.bodyStrong())),
+              Text(money0(item.typicalAmount), style: PaycheckType.money()),
             ],
           ),
           const SizedBox(height: 4),
@@ -555,12 +552,8 @@ class _BudgetRow extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () => _editBudget(
-                  context,
-                  ref,
-                  suggestion.category,
-                  limit,
-                ),
+                onPressed: () =>
+                    _editBudget(context, ref, suggestion.category, limit),
                 child: const Text('Edit'),
               ),
             ],
@@ -624,10 +617,8 @@ class _SectionCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                body,
-                style: PaycheckType.body(color: PaycheckColors.inkSoft),
-              ),
+              Text(body,
+                  style: PaycheckType.body(color: PaycheckColors.inkSoft)),
               const SizedBox(height: 16),
               child,
             ],
@@ -651,8 +642,9 @@ Future<void> _editHousehold(
     text:
         current.sharedEssentials > 0 ? current.sharedEssentials.toString() : '',
   );
-  final share =
-      TextEditingController(text: current.yourSharePercent.toString());
+  final share = TextEditingController(
+    text: current.yourSharePercent.toString(),
+  );
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -678,27 +670,23 @@ Future<void> _editHousehold(
               ),
             ),
             const SizedBox(height: 12),
-            _NumberField(
-              controller: income,
-              label: 'Their monthly income',
-            ),
+            _NumberField(controller: income, label: 'Their monthly income'),
             const SizedBox(height: 12),
             _NumberField(
               controller: essentials,
               label: 'Total shared rent + essentials',
             ),
             const SizedBox(height: 12),
-            _NumberField(
-              controller: share,
-              label: 'Your share (%)',
-            ),
+            _NumberField(controller: share, label: 'Your share (%)'),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: () async {
-                  final shareValue =
-                      (int.tryParse(share.text) ?? 50).clamp(0, 100);
+                  final shareValue = (int.tryParse(share.text) ?? 50).clamp(
+                    0,
+                    100,
+                  );
                   await ref
                       .read(spendCompletenessProvider.notifier)
                       .setHousehold(

@@ -42,10 +42,16 @@ class HouseholdPlan {
         memberName: json['memberName']?.toString() ?? '',
         otherMonthlyIncome: ((json['otherMonthlyIncome'] as num?)?.round() ?? 0)
             .clamp(0, 100000000),
-        sharedEssentials: ((json['sharedEssentials'] as num?)?.round() ?? 0)
-            .clamp(0, 100000000),
+        sharedEssentials:
+            ((json['sharedEssentials'] as num?)?.round() ?? 0).clamp(
+          0,
+          100000000,
+        ),
         yourSharePercent:
-            ((json['yourSharePercent'] as num?)?.round() ?? 50).clamp(0, 100),
+            ((json['yourSharePercent'] as num?)?.round() ?? 50).clamp(
+          0,
+          100,
+        ),
       );
 }
 
@@ -56,6 +62,7 @@ class HouseholdPlan {
 class SpendCompletenessState {
   const SpendCompletenessState({
     this.trustedSalarySourceId,
+    this.userSalarySenders = const {},
     this.missingSources = const {},
     this.confirmedRecurringIds = const {},
     this.dismissedRecurringIds = const {},
@@ -64,15 +71,54 @@ class SpendCompletenessState {
   });
 
   final String? trustedSalarySourceId;
+
+  /// Senders the user has explicitly told us pay their salary, normalised the
+  /// same way [trustedSalarySourceId] is.
+  ///
+  /// [trustedSalarySourceId] can only pick among senders the parser already
+  /// recognised as salary, so it cannot help when a credit was never flagged in
+  /// the first place — which is exactly when the user needs to intervene. This
+  /// set is that override, and it is authoritative: the user knows who pays
+  /// them better than a keyword list does.
+  final Set<String> userSalarySenders;
   final Set<MissingSpendSource> missingSources;
   final Set<String> confirmedRecurringIds;
   final Set<String> dismissedRecurringIds;
   final HouseholdPlan household;
   final Map<String, int> categoryBudgets;
 
+  /// Every field, so adding one cannot silently drop it. The notifier used to
+  /// rebuild this object field by field in eight places; a new field had to be
+  /// threaded through all eight or it vanished on the next edit.
+  SpendCompletenessState copyWith({
+    String? trustedSalarySourceId,
+    bool clearTrustedSalarySource = false,
+    Set<String>? userSalarySenders,
+    Set<MissingSpendSource>? missingSources,
+    Set<String>? confirmedRecurringIds,
+    Set<String>? dismissedRecurringIds,
+    HouseholdPlan? household,
+    Map<String, int>? categoryBudgets,
+  }) {
+    return SpendCompletenessState(
+      trustedSalarySourceId: clearTrustedSalarySource
+          ? null
+          : trustedSalarySourceId ?? this.trustedSalarySourceId,
+      userSalarySenders: userSalarySenders ?? this.userSalarySenders,
+      missingSources: missingSources ?? this.missingSources,
+      confirmedRecurringIds:
+          confirmedRecurringIds ?? this.confirmedRecurringIds,
+      dismissedRecurringIds:
+          dismissedRecurringIds ?? this.dismissedRecurringIds,
+      household: household ?? this.household,
+      categoryBudgets: categoryBudgets ?? this.categoryBudgets,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         if (trustedSalarySourceId != null)
           'trustedSalarySourceId': trustedSalarySourceId,
+        'userSalarySenders': userSalarySenders.toList(),
         'missingSources': missingSources.map((source) => source.name).toList(),
         'confirmedRecurringIds': confirmedRecurringIds.toList(),
         'dismissedRecurringIds': dismissedRecurringIds.toList(),
@@ -96,6 +142,11 @@ class SpendCompletenessState {
         json['categoryBudgets'] as Map<String, dynamic>? ?? const {};
     return SpendCompletenessState(
       trustedSalarySourceId: json['trustedSalarySourceId']?.toString(),
+      userSalarySenders:
+          (json['userSalarySenders'] as List<dynamic>? ?? const [])
+              .map((value) => value.toString())
+              .where((value) => value.isNotEmpty)
+              .toSet(),
       missingSources: missing,
       confirmedRecurringIds:
           (json['confirmedRecurringIds'] as List<dynamic>? ?? const [])
@@ -106,9 +157,7 @@ class SpendCompletenessState {
               .map((value) => value.toString())
               .toSet(),
       household: json['household'] is Map<String, dynamic>
-          ? HouseholdPlan.fromJson(
-              json['household'] as Map<String, dynamic>,
-            )
+          ? HouseholdPlan.fromJson(json['household'] as Map<String, dynamic>)
           : const HouseholdPlan(),
       categoryBudgets: {
         for (final entry in rawBudgets.entries)

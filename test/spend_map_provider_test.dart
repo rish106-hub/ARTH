@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:arth/models/spend_map.dart';
+import 'package:arth/features/spend_completeness/providers/spend_completeness_provider.dart';
 import 'package:arth/providers/other_income_provider.dart';
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/services/sms_reader_service.dart';
@@ -135,6 +136,68 @@ void main() {
     final state = container.read(spendMapProvider);
     expect(state.permissionDenied, isTrue);
     expect(state.hasData, isFalse);
+  });
+
+  test('marking a sender as salary rescues a credit the parser missed',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    // A plain NEFT credit with no salary wording anywhere in it.
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VM-ACMEPL',
+        body: 'Rs 61000 credited to A/c XX1234 by NEFT CR-ACMEPL-REF9931.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+    await container.read(otherIncomeProvider.notifier).markAsked();
+
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .markSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 61000);
+
+    // Unmarking releases it again, with nothing stale left behind.
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .unmarkSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await notifier.scan();
+    expect(container.read(spendMapProvider).map!.salaryCredited, 0);
+  });
+
+  test('marking a sender cannot turn a debit into income', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final reader = _FakeReader([
+      (
+        id: null,
+        sender: 'VM-ACMEPL',
+        body: 'Rs 900 debited from A/c XX1234 to ACMEPL.',
+        date: DateTime.now(),
+      ),
+    ]);
+    final notifier = container.read(spendMapProvider.notifier);
+    notifier.debugInjectDependencies(reader: reader, sync: _NoopSync());
+    await container.read(otherIncomeProvider.notifier).markAsked();
+    await container
+        .read(spendCompletenessProvider.notifier)
+        .markSenderAsSalary('VM-ACMEPL');
+    await container.read(otherIncomeProvider.notifier).markAsked();
+
+    await notifier.scan();
+
+    final map = container.read(spendMapProvider).map!;
+    expect(map.salaryCredited, 0);
+    expect(map.txns.single.isSalary, isFalse);
   });
 
   test('a salary credit arriving while the app is open updates the map',
