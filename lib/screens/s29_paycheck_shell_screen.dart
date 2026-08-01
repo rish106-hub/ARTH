@@ -457,13 +457,13 @@ class _IncomeSourceStrip extends StatelessWidget {
           onTap: onEdit,
           borderRadius: AppRadius.card,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: const BoxDecoration(
                     color: PaycheckColors.paper,
                     borderRadius: AppRadius.control,
@@ -479,22 +479,26 @@ class _IncomeSourceStrip extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Planning income',
-                        style: PaycheckType.utility(
-                          color: PaycheckColors.inkSoft,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Planning income',
+                              style: PaycheckType.bodyStrong(),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: income.hasIncome ? onAudit : onEdit,
+                            child: Text(
+                              income.hasIncome
+                                  ? _money(income.monthlyIncome)
+                                  : 'Not set',
+                              style: PaycheckType.bodyStrong(),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
-                      InkWell(
-                        onTap: income.hasIncome ? onAudit : onEdit,
-                        child: Text(
-                          income.hasIncome
-                              ? _money(income.monthlyIncome)
-                              : 'Not set',
-                          style: PaycheckType.h3(),
-                        ),
-                      ),
                       Text(
                         income.sourceLabel,
                         maxLines: 1,

@@ -631,18 +631,13 @@ class _EmptyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.account_balance_wallet_outlined,
-              size: 32, color: PaycheckColors.contract),
-          const SizedBox(height: 12),
+              size: 28, color: PaycheckColors.contract),
+          const SizedBox(height: 8),
           Text('Build your spend map', style: PaycheckType.title()),
           const SizedBox(height: 8),
           Text(
-            'From ${period.windowPhrase} of bank and UPI SMS.',
+            '${period.windowPhrase} of bank and UPI transaction SMS.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-          const ArthDisclosure(
-            label: 'What the scan works out',
-            detail:
-                'ARTH detects salary credits and spends, separates internal transfers from real expenses, and estimates what you can realistically save each month.',
           ),
           const SizedBox(height: 12),
           SizedBox(
