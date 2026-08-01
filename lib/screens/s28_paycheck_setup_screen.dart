@@ -132,7 +132,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                   Text('Private by default', style: PaycheckType.utility()),
                 ],
               ),
-              const SizedBox(height: 52),
+              const SizedBox(height: 32),
               Container(
                 width: 44,
                 height: 44,
@@ -146,30 +146,24 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                   size: 22,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 'Start with what you were promised',
                 style: PaycheckType.title().copyWith(fontSize: 30),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Add an offer letter.',
-                style: PaycheckType.body(color: PaycheckColors.inkSoft),
-              ),
-              const ArthDisclosure(
-                label: 'What ARTH does with it',
-                detail:
-                    'Each pay component becomes a monthly checklist, then ARTH matches it against your payslips and salary alerts.',
-              ),
-              const SizedBox(height: 28),
-              Text('How long does this job run?',
-                  style: PaycheckType.bodyStrong()),
               const SizedBox(height: 8),
               Text(
-                'Salary is annualised over these months.',
+                'Upload an offer letter to compare each payday.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
+              Text('Job duration', style: PaycheckType.bodyStrong()),
+              const SizedBox(height: 4),
+              Text(
+                'Used for annual estimates.',
+                style: PaycheckType.body(color: PaycheckColors.inkSoft),
+              ),
+              const SizedBox(height: 8),
               JobDurationSelector(
                 selectedMonths: ref.watch(
                   userProfileProvider
@@ -180,30 +174,7 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                     .updateField((profile) =>
                         profile.copyWith(jobDurationMonths: months)),
               ),
-              const SizedBox(height: 32),
-              const _SetupStep(
-                number: '01',
-                title: 'Add your offer letter',
-                detail: 'PDF or image. You review every extracted number.',
-                stateLabel: 'Start here',
-                active: true,
-              ),
-              const _SetupConnector(),
-              const _SetupStep(
-                number: '02',
-                title: 'Connect salary emails',
-                detail:
-                    'Later, use narrow read-only access for payslips and bills.',
-                stateLabel: 'Optional',
-              ),
-              const _SetupConnector(),
-              const _SetupStep(
-                number: '03',
-                title: 'Review your first match',
-                detail: 'See promised, received and still claimable money.',
-                stateLabel: 'About 2 min',
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -236,6 +207,11 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
                         ),
                 child: const Text('I only have a payslip'),
               ),
+              const ArthDisclosure(
+                label: 'What happens next',
+                detail:
+                    'You review the extracted offer details, then add payslips or salary alerts when you are ready.',
+              ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
@@ -247,83 +223,6 @@ class _PaycheckSetupScreenState extends ConsumerState<PaycheckSetupScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SetupStep extends StatelessWidget {
-  final String number;
-  final String title;
-  final String detail;
-  final String stateLabel;
-  final bool active;
-
-  const _SetupStep({
-    required this.number,
-    required this.title,
-    required this.detail,
-    required this.stateLabel,
-    this.active = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: active ? PaycheckColors.contract : PaycheckColors.paper,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: active ? PaycheckColors.contract : PaycheckColors.line,
-            ),
-          ),
-          child: Text(
-            number,
-            style: PaycheckType.utility(
-              color: active ? Colors.white : PaycheckColors.inkSoft,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                      child: Text(title, style: PaycheckType.bodyStrong())),
-                  Text(stateLabel, style: PaycheckType.utility()),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                detail,
-                style: PaycheckType.body(color: PaycheckColors.inkSoft),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SetupConnector extends StatelessWidget {
-  const _SetupConnector();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 24,
-      margin: const EdgeInsets.only(left: 20),
-      color: PaycheckColors.line,
     );
   }
 }

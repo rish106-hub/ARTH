@@ -10,6 +10,7 @@ import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/screens/s00_auth_screen.dart';
+import 'package:arth/screens/s28_paycheck_setup_screen.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:arth/screens/s00_product_onboarding_screen.dart';
 import 'package:arth/screens/s33_spend_insights_screen.dart';
@@ -232,6 +233,24 @@ void main() {
     await tester.tap(find.text('Sign in'));
     await tester.pump(const Duration(milliseconds: 300));
     await _shoot(tester, '11_auth_sign_in');
+  });
+
+  testWidgets('paycheck setup', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckSetupScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '12_paycheck_setup');
   });
 
   Future<void> spendCard(
