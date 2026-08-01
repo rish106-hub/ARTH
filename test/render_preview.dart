@@ -10,6 +10,7 @@ import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
+import 'package:arth/screens/s00_product_onboarding_screen.dart';
 import 'package:arth/screens/s33_spend_insights_screen.dart';
 import 'package:arth/theme/app_theme.dart';
 import 'package:arth/theme/paycheck_theme.dart';
@@ -148,6 +149,42 @@ void main() {
     );
     await tester.pump();
     await _shoot(tester, '06_paycheck_home');
+  });
+
+  testWidgets('onboarding, first page', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const ProductOnboardingScreen(),
+      ),
+    );
+    await tester.runAsync(
+      () async {
+        final context = tester.element(find.byType(ProductOnboardingScreen));
+        for (final asset in const [
+          'assets/images/onboarding_offer.jpg',
+          'assets/images/onboarding_paycheck.jpg',
+          'assets/images/onboarding_claim.jpg',
+        ]) {
+          await precacheImage(AssetImage(asset), context);
+        }
+      },
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '07_onboarding_first_page');
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '08_onboarding_second_page');
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '09_onboarding_third_page');
   });
 
   Future<void> spendCard(

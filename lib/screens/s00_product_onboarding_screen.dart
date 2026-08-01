@@ -230,7 +230,7 @@ class _OnboardingPage extends StatelessWidget {
           height: 292,
           width: double.infinity,
           color: PaycheckColors.paper,
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 112),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 112),
           child: AnimatedOpacity(
             opacity: active ? 1 : 0.45,
             duration: reduceMotion

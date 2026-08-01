@@ -487,7 +487,7 @@ class _IncomeSourceStrip extends StatelessWidget {
                           color: PaycheckColors.inkSoft,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       InkWell(
                         onTap: income.hasIncome ? onAudit : onEdit,
                         child: Text(
