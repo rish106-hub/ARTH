@@ -52,25 +52,18 @@ void main() {
   });
 
   group('SpendScanPeriodCopy', () {
-    test('titles include the analysis window', () {
+    test('titles stay compact because scan scope is shown separately', () {
+      expect(SpendScanPeriod.threeMonths.avgMonthlySpendTitle, 'Monthly spend');
       expect(
-        SpendScanPeriod.threeMonths.avgMonthlySpendTitle,
-        'Avg monthly spend (last 3 months)',
-      );
-      expect(
-        SpendScanPeriod.yearToDate.avgMonthlyIncomeTitle,
-        'Avg monthly income (year to date)',
-      );
+          SpendScanPeriod.yearToDate.avgMonthlyIncomeTitle, 'Monthly income');
     });
 
-    test('spend caption names months with spend activity', () {
+    test('spend caption keeps the source and coverage compact', () {
       final caption = SpendScanPeriod.sixMonths.spendTrendCaption(
         monthsWithSpend: 4,
         totalTransactions: 42,
       );
-      expect(caption, contains('last 6 months'));
-      expect(caption, contains('4 months'));
-      expect(caption, contains('42 transactions'));
+      expect(caption, '42 SMS · 4 mo.');
     });
   });
 

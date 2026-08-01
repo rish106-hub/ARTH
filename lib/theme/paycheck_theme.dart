@@ -127,6 +127,10 @@ class PaycheckType {
         color: color,
       );
 
+  /// Compatibility name for existing card headings.
+  static TextStyle h3({Color color = PaycheckColors.ink}) =>
+      heading(color: color);
+
   static TextStyle body({Color color = PaycheckColors.ink}) => TextStyle(
         fontFamily: 'Anek',
         fontSize: 15,

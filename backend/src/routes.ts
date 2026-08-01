@@ -4,7 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { buildRevision } from './buildRevision.js';
-import { db, Queryable, runSerializableTransaction } from './db.js';
+import { db, Queryable, runSerializableTransaction, setUserDbContext } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { categorizeTransactions } from './spendCategorizer.js';
 import {
@@ -28,7 +28,7 @@ import {
   signAccessToken,
   verifyPassword,
 } from './security.js';
-import { requireAuth } from './auth.js';
+import { requireAuth, withAuthUser } from './auth.js';
 import { blindIndex } from './envelopeEncryption.js';
 
 const signUpPasswordSchema = z.string()
@@ -135,9 +135,24 @@ const userStateNamespaces = [
 ] as const;
 const userStateNamespaceSchema = z.enum(userStateNamespaces);
 
+const eventMetadataValueSchema = z.union([
+  z.string().max(200),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+
+const eventMetadataSchema = z.record(
+  z.string().max(64).regex(/^[a-z][a-z0-9_]*$/),
+  eventMetadataValueSchema,
+).refine(
+  (value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 2048,
+  'metadata is too large',
+);
+
 const eventSchema = z.object({
   name: z.string().min(1).max(64),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: eventMetadataSchema.optional(),
 });
 
 const moneyGoalSchema = z.object({
@@ -176,26 +191,6 @@ const userStatePayloadSchema = z.object({
 const userStateDeleteSchema = userStatePayloadSchema.pick({
   clientUpdatedAt: true,
 });
-
-async function setUserStateDbContext(
-  client: Queryable,
-  userId: string,
-): Promise<void> {
-  const safeUserId = userId.replaceAll("'", "''");
-  await client.query(
-    `set local application_name = 'arth.${safeUserId}'`,
-  );
-}
-
-async function runUserStateTransaction<T>(
-  userId: string,
-  operation: (client: Queryable) => Promise<T>,
-): Promise<T> {
-  return runSerializableTransaction(async (client) => {
-    await setUserStateDbContext(client, userId);
-    return operation(client);
-  });
-}
 
 const spendMapSchema = z.object({
   windowStart: flexibleDatetime(),
@@ -682,7 +677,11 @@ export async function registerRoutes(app: FastifyInstance) {
       [email],
     );
     if (existing.rowCount) {
-      return reply.code(409).send({ message: 'Email already registered' });
+      return reply.code(400).send({
+        code: 'registration_failed',
+        message: 'Unable to create account with these details',
+        retryable: false,
+      });
     }
 
     const passwordHash = await hashPassword(payload.password);
@@ -842,12 +841,11 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   app.get('/me', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const result = await db.query(
       'select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1',
-      [auth.userId],
+      [userId],
     );
     if (!result.rowCount) {
       return reply.code(401).send({ message: 'Account no longer exists' });
@@ -864,21 +862,21 @@ export async function registerRoutes(app: FastifyInstance) {
         createdAt: new Date(user.created_at as string | Date).toISOString(),
       },
     };
+    });
   });
 
   app.get('/account/profile', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const userResult = await db.query(
       'select id, email, name, phone_e164, avatar_initials, avatar_color, created_at from app_users where id = $1',
-      [auth.userId],
+      [userId],
     );
     const identityResult = await db.query(
       `select pan_last4, pan_last_char, pan_consent_version, pan_consented_at, updated_at
        from user_private_identity
        where user_id = $1 and pan_ciphertext is not null`,
-      [auth.userId],
+      [userId],
     );
     return accountResponse(
       userResult.rows[0] as {
@@ -892,18 +890,18 @@ export async function registerRoutes(app: FastifyInstance) {
       },
       identityResult.rows[0],
     );
+    });
   });
 
   app.patch('/account/profile', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const payload = accountProfileSchema.parse(request.body);
     const currentResult = await db.query(
       `select id, email, name, phone_e164, avatar_initials, avatar_color, created_at
        from app_users
        where id = $1`,
-      [auth.userId],
+      [userId],
     );
     if (!currentResult.rowCount) {
       return reply.code(404).send({ message: 'Account not found' });
@@ -937,17 +935,17 @@ export async function registerRoutes(app: FastifyInstance) {
            updated_at = now()
        where id = $5
        returning id, email, name, phone_e164, avatar_initials, avatar_color, created_at`,
-      [nextName, nextPhone, nextAvatarInitials, nextAvatarColor, auth.userId],
+      [nextName, nextPhone, nextAvatarInitials, nextAvatarColor, userId],
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'account_profile_updated', '{}'],
+      [userId, 'account_profile_updated', '{}'],
     );
     const identityResult = await db.query(
       `select pan_last4, pan_last_char, pan_consent_version, pan_consented_at, updated_at
        from user_private_identity
        where user_id = $1 and pan_ciphertext is not null`,
-      [auth.userId],
+      [userId],
     );
     return accountResponse(
       result.rows[0] as {
@@ -961,11 +959,11 @@ export async function registerRoutes(app: FastifyInstance) {
       },
       identityResult.rows[0],
     );
+    });
   });
 
   app.put('/account/pan', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const payload = panSchema.parse(request.body);
     const pan = payload.pan.toUpperCase();
@@ -978,7 +976,7 @@ export async function registerRoutes(app: FastifyInstance) {
        from user_private_identity
        where user_id = $1
          and pan_ciphertext is not null`,
-      [auth.userId],
+      [userId],
     );
     if (
       currentPan.rowCount
@@ -996,7 +994,7 @@ export async function registerRoutes(app: FastifyInstance) {
        where pan_fingerprint = $1
          and user_id <> $2
          and pan_ciphertext is not null`,
-      [fingerprint, auth.userId],
+      [fingerprint, userId],
     );
     if (existingPanOwner.rowCount) {
       return reply.code(409).send({
@@ -1025,7 +1023,7 @@ export async function registerRoutes(app: FastifyInstance) {
            pan_deleted_at = null,
            updated_at = now()`,
         [
-          auth.userId,
+          userId,
           encrypted.ciphertext,
           encrypted.iv,
           encrypted.authTag,
@@ -1045,7 +1043,7 @@ export async function registerRoutes(app: FastifyInstance) {
     }
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'pan_added', '{}'],
+      [userId, 'pan_added', '{}'],
     );
     return {
       pan: {
@@ -1055,11 +1053,11 @@ export async function registerRoutes(app: FastifyInstance) {
         updatedAt: new Date().toISOString(),
       },
     };
+    });
   });
 
   app.delete('/account/pan', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     await db.query(
       `update user_private_identity
@@ -1072,18 +1070,18 @@ export async function registerRoutes(app: FastifyInstance) {
            pan_deleted_at = now(),
            updated_at = now()
        where user_id = $1`,
-      [auth.userId],
+      [userId],
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'pan_deleted', '{}'],
+      [userId, 'pan_deleted', '{}'],
     );
     return reply.code(204).send();
+    });
   });
 
   app.get('/documents', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const result = await db.query(
       `select id, fy, document_type, original_filename, mime_type, byte_size,
@@ -1093,17 +1091,17 @@ export async function registerRoutes(app: FastifyInstance) {
        from tax_documents
        where user_id = $1 and fy = $2
        order by created_at desc`,
-      [auth.userId, env.CURRENT_FY],
+      [userId, env.CURRENT_FY],
     );
     return {
       documents: result.rows.map(documentResponse),
       summary: documentSummary(result.rows),
     };
+    });
   });
 
   app.post('/documents', documentUploadOptions, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const part = await request.file();
     if (!part) {
@@ -1138,7 +1136,7 @@ export async function registerRoutes(app: FastifyInstance) {
       `select pan_last4, pan_last_char
        from user_private_identity
        where user_id = $1 and pan_ciphertext is not null`,
-      [auth.userId],
+      [userId],
     );
     const panVaultSuffix: PanVaultSuffix = identity.rowCount
       && typeof identity.rows[0].pan_last4 === 'string'
@@ -1194,7 +1192,7 @@ export async function registerRoutes(app: FastifyInstance) {
                  notes, tags, vault_status, review_status, confirmed_fields,
                  reviewed_at, archived_at, created_at, updated_at`,
       [
-        auth.userId,
+        userId,
         env.CURRENT_FY,
         storedDocumentType,
         safeFilename(part.filename),
@@ -1210,13 +1208,13 @@ export async function registerRoutes(app: FastifyInstance) {
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'document_uploaded', JSON.stringify({
+      [userId, 'document_uploaded', JSON.stringify({
         documentType: storedDocumentType,
         selectedDocumentType: documentType,
       })],
     );
     await recordDocumentEvent({
-      userId: auth.userId,
+      userId: userId,
       documentId: inserted.rows[0].id as string,
       eventType: 'upload',
       metadata: {
@@ -1225,11 +1223,11 @@ export async function registerRoutes(app: FastifyInstance) {
       },
     });
     return { document: documentResponse(inserted.rows[0]) };
+    });
   });
 
   app.post('/documents/:id/confirm', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const payload = documentConfirmationSchema.parse(request.body);
@@ -1237,7 +1235,7 @@ export async function registerRoutes(app: FastifyInstance) {
       `select parse_status, parse_summary, document_type
        from tax_documents
        where id = $1 and user_id = $2`,
-      [params.id, auth.userId],
+      [params.id, userId],
     );
     if (!current.rowCount) {
       return reply.code(404).send({ message: 'Document not found' });
@@ -1301,7 +1299,7 @@ export async function registerRoutes(app: FastifyInstance) {
                  reviewed_at, archived_at, created_at, updated_at`,
       [
         params.id,
-        auth.userId,
+        userId,
         JSON.stringify(confirmedSummary),
         JSON.stringify(extractedFields),
         confirmedDocumentType,
@@ -1309,10 +1307,10 @@ export async function registerRoutes(app: FastifyInstance) {
     );
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-      [auth.userId, 'document_fields_confirmed', '{}'],
+      [userId, 'document_fields_confirmed', '{}'],
     );
     await recordDocumentEvent({
-      userId: auth.userId,
+      userId: userId,
       documentId: params.id,
       eventType: 'confirm',
       metadata: {
@@ -1321,11 +1319,11 @@ export async function registerRoutes(app: FastifyInstance) {
       },
     });
     return { document: documentResponse(updated.rows[0]) };
+    });
   });
 
   app.patch('/documents/:id', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const payload = documentPatchSchema.parse(request.body);
@@ -1333,7 +1331,7 @@ export async function registerRoutes(app: FastifyInstance) {
       `select user_label, notes, tags, vault_status, review_status, document_type
        from tax_documents
        where id = $1 and user_id = $2`,
-      [params.id, auth.userId],
+      [params.id, userId],
     );
     if (!current.rowCount) {
       return reply.code(404).send({ message: 'Document not found' });
@@ -1360,7 +1358,7 @@ export async function registerRoutes(app: FastifyInstance) {
                  reviewed_at, archived_at, created_at, updated_at`,
       [
         params.id,
-        auth.userId,
+        userId,
         payload.userLabel === undefined ? row.user_label ?? null : payload.userLabel,
         payload.notes === undefined ? row.notes ?? null : payload.notes,
         JSON.stringify(payload.tags ?? row.tags ?? []),
@@ -1371,7 +1369,7 @@ export async function registerRoutes(app: FastifyInstance) {
       ],
     );
     await recordDocumentEvent({
-      userId: auth.userId,
+      userId: userId,
       documentId: params.id,
       eventType: vaultStatus === 'archived' ? 'archive' : 'review',
       metadata: {
@@ -1381,18 +1379,18 @@ export async function registerRoutes(app: FastifyInstance) {
       },
     });
     return { document: documentResponse(updated.rows[0]) };
+    });
   });
 
   app.get('/documents/:id/download', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const result = await db.query(
       `select original_filename, mime_type, ciphertext, iv, auth_tag
        from tax_documents
        where id = $1 and user_id = $2`,
-      [params.id, auth.userId],
+      [params.id, userId],
     );
     if (!result.rowCount) {
       return reply.code(404).send({ message: 'Document not found' });
@@ -1409,16 +1407,16 @@ export async function registerRoutes(app: FastifyInstance) {
       `attachment; filename="${safeFilename(row.original_filename as string)}"`,
     );
     return reply.send(bytes);
+    });
   });
 
   app.delete('/documents/:id', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const result = await db.query(
       'delete from tax_documents where id = $1 and user_id = $2 returning document_type',
-      [params.id, auth.userId],
+      [params.id, userId],
     );
     if (!result.rowCount) {
       return reply.code(404).send({ message: 'Document not found' });
@@ -1426,13 +1424,13 @@ export async function registerRoutes(app: FastifyInstance) {
     await db.query(
       'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
       [
-        auth.userId,
+        userId,
         'document_deleted',
         JSON.stringify({ documentType: result.rows[0].document_type }),
       ],
     );
     await recordDocumentEvent({
-      userId: auth.userId,
+      userId: userId,
       documentId: null,
       eventType: 'delete',
       metadata: {
@@ -1441,15 +1439,15 @@ export async function registerRoutes(app: FastifyInstance) {
       },
     });
     return reply.code(204).send();
+    });
   });
 
   app.get('/profile', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
 
     const result = await db.query(
       'select * from tax_profiles where user_id = $1 and fy = $2',
-      [auth.userId, env.CURRENT_FY],
+      [userId, env.CURRENT_FY],
     );
     if (!result.rowCount) {
       return { profile: null };
@@ -1493,14 +1491,14 @@ export async function registerRoutes(app: FastifyInstance) {
         donationDeductionRatePercent: row.donation_deduction_rate_percent ?? null,
       },
     };
+    });
   });
 
   app.put(
     '/profile',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const profile = profileSchema.parse(request.body);
       await db.query(
@@ -1556,7 +1554,7 @@ export async function registerRoutes(app: FastifyInstance) {
            donation_deduction_rate_percent = excluded.donation_deduction_rate_percent,
            updated_at = now()`,
         [
-          auth.userId,
+          userId,
           env.CURRENT_FY,
           profile.name,
           profile.email,
@@ -1595,6 +1593,7 @@ export async function registerRoutes(app: FastifyInstance) {
         ],
       );
       return { ok: true };
+      });
     },
   );
 
@@ -1602,16 +1601,16 @@ export async function registerRoutes(app: FastifyInstance) {
     '/tax-results/current',
     readRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const result = await db.query(
         'select payload from tax_results where user_id = $1 and fy = $2',
-        [auth.userId, env.CURRENT_FY],
+        [userId, env.CURRENT_FY],
       );
       return {
         taxResult: result.rowCount ? result.rows[0].payload : null,
       };
+      });
     },
   );
 
@@ -1619,8 +1618,7 @@ export async function registerRoutes(app: FastifyInstance) {
     '/tax-results/current',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const payload = taxResultSchema.parse(request.body);
       await db.query(
@@ -1629,28 +1627,28 @@ export async function registerRoutes(app: FastifyInstance) {
          on conflict (user_id, fy) do update set
            payload = excluded.payload,
            updated_at = now()`,
-        [auth.userId, env.CURRENT_FY, JSON.stringify(payload)],
+        [userId, env.CURRENT_FY, JSON.stringify(payload)],
       );
       return { ok: true };
+      });
     },
   );
 
   app.get('/money-goals', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const result = await db.query(
       `select * from money_goals
        where user_id = $1
        order by updated_at desc
        limit 10`,
-      [auth.userId],
+      [userId],
     );
     return { goals: result.rows.map(moneyGoalResponse) };
+    });
   });
 
   app.post('/spend-map', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const summary = spendMapSchema.parse(request.body);
     await db.query(
       `insert into spend_maps (
@@ -1676,7 +1674,7 @@ export async function registerRoutes(app: FastifyInstance) {
          monthly_trend = excluded.monthly_trend,
          updated_at = now()`,
       [
-        auth.userId,
+        userId,
         summary.windowStart,
         summary.windowEnd,
         summary.generatedAt,
@@ -1694,7 +1692,7 @@ export async function registerRoutes(app: FastifyInstance) {
     // sync just because a push could not be delivered.
     if (summary.monthlyIncome > 0 && summary.monthlySpend > summary.monthlyIncome) {
       const overBy = summary.monthlySpend - summary.monthlyIncome;
-      sendPushToUser(auth.userId, {
+      sendPushToUser(userId, {
         title: 'Spending is ahead of income this month',
         body: `You're about ₹${overBy.toLocaleString('en-IN')} over your detected income. Tap to review.`,
         data: { type: 'spend_overspend', screen: 'spend-map' },
@@ -1703,14 +1701,14 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     return { ok: true };
+    });
   });
 
   // Register (or refresh) this device's FCM token for push notifications.
   // Upserts on the token itself so re-installs / re-logins on the same device
   // move ownership to the current user instead of erroring.
   app.post('/devices', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { fcmToken, platform } = deviceTokenSchema.parse(request.body);
     const encrypted = encryptDocument(Buffer.from(fcmToken, 'utf8'));
     await db.query(
@@ -1727,7 +1725,7 @@ export async function registerRoutes(app: FastifyInstance) {
          platform = excluded.platform,
          last_seen_at = now()`,
       [
-        auth.userId,
+        userId,
         hashDeviceToken(fcmToken),
         encrypted.ciphertext,
         encrypted.iv,
@@ -1736,18 +1734,19 @@ export async function registerRoutes(app: FastifyInstance) {
       ],
     );
     return reply.code(201).send({ ok: true });
+    });
   });
 
   // Unregister a device token (e.g. on sign-out) so it stops receiving push.
   app.delete('/devices', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { fcmToken } = deviceTokenDeleteSchema.parse(request.body);
     await db.query(
       'delete from device_tokens where user_id = $1 and token_fingerprint = $2',
-      [auth.userId, hashDeviceToken(fcmToken)],
+      [userId, hashDeviceToken(fcmToken)],
     );
     return { ok: true };
+    });
   });
 
   // Hybrid categorization fallback: the client parses & categorizes on-device
@@ -1760,8 +1759,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // unconfigured, the budget is spent, or the call fails, the result set is
   // simply short and the client keeps its on-device categories.
   app.post('/spend-map/categorize', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { items } = categorizeRequestSchema.parse(request.body);
 
     const cached = await readMerchantCategories(items.map((item) => item.merchant));
@@ -1788,7 +1786,7 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     if (unresolved.length > 0) {
-      const fresh = await categorizeTransactions(unresolved, { userId: auth.userId });
+      const fresh = await categorizeTransactions(unresolved, { userId: userId });
       if (fresh) {
         results.push(...fresh);
         const merchantById = new Map(
@@ -1804,11 +1802,11 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     return { results };
+    });
   });
 
   app.post('/money-goals', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const goal = moneyGoalSchema.parse(request.body);
     const result = await db.query(
       `insert into money_goals (
@@ -1817,7 +1815,7 @@ export async function registerRoutes(app: FastifyInstance) {
        ) values ($1, $2, $3, $4, $5, $6, $7, $8)
        returning *`,
       [
-        auth.userId,
+        userId,
         goal.name,
         goal.category,
         goal.targetAmount,
@@ -1828,11 +1826,11 @@ export async function registerRoutes(app: FastifyInstance) {
       ],
     );
     return reply.code(201).send({ goal: moneyGoalResponse(result.rows[0]) });
+    });
   });
 
   app.put('/money-goals/:id', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const goal = moneyGoalSchema.parse(request.body);
     const result = await db.query(
@@ -1849,7 +1847,7 @@ export async function registerRoutes(app: FastifyInstance) {
        returning *`,
       [
         id,
-        auth.userId,
+        userId,
         goal.name,
         goal.category,
         goal.targetAmount,
@@ -1867,17 +1865,18 @@ export async function registerRoutes(app: FastifyInstance) {
       });
     }
     return { goal: moneyGoalResponse(result.rows[0]) };
+    });
   });
 
   app.delete('/money-goals/:id', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await db.query(
       'delete from money_goals where id = $1 and user_id = $2',
-      [id, auth.userId],
+      [id, userId],
     );
     return reply.code(204).send();
+    });
   });
 
   app.get('/employers', readRateLimit, async (request) => {
@@ -1897,8 +1896,7 @@ export async function registerRoutes(app: FastifyInstance) {
   });
 
   app.post('/employers', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { name } = employerSubmissionSchema.parse(request.body);
     const normalized = name.toLocaleLowerCase('en-IN').replace(/\s+/g, ' ').trim();
     const result = await db.query(
@@ -1909,41 +1907,38 @@ export async function registerRoutes(app: FastifyInstance) {
          usage_count = employer_catalog.usage_count + 1,
          updated_at = now()
        returning display_name`,
-      [normalized, name, auth.userId],
+      [normalized, name, userId],
     );
     return reply.code(201).send({ employer: result.rows[0].display_name });
+    });
   });
 
   app.get('/user-state', readRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
-    const result = await runUserStateTransaction(
-      auth.userId,
-      (client) => client.query(
+    return withAuthUser(request, reply, async (userId) => {
+    const result = await db.query(
         `select namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
                 client_updated_at
          from user_state
          where user_id = $1
          order by namespace asc`,
-        [auth.userId],
-      ),
-    );
+        [userId],
+      );
     return {
       items: result.rows.map(userStateResponse),
       serverTime: new Date().toISOString(),
     };
+    });
   });
 
   app.put('/user-state/:namespace', userStateWriteRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { namespace } = z.object({
       namespace: userStateNamespaceSchema,
     }).parse(request.params);
     const payload = userStatePayloadSchema.parse(request.body);
     const encrypted = encryptDocument(Buffer.from(payload.payload, 'utf8'));
-    const current = await runUserStateTransaction(auth.userId, async (client) => {
-      const result = await client.query(
+    const current = await (async () => {
+      const result = await db.query(
         `insert into user_state (
            user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
            deleted, client_updated_at, updated_at
@@ -1959,7 +1954,7 @@ export async function registerRoutes(app: FastifyInstance) {
          returning namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
                    client_updated_at`,
         [
-          auth.userId,
+          userId,
           namespace,
           encrypted.ciphertext,
           encrypted.iv,
@@ -1968,30 +1963,28 @@ export async function registerRoutes(app: FastifyInstance) {
         ],
       );
       if (result.rowCount) return result.rows[0];
-      return (await client.query(
+      return (await db.query(
         `select namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted,
                 client_updated_at
          from user_state
          where user_id = $1 and namespace = $2`,
-        [auth.userId, namespace],
+        [userId, namespace],
       )).rows[0];
-    });
+    })();
     return {
       item: userStateResponse(current),
       serverTime: new Date().toISOString(),
     };
+    });
   });
 
   app.delete('/user-state/:namespace', dataRateLimit, async (request, reply) => {
-    const auth = await requireAuth(request, reply);
-    if (!auth) return;
+    return withAuthUser(request, reply, async (userId) => {
     const { namespace } = z.object({
       namespace: userStateNamespaceSchema,
     }).parse(request.params);
     const payload = userStateDeleteSchema.parse(request.body);
-    const result = await runUserStateTransaction(
-      auth.userId,
-      (client) => client.query(
+    const result = await db.query(
         `insert into user_state (
            user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
            deleted, client_updated_at, updated_at
@@ -2006,20 +1999,16 @@ export async function registerRoutes(app: FastifyInstance) {
          where user_state.client_updated_at <= excluded.client_updated_at
          returning namespace, payload_ciphertext, payload_iv, payload_auth_tag,
                    deleted, client_updated_at`,
-        [auth.userId, namespace, new Date(payload.clientUpdatedAt)],
-      ),
-    );
+        [userId, namespace, new Date(payload.clientUpdatedAt)],
+      );
     if (!result.rowCount) {
-      const current = await runUserStateTransaction(
-        auth.userId,
-        (client) => client.query(
+      const current = await db.query(
           `select namespace, payload_ciphertext, payload_iv, payload_auth_tag,
                   deleted, client_updated_at
            from user_state
            where user_id = $1 and namespace = $2`,
-          [auth.userId, namespace],
-        ),
-      );
+          [userId, namespace],
+        );
       return {
         item: userStateResponse(current.rows[0]),
         serverTime: new Date().toISOString(),
@@ -2029,22 +2018,23 @@ export async function registerRoutes(app: FastifyInstance) {
       item: userStateResponse(result.rows[0]),
       serverTime: new Date().toISOString(),
     };
+    });
   });
 
   app.get(
     '/done-gaps/current',
     readRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const result = await db.query(
         'select gap_id from done_gaps where user_id = $1 and fy = $2 order by gap_id asc',
-        [auth.userId, env.CURRENT_FY],
+        [userId, env.CURRENT_FY],
       );
       return {
         gapIds: result.rows.map((row) => row.gap_id),
       };
+      });
     },
   );
 
@@ -2052,23 +2042,23 @@ export async function registerRoutes(app: FastifyInstance) {
     '/done-gaps/current',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const payload = doneGapsSchema.parse(request.body);
       await runSerializableTransaction(async (client) => {
         await client.query(
           'delete from done_gaps where user_id = $1 and fy = $2',
-          [auth.userId, env.CURRENT_FY],
+          [userId, env.CURRENT_FY],
         );
         for (const gapId of payload.gapIds) {
           await client.query(
             'insert into done_gaps (user_id, fy, gap_id) values ($1, $2, $3)',
-            [auth.userId, env.CURRENT_FY, gapId],
+            [userId, env.CURRENT_FY, gapId],
           );
         }
       });
       return { ok: true };
+      });
     },
   );
 
@@ -2076,15 +2066,14 @@ export async function registerRoutes(app: FastifyInstance) {
     '/profile',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
       await runSerializableTransaction(async (client) => {
-        await setUserStateDbContext(client, auth.userId);
-        await client.query('delete from done_gaps where user_id = $1', [auth.userId]);
-        await client.query('delete from tax_profiles where user_id = $1', [auth.userId]);
-        await client.query('delete from tax_results where user_id = $1', [auth.userId]);
-        await client.query('delete from money_goals where user_id = $1', [auth.userId]);
-        await client.query('delete from spend_maps where user_id = $1', [auth.userId]);
+        await setUserDbContext(client, userId);
+        await client.query('delete from done_gaps where user_id = $1', [userId]);
+        await client.query('delete from tax_profiles where user_id = $1', [userId]);
+        await client.query('delete from tax_results where user_id = $1', [userId]);
+        await client.query('delete from money_goals where user_id = $1', [userId]);
+        await client.query('delete from spend_maps where user_id = $1', [userId]);
         const clearedAt = new Date();
         for (const namespace of userStateNamespaces) {
           await client.query(
@@ -2099,10 +2088,10 @@ export async function registerRoutes(app: FastifyInstance) {
                deleted = true,
                client_updated_at = excluded.client_updated_at,
                updated_at = now()`,
-            [auth.userId, namespace, clearedAt],
+            [userId, namespace, clearedAt],
           );
         }
-        await client.query('delete from tax_documents where user_id = $1', [auth.userId]);
+        await client.query('delete from tax_documents where user_id = $1', [userId]);
         await client.query(
           `update user_private_identity
            set pan_ciphertext = null,
@@ -2114,10 +2103,11 @@ export async function registerRoutes(app: FastifyInstance) {
                pan_deleted_at = now(),
                updated_at = now()
            where user_id = $1`,
-          [auth.userId],
+          [userId],
         );
       });
       return reply.code(204).send();
+      });
     },
   );
 
@@ -2125,21 +2115,20 @@ export async function registerRoutes(app: FastifyInstance) {
     '/account',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
       deleteAccountSchema.parse(request.body);
 
-      const anonymousSubjectHash = blindIndex('deleted-user', auth.userId).toString('hex');
+      const anonymousSubjectHash = blindIndex('deleted-user', userId).toString('hex');
       const deletionId = randomUUID();
       const backupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
       const deleted = await runSerializableTransaction(async (client) => {
         await client.query(
           'update auth_refresh_sessions set revoked_at = now() where user_id = $1 and revoked_at is null',
-          [auth.userId],
+          [userId],
         );
         const result = await client.query(
           'delete from app_users where id = $1 returning id',
-          [auth.userId],
+          [userId],
         );
         if (!result.rowCount) return false;
         await client.query(
@@ -2154,6 +2143,7 @@ export async function registerRoutes(app: FastifyInstance) {
         return reply.code(404).send({ message: 'Account not found' });
       }
       return reply.code(204).send();
+      });
     },
   );
 
@@ -2161,15 +2151,15 @@ export async function registerRoutes(app: FastifyInstance) {
     '/events',
     dataRateLimit,
     async (request, reply) => {
-      const auth = await requireAuth(request, reply);
-      if (!auth) return;
+      return withAuthUser(request, reply, async (userId) => {
 
       const payload = eventSchema.parse(request.body);
       await db.query(
         'insert into user_events (user_id, name, metadata) values ($1, $2, $3::jsonb)',
-        [auth.userId, payload.name, JSON.stringify(payload.metadata ?? {})],
+        [userId, payload.name, JSON.stringify(payload.metadata ?? {})],
       );
       return reply.code(204).send();
+      });
     },
   );
 }

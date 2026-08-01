@@ -47,13 +47,6 @@ class SpendInsightsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const ArthDisclosure(
-                label: 'Transaction SMS only, parsed on this device',
-                icon: Icons.lock_outline,
-                detail:
-                    'ARTH reads only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on-device, and the resulting transaction history is encrypted and backed up to your ARTH account.',
-              ),
-              const SizedBox(height: 12),
               _PeriodPicker(
                 selected: state.selectedPeriod,
                 onSelected: (period) =>
@@ -638,18 +631,13 @@ class _EmptyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.account_balance_wallet_outlined,
-              size: 32, color: PaycheckColors.contract),
-          const SizedBox(height: 12),
+              size: 28, color: PaycheckColors.contract),
+          const SizedBox(height: 8),
           Text('Build your spend map', style: PaycheckType.title()),
           const SizedBox(height: 8),
           Text(
-            'From ${period.windowPhrase} of bank and UPI SMS.',
+            '${period.windowPhrase} of bank and UPI transaction SMS.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-          const ArthDisclosure(
-            label: 'What the scan works out',
-            detail:
-                'ARTH detects salary credits and spends, separates internal transfers from real expenses, and estimates what you can realistically save each month.',
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -693,7 +681,17 @@ class _PermissionCard extends StatelessWidget {
                 'Nothing leaves your phone during parsing. If the prompt no longer appears, enable SMS under Settings › Apps › ARTH › Permissions, then try again.',
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: PaycheckColors.ink,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: onRetry,
+              child: const Text('Try again'),
+            ),
+          ),
         ],
       ),
     );
@@ -715,7 +713,17 @@ class _ErrorCard extends StatelessWidget {
           Text(message,
               style: PaycheckType.body(color: PaycheckColors.inkSoft)),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: PaycheckColors.ink,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ),
         ],
       ),
     );
@@ -730,29 +738,113 @@ class _PeriodPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('ANALYSIS WINDOW', style: PaycheckType.utility()),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: SpendScanPeriod.values.map((period) {
-            return ChoiceChip(
-              label: Text(period.pickerLabel),
-              selected: selected == period,
-              onSelected: (_) => onSelected(period),
-            );
-          }).toList(growable: false),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: PaycheckColors.paper,
+        borderRadius: AppRadius.card,
+        border: Border.all(color: PaycheckColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('SCAN SCOPE', style: PaycheckType.utility()),
+              ),
+              const Icon(
+                Icons.lock_outline,
+                size: 14,
+                color: PaycheckColors.inkMuted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'On device',
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 16) / 3;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SpendScanPeriod.values
+                    .map(
+                      (period) => SizedBox(
+                        width: width,
+                        child: _PeriodControl(
+                          period: period,
+                          selected: selected == period,
+                          onTap: () => onSelected(period),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Averages use ${selected.windowPhrase} of transaction SMS.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+          ),
+          const ArthDisclosure(
+            label: 'What ARTH reads',
+            icon: Icons.info_outline,
+            detail:
+                'Only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on this device before encrypted backup to your ARTH account.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodControl extends StatelessWidget {
+  const _PeriodControl({
+    required this.period,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final SpendScanPeriod period;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : PaycheckColors.ink;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${period.pickerLabel} scan window',
+      child: Material(
+        color: selected ? PaycheckColors.ink : PaycheckColors.canvas,
+        borderRadius: AppRadius.control,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.control,
+          child: Container(
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.control,
+              border: Border.all(
+                color: selected ? PaycheckColors.ink : PaycheckColors.border,
+              ),
+            ),
+            child: Text(
+              period.pickerLabel,
+              style: PaycheckType.bodyMedium(color: foreground),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Income and spend averages use SMS from ${selected.windowPhrase}. '
-          '3 months is a useful recent baseline.',
-          style: PaycheckType.utility(color: PaycheckColors.contract),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -796,7 +888,7 @@ class _Insights extends ConsumerWidget {
           _RecalculationNotice(onDismiss: onDismissRecalculationNotice),
           const SizedBox(height: 16),
         ],
-        _SavingsHero(map: map, period: period),
+        _SavingsHero(map: map),
         const SizedBox(height: 16),
         _CoverageEntryCard(map: map),
         const SizedBox(height: 16),
@@ -1684,9 +1776,8 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _SavingsHero extends StatelessWidget {
-  const _SavingsHero({required this.map, required this.period});
+  const _SavingsHero({required this.map});
   final SpendMap map;
-  final SpendScanPeriod period;
   @override
   Widget build(BuildContext context) {
     final unknownIncome = map.monthlyIncome <= 0;
@@ -1748,28 +1839,16 @@ class _SavingsHero extends StatelessWidget {
                           : '$rate% of estimated income (from your payslip)',
               style: PaycheckType.utility(),
             ),
-          if (!unknownIncome) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Based on ${period.windowPhrase} averages. Tap income or spend to edit.',
-              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-            ),
-          ],
           if (map.netMixesSources) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Income is a payslip estimate, spend is from SMS.',
-              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-            ),
             const ArthDisclosure(
-              label: 'Why this balance is approximate',
+              label: 'Why this estimate may change',
               icon: Icons.help_outline,
               detail:
                   'This figure mixes two sources. Rescan after payday so ARTH can detect your salary credit and give an exact number.',
             ),
           ],
           const SizedBox(height: 12),
-          Text(coaching, style: PaycheckType.body()),
+          Text(coaching, style: PaycheckType.bodyStrong()),
         ],
       ),
     );
@@ -2392,23 +2471,18 @@ IconData _iconFor(String category) {
 
 String _coachingLine(SpendMap map) {
   if (map.monthlyIncome <= 0) {
-    return 'No salary credit detected in your SMS yet. Add a salary account or '
-        'rescan after payday to see realistic savings.';
+    return 'Add or confirm income to estimate savings.';
   }
   final rate = map.savingsRate;
   final top = map.topCategories.isNotEmpty ? map.topCategories.first : null;
-  final topLine = top == null
-      ? ''
-      : ' Your biggest lever is ${SpendCategory.label(top.key).toLowerCase()} '
-          '(${money0(top.value)}).';
+  final topCategory = top == null
+      ? 'your largest category'
+      : SpendCategory.label(top.key).toLowerCase();
   if (rate >= 0.3) {
-    return 'Strong — you keep ${(rate * 100).round()}% of income. '
-        'Automate ${money0(map.realisticMonthlySavings)} on payday toward your goal.$topLine';
+    return 'Set aside ${money0(map.realisticMonthlySavings)} on payday.';
   }
   if (rate > 0) {
-    return 'You currently save ${(rate * 100).round()}%. Trimming one category could '
-        'lift this.$topLine';
+    return 'Start with $topCategory to save more.';
   }
-  return 'Spending matches or exceeds detected income. Review your largest '
-      'categories before committing to a goal.$topLine';
+  return 'Review $topCategory before setting a savings goal.';
 }

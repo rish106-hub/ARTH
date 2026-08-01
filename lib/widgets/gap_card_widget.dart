@@ -122,7 +122,7 @@ class GapCardWidget extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Title
-                    Text(gap.title, style: PaycheckType.heading()),
+                    Text(gap.title, style: PaycheckType.h3()),
                     const SizedBox(height: 4),
                     Text(gap.shortDesc, style: PaycheckType.caption()),
                     const SizedBox(height: 12),

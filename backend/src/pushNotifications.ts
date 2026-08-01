@@ -1,6 +1,6 @@
 import { createSign } from 'node:crypto';
 import { env } from './config.js';
-import { db } from './db.js';
+import { db, runAsSystem, withUserContext } from './db.js';
 import { decryptDocument } from './security.js';
 
 type FirebaseCredentials = {
@@ -149,10 +149,10 @@ async function pruneExpiredDeliveryClaims(): Promise<void> {
   if (now - lastClaimsPruneAt < 24 * 60 * 60 * 1000) return;
   lastClaimsPruneAt = now;
   try {
-    await db.query(
+    await runAsSystem(() => db.query(
       `delete from push_delivery_claims
        where created_at < now() - interval '90 days'`,
-    );
+    ));
   } catch (error) {
     lastClaimsPruneAt = 0;
     console.warn('[push] claim cleanup failed', (error as Error).message);
@@ -175,65 +175,68 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   const serviceAccount = getFirebaseCredentials();
   if (!serviceAccount) return;
 
-  const { rows } = await db.query(
-    `select id, token_ciphertext, token_iv, token_auth_tag
-     from device_tokens
-     where user_id = $1`,
-    [userId],
-  );
-  if (rows.length === 0) return;
-
-  let deliveryClaimId: string | null = null;
-  if (payload.dailyDedupeKey) {
-    await pruneExpiredDeliveryClaims();
-    const bucketSql = payload.dedupeDate == null
-      ? 'current_date'
-      : '$3::date';
-    const claim = await db.query(
-      `insert into push_delivery_claims (user_id, delivery_key, bucket_date)
-       values ($1, $2, ${bucketSql})
-       on conflict (user_id, delivery_key, bucket_date) do nothing
-       returning id`,
-      payload.dedupeDate == null
-        ? [userId, payload.dailyDedupeKey]
-        : [userId, payload.dailyDedupeKey, payload.dedupeDate],
+  await withUserContext(userId, async () => {
+    const result = await db.query(
+      `select id, token_ciphertext, token_iv, token_auth_tag
+       from device_tokens
+       where user_id = $1`,
+      [userId],
     );
-    if (claim.rows.length === 0) return;
-    deliveryClaimId = claim.rows[0].id;
-  }
+    const { rows } = result;
+    if (rows.length === 0) return;
 
-  const staleTokenIds: string[] = [];
-  let delivered = 0;
-
-  await Promise.all(rows.map(async (row: {
-    id: string;
-    token_ciphertext: string;
-    token_iv: string;
-    token_auth_tag: string;
-  }) => {
-    try {
-      const token = decryptDocument({
-        ciphertext: row.token_ciphertext,
-        iv: row.token_iv,
-        authTag: row.token_auth_tag,
-      }).toString('utf8');
-      const result = await sendFcmMessage(serviceAccount, token, payload);
-      if (result === 'stale') {
-        staleTokenIds.push(row.id);
-      } else {
-        delivered += 1;
-      }
-    } catch (error) {
-      console.warn('[push] send failed', (error as Error).message);
+    let deliveryClaimId: string | null = null;
+    if (payload.dailyDedupeKey) {
+      await pruneExpiredDeliveryClaims();
+      const bucketSql = payload.dedupeDate == null
+        ? 'current_date'
+        : '$3::date';
+      const claim = await db.query(
+        `insert into push_delivery_claims (user_id, delivery_key, bucket_date)
+         values ($1, $2, ${bucketSql})
+         on conflict (user_id, delivery_key, bucket_date) do nothing
+         returning id`,
+        payload.dedupeDate == null
+          ? [userId, payload.dailyDedupeKey]
+          : [userId, payload.dailyDedupeKey, payload.dedupeDate],
+      );
+      if (claim.rows.length === 0) return;
+      deliveryClaimId = claim.rows[0].id;
     }
-  }));
 
-  if (staleTokenIds.length > 0) {
-    await db.query('delete from device_tokens where id = any($1::uuid[])', [staleTokenIds]);
-  }
-  if (deliveryClaimId && delivered === 0) {
-    await db.query('delete from push_delivery_claims where id = $1', [deliveryClaimId]);
-  }
+    const staleTokenIds: string[] = [];
+    let delivered = 0;
+
+    await Promise.all(rows.map(async (row: {
+      id: string;
+      token_ciphertext: string;
+      token_iv: string;
+      token_auth_tag: string;
+    }) => {
+      try {
+        const token = decryptDocument({
+          ciphertext: row.token_ciphertext,
+          iv: row.token_iv,
+          authTag: row.token_auth_tag,
+        }).toString('utf8');
+        const sendResult = await sendFcmMessage(serviceAccount, token, payload);
+        if (sendResult === 'stale') {
+          staleTokenIds.push(row.id);
+        } else {
+          delivered += 1;
+        }
+      } catch (error) {
+        console.warn('[push] send failed', (error as Error).message);
+      }
+    }));
+
+    if (staleTokenIds.length > 0) {
+      await db.query('delete from device_tokens where id = any($1::uuid[])', [staleTokenIds]);
+    }
+    if (deliveryClaimId && delivered === 0) {
+      await db.query('delete from push_delivery_claims where id = $1', [deliveryClaimId]);
+    }
+  });
 }
 
 function indiaDateParts(now: Date): {
@@ -268,13 +271,13 @@ export async function sendPaydayCloseReminders(
 ): Promise<void> {
   if (!getFirebaseCredentials()) return;
   const { year, month, day, lastDay } = indiaDateParts(now);
-  const result = await db.query(
+  const result = await runAsSystem(() => db.query(
     `select user_id
      from spend_maps
      where salary_credit_day is not null
        and least(salary_credit_day, $1) <= $2`,
     [lastDay, day],
-  );
+  ));
   const monthBucket = [
     year,
     month.toString().padStart(2, '0'),

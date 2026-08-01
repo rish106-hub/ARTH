@@ -73,7 +73,7 @@ class AisGuideScreen extends StatelessWidget {
                           label: 'What ARTH does not do',
                           icon: Icons.lock_outline,
                           detail:
-                              'ARTH never fetches AIS, asks for an income-tax OTP, or stores official statements.',
+                              'ARTH does not fetch AIS or 26AS or request an income-tax OTP. Documents you choose to upload, such as Form 16, are stored in the encrypted server vault.',
                         ),
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
@@ -170,8 +170,7 @@ class _GuideStep extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(number,
-                style: PaycheckType.heading(color: PaycheckColors.gold)),
+            Text(number, style: PaycheckType.h3(color: PaycheckColors.gold)),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

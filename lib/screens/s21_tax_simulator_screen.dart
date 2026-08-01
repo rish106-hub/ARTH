@@ -67,7 +67,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                 insights: ['Loading deterministic tax rules.'],
               ),
               error: (_, __) => RetryErrorState(
-                message: 'Could not check diagnostic status',
+                message: 'Could not check diagnostic status.',
                 onRetry: () => ref.invalidate(completedTaxProfileProvider),
               ),
               data: (complete) {
@@ -101,7 +101,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                     insights: ['Computing current regime comparison.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not load simulator baseline',
+                    message: 'Could not load simulator baseline.',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (current) => ruleSetAsync.when(
@@ -110,7 +110,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                       insights: ['Checking active rule set.'],
                     ),
                     error: (_, __) => RetryErrorState(
-                      message: 'Could not load active tax rules',
+                      message: 'Could not load active tax rules.',
                       onRetry: () => ref.invalidate(activeTaxRuleSetProvider),
                     ),
                     data: (ruleSet) {
@@ -217,7 +217,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('Assumption guardrail',
-                                      style: PaycheckType.heading()),
+                                      style: PaycheckType.h3()),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Nothing changes unless you apply it.',
