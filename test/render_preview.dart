@@ -14,7 +14,10 @@ import 'package:arth/features/spend_completeness/providers/spend_completeness_pr
 import 'package:arth/features/spend_completeness/screens/spend_completeness_screen.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/models/spend_map.dart';
+import 'package:arth/models/money_goal.dart';
+import 'package:arth/providers/money_goal_provider.dart';
 import 'package:arth/screens/s00_auth_screen.dart';
+import 'package:arth/screens/s32_money_goal_screen.dart';
 import 'package:arth/screens/s28_paycheck_setup_screen.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:arth/screens/s30_tax_plan_entry_screen.dart';
@@ -100,6 +103,11 @@ class _FixedSpendCompleteness extends SpendCompletenessNotifier {
   SpendCompletenessState build() => const SpendCompletenessState();
 }
 
+class _FixedMoneyGoals extends MoneyGoalNotifier {
+  @override
+  Future<List<MoneyGoal>> build() async => const [];
+}
+
 final _sampleSpendMap = SpendMap(
   txns: [
     for (final month in [5, 6, 7]) ...[
@@ -182,6 +190,22 @@ Widget _coverageScreen() => ProviderScope(
       ),
     );
 
+Widget _moneyGoalScreen() => ProviderScope(
+      overrides: [
+        moneyGoalProvider.overrideWith(_FixedMoneyGoals.new),
+      ],
+      child: RepaintBoundary(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const MediaQuery(
+            data: MediaQueryData(size: Size(390, 780)),
+            child: MoneyGoalScreen(),
+          ),
+        ),
+      ),
+    );
+
 void main() {
   setUpAll(_loadAnek);
 
@@ -227,6 +251,16 @@ void main() {
     await tester.pumpWidget(_coverageScreen());
     await tester.pumpAndSettle();
     await _shoot(tester, '07_spend_coverage');
+  });
+
+  testWidgets('money goal, entry', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_moneyGoalScreen());
+    await tester.pumpAndSettle();
+    await _shoot(tester, '08_money_goal_entry');
   });
 
   testWidgets('paycheck home, sample data', (tester) async {

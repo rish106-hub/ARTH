@@ -133,6 +133,7 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
     final effectiveIncome = income.monthlyIncome;
     final projection =
         projectGoal(goal: _draft(), monthlyNetPay: effectiveIncome);
+    final hasTarget = _number(_target) > 0;
 
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
@@ -155,16 +156,19 @@ class _MoneyGoalScreenState extends ConsumerState<MoneyGoalScreen> {
               const SizedBox(height: 8),
               Text(
                 income.hasIncome
-                    ? 'Using ${money0(income.monthlyIncome)} monthly from ${income.sourceLabel.toLowerCase()}. This is the same figure shown on Home and Spend map.'
-                    : 'Add income on Home or build your spend map so ARTH can test this goal.',
+                    ? '${money0(income.monthlyIncome)} monthly · ${income.sourceLabel}'
+                    : 'Add income to test this goal.',
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 20),
-              _ProjectionBand(
-                projection: projection,
-                hasPay: effectiveIncome > 0,
-              ),
-              const SizedBox(height: 24),
+              if (hasTarget) ...[
+                const SizedBox(height: 20),
+                _ProjectionBand(
+                  projection: projection,
+                  hasPay: effectiveIncome > 0,
+                ),
+                const SizedBox(height: 24),
+              ] else
+                const SizedBox(height: 24),
               Text('Goal', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               TextFormField(
