@@ -47,13 +47,6 @@ class SpendInsightsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const ArthDisclosure(
-                label: 'Transaction SMS only, parsed on this device',
-                icon: Icons.lock_outline,
-                detail:
-                    'ARTH reads only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on-device, and the resulting transaction history is encrypted and backed up to your ARTH account.',
-              ),
-              const SizedBox(height: 12),
               _PeriodPicker(
                 selected: state.selectedPeriod,
                 onSelected: (period) =>
@@ -750,28 +743,113 @@ class _PeriodPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('ANALYSIS WINDOW', style: PaycheckType.utility()),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: SpendScanPeriod.values.map((period) {
-            return ChoiceChip(
-              label: Text(period.pickerLabel),
-              selected: selected == period,
-              onSelected: (_) => onSelected(period),
-            );
-          }).toList(growable: false),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: PaycheckColors.paper,
+        borderRadius: AppRadius.card,
+        border: Border.all(color: PaycheckColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('SCAN SCOPE', style: PaycheckType.utility()),
+              ),
+              const Icon(
+                Icons.lock_outline,
+                size: 14,
+                color: PaycheckColors.inkMuted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'On device',
+                style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 16) / 3;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SpendScanPeriod.values
+                    .map(
+                      (period) => SizedBox(
+                        width: width,
+                        child: _PeriodControl(
+                          period: period,
+                          selected: selected == period,
+                          onTap: () => onSelected(period),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Averages use ${selected.windowPhrase} of transaction SMS.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+          ),
+          const ArthDisclosure(
+            label: 'What ARTH reads',
+            icon: Icons.info_outline,
+            detail:
+                'Only bank and UPI transaction SMS. Personal messages are ignored. Parsing stays on this device before encrypted backup to your ARTH account.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodControl extends StatelessWidget {
+  const _PeriodControl({
+    required this.period,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final SpendScanPeriod period;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : PaycheckColors.ink;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${period.pickerLabel} scan window',
+      child: Material(
+        color: selected ? PaycheckColors.ink : PaycheckColors.canvas,
+        borderRadius: AppRadius.control,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.control,
+          child: Container(
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.control,
+              border: Border.all(
+                color: selected ? PaycheckColors.ink : PaycheckColors.border,
+              ),
+            ),
+            child: Text(
+              period.pickerLabel,
+              style: PaycheckType.bodyMedium(color: foreground),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Averages use SMS from ${selected.windowPhrase}.',
-          style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-        ),
-      ],
+      ),
     );
   }
 }

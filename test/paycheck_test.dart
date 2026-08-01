@@ -50,7 +50,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('MONTHLY PLANNING INCOME'), findsOneWidget);
+    expect(find.text('Planning income'), findsOneWidget);
     expect(find.textContaining('Confirmed payslip net'), findsOneWidget);
     expect(find.byKey(const Key('paycheck_claimable_amount')), findsOneWidget);
     expect(find.byKey(const Key('open_monthly_close')), findsOneWidget);
@@ -90,7 +90,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('MONTHLY PLANNING INCOME'));
+    await tester.tap(find.text('Planning income'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, 'Primary monthly income'),

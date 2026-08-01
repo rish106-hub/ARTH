@@ -7,6 +7,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:arth/providers/spend_map_provider.dart';
+import 'package:arth/providers/paycheck_provider.dart';
+import 'package:arth/models/paycheck.dart';
+import 'package:arth/screens/s29_paycheck_shell_screen.dart';
 import 'package:arth/screens/s33_spend_insights_screen.dart';
 import 'package:arth/theme/app_theme.dart';
 import 'package:arth/theme/paycheck_theme.dart';
@@ -78,6 +81,11 @@ class _FixedSpendMap extends SpendMapNotifier {
   SpendMapState build() => _fixed;
 }
 
+class _SamplePaycheck extends PaycheckNotifier {
+  @override
+  PaycheckState build() => demoPaycheck;
+}
+
 Widget _screen(SpendMapState state, {double height = 780}) {
   return ProviderScope(
     overrides: [
@@ -119,6 +127,27 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _shoot(tester, '05_spend_permission');
+  });
+
+  testWidgets('paycheck home, sample data', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '06_paycheck_home');
   });
 
   Future<void> spendCard(
