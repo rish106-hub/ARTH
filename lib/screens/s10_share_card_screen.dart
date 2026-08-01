@@ -67,7 +67,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
           ],
         ),
         error: (_, __) => RetryErrorState(
-          message: 'Could not prepare your share card.',
+          message: 'Could not prepare your share card',
           onRetry: () => ref.invalidate(taxResultProvider),
         ),
         data: (result) {
@@ -189,7 +189,7 @@ class _ShareCard extends StatelessWidget {
               children: [
                 Text(
                   'ARTH',
-                  style: PaycheckType.h3(
+                  style: PaycheckType.heading(
                     color: PaycheckColors.gold,
                   ).copyWith(fontSize: 20, letterSpacing: 0),
                 ),

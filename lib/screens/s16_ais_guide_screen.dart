@@ -170,7 +170,8 @@ class _GuideStep extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(number, style: PaycheckType.h3(color: PaycheckColors.gold)),
+            Text(number,
+                style: PaycheckType.heading(color: PaycheckColors.gold)),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

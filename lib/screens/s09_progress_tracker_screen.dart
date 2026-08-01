@@ -41,7 +41,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
         error: (error, __) => isIncompleteTaxProfileError(error)
             ? _ProgressEmptyState(documentPercent: documentPercent)
             : RetryErrorState(
-                message: 'Could not load your progress.',
+                message: 'Could not load your progress',
                 onRetry: () => ref.invalidate(taxResultProvider),
               ),
         data: (result) {
@@ -73,7 +73,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // Key deadlines
-                      Text('Key Deadlines', style: PaycheckType.h3()),
+                      Text('Key Deadlines', style: PaycheckType.heading()),
                       const SizedBox(height: 12),
                       const _DeadlineTimeline(),
                       const SizedBox(height: 24),
@@ -82,7 +82,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // Gap status grid
-                      Text('Gap Status', style: PaycheckType.h3()),
+                      Text('Gap Status', style: PaycheckType.heading()),
                       const SizedBox(height: 12),
                       ...gaps.map((gap) {
                         final done = doneMap[gap.id] ?? false;
@@ -149,7 +149,7 @@ class _ReadinessProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Filing readiness', style: PaycheckType.h3()),
+          Text('Filing readiness', style: PaycheckType.heading()),
           const SizedBox(height: 8),
           Text(
             'Document checklist is $documentPercent% ready.',
@@ -218,7 +218,7 @@ class _FYTimeline extends ConsumerWidget {
               Expanded(
                 child: Text(
                   activeYear.displayLabel,
-                  style: PaycheckType.h3(),
+                  style: PaycheckType.heading(),
                 ),
               ),
               const SizedBox(width: 8),

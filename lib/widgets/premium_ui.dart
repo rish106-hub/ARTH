@@ -718,6 +718,79 @@ class _PremiumSkeletonState extends State<PremiumSkeleton>
   }
 }
 
+/// An empty slot *inside* a screen that still has other content — a section
+/// with nothing in it yet, not a screen with nothing in it.
+///
+/// [ArthStatePanel] is the whole-screen answer and is wrong here: a centred
+/// panel in the middle of a list reads as an error. This is the in-flow answer,
+/// and exists because the three places that needed one had each invented their
+/// own — one on muted grey with a circled icon, one on paper with a border and
+/// no icon at all, one on tinted blue with a trailing button.
+class ArthInlineEmpty extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  /// Optional second line. Omit it when the title says everything.
+  final String? message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const ArthInlineEmpty({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: PaycheckColors.paper,
+        borderRadius: AppRadius.card,
+        border: Border.all(color: PaycheckColors.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: PaycheckColors.canvas,
+              borderRadius: AppRadius.control,
+            ),
+            child: Icon(icon, size: 20, color: PaycheckColors.inkSoft),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: PaycheckType.bodyMedium()),
+                if (message != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    message!,
+                    style: PaycheckType.caption(color: PaycheckColors.inkSoft),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(width: 8),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class ArthStatePanel extends StatelessWidget {
   final IconData icon;
   final String title;

@@ -321,7 +321,7 @@ class _NextActionCard extends StatelessWidget {
                   'Opportunity ${formatRupees(gap.gapAmount)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: PaycheckType.h3(color: PaycheckColors.gold),
+                  style: PaycheckType.heading(color: PaycheckColors.gold),
                 ),
               ),
               ElevatedButton(
@@ -360,7 +360,7 @@ class _RegimeInsightCard extends StatelessWidget {
                   '$regime regime saves ${formatRupeesCompact(result.regimeSavings.round())}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: PaycheckType.h3(),
+                  style: PaycheckType.heading(),
                 ),
               ],
             ),
@@ -400,7 +400,7 @@ class _FutureModuleTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: PaycheckType.h3()),
+                Text(title, style: PaycheckType.heading()),
                 const SizedBox(height: 4),
                 Text(
                   body,

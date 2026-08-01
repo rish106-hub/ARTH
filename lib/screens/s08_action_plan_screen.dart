@@ -52,7 +52,7 @@ class ActionPlanScreen extends ConsumerWidget {
         error: (error, __) => isIncompleteTaxProfileError(error)
             ? const _ActionPlanEmptyState()
             : RetryErrorState(
-                message: 'Could not load your action plan.',
+                message: 'Could not load your action plan',
                 onRetry: () => ref.invalidate(taxResultProvider),
               ),
         data: (result) {
@@ -377,7 +377,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(title, style: PaycheckType.h3()),
+          Text(title, style: PaycheckType.heading()),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -56,7 +56,7 @@ class TaxDossierScreen extends ConsumerWidget {
                     insights: ['Summarising your tax readiness.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not load your Tax Dossier.',
+                    message: 'Could not load your Tax Dossier',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (result) {
