@@ -768,9 +768,8 @@ class _PeriodPicker extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Income and spend averages use SMS from ${selected.windowPhrase}. '
-          '3 months is a useful recent baseline.',
-          style: PaycheckType.utility(color: PaycheckColors.contract),
+          'Averages use SMS from ${selected.windowPhrase}.',
+          style: PaycheckType.utility(color: PaycheckColors.inkSoft),
         ),
       ],
     );

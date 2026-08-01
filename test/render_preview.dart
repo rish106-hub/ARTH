@@ -6,12 +6,15 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:arth/providers/spend_map_provider.dart';
+import 'package:arth/screens/s33_spend_insights_screen.dart';
 import 'package:arth/theme/app_theme.dart';
 import 'package:arth/theme/paycheck_theme.dart';
 import 'package:arth/widgets/premium_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _loadAnek() async {
@@ -64,8 +67,59 @@ Widget _frame(Widget child, {double width = 390, double height = 450}) {
   );
 }
 
+/// Pins the spend map to a fixed state so a screen state can be rendered
+/// without an inbox, a network, or a device.
+class _FixedSpendMap extends SpendMapNotifier {
+  _FixedSpendMap(this._fixed);
+
+  final SpendMapState _fixed;
+
+  @override
+  SpendMapState build() => _fixed;
+}
+
+Widget _screen(SpendMapState state, {double height = 780}) {
+  return ProviderScope(
+    overrides: [
+      spendMapProvider.overrideWith(() => _FixedSpendMap(state)),
+    ],
+    child: RepaintBoundary(
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, height)),
+          child: const SpendInsightsScreen(),
+        ),
+      ),
+    ),
+  );
+}
+
 void main() {
   setUpAll(_loadAnek);
+
+  testWidgets('spend map, empty state', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_screen(const SpendMapState()));
+    await tester.pumpAndSettle();
+    await _shoot(tester, '04_spend_empty');
+  });
+
+  testWidgets('spend map, permission denied', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _screen(const SpendMapState(permissionDenied: true)),
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '05_spend_permission');
+  });
 
   Future<void> spendCard(
     WidgetTester tester,

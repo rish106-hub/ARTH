@@ -83,6 +83,30 @@ class AppTheme {
         titleTextStyle:
             baseTextTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
       ),
+      // Material 3 defaults every button to a stadium border, so a screen that
+      // reached for FilledButton got a pill while one that used AppButtons got
+      // a 12pt corner. Same screen, same role, two different shapes. All four
+      // button types take the control radius here so the app has one answer.
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.control),
+        ),
+      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.gold,
         inactiveTrackColor: AppColors.bgSurface,
