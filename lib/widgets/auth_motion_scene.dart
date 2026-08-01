@@ -43,7 +43,7 @@ class _AuthMotionSceneState extends State<AuthMotionScene>
         child: SizedBox(
           key: ValueKey(widget.isSignUp),
           width: double.infinity,
-          height: 164,
+          height: 144,
           child: AnimatedBuilder(
             animation: animation,
             builder: (context, _) => CustomPaint(

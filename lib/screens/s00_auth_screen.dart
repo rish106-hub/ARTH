@@ -191,9 +191,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final headline = _isSignUp ? 'Know what reached you.' : 'Welcome back.';
+    final headline = _isSignUp ? 'Your pay, in view.' : 'Welcome back.';
     final subhead = _isSignUp
-        ? 'Keep your offer letter, payslips, and confirmed pay in one private record.'
+        ? 'Offer letters, payslips, and confirmed pay. Kept private.'
         : 'Sign in to continue reviewing your pay evidence.';
 
     return ArthScaffold(
@@ -216,17 +216,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     Text(
                       headline,
                       style: PaycheckType.h1().copyWith(
-                        fontSize: 36,
+                        fontSize: 32,
                         height: 1.04,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       subhead,
                       style: PaycheckType.body(
                           color: PaycheckColors.textSecondary),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
                     Form(
                       key: _formKey,
                       child: Column(
