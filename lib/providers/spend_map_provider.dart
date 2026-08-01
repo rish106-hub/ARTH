@@ -370,7 +370,11 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     // Runs after correlation so it can see which bills were classed as internal.
     final reconciled = const CardSpendIntegrity().apply(correlated);
 
-    final map = _buildMap(reconciled, since);
+    // Balances come from the same messages, but are read separately: a stated
+    // balance is a position, not a movement, and the message that carries it is
+    // usually also reporting a payment that is already counted.
+    final map =
+        _buildMap(reconciled, since).withBalances(_parser.parseBalances(raw));
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(map: _applyUserContext(map), loading: false);
     _bridgeSalarySms(state.map);
