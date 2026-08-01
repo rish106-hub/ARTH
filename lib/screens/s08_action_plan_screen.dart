@@ -52,7 +52,7 @@ class ActionPlanScreen extends ConsumerWidget {
         error: (error, __) => isIncompleteTaxProfileError(error)
             ? const _ActionPlanEmptyState()
             : RetryErrorState(
-                message: 'Could not load your action plan.',
+                message: 'Could not load your action plan',
                 onRetry: () => ref.invalidate(taxResultProvider),
               ),
         data: (result) {

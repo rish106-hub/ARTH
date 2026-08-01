@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
+import '../../../widgets/premium_ui.dart';
 import '../models/recovery_models.dart';
 import '../providers/recovery_provider.dart';
 
@@ -93,8 +94,7 @@ class _RecoveryBody extends ConsumerWidget {
           const SizedBox(height: 12),
           if (state.claimCases.isEmpty)
             const _EmptyCard(
-              text:
-                  'No mismatch or claimable benefit found in confirmed pay data.',
+              text: 'No mismatch found in confirmed pay data',
             )
           else
             ...state.claimCases.map(
@@ -116,7 +116,7 @@ class _RecoveryBody extends ConsumerWidget {
           const SizedBox(height: 12),
           if (state.benefits.isEmpty)
             const _EmptyCard(
-              text: 'Add an offer letter to build a benefit ledger.',
+              text: 'Add an offer letter to build a benefit ledger',
             )
           else
             ...state.benefits.map(
@@ -132,7 +132,7 @@ class _RecoveryBody extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           if (state.history.isEmpty)
-            const _EmptyCard(text: 'No confirmed monthly snapshot yet.')
+            const _EmptyCard(text: 'No confirmed monthly snapshot yet')
           else
             ...state.history.asMap().entries.map(
                   (entry) => _HistoryCard(
@@ -721,14 +721,9 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: PaycheckColors.paper,
-        border: Border.all(color: PaycheckColors.line),
-        borderRadius: AppRadius.card,
-      ),
-      child: Text(text, style: PaycheckType.body()),
+    return ArthInlineEmpty(
+      icon: Icons.inbox_outlined,
+      title: text,
     );
   }
 }

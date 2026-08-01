@@ -1460,43 +1460,10 @@ class _EmptyUploads extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: PaycheckColors.bgSurface,
-        borderRadius: AppRadius.card,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              color: PaycheckColors.bgCard,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.folder_open_outlined,
-              color: PaycheckColors.gold,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('No uploads yet', style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 4),
-                Text(
-                  'Use the upload icon beside any document to begin.',
-                  style:
-                      PaycheckType.caption(color: PaycheckColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return const ArthInlineEmpty(
+      icon: Icons.folder_open_outlined,
+      title: 'No uploads yet',
+      message: 'Use the upload icon beside any document to begin.',
     );
   }
 }

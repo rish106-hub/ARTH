@@ -41,7 +41,7 @@ class ProgressTrackerScreen extends ConsumerWidget {
         error: (error, __) => isIncompleteTaxProfileError(error)
             ? _ProgressEmptyState(documentPercent: documentPercent)
             : RetryErrorState(
-                message: 'Could not load your progress.',
+                message: 'Could not load your progress',
                 onRetry: () => ref.invalidate(taxResultProvider),
               ),
         data: (result) {

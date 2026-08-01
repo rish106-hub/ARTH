@@ -10,6 +10,8 @@ import '../../../providers/paycheck_provider.dart';
 import '../../../providers/tax_document_provider.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
+import '../../../widgets/premium_ui.dart';
+import '../../../widgets/retry_error_state.dart';
 import '../models/recovery_models.dart';
 import '../providers/recovery_provider.dart';
 import '../services/claim_pack_service.dart';
@@ -49,16 +51,21 @@ class _ClaimPackScreenState extends ConsumerState<ClaimPackScreen> {
         title: Text('Prepare claim', style: PaycheckType.heading()),
       ),
       body: recovery.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: 'Claim data could not be loaded.',
+        loading: () => const ArthLoadingPanel(
+          title: 'Opening claim',
+          insights: ['Gathering the evidence you selected.'],
+        ),
+        error: (error, _) => RetryErrorState(
+          message: 'Claim data could not be loaded',
           onRetry: () => ref.invalidate(recoveryProvider),
         ),
         data: (state) {
           final claim = _findClaim(state);
           if (claim == null) {
-            return const _ErrorState(
-              message: 'This claim item is no longer available.',
+            return const ArthStatePanel(
+              icon: Icons.inventory_2_outlined,
+              title: 'This claim is no longer available',
+              message: 'It may have been resolved or removed.',
             );
           }
           if (!_initialized) {
@@ -67,9 +74,12 @@ class _ClaimPackScreenState extends ConsumerState<ClaimPackScreen> {
             _selected.addAll(claim.selectedEvidenceIds);
           }
           return documents.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => _ErrorState(
-              message: 'Documents could not be loaded.',
+            loading: () => const ArthLoadingPanel(
+              title: 'Loading documents',
+              insights: ['Checking what you have already uploaded.'],
+            ),
+            error: (error, _) => RetryErrorState(
+              message: 'Documents could not be loaded',
               onRetry: () => ref.read(taxDocumentProvider.notifier).refresh(),
             ),
             data: (docs) => _ClaimPackBody(
@@ -240,7 +250,13 @@ class _ClaimPackBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (documents.isEmpty)
-            _EmptyEvidence(onAdd: () => context.push('/documents'))
+            ArthInlineEmpty(
+              icon: Icons.add_to_drive_outlined,
+              title: 'No evidence yet',
+              message: 'Add an offer letter, payslip, bill or receipt first.',
+              actionLabel: 'Add',
+              onAction: () => context.push('/documents'),
+            )
           else
             ...documents.asMap().entries.map(
                   (entry) => _EvidenceChoice(
@@ -411,64 +427,6 @@ class _EvidenceChoice extends StatelessWidget {
         subtitle: Text(
           '${document.documentType} · ${document.parseStatusLabel}',
           style: PaycheckType.utility(),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyEvidence extends StatelessWidget {
-  const _EmptyEvidence({required this.onAdd});
-
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: PaycheckColors.contractSoft,
-        borderRadius: AppRadius.card,
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.add_to_drive_outlined),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Add an offer letter, payslip, bill, or receipt first.',
-              style: PaycheckType.body(),
-            ),
-          ),
-          TextButton(onPressed: onAdd, child: const Text('Add')),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, this.onRetry});
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: PaycheckType.body(),
-            ),
-            if (onRetry != null)
-              TextButton(onPressed: onRetry, child: const Text('Try again')),
-          ],
         ),
       ),
     );

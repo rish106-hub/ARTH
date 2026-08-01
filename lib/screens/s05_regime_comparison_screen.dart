@@ -34,7 +34,7 @@ class RegimeComparisonScreen extends ConsumerWidget {
           ],
         ),
         error: (_, __) => RetryErrorState(
-          message: 'Could not load your regime comparison.',
+          message: 'Could not load your regime comparison',
           onRetry: () => ref.invalidate(taxResultProvider),
         ),
         data: (result) => _RegimeContent(result: result),

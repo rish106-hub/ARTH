@@ -67,7 +67,7 @@ class _ShareCardScreenState extends ConsumerState<ShareCardScreen> {
           ],
         ),
         error: (_, __) => RetryErrorState(
-          message: 'Could not prepare your share card.',
+          message: 'Could not prepare your share card',
           onRetry: () => ref.invalidate(taxResultProvider),
         ),
         data: (result) {

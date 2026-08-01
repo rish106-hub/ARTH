@@ -54,7 +54,7 @@ class TaxStoryScreen extends ConsumerWidget {
                 insights: ['Preparing your summary.'],
               ),
               error: (_, __) => RetryErrorState(
-                message: 'Could not check diagnostic status.',
+                message: 'Could not check diagnostic status',
                 onRetry: () => ref.invalidate(completedTaxProfileProvider),
               ),
               data: (complete) {
@@ -75,7 +75,7 @@ class TaxStoryScreen extends ConsumerWidget {
                     insights: ['Summarising readiness and next actions.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not load your Tax Story.',
+                    message: 'Could not load your Tax Story',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (result) {

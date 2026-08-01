@@ -44,7 +44,7 @@ class DeductionCardsScreen extends ConsumerWidget {
           ],
         ),
         error: (_, __) => RetryErrorState(
-          message: 'Could not load your tax gaps.',
+          message: 'Could not load your tax gaps',
           onRetry: () => ref.invalidate(taxResultProvider),
         ),
         data: (result) {
@@ -204,32 +204,13 @@ class _EmptyGapsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.verified_outlined,
-              size: 64,
-              color: PaycheckColors.gold,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No gaps found!',
-              style: PaycheckType.h2(color: PaycheckColors.gold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Your deductions appear fully optimised. Consider reviewing in old regime.',
-              style: PaycheckType.body(color: PaycheckColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return const ArthStatePanel(
+      icon: Icons.verified_outlined,
+      title: 'No gaps found',
+      message: 'Your deductions look fully optimised.',
+      detail:
+          'Worth a second look in the old regime, where some deductions only apply there.',
+      detailLabel: 'One thing to check',
     );
   }
 }
