@@ -888,7 +888,7 @@ class _Insights extends ConsumerWidget {
           _RecalculationNotice(onDismiss: onDismissRecalculationNotice),
           const SizedBox(height: 16),
         ],
-        _SavingsHero(map: map, period: period),
+        _SavingsHero(map: map),
         const SizedBox(height: 16),
         _CoverageEntryCard(map: map),
         const SizedBox(height: 16),
@@ -1776,9 +1776,8 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _SavingsHero extends StatelessWidget {
-  const _SavingsHero({required this.map, required this.period});
+  const _SavingsHero({required this.map});
   final SpendMap map;
-  final SpendScanPeriod period;
   @override
   Widget build(BuildContext context) {
     final unknownIncome = map.monthlyIncome <= 0;
@@ -1840,28 +1839,16 @@ class _SavingsHero extends StatelessWidget {
                           : '$rate% of estimated income (from your payslip)',
               style: PaycheckType.utility(),
             ),
-          if (!unknownIncome) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Based on ${period.windowPhrase} averages. Tap income or spend to edit.',
-              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-            ),
-          ],
           if (map.netMixesSources) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Income is a payslip estimate, spend is from SMS.',
-              style: PaycheckType.utility(color: PaycheckColors.inkSoft),
-            ),
             const ArthDisclosure(
-              label: 'Why this balance is approximate',
+              label: 'Why this estimate may change',
               icon: Icons.help_outline,
               detail:
                   'This figure mixes two sources. Rescan after payday so ARTH can detect your salary credit and give an exact number.',
             ),
           ],
           const SizedBox(height: 12),
-          Text(coaching, style: PaycheckType.body()),
+          Text(coaching, style: PaycheckType.bodyStrong()),
         ],
       ),
     );
@@ -2484,23 +2471,18 @@ IconData _iconFor(String category) {
 
 String _coachingLine(SpendMap map) {
   if (map.monthlyIncome <= 0) {
-    return 'No salary credit detected in your SMS yet. Add a salary account or '
-        'rescan after payday to see realistic savings.';
+    return 'Add or confirm income to estimate savings.';
   }
   final rate = map.savingsRate;
   final top = map.topCategories.isNotEmpty ? map.topCategories.first : null;
-  final topLine = top == null
-      ? ''
-      : ' Your biggest lever is ${SpendCategory.label(top.key).toLowerCase()} '
-          '(${money0(top.value)}).';
+  final topCategory = top == null
+      ? 'your largest category'
+      : SpendCategory.label(top.key).toLowerCase();
   if (rate >= 0.3) {
-    return 'Strong — you keep ${(rate * 100).round()}% of income. '
-        'Automate ${money0(map.realisticMonthlySavings)} on payday toward your goal.$topLine';
+    return 'Set aside ${money0(map.realisticMonthlySavings)} on payday.';
   }
   if (rate > 0) {
-    return 'You currently save ${(rate * 100).round()}%. Trimming one category could '
-        'lift this.$topLine';
+    return 'Start with $topCategory to save more.';
   }
-  return 'Spending matches or exceeds detected income. Review your largest '
-      'categories before committing to a goal.$topLine';
+  return 'Review $topCategory before setting a savings goal.';
 }

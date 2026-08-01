@@ -10,6 +10,7 @@ import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
 import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/models/paycheck.dart';
+import 'package:arth/models/spend_map.dart';
 import 'package:arth/screens/s00_auth_screen.dart';
 import 'package:arth/screens/s28_paycheck_setup_screen.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
@@ -91,6 +92,51 @@ class _SamplePaycheck extends PaycheckNotifier {
   PaycheckState build() => demoPaycheck;
 }
 
+final _sampleSpendMap = SpendMap(
+  txns: [
+    for (final month in [5, 6, 7]) ...[
+      FinanceTxn(
+        amount: 52000,
+        direction: TxnDirection.credit,
+        date: DateTime(2026, month, 1),
+        category: SpendCategory.other,
+        isSalary: true,
+        sender: 'VM-ACME',
+      ),
+      FinanceTxn(
+        amount: 18000,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 3),
+        category: SpendCategory.rent,
+        isSalary: false,
+        merchant: 'Landlord',
+        sender: 'VM-HDFC',
+      ),
+      FinanceTxn(
+        amount: 7200,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 9),
+        category: SpendCategory.food,
+        isSalary: false,
+        merchant: 'Zepto',
+        sender: 'VM-HDFC',
+      ),
+      FinanceTxn(
+        amount: 3400,
+        direction: TxnDirection.debit,
+        date: DateTime(2026, month, 14),
+        category: SpendCategory.transport,
+        isSalary: false,
+        merchant: 'Uber',
+        sender: 'VM-HDFC',
+      ),
+    ],
+  ],
+  windowStart: DateTime(2026, 5, 1),
+  windowEnd: DateTime(2026, 7, 28),
+  generatedAt: DateTime(2026, 7, 28),
+);
+
 Widget _screen(SpendMapState state, {double height = 780}) {
   return ProviderScope(
     overrides: [
@@ -132,6 +178,18 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _shoot(tester, '05_spend_permission');
+  });
+
+  testWidgets('spend map, populated', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _screen(SpendMapState(map: _sampleSpendMap)),
+    );
+    await tester.pumpAndSettle();
+    await _shoot(tester, '06_spend_populated');
   });
 
   testWidgets('paycheck home, sample data', (tester) async {
