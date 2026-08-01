@@ -145,6 +145,28 @@ void main() {
       }
     });
 
+    test('a stated balance never becomes spend or income', () {
+      // The balance is a position, and the message carrying it is usually
+      // reporting a payment that is already counted. Reading it as a movement
+      // would double-count that payment.
+      const parser = FinanceMessageParser();
+      for (final fixture in smsFixtures) {
+        final balances = parser.parseBalances([
+          for (final m in fixture.messages)
+            (id: null, sender: m.sender, body: m.body, date: m.date),
+        ]);
+        if (balances.isEmpty) continue;
+        final map = run(fixture);
+        for (final balance in balances) {
+          expect(
+            map.txns.any((t) => t.amount == balance.amount),
+            isFalse,
+            reason: 'balance ${balance.amount} leaked into ${fixture.name}',
+          );
+        }
+      }
+    });
+
     test('amounts are always positive', () {
       for (final fixture in smsFixtures) {
         final map = run(fixture);

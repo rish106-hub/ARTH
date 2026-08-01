@@ -48,6 +48,42 @@ class SmsFixture {
 
 final List<SmsFixture> smsFixtures = [
   SmsFixture(
+    name: 'balance stated on a spend alert',
+    note: 'Banks put the resulting balance at the end of most alerts. It must '
+        'not be read as a second payment, and must not replace the amount.',
+    messages: [
+      _sms(
+        'VM-HDFCBK',
+        'Sent Rs.120.00 From HDFC Bank A/C x5678 To ZEPTO On 12/08/26 '
+            'Avl Bal Rs 12,345.67',
+        DateTime(2026, 8, 12),
+      ),
+      _sms(
+        'VM-HDFCBK',
+        'Sent Rs.880.00 From HDFC Bank A/C x5678 To BIGBASKET On 15/08/26 '
+            'Avl Bal Rs 11,465.67',
+        DateTime(2026, 8, 15),
+      ),
+    ],
+    expectedSpend: 1000,
+    expectedSalary: 0,
+  ),
+  SmsFixture(
+    name: 'credit card outstanding is not a balance',
+    note: 'An outstanding is money owed, not money held. Reading it as a '
+        'balance would inflate what the user believes they have.',
+    messages: [
+      _sms(
+        'VM-HDFCBK',
+        'Your HDFC Credit Card ending 4321 has an outstanding bal of Rs 25,000 '
+            'due on 05/09/26',
+        DateTime(2026, 8, 20),
+      ),
+    ],
+    expectedSpend: 0,
+    expectedSalary: 0,
+  ),
+  SmsFixture(
     name: 'HDFC UPI spend',
     note: 'The dominant HDFC format. "Sent" with no "to" after it, which the '
         'old direction word list missed entirely.',
