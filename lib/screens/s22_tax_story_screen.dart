@@ -234,7 +234,7 @@ class TaxStoryScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(next.title,
-                                            style: PaycheckType.h3()),
+                                            style: PaycheckType.heading()),
                                         const SizedBox(height: 4),
                                         Text(
                                           next.body,

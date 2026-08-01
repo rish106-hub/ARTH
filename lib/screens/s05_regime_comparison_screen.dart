@@ -194,11 +194,11 @@ class _RegimeContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('General Guidance by Income', style: PaycheckType.h3()),
+              Text('General Guidance by Income', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               const _IncomeGuidance(),
               const SizedBox(height: 24),
-              Text('Old Regime Deduction Stack', style: PaycheckType.h3()),
+              Text('Old Regime Deduction Stack', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               _DeductionBreakdown(result: result),
             ],
@@ -226,7 +226,7 @@ class _AssumptionsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Calculation assumptions', style: PaycheckType.h3()),
+          Text('Calculation assumptions', style: PaycheckType.heading()),
           const SizedBox(height: 8),
           ...assumptions.take(4).map(
             (item) {
@@ -404,7 +404,8 @@ class _RegimeCard extends StatelessWidget {
                         ),
                         RupeeText(
                           amount: savings!.round(),
-                          style: PaycheckType.h3(color: PaycheckColors.success),
+                          style: PaycheckType.heading(
+                              color: PaycheckColors.success),
                         ),
                       ],
                     ),
@@ -497,7 +498,7 @@ class _SavingsCallout extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: (isCompact
-                          ? PaycheckType.h3(color: PaycheckColors.gold)
+                          ? PaycheckType.heading(color: PaycheckColors.gold)
                           : PaycheckType.h2(color: PaycheckColors.gold))
                       .copyWith(height: 1.1),
                 ),

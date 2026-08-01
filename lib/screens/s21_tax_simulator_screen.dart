@@ -217,7 +217,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('Assumption guardrail',
-                                      style: PaycheckType.h3()),
+                                      style: PaycheckType.heading()),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Nothing changes unless you apply it.',

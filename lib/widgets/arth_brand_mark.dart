@@ -32,7 +32,7 @@ class ArthBrandMark extends StatelessWidget {
     }
 
     final effectiveWordmarkStyle = wordmarkStyle ??
-        PaycheckType.h3(
+        PaycheckType.heading(
           color: PaycheckColors.textPrimary,
         ).copyWith(
           fontWeight: FontWeight.w600,

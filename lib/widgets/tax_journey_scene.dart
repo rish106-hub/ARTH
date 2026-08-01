@@ -673,7 +673,7 @@ class _WhyOverlay extends StatelessWidget {
             const Spacer(),
             Text(
               'Why $chapter matters',
-              style: PaycheckType.h3().copyWith(color: Colors.white),
+              style: PaycheckType.heading().copyWith(color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1209,7 +1209,7 @@ class _WhyPanel extends StatelessWidget {
                         'Why $chapter matters',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: PaycheckType.h3().copyWith(fontSize: 16),
+                        style: PaycheckType.heading().copyWith(fontSize: 16),
                       ),
                     ),
                     Icon(Icons.close_rounded, size: 17, color: accent),

@@ -1642,7 +1642,7 @@ class _Q04RentState extends ConsumerState<_Q04Rent> {
           ),
           if (_paysRent == true) ...[
             const SizedBox(height: 28),
-            Text('How much rent per month?', style: PaycheckType.h3()),
+            Text('How much rent per month?', style: PaycheckType.heading()),
             const SizedBox(height: 8),
             Builder(
               builder: (context) {
@@ -2101,7 +2101,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               const SizedBox(height: 24),
               Text(
                 'Is the property self-occupied or let out?',
-                style: PaycheckType.h3(),
+                style: PaycheckType.heading(),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2141,7 +2141,7 @@ class _Q07HomeLoanState extends ConsumerState<_Q07HomeLoan> {
               const SizedBox(height: 20),
               Text(
                 'Annual home loan interest paid?',
-                style: PaycheckType.h3(),
+                style: PaycheckType.heading(),
               ),
               const SizedBox(height: 8),
               _ResponsiveAmount(
@@ -2339,7 +2339,7 @@ class _Q08NPSState extends ConsumerState<_Q08NPS> {
               const SizedBox(height: 20),
               Text(
                 'How much extra did you contribute beyond 80C?',
-                style: PaycheckType.h3(),
+                style: PaycheckType.heading(),
               ),
               const SizedBox(height: 4),
               Text(
@@ -2475,7 +2475,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: PaycheckType.h3()),
+        Text(label, style: PaycheckType.heading()),
         if (helper != null) ...[
           const SizedBox(height: 4),
           Text(helper,
@@ -2578,7 +2578,7 @@ class _Q09HealthInsuranceState extends ConsumerState<_Q09HealthInsurance> {
             ],
             if (_parents) ...[
               const SizedBox(height: 24),
-              Text('Are your parents above 60?', style: PaycheckType.h3()),
+              Text('Are your parents above 60?', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -2717,7 +2717,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               const SizedBox(height: 24),
               Text(
                 'Which year of repayment are you in?',
-                style: PaycheckType.h3(),
+                style: PaycheckType.heading(),
               ),
               const SizedBox(height: 8),
               Center(
@@ -2744,7 +2744,7 @@ class _Q10EducationLoanState extends ConsumerState<_Q10EducationLoan> {
               const SizedBox(height: 16),
               Text(
                 'Approximate annual interest paid?',
-                style: PaycheckType.h3(),
+                style: PaycheckType.heading(),
               ),
               const SizedBox(height: 4),
               Text(
@@ -2909,7 +2909,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
             ),
             if (_hasDonations == true) ...[
               const SizedBox(height: 24),
-              Text('Amount donated', style: PaycheckType.h3()),
+              Text('Amount donated', style: PaycheckType.heading()),
               const SizedBox(height: 8),
               TextField(
                 controller: _donationTextCtrl,
@@ -2943,7 +2943,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 onChanged: (_) => setState(_update),
               ),
               const SizedBox(height: 20),
-              Text('What kind of donation?', style: PaycheckType.h3()),
+              Text('What kind of donation?', style: PaycheckType.heading()),
               const SizedBox(height: 4),
               Text(
                 'This decides how much is deductible under 80G.',
@@ -2965,7 +2965,7 @@ class _Q11DonationsState extends ConsumerState<_Q11Donations> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text('How did you pay?', style: PaycheckType.h3()),
+              Text('How did you pay?', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               Row(
                 children: [

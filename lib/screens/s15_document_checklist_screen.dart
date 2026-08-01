@@ -528,7 +528,7 @@ class DocumentChecklistScreen extends ConsumerWidget {
                           document.isPayslip
                               ? 'Check your payslip details'
                               : 'Check extracted details',
-                          style: PaycheckType.h3(),
+                          style: PaycheckType.heading(),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1250,7 +1250,7 @@ class VaultHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Proof readiness', style: PaycheckType.h3()),
+                Text('Proof readiness', style: PaycheckType.heading()),
                 const SizedBox(height: 4),
                 Text(
                   '$yearLabel · ${summary.active} uploaded · ${summary.needsReview} to review',
@@ -1287,7 +1287,7 @@ class _VaultSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(title, style: PaycheckType.h3())),
+        Expanded(child: Text(title, style: PaycheckType.heading())),
         if (helper != null)
           Text(
             helper!,
@@ -1559,7 +1559,7 @@ class _ParserTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Parser timeline', style: PaycheckType.h3()),
+          Text('Parser timeline', style: PaycheckType.heading()),
           const SizedBox(height: 12),
           const _TimelineRow(
             done: true,

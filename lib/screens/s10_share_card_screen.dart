@@ -189,7 +189,7 @@ class _ShareCard extends StatelessWidget {
               children: [
                 Text(
                   'ARTH',
-                  style: PaycheckType.h3(
+                  style: PaycheckType.heading(
                     color: PaycheckColors.gold,
                   ).copyWith(fontSize: 20, letterSpacing: 0),
                 ),

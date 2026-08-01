@@ -1044,7 +1044,7 @@ class _AppFooter extends StatelessWidget {
           child: ArthBrandMark(
             size: 24,
             spacing: 8,
-            wordmarkStyle: PaycheckType.h3(
+            wordmarkStyle: PaycheckType.heading(
               color: PaycheckColors.textSecondary,
             ).copyWith(fontSize: 14),
           ),
@@ -1146,7 +1146,7 @@ class _ArthDialog extends StatelessWidget {
         borderRadius: AppRadius.control,
         side: BorderSide(color: PaycheckColors.border),
       ),
-      title: Text(title, style: PaycheckType.h3()),
+      title: Text(title, style: PaycheckType.heading()),
       content: Text(
         body,
         style: PaycheckType.body(color: PaycheckColors.textSecondary),
