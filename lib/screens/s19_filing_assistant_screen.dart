@@ -61,7 +61,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                     insights: ['Reviewing tax result and proof readiness.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not build the filing assistant.',
+                    message: 'Could not build the filing assistant',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (result) {

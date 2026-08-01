@@ -48,7 +48,7 @@ class AccuracyCoachScreen extends ConsumerWidget {
                 insights: ['Finding assumptions that can be replaced.'],
               ),
               error: (_, __) => RetryErrorState(
-                message: 'Could not check diagnostic status.',
+                message: 'Could not check diagnostic status',
                 onRetry: () => ref.invalidate(completedTaxProfileProvider),
               ),
               data: (complete) {

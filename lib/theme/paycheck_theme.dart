@@ -116,6 +116,9 @@ class PaycheckType {
         color: color,
       );
 
+  /// Card and sub-section heading. The only 17/w600 tier — `h3` was a second
+  /// name for this same style, kept while `AppTextStyles` still existed to
+  /// mirror. That scale is gone, so the duplicate is too.
   static TextStyle heading({Color color = PaycheckColors.ink}) => TextStyle(
         fontFamily: 'Anek',
         fontSize: 17,
@@ -124,15 +127,9 @@ class PaycheckType {
         color: color,
       );
 
-  /// Same tier as [heading] (17/w600), kept as its own name for screens
-  /// migrated verbatim from app_theme.dart's h3.
-  static TextStyle h3({Color color = PaycheckColors.ink}) => TextStyle(
-        fontFamily: 'Anek',
-        fontSize: 17,
-        height: 1.3,
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
+  /// Compatibility name for existing card headings.
+  static TextStyle h3({Color color = PaycheckColors.ink}) =>
+      heading(color: color);
 
   static TextStyle body({Color color = PaycheckColors.ink}) => TextStyle(
         fontFamily: 'Anek',

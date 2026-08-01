@@ -126,7 +126,7 @@ class _CalendarMilestone extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Icon(item.icon, color: PaycheckColors.gold, size: 18),
-                    Text(item.title, style: PaycheckType.h3()),
+                    Text(item.title, style: PaycheckType.heading()),
                     TrustBadge(
                       icon: Icons.schedule_rounded,
                       label: item.date,
