@@ -8,10 +8,12 @@ import 'dart:ui' as ui;
 
 import 'package:arth/providers/spend_map_provider.dart';
 import 'package:arth/providers/paycheck_provider.dart';
+import 'package:arth/providers/user_profile_provider.dart';
 import 'package:arth/models/paycheck.dart';
 import 'package:arth/screens/s00_auth_screen.dart';
 import 'package:arth/screens/s28_paycheck_setup_screen.dart';
 import 'package:arth/screens/s29_paycheck_shell_screen.dart';
+import 'package:arth/screens/s30_tax_plan_entry_screen.dart';
 import 'package:arth/screens/s00_product_onboarding_screen.dart';
 import 'package:arth/screens/s33_spend_insights_screen.dart';
 import 'package:arth/theme/app_theme.dart';
@@ -251,6 +253,27 @@ void main() {
     );
     await tester.pump();
     await _shoot(tester, '12_paycheck_setup');
+  });
+
+  testWidgets('tax plan entry', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          completedTaxProfileProvider.overrideWith((ref) async => false),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const TaxPlanEntryScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1));
+    await _shoot(tester, '13_tax_plan_entry');
   });
 
   Future<void> spendCard(
