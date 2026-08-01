@@ -170,8 +170,15 @@ class FakeDb {
     if (normalized === 'begin' || normalized === 'commit' || normalized === 'rollback') {
       return rows();
     }
-    if (normalized.startsWith('set local application_name = ')) {
+    if (normalized === 'set transaction isolation level read committed') {
+      return rows();
+    }
+    if (normalized.startsWith('set local application_name = ')
+      || normalized.startsWith("select set_config('application_name'")) {
       this.userStateContexts.push(normalized);
+      return rows();
+    }
+    if (normalized.startsWith("select set_config('arth.system'")) {
       return rows();
     }
 

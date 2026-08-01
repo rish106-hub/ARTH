@@ -51,6 +51,16 @@ class PushFakeDb {
 
   async query(sql: string, params: unknown[] = []) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (normalized === 'begin'
+      || normalized === 'commit'
+      || normalized === 'rollback'
+      || normalized === 'set transaction isolation level read committed') {
+      return { rowCount: 0, rows: [] };
+    }
+    if (normalized.startsWith("select set_config('application_name'")
+      || normalized.startsWith("select set_config('arth.system'")) {
+      return { rowCount: 0, rows: [] };
+    }
     if (normalized.startsWith('select id, token_ciphertext')) {
       return {
         rowCount: this.tokens.size,
@@ -95,7 +105,10 @@ class PushFakeDb {
   }
 
   async connect() {
-    throw new Error('Transactions are not used by push tests');
+    return {
+      query: (sql: string, params?: unknown[]) => this.query(sql, params),
+      release: () => {},
+    };
   }
 }
 

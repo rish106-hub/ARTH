@@ -6,10 +6,15 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL is required to run migrations');
+function requireDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL is required to run migrations');
+  }
+  return url;
 }
+
+const databaseUrl: string = requireDatabaseUrl();
 
 const dialect = process.env.DB_DIALECT === 'cockroach' ? 'cockroach' : 'postgres';
 const sqlDirectory = dialect === 'cockroach'
@@ -63,7 +68,7 @@ async function connectWithRetry(): Promise<pg.Client> {
 
   for (let attempt = 0; attempt <= delays.length; attempt += 1) {
     const client = new pg.Client({
-      connectionString,
+      connectionString: databaseUrl,
       connectionTimeoutMillis: 10_000,
     });
     try {
@@ -82,9 +87,31 @@ async function connectWithRetry(): Promise<pg.Client> {
   throw lastError;
 }
 
+function isCockroachConnectionString(connection: string): boolean {
+  try {
+    const url = new URL(connection);
+    if (url.port === '26257') return true;
+    const host = url.hostname.toLowerCase();
+    return host.includes('cockroachlabs.cloud') || host.includes('cockroach');
+  } catch {
+    return connection.toLowerCase().includes('cockroach');
+  }
+}
+
+function isPostgresOnlyMigration(filename: string): boolean {
+  return filename.includes('.postgres-only.');
+}
+
 async function migrate() {
   const client = await connectWithRetry();
   const holder = randomUUID();
+  const runningFlatMigrationsOnCockroach = dialect === 'postgres'
+    && isCockroachConnectionString(databaseUrl);
+  if (runningFlatMigrationsOnCockroach) {
+    console.warn(
+      '[migration] DB_DIALECT=postgres with a CockroachDB URL: applying flat sql/ migrations',
+    );
+  }
   try {
     if (dialect === 'cockroach') {
       await client.query('create schema if not exists ops');
@@ -122,6 +149,10 @@ async function migrate() {
       .sort((left, right) => left.localeCompare(right));
 
     for (const filename of filenames) {
+      if (runningFlatMigrationsOnCockroach && isPostgresOnlyMigration(filename)) {
+        console.warn(`[migration] skipped postgres-only migration on CockroachDB: ${filename}`);
+        continue;
+      }
       const sql = await readFile(join(sqlDirectory, filename), 'utf8');
       const checksum = createHash('sha256').update(sql).digest('hex');
       const existing = await client.query(
