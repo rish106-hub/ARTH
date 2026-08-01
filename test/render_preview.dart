@@ -308,6 +308,27 @@ void main() {
     await _shoot(tester, '07_explore_account_prompt');
   });
 
+  testWidgets('profile, signed-in shell', (tester) async {
+    tester.view.physicalSize = const Size(780, 1560);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          paycheckProvider.overrideWith(_SamplePaycheck.new),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const PaycheckShellScreen(initialIndex: 3),
+        ),
+      ),
+    );
+    await tester.pump();
+    await _shoot(tester, '09_profile_signed_in');
+  });
+
   testWidgets('onboarding, first page', (tester) async {
     tester.view.physicalSize = const Size(780, 1560);
     tester.view.devicePixelRatio = 2;
