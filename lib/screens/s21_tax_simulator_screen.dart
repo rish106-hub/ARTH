@@ -67,7 +67,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                 insights: ['Loading deterministic tax rules.'],
               ),
               error: (_, __) => RetryErrorState(
-                message: 'Could not check diagnostic status.',
+                message: 'Could not check diagnostic status',
                 onRetry: () => ref.invalidate(completedTaxProfileProvider),
               ),
               data: (complete) {
@@ -101,7 +101,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                     insights: ['Computing current regime comparison.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not load simulator baseline.',
+                    message: 'Could not load simulator baseline',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (current) => ruleSetAsync.when(
@@ -110,7 +110,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                       insights: ['Checking active rule set.'],
                     ),
                     error: (_, __) => RetryErrorState(
-                      message: 'Could not load active tax rules.',
+                      message: 'Could not load active tax rules',
                       onRetry: () => ref.invalidate(activeTaxRuleSetProvider),
                     ),
                     data: (ruleSet) {
@@ -132,7 +132,7 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                               .clamp(0, double.infinity)
                               .round();
                       return SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -157,12 +157,12 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                                       color: PaycheckColors.textSecondary,
                                     ),
                                   ),
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 16),
                                   TaxRuleBadge(result: current),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
                                 Expanded(
@@ -210,15 +210,15 @@ class _TaxSimulatorScreenState extends ConsumerState<TaxSimulatorScreen> {
                               onChanged: (value) =>
                                   setState(() => _health80d = value),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             PremiumGlassPanel(
                               tint: PaycheckColors.teal,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('Assumption guardrail',
-                                      style: PaycheckType.h3()),
-                                  const SizedBox(height: 6),
+                                      style: PaycheckType.heading()),
+                                  const SizedBox(height: 8),
                                   Text(
                                     'Nothing changes unless you apply it.',
                                     style: PaycheckType.caption(

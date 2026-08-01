@@ -41,7 +41,7 @@ class HelpCenterScreen extends ConsumerWidget {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -138,7 +138,7 @@ class HelpCenterScreen extends ConsumerWidget {
                                 '${safeContext}Issue:\n\nScreen:\n\nDevice:\n\nSteps to reproduce:\n',
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _SupportTopic(
                           icon: Icons.question_answer_outlined,
                           title: 'Ask tax question',
@@ -149,7 +149,7 @@ class HelpCenterScreen extends ConsumerWidget {
                             body: '${safeContext}Question:\n\nContext:\n',
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _SupportTopic(
                           icon: Icons.privacy_tip_outlined,
                           title: 'Data/privacy help',
@@ -160,7 +160,7 @@ class HelpCenterScreen extends ConsumerWidget {
                             body: '${safeContext}Privacy question:\n\n',
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _SupportTopic(
                           icon: Icons.slideshow_outlined,
                           title: 'Demo walkthrough',
@@ -262,7 +262,7 @@ class _ContactRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: PaycheckType.micro()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(value, style: PaycheckType.bodyMedium()),
               ],
             ),

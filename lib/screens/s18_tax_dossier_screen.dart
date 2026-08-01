@@ -56,13 +56,13 @@ class TaxDossierScreen extends ConsumerWidget {
                     insights: ['Summarising your tax readiness.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not load your Tax Dossier.',
+                    message: 'Could not load your Tax Dossier',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (result) {
                     final profile = ref.watch(userProfileProvider);
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -90,12 +90,12 @@ class TaxDossierScreen extends ConsumerWidget {
                                     color: PaycheckColors.textSecondary,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 16),
                                 TaxRuleBadge(result: result),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
@@ -197,7 +197,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'See the cleaner interview-ready summary of readiness and next move.',
                                   onTap: () => context.push('/tax-story'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.tune_rounded,
                                   title: 'Improve calculation accuracy',
@@ -205,7 +205,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'Replace assumptions with exact payslip and proof values.',
                                   onTap: () => context.push('/accuracy-coach'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.checklist_rounded,
                                   title: 'Open action plan',
@@ -213,7 +213,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'Close deduction gaps from highest-value to easiest.',
                                   onTap: () => context.go('/action-plan'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.science_outlined,
                                   title: 'Run what-if simulator',
@@ -221,7 +221,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'Try 80C, NPS, and 80D changes before editing the diagnostic.',
                                   onTap: () => context.push('/tax-simulator'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.folder_special_outlined,
                                   title: 'Update document checklist',
@@ -229,7 +229,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'Mark proofs ready without uploading files.',
                                   onTap: () => context.push('/documents'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.account_balance_outlined,
                                   title: 'Read AIS & 26AS guide',
@@ -237,7 +237,7 @@ class TaxDossierScreen extends ConsumerWidget {
                                       'Know what official data to verify before filing.',
                                   onTap: () => context.push('/ais-guide'),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 _DossierAction(
                                   icon: Icons.inventory_2_outlined,
                                   title: 'Open Filing Assistant',
@@ -304,7 +304,7 @@ class _DossierRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:

@@ -52,7 +52,7 @@ class ActionPlanScreen extends ConsumerWidget {
         error: (error, __) => isIncompleteTaxProfileError(error)
             ? const _ActionPlanEmptyState()
             : RetryErrorState(
-                message: 'Could not load your action plan.',
+                message: 'Could not load your action plan',
                 onRetry: () => ref.invalidate(taxResultProvider),
               ),
         data: (result) {
@@ -224,7 +224,7 @@ class _ActionShortcut extends StatelessWidget {
         ),
         child: ListTile(
           minTileHeight: 72,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: Container(
             width: 38,
             height: 38,
@@ -265,8 +265,8 @@ class _ActionPlanHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       decoration: const BoxDecoration(
         color: PaycheckColors.ink,
         borderRadius: AppRadius.card,
@@ -280,7 +280,7 @@ class _ActionPlanHeader extends StatelessWidget {
               color: Colors.white60,
             ).copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -377,10 +377,10 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(title, style: PaycheckType.h3()),
+          Text(title, style: PaycheckType.heading()),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: AppRadius.pill,

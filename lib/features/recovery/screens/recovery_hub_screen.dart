@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
+import '../../../widgets/premium_ui.dart';
 import '../models/recovery_models.dart';
 import '../providers/recovery_provider.dart';
 
@@ -63,7 +64,7 @@ class _RecoveryBody extends ConsumerWidget {
       ..sort((a, b) => a.deadline!.compareTo(b.deadline!));
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
           Text('RECOVERY LEDGER', style: PaycheckType.sectionLabel()),
           const SizedBox(height: 8),
@@ -85,16 +86,15 @@ class _RecoveryBody extends ConsumerWidget {
             const SizedBox(height: 12),
             _DeadlineNudge(benefit: upcomingDeadlines.first),
           ],
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           const _SectionTitle(
             title: 'Claim cases',
             detail: 'Review, prepare, submit, then mark paid.',
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (state.claimCases.isEmpty)
             const _EmptyCard(
-              text:
-                  'No mismatch or claimable benefit found in confirmed pay data.',
+              text: 'No mismatch found in confirmed pay data',
             )
           else
             ...state.claimCases.map(
@@ -108,15 +108,15 @@ class _RecoveryBody extends ConsumerWidget {
                     .updateClaim(claim.id, status: status),
               ),
             ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           const _SectionTitle(
             title: 'Benefits',
             detail: 'Confirmed caps only. Unknown policy stays unknown.',
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (state.benefits.isEmpty)
             const _EmptyCard(
-              text: 'Add an offer letter to build a benefit ledger.',
+              text: 'Add an offer letter to build a benefit ledger',
             )
           else
             ...state.benefits.map(
@@ -125,14 +125,14 @@ class _RecoveryBody extends ConsumerWidget {
                 onEdit: () => _editBenefit(context, ref, benefit),
               ),
             ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           const _SectionTitle(
             title: 'Monthly history',
             detail: 'New snapshots appear after a payslip is confirmed.',
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (state.history.isEmpty)
-            const _EmptyCard(text: 'No confirmed monthly snapshot yet.')
+            const _EmptyCard(text: 'No confirmed monthly snapshot yet')
           else
             ...state.history.asMap().entries.map(
                   (entry) => _HistoryCard(
@@ -142,7 +142,7 @@ class _RecoveryBody extends ConsumerWidget {
                         : null,
                   ),
                 ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           _PlaybookCard(state: state),
         ],
       ),
@@ -181,7 +181,7 @@ class _RecoveryBody extends ConsumerWidget {
                 benefit.label,
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               TextField(
                 controller: capController,
                 keyboardType: TextInputType.number,
@@ -273,7 +273,7 @@ class _DeadlineNudge extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = benefit.deadline!.difference(DateTime.now()).inDays + 1;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: PaycheckColors.claimSoft,
         borderRadius: AppRadius.card,
@@ -370,7 +370,7 @@ class _CheckLine extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             Icon(
@@ -378,7 +378,7 @@ class _CheckLine extends StatelessWidget {
               color: value ? PaycheckColors.matched : Colors.white54,
               size: 20,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
@@ -420,7 +420,7 @@ class _ClaimRow extends StatelessWidget {
             shape: const RoundedRectangleBorder(
               borderRadius: AppRadius.control,
             ),
-            contentPadding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+            contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
             leading: Container(
               width: 4,
               height: 48,
@@ -480,7 +480,7 @@ class _BenefitCard extends StatelessWidget {
         borderRadius: AppRadius.control,
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(color: PaycheckColors.line),
             borderRadius: AppRadius.card,
@@ -508,10 +508,10 @@ class _BenefitCard extends StatelessWidget {
                   const Icon(Icons.edit_outlined, size: 16),
                 ],
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(benefit.source, style: PaycheckType.utility()),
               if (benefit.deadline != null || benefit.resetMonth != null) ...[
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
                   [
                     if (benefit.deadline != null)
@@ -558,8 +558,8 @@ class _HistoryCard extends StatelessWidget {
               borderRadius: AppRadius.control,
             ),
             tilePadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             title: Text(snapshot.payPeriod, style: PaycheckType.bodyStrong()),
             subtitle: Text(
               '${_money(snapshot.netPaid)} net · ${_money(snapshot.salaryCredit)} bank credit',
@@ -592,7 +592,7 @@ class _HistoryCard extends StatelessWidget {
                 final change =
                     oldAmount == null ? null : entry.value - oldAmount;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
                       Expanded(
@@ -610,7 +610,7 @@ class _HistoryCard extends StatelessWidget {
                                 : PaycheckColors.matched,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                       ],
                       Text(_money(entry.value), style: PaycheckType.money()),
                     ],
@@ -645,7 +645,7 @@ class _HistoryValue extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: PaycheckType.utility()),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text('$prefix${_money(value)}',
             style: PaycheckType.money(color: color)),
       ],
@@ -672,7 +672,7 @@ class _PlaybookCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('EMPLOYER PLAYBOOK', style: PaycheckType.sectionLabel()),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             named ? playbook.name : 'Generic rules only',
             style: PaycheckType.heading(),
@@ -707,7 +707,7 @@ class _SectionTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: PaycheckType.heading()),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         Text(detail, style: PaycheckType.body(color: PaycheckColors.inkSoft)),
       ],
     );
@@ -721,14 +721,9 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: PaycheckColors.paper,
-        border: Border.all(color: PaycheckColors.line),
-        borderRadius: AppRadius.card,
-      ),
-      child: Text(text, style: PaycheckType.body()),
+    return ArthInlineEmpty(
+      icon: Icons.inbox_outlined,
+      title: text,
     );
   }
 }

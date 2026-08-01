@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-import '../theme/paycheck_theme.dart';
+import 'premium_ui.dart';
 
+/// The failed-to-load state, for any screen whose data came back an error.
+///
+/// Delegates to [ArthStatePanel] rather than drawing its own panel. Errors were
+/// the one state that looked like a different app — a bare centred line with an
+/// outlined button, while every empty and locked state used the panel. Same
+/// surface, same spacing, same button weight now.
 class RetryErrorState extends StatelessWidget {
+  /// What failed, phrased as a heading: "Could not load your Tax Dossier".
   final String message;
   final VoidCallback onRetry;
 
@@ -15,45 +21,12 @@ class RetryErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_off_rounded,
-                color: PaycheckColors.gold,
-                size: 32,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                message,
-                style: PaycheckType.body(color: PaycheckColors.textPrimary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Retry'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: PaycheckColors.gold,
-                    side: const BorderSide(color: PaycheckColors.gold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return ArthStatePanel(
+      icon: Icons.cloud_off_rounded,
+      title: message,
+      message: 'Nothing was lost. Try again in a moment.',
+      actionLabel: 'Retry',
+      onAction: onRetry,
     );
   }
 }

@@ -61,7 +61,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                     insights: ['Reviewing tax result and proof readiness.'],
                   ),
                   error: (_, __) => RetryErrorState(
-                    message: 'Could not build the filing assistant.',
+                    message: 'Could not build the filing assistant',
                     onRetry: () => ref.invalidate(taxResultProvider),
                   ),
                   data: (result) {
@@ -84,7 +84,7 @@ class FilingAssistantScreen extends ConsumerWidget {
                         final confirmedDocs =
                             documents.where((doc) => doc.parsed).length;
                         return SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -116,12 +116,12 @@ class FilingAssistantScreen extends ConsumerWidget {
                                       detail:
                                           'Your numbers, documents, assumptions and missing items, ready for a CA, an employer portal or the official tax portal.',
                                     ),
-                                    const SizedBox(height: 14),
+                                    const SizedBox(height: 16),
                                     TaxRuleBadge(result: result),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 16),
                               ArthSection(
                                 title: 'Readiness map',
                                 child: PremiumGlassPanel(
@@ -310,7 +310,7 @@ class _ReadinessRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:
@@ -337,7 +337,7 @@ class _PackLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -352,7 +352,7 @@ class _PackLine extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: PaycheckType.bodyMedium()),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style:

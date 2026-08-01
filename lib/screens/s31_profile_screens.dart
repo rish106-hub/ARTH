@@ -45,14 +45,14 @@ class ProfessionalProfileView extends ConsumerWidget {
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             sliver: SliverList.list(
               children: [
                 const ArthBrandMark(
                   size: 30,
                   spacing: 9,
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 28),
                 _IdentityHeader(
                   name: name,
                   email: email,
@@ -61,7 +61,7 @@ class ProfessionalProfileView extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 _CompletenessPanel(completion: completion),
-                const SizedBox(height: 30),
+                const SizedBox(height: 28),
                 const _SectionTitle('Your information'),
                 _ProfileGroup(
                   children: [
@@ -429,13 +429,13 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
             Text(
               'Keep this current so ARTH can separate assumptions from verified facts.',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
-            const SizedBox(height: 26),
+            const SizedBox(height: 24),
             const _FormSectionTitle('Identity'),
             _ProfileTextField(
               controller: _name,
@@ -445,9 +445,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                   ? 'Enter your full name'
                   : null,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ReadOnlyField(label: 'Email address', value: account?.email ?? ''),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ProfileTextField(
               controller: _phone,
               label: 'Mobile number',
@@ -472,7 +472,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                   ? 'Enter your work city'
                   : null,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             DropdownButtonFormField<EmploymentType>(
               initialValue: _employment,
               decoration: const InputDecoration(labelText: 'Employment type'),
@@ -491,7 +491,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               },
             ),
             if (_employment == EmploymentType.salaried) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               OutlinedButton.icon(
                 key: const Key('profile_select_employer'),
                 onPressed: () async {
@@ -512,7 +512,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ProfileTextField(
               controller: _ctc,
               label: 'Annual CTC',
@@ -522,7 +522,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               validator: (value) =>
                   (_amount(value) ?? 0) <= 0 ? 'Enter your annual CTC' : null,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             DropdownButtonFormField<AgeGroup>(
               initialValue: _ageGroup,
               decoration: const InputDecoration(labelText: 'Age group'),
@@ -545,28 +545,28 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               'Leave what you do not know empty.',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ProfileTextField(
               controller: _basic,
               label: 'Annual basic salary',
               prefixText: '₹ ',
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ProfileTextField(
               controller: _hra,
               label: 'Annual HRA received',
               prefixText: '₹ ',
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ProfileTextField(
               controller: _professionalTax,
               label: 'Annual professional tax',
               prefixText: '₹ ',
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 28),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: PaycheckColors.ink,
@@ -662,13 +662,13 @@ class ProfileConnectionsScreen extends ConsumerWidget {
       backgroundColor: PaycheckColors.canvas,
       appBar: const _ProfileAppBar(title: 'Connected sources'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
           Text(
             'ARTH should only read a source after you choose it and understand what will be imported.',
             style: PaycheckType.body(color: PaycheckColors.inkSoft),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           const _SectionTitle('Available now'),
           _ProfileGroup(
             children: [
@@ -765,7 +765,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
       backgroundColor: PaycheckColors.paper,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -774,7 +774,7 @@ class ProfileConnectionsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(detail,
                   style: PaycheckType.body(color: PaycheckColors.inkSoft)),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -816,7 +816,7 @@ class _TaxIdentityScreenState extends ConsumerState<TaxIdentityScreen> {
       backgroundColor: PaycheckColors.canvas,
       appBar: const _ProfileAppBar(title: 'Tax identity'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
           Text(
             'PAN is optional. It helps ARTH keep tax records tied to the right identity.',
@@ -859,7 +859,7 @@ class _TaxIdentityScreenState extends ConsumerState<TaxIdentityScreen> {
               ),
               onChanged: (value) => setState(() => _consent = value ?? false),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             FilledButton(
               onPressed: _saving || !_consent ? null : _savePan,
               child: Text(_saving ? 'Saving…' : 'Save PAN'),
@@ -913,7 +913,7 @@ class ProfilePrivacyScreen extends ConsumerWidget {
       backgroundColor: PaycheckColors.canvas,
       appBar: const _ProfileAppBar(title: 'Data and permissions'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
           const _SectionTitle('Current access'),
           _ProfileGroup(
@@ -1076,13 +1076,13 @@ class _IdentityHeader extends StatelessWidget {
                 .copyWith(fontSize: 20),
           ),
         ),
-        const SizedBox(width: 15),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(name, style: PaycheckType.title()),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               Text(
                 email.isEmpty ? 'Add your account email' : email,
                 maxLines: 1,
@@ -1111,7 +1111,7 @@ class _CompletenessPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = completion / 8;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: PaycheckColors.ink,
         borderRadius: AppRadius.card,
@@ -1195,7 +1195,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 9),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(text, style: PaycheckType.heading()),
     );
   }
@@ -1269,7 +1269,7 @@ class _ProfileRow extends StatelessWidget {
       ),
       child: Container(
         constraints: const BoxConstraints(minHeight: 72),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: isLast
               ? null
@@ -1278,14 +1278,14 @@ class _ProfileRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(icon, color: statusColor, size: 23),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(title, style: PaycheckType.bodyStrong()),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     detail,
                     maxLines: 2,

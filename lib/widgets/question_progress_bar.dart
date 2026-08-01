@@ -32,7 +32,7 @@ class QuestionProgressBar extends StatelessWidget {
                 )),
           ],
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         ClipRRect(
           borderRadius: AppRadius.pill,
           child: LinearProgressIndicator(
@@ -78,7 +78,7 @@ class SelectChip extends StatelessWidget {
             duration: AppMotion.fast,
             constraints: const BoxConstraints(minHeight: 52),
             width: fullWidth ? double.infinity : null,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color:
                   selected ? PaycheckColors.primarySoft : PaycheckColors.bgCard,
@@ -110,7 +110,7 @@ class SelectChip extends StatelessWidget {
                           : PaycheckColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: 11),
+                  const SizedBox(width: 12),
                 ],
                 Expanded(
                   child: Text(
@@ -166,7 +166,7 @@ class MultiSelectChip extends StatelessWidget {
           borderRadius: AppRadius.card,
           child: AnimatedContainer(
             duration: AppMotion.fast,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: selected
                   ? PaycheckColors.gold.withValues(alpha: 0.10)
@@ -188,7 +188,7 @@ class MultiSelectChip extends StatelessWidget {
                   color:
                       selected ? PaycheckColors.gold : PaycheckColors.textMuted,
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     label,

@@ -34,7 +34,7 @@ class RegimeComparisonScreen extends ConsumerWidget {
           ],
         ),
         error: (_, __) => RetryErrorState(
-          message: 'Could not load your regime comparison.',
+          message: 'Could not load your regime comparison',
           onRetry: () => ref.invalidate(taxResultProvider),
         ),
         data: (result) => _RegimeContent(result: result),
@@ -59,7 +59,7 @@ class _RegimeContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const TaxYearSelector(),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TaxRuleBadge(result: result),
               const SizedBox(height: 16),
               Text(
@@ -144,7 +144,7 @@ class _RegimeContent extends StatelessWidget {
                 ),
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: PaycheckColors.bgCard,
                   borderRadius: AppRadius.card,
@@ -171,10 +171,10 @@ class _RegimeContent extends StatelessWidget {
                 ),
               ),
               if (result.assumptions.isNotEmpty) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 _AssumptionsPanel(assumptions: result.assumptions),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -194,11 +194,11 @@ class _RegimeContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('General Guidance by Income', style: PaycheckType.h3()),
+              Text('General Guidance by Income', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               const _IncomeGuidance(),
               const SizedBox(height: 24),
-              Text('Old Regime Deduction Stack', style: PaycheckType.h3()),
+              Text('Old Regime Deduction Stack', style: PaycheckType.heading()),
               const SizedBox(height: 12),
               _DeductionBreakdown(result: result),
             ],
@@ -217,7 +217,7 @@ class _AssumptionsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PaycheckColors.amber.withValues(alpha: 0.08),
         borderRadius: AppRadius.card,
@@ -226,14 +226,14 @@ class _AssumptionsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Calculation assumptions', style: PaycheckType.h3()),
+          Text('Calculation assumptions', style: PaycheckType.heading()),
           const SizedBox(height: 8),
           ...assumptions.take(4).map(
             (item) {
               final caution = item.severity == TaxAssumptionSeverity.caution;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: caution
                       ? PaycheckColors.amber.withValues(alpha: 0.10)
@@ -329,7 +329,7 @@ class _RegimeCard extends StatelessWidget {
           // Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               color: isBetter
                   ? PaycheckColors.gold.withValues(alpha: 0.1)
@@ -349,7 +349,7 @@ class _RegimeCard extends StatelessWidget {
                   ),
                 ),
                 if (isBetter) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     'Better for you',
                     style: PaycheckType.micro(color: PaycheckColors.gold),
@@ -360,7 +360,7 @@ class _RegimeCard extends StatelessWidget {
           ),
 
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Text(
@@ -380,7 +380,7 @@ class _RegimeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _InfoRow(label: 'Taxable income', value: taxableIncome.round()),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 _InfoRow(
                   label: isNew ? 'Std deduction' : 'Deductions',
                   value: deductions.round(),
@@ -389,7 +389,7 @@ class _RegimeCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
                       color: PaycheckColors.success.withValues(alpha: 0.1),
                       borderRadius: AppRadius.pill,
@@ -404,7 +404,8 @@ class _RegimeCard extends StatelessWidget {
                         ),
                         RupeeText(
                           amount: savings!.round(),
-                          style: PaycheckType.h3(color: PaycheckColors.success),
+                          style: PaycheckType.heading(
+                              color: PaycheckColors.success),
                         ),
                       ],
                     ),
@@ -497,7 +498,7 @@ class _SavingsCallout extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: (isCompact
-                          ? PaycheckType.h3(color: PaycheckColors.gold)
+                          ? PaycheckType.heading(color: PaycheckColors.gold)
                           : PaycheckType.h2(color: PaycheckColors.gold))
                       .copyWith(height: 1.1),
                 ),
@@ -534,7 +535,7 @@ class _DeductionBreakdown extends StatelessWidget {
 
     if (items.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
           color: PaycheckColors.bgCard,
           borderRadius: AppRadius.card,
@@ -582,19 +583,19 @@ class _DeductionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: PaycheckColors.gold.withValues(alpha: 0.1),
               borderRadius: AppRadius.pill,
             ),
             child: Text(section, style: PaycheckType.sectionLabel()),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(label, style: PaycheckType.caption(), softWrap: true),
           ),
@@ -679,7 +680,7 @@ class _GuidanceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.of(context).size.width < 380;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: PaycheckColors.divider)),
       ),
@@ -696,7 +697,7 @@ class _GuidanceRow extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 3,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: item.color.withValues(alpha: 0.1),
@@ -721,7 +722,7 @@ class _GuidanceRow extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 3,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: item.color.withValues(alpha: 0.1),

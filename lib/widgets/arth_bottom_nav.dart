@@ -57,7 +57,7 @@ class ArthBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(10, 7, 10, bottomPad + 7),
+      padding: EdgeInsets.fromLTRB(12, 8, 12, bottomPad + 8),
       decoration: const BoxDecoration(
         color: PaycheckColors.surface,
         border: Border(top: BorderSide(color: PaycheckColors.divider)),
@@ -98,7 +98,7 @@ class ArthBottomNav extends StatelessWidget {
                           size: 20,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
                         item.label,
                         maxLines: 1,

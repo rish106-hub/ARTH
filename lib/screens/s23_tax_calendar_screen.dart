@@ -41,7 +41,7 @@ class TaxCalendarScreen extends ConsumerWidget {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -126,7 +126,7 @@ class _CalendarMilestone extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Icon(item.icon, color: PaycheckColors.gold, size: 18),
-                    Text(item.title, style: PaycheckType.h3()),
+                    Text(item.title, style: PaycheckType.heading()),
                     TrustBadge(
                       icon: Icons.schedule_rounded,
                       label: item.date,
@@ -164,7 +164,7 @@ class _TimelineConnector extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(left: 34),
+        margin: const EdgeInsets.only(left: 32),
         width: 1,
         height: 18,
         color: PaycheckColors.border,

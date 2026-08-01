@@ -40,7 +40,7 @@ class TaxYearSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final active = ref.watch(activeTaxYearProvider);
     return PremiumGlassPanel(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       tint: PaycheckColors.info,
       child: Wrap(
         spacing: 8,

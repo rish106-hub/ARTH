@@ -31,7 +31,7 @@ class AisGuideScreen extends StatelessWidget {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -57,7 +57,7 @@ class AisGuideScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         Text(
                           'Use AIS and 26AS before filing.',
                           style: PaycheckType.h1(),
@@ -164,14 +164,15 @@ class _GuideStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: PremiumGlassPanel(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(number, style: PaycheckType.h3(color: PaycheckColors.gold)),
-            const SizedBox(width: 14),
+            Text(number,
+                style: PaycheckType.heading(color: PaycheckColors.gold)),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +207,7 @@ class _RiskRow extends StatelessWidget {
         children: [
           const Icon(Icons.warning_amber_rounded,
               color: PaycheckColors.amber, size: 19),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,

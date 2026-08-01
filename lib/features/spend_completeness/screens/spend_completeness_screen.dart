@@ -94,7 +94,7 @@ class _CoverageReceipt extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PaycheckColors.paper,
         border: Border.all(color: PaycheckColors.ink, width: 1.2),
@@ -112,9 +112,9 @@ class _CoverageReceipt extends StatelessWidget {
             DateFormat('d MMM yyyy, h:mm a').format(map.generatedAt),
             style: PaycheckType.utility(),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           const _ReceiptRule(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _ReceiptRow(
             label: 'Bank + UPI SMS',
             value: '$debits debit${debits == 1 ? '' : 's'} included',
@@ -136,9 +136,9 @@ class _CoverageReceipt extends StatelessWidget {
                 ? PaycheckColors.inkSoft
                 : PaycheckColors.claim,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           const _ReceiptRule(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             'No fake coverage percentage. No guessed missing amount.',
             style: PaycheckType.utility(color: PaycheckColors.ink),
@@ -159,7 +159,7 @@ class _ReceiptRule extends StatelessWidget {
           (index) => Expanded(
             child: Container(
               height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 2),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
               color: PaycheckColors.line,
             ),
           ),
@@ -180,7 +180,7 @@ class _ReceiptRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -364,7 +364,7 @@ class _RecurringRow extends ConsumerWidget {
               if (confirmed)
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: PaycheckColors.matchedSoft,
                     borderRadius: BorderRadius.circular(99),
@@ -578,7 +578,7 @@ class _MetricRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
             Expanded(child: Text(label, style: PaycheckType.body())),
@@ -623,12 +623,12 @@ class _SectionCard extends StatelessWidget {
                   if (trailing != null) trailing!,
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 body,
                 style: PaycheckType.body(color: PaycheckColors.inkSoft),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               child,
             ],
           ),
