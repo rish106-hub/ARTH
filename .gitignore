@@ -40,6 +40,7 @@ GoogleService-Info.plist
 # Release keystore (never commit)
 android/keystore/
 CLAUDE.md
+HANDOFF-CURSOR.md
 
 # Local working notes
 context.md

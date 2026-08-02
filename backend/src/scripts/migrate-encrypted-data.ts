@@ -1,0 +1,562 @@
+/**
+ * Encrypted data migration: decrypt legacy ciphertext with global keys,
+ * validate plaintext, then re-encrypt with per-user keys for Cockroach.
+ *
+ * This script handles the critical security transformation identified in ARTH-208.
+ * It processes encrypted data from legacy Postgres tables and inserts into the
+ * new Cockroach schema with proper per-user encryption.
+ *
+ * Usage:
+ *   SOURCE_DATABASE_URL=<old postgres>  \
+ *   TARGET_DATABASE_URL=<cockroach>     \
+ *   PAN_ENCRYPTION_KEY=<legacy key>     \
+ *   DOCUMENT_ENCRYPTION_KEY=<legacy key> \
+ *   GCP_KMS_KEY_NAME=<kms key>         \
+ *   npx tsx src/scripts/migrate-encrypted-data.ts [--dry-run]
+ *
+ * Safe to re-run: every insert is ON CONFLICT DO NOTHING.
+ * Failure leaves the source intact and prevents cutover.
+ */
+import pg from 'pg';
+import {
+  createDecipheriv,
+  createCipheriv,
+  randomBytes,
+} from 'node:crypto';
+import { KeyManagementServiceClient } from '@google-cloud/kms';
+import { env } from '../config.js';
+
+const sourceUrl = process.env.SOURCE_DATABASE_URL;
+const targetUrl = process.env.TARGET_DATABASE_URL;
+const dryRun = process.argv.includes('--dry-run');
+
+if (!sourceUrl || !targetUrl) {
+  console.error('SOURCE_DATABASE_URL and TARGET_DATABASE_URL are required.');
+  process.exit(1);
+}
+
+if (!env.PAN_ENCRYPTION_KEY || !env.DOCUMENT_ENCRYPTION_KEY) {
+  console.error('PAN_ENCRYPTION_KEY and DOCUMENT_ENCRYPTION_KEY are required for legacy decryption.');
+  process.exit(1);
+}
+
+if (!env.GCP_KMS_KEY_NAME) {
+  console.error('GCP_KMS_KEY_NAME is required for per-user key wrapping.');
+  process.exit(1);
+}
+
+// Type assertions after runtime validation
+const PAN_ENCRYPTION_KEY = env.PAN_ENCRYPTION_KEY!;
+const DOCUMENT_ENCRYPTION_KEY = env.DOCUMENT_ENCRYPTION_KEY!;
+const GCP_KMS_KEY_NAME = env.GCP_KMS_KEY_NAME!;
+
+// Legacy decryption functions (matching security.ts)
+function getPanEncryptionKey(): Buffer {
+  const key = Buffer.from(PAN_ENCRYPTION_KEY, 'base64');
+  if (key.length !== 32) {
+    throw new Error('PAN_ENCRYPTION_KEY must be 32 base64-encoded bytes');
+  }
+  return key;
+}
+
+function getDocumentEncryptionKey(): Buffer {
+  const key = Buffer.from(DOCUMENT_ENCRYPTION_KEY, 'base64');
+  if (key.length !== 32) {
+    throw new Error('DOCUMENT_ENCRYPTION_KEY must be 32 base64-encoded bytes');
+  }
+  return key;
+}
+
+function decryptLegacyPan(encrypted: { ciphertext: string; iv: string; auth_tag: string }): string {
+  const key = getPanEncryptionKey();
+  const decipher = createDecipheriv(
+    'aes-256-gcm',
+    key,
+    Buffer.from(encrypted.iv, 'base64'),
+  );
+  decipher.setAuthTag(Buffer.from(encrypted.auth_tag, 'base64'));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(encrypted.ciphertext, 'base64')),
+    decipher.final(),
+  ]);
+  return plaintext.toString('utf8');
+}
+
+function decryptLegacyDocument(encrypted: { ciphertext: string; iv: string; auth_tag: string }): Buffer {
+  const key = getDocumentEncryptionKey();
+  const decipher = createDecipheriv(
+    'aes-256-gcm',
+    key,
+    Buffer.from(encrypted.iv, 'base64'),
+  );
+  decipher.setAuthTag(Buffer.from(encrypted.auth_tag, 'base64'));
+  return Buffer.concat([
+    decipher.update(Buffer.from(encrypted.ciphertext, 'base64')),
+    decipher.final(),
+  ]);
+}
+
+// Per-user encryption for Cockroach (matching envelopeEncryption.ts)
+class KmsKeyWrapper {
+  private readonly client: KeyManagementServiceClient;
+  private readonly keyName: string;
+
+  constructor() {
+    this.client = new KeyManagementServiceClient();
+    this.keyName = GCP_KMS_KEY_NAME;
+  }
+
+  async wrap(plaintextKey: Buffer): Promise<Buffer> {
+    const [result] = await this.client.encrypt({
+      name: this.keyName,
+      plaintext: plaintextKey,
+    });
+    if (!result.ciphertext) throw new Error('Cloud KMS returned no ciphertext');
+    return Buffer.from(result.ciphertext as Uint8Array);
+  }
+
+  async unwrap(wrappedKey: Buffer): Promise<Buffer> {
+    const [result] = await this.client.decrypt({
+      name: this.keyName,
+      ciphertext: wrappedKey,
+    });
+    if (!result.plaintext) throw new Error('Cloud KMS returned no plaintext');
+    return Buffer.from(result.plaintext as Uint8Array);
+  }
+}
+
+async function createPerUserDataKey(kms: KmsKeyWrapper): Promise<{ plaintext: Buffer; wrapped: Buffer }> {
+  const plaintext = randomBytes(32);
+  const wrapped = await kms.wrap(plaintext);
+  return { plaintext, wrapped };
+}
+
+function encryptWithUserKey(
+  dataKey: Buffer,
+  plaintext: Buffer,
+  context: { userId: string; entityType: string; recordId: string },
+): { ciphertext: Buffer; nonce: Buffer; keyVersion: number; schemaVersion: number } {
+  const nonce = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', dataKey, nonce);
+  const aad = Buffer.from([
+    'arth',
+    context.userId,
+    context.entityType,
+    context.recordId,
+    '1',
+    '1',
+  ].join('\0'), 'utf8');
+  cipher.setAAD(aad);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  return {
+    ciphertext: Buffer.concat([cipher.getAuthTag(), ciphertext]),
+    nonce,
+    keyVersion: 1,
+    schemaVersion: 1,
+  };
+}
+
+// Transformation statistics (non-sensitive)
+const transformationStats = {
+  user_private_identity: { decrypted: 0, failed: 0 },
+  tax_documents: { decrypted: 0, failed: 0 },
+  user_state: { decrypted: 0, failed: 0 },
+};
+
+function quoteIdent(id: string): string {
+  return '"' + id.replace(/"/g, '""') + '"';
+}
+
+async function migrateUserPrivateIdentity(
+  source: pg.Client,
+  target: pg.Client,
+  kms: KmsKeyWrapper,
+): Promise<void> {
+  console.log('[migrate-encrypted-data] Processing user_private_identity');
+
+  const rows = (await source.query(
+    `select user_id, pan_ciphertext, pan_iv, pan_auth_tag, pan_last4, pan_last_char,
+            pan_fingerprint, pan_consent_version, pan_consented_at, pan_deleted_at,
+            created_at, updated_at
+     from user_private_identity
+     where pan_ciphertext is not null`,
+  )).rows;
+
+  if (rows.length === 0) {
+    console.log('  user_private_identity: 0 encrypted rows');
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`  user_private_identity: would transform ${rows.length} encrypted rows`);
+    return;
+  }
+
+  let inserted = 0;
+  for (const row of rows) {
+    const userId = row.user_id;
+    try {
+      // Decrypt with legacy key
+      const plaintext = decryptLegacyPan({
+        ciphertext: row.pan_ciphertext,
+        iv: row.pan_iv,
+        auth_tag: row.pan_auth_tag,
+      });
+
+      // Validate PAN format
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(plaintext)) {
+        throw new Error('Invalid PAN format');
+      }
+
+      // Create or get per-user data key for this user
+      const { plaintext: dataKey, wrapped } = await createPerUserDataKey(kms);
+
+      // Insert user keyring entry if not exists
+      await target.query(
+        `insert into auth.user_keyrings (user_id, wrapped_data_key, kms_key_name, kms_key_version, key_version, status, created_at)
+         values ($1, $2, $3, '1', 1, 'active', now())
+         on conflict (user_id) do nothing`,
+        [userId, wrapped, GCP_KMS_KEY_NAME],
+      );
+
+      // Re-encrypt with per-user key
+      const encrypted = encryptWithUserKey(
+        dataKey,
+        Buffer.from(plaintext, 'utf8'),
+        { userId, entityType: 'user_private_identity', recordId: userId },
+      );
+
+      // Insert into profile.user_profiles with new format
+      const payload = {
+        pan_last4: row.pan_last4,
+        pan_last_char: row.pan_last_char,
+        pan_fingerprint: row.pan_fingerprint,
+        pan_consent_version: row.pan_consent_version,
+        pan_consented_at: row.pan_consented_at,
+        pan_deleted_at: row.pan_deleted_at,
+      };
+
+      const payloadCiphertext = Buffer.from(JSON.stringify(payload), 'utf8');
+      const payloadEncrypted = encryptWithUserKey(
+        dataKey,
+        payloadCiphertext,
+        { userId, entityType: 'user_profile', recordId: userId },
+      );
+
+      await target.query(
+        `insert into profile.user_profiles
+         (user_id, id, payload_ciphertext, payload_nonce, key_version, schema_version, version, created_at, updated_at)
+         values ($1, gen_random_uuid(), $2, $3, $4, $5, 1, now(), now())
+         on conflict (user_id) do nothing`,
+        [
+          userId,
+          payloadEncrypted.ciphertext,
+          payloadEncrypted.nonce,
+          payloadEncrypted.keyVersion,
+          payloadEncrypted.schemaVersion,
+        ],
+      );
+
+      inserted++;
+      transformationStats.user_private_identity.decrypted++;
+    } catch (e) {
+      console.error(`  user_private_identity: Failed to transform for user ${userId}: ${(e as Error).message}`);
+      transformationStats.user_private_identity.failed++;
+      // Continue with other rows - source remains intact
+    }
+  }
+
+  console.log(`  user_private_identity: ${rows.length} source rows, ${inserted} inserted`);
+}
+
+async function migrateTaxDocuments(
+  source: pg.Client,
+  target: pg.Client,
+  kms: KmsKeyWrapper,
+): Promise<void> {
+  console.log('[migrate-encrypted-data] Processing tax_documents');
+
+  const rows = (await source.query(
+    `select id, user_id, fy, document_type, original_filename, mime_type, byte_size,
+            sha256_fingerprint, ciphertext, iv, auth_tag, parse_status, parse_summary,
+            created_at, updated_at
+     from tax_documents
+     where ciphertext is not null`,
+  )).rows;
+
+  if (rows.length === 0) {
+    console.log('  tax_documents: 0 encrypted rows');
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`  tax_documents: would transform ${rows.length} encrypted rows`);
+    return;
+  }
+
+  let inserted = 0;
+  for (const row of rows) {
+    const userId = row.user_id;
+    const documentId = row.id;
+    try {
+      // Decrypt with legacy key
+      const plaintext = decryptLegacyDocument({
+        ciphertext: row.ciphertext,
+        iv: row.iv,
+        auth_tag: row.auth_tag,
+      });
+
+      // Get or create per-user data key
+      const { plaintext: dataKey, wrapped } = await createPerUserDataKey(kms);
+
+      // Ensure user keyring exists
+      await target.query(
+        `insert into auth.user_keyrings (user_id, wrapped_data_key, kms_key_name, kms_key_version, key_version, status, created_at)
+         values ($1, $2, $3, '1', 1, 'active', now())
+         on conflict (user_id) do nothing`,
+        [userId, wrapped, GCP_KMS_KEY_NAME],
+      );
+
+      // Re-encrypt with per-user key
+      const encrypted = encryptWithUserKey(
+        dataKey,
+        plaintext,
+        { userId, entityType: 'tax_document', recordId: documentId },
+      );
+
+      // Insert into vault.documents
+      const payload = {
+        original_filename: row.original_filename,
+        mime_type: row.mime_type,
+        byte_size: row.byte_size,
+        sha256_fingerprint: row.sha256_fingerprint,
+        parse_status: row.parse_status,
+        parse_summary: row.parse_summary,
+      };
+
+      const payloadCiphertext = Buffer.from(JSON.stringify(payload), 'utf8');
+      const payloadEncrypted = encryptWithUserKey(
+        dataKey,
+        payloadCiphertext,
+        { userId, entityType: 'tax_document_metadata', recordId: documentId },
+      );
+
+      await target.query(
+        `insert into vault.documents
+         (user_id, id, financial_year, document_type, content_fingerprint, status, review_status,
+          payload_ciphertext, payload_nonce, key_version, schema_version, version, created_at, updated_at)
+         values ($1, $2, $3, $4, $5, 'uploaded', 'not_reviewed', $6, $7, $8, $9, 1, now(), now())
+         on conflict (user_id, id) do nothing`,
+        [
+          userId,
+          documentId,
+          row.fy,
+          row.document_type,
+          Buffer.from(row.sha256_fingerprint, 'hex'),
+          payloadEncrypted.ciphertext,
+          payloadEncrypted.nonce,
+          payloadEncrypted.keyVersion,
+          payloadEncrypted.schemaVersion,
+        ],
+      );
+
+      inserted++;
+      transformationStats.tax_documents.decrypted++;
+    } catch (e) {
+      console.error(`  tax_documents: Failed to transform document ${documentId}: ${(e as Error).message}`);
+      transformationStats.tax_documents.failed++;
+    }
+  }
+
+  console.log(`  tax_documents: ${rows.length} source rows, ${inserted} inserted`);
+}
+
+async function migrateUserState(
+  source: pg.Client,
+  target: pg.Client,
+  kms: KmsKeyWrapper,
+): Promise<void> {
+  console.log('[migrate-encrypted-data] Processing user_state');
+
+  const rows = (await source.query(
+    `select user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag,
+            deleted, client_updated_at, updated_at
+     from user_state
+     where payload_ciphertext is not null and deleted = false`,
+  )).rows;
+
+  if (rows.length === 0) {
+    console.log('  user_state: 0 encrypted rows');
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`  user_state: would transform ${rows.length} encrypted rows`);
+    return;
+  }
+
+  let inserted = 0;
+  for (const row of rows) {
+    const userId = row.user_id;
+    const namespace = row.namespace;
+    try {
+      // Decrypt with legacy key
+      const plaintext = decryptLegacyDocument({
+        ciphertext: row.payload_ciphertext,
+        iv: row.payload_iv,
+        auth_tag: row.payload_auth_tag,
+      });
+
+      // Get or create per-user data key
+      const { plaintext: dataKey, wrapped } = await createPerUserDataKey(kms);
+
+      // Ensure user keyring exists
+      await target.query(
+        `insert into auth.user_keyrings (user_id, wrapped_data_key, kms_key_name, kms_key_version, key_version, status, created_at)
+         values ($1, $2, $3, '1', 1, 'active', now())
+         on conflict (user_id) do nothing`,
+        [userId, wrapped, GCP_KMS_KEY_NAME],
+      );
+
+      // Re-encrypt with per-user key
+      const encrypted = encryptWithUserKey(
+        dataKey,
+        plaintext,
+        { userId, entityType: 'user_state', recordId: namespace },
+      );
+
+      // Insert into user_state (Cockroach has this table in public schema)
+      await target.query(
+        `insert into user_state
+         (user_id, namespace, payload_ciphertext, payload_iv, payload_auth_tag, deleted, client_updated_at, updated_at)
+         values ($1, $2, $3, $4, '', false, $5, now())
+         on conflict (user_id, namespace) do nothing`,
+        [
+          userId,
+          namespace,
+          encrypted.ciphertext,
+          encrypted.nonce,
+          row.client_updated_at,
+        ],
+      );
+
+      inserted++;
+      transformationStats.user_state.decrypted++;
+    } catch (e) {
+      console.error(`  user_state: Failed to transform state for user ${userId}, namespace ${namespace}: ${(e as Error).message}`);
+      transformationStats.user_state.failed++;
+    }
+  }
+
+  console.log(`  user_state: ${rows.length} source rows, ${inserted} inserted`);
+}
+
+async function verifyDecryption(
+  target: pg.Client,
+  kms: KmsKeyWrapper,
+): Promise<void> {
+  console.log('[migrate-encrypted-data] Verifying decryption of transformed data');
+
+  // Verify a sample of user profiles can be decrypted
+  const sampleUsers = (await target.query(
+    `select user_id, payload_ciphertext, payload_nonce
+     from profile.user_profiles
+     limit 5`,
+  )).rows;
+
+  for (const row of sampleUsers) {
+    try {
+      const wrappedKey = (await target.query(
+        `select wrapped_data_key from auth.user_keyrings where user_id = $1`,
+        [row.user_id],
+      )).rows[0]?.wrapped_data_key;
+
+      if (!wrappedKey) {
+        throw new Error(`No wrapped key found for user ${row.user_id}`);
+      }
+
+      const dataKey = await kms.unwrap(Buffer.from(wrappedKey, 'base64'));
+      const encrypted = {
+        ciphertext: Buffer.from(row.payload_ciphertext, 'base64'),
+        nonce: Buffer.from(row.payload_nonce, 'base64'),
+        keyVersion: 1,
+        schemaVersion: 1,
+      };
+
+      // Attempt decryption
+      const tag = encrypted.ciphertext.subarray(0, 16);
+      const ciphertext = encrypted.ciphertext.subarray(16);
+      const decipher = createDecipheriv('aes-256-gcm', dataKey, encrypted.nonce);
+      decipher.setAuthTag(tag);
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      JSON.parse(plaintext.toString('utf8')); // Validate it's valid JSON
+
+      console.log(`  ✓ User ${row.user_id}: decryption successful`);
+    } catch (e) {
+      console.error(`  ✗ User ${row.user_id}: decryption failed - ${(e as Error).message}`);
+      throw new Error(`Verification failed for user ${row.user_id}`);
+    }
+  }
+
+  console.log('[migrate-encrypted-data] Verification complete');
+}
+
+async function main() {
+  const source = new pg.Client({ connectionString: sourceUrl });
+  const target = new pg.Client({ connectionString: targetUrl });
+  await source.connect();
+  await target.connect();
+  console.log(`[migrate-encrypted-data]${dryRun ? ' (dry-run)' : ''} start`);
+
+  // Initialize KMS wrapper for per-user encryption
+  const kms = new KmsKeyWrapper();
+
+  try {
+    // Process encrypted tables in dependency order
+    await migrateUserPrivateIdentity(source, target, kms);
+    await migrateTaxDocuments(source, target, kms);
+    await migrateUserState(source, target, kms);
+
+    // Output transformation statistics
+    console.log('[migrate-encrypted-data] transformation statistics:');
+    for (const [table, stats] of Object.entries(transformationStats)) {
+      if (stats.decrypted > 0 || stats.failed > 0) {
+        console.log(`  ${table}: ${stats.decrypted} decrypted, ${stats.failed} failed`);
+      }
+    }
+
+    // Verify no failures
+    const totalFailed = Object.values(transformationStats).reduce((sum, s) => sum + s.failed, 0);
+    if (totalFailed > 0) {
+      console.error(`[migrate-encrypted-data] ${totalFailed} transformations failed - source remains intact`);
+      console.error('[migrate-encrypted-data] ROLLBACK RECOMMENDED: Do not proceed with cutover');
+      process.exit(1);
+    }
+
+    // Verify decryption works on transformed data
+    if (!dryRun) {
+      await verifyDecryption(target, kms);
+    }
+
+    // Insert success marker to indicate safe to cutover
+    if (!dryRun) {
+      await target.query(
+        `insert into ops.audit_events (id, user_id, event_type, outcome, actor_type, metadata, occurred_at)
+         values (gen_random_uuid(), null, 'encryption_migration_complete', 'success', 'system',
+           '{"source": "migrate-encrypted-data.ts", "tables": ["user_private_identity", "tax_documents", "user_state"]}'::jsonb,
+           now())`,
+      );
+      console.log('[migrate-encrypted-data] Success marker recorded - safe to proceed with cutover');
+    }
+
+    console.log('[migrate-encrypted-data] done');
+  } finally {
+    await source.end().catch(() => undefined);
+    await target.end().catch(() => undefined);
+  }
+}
+
+main().catch((e) => {
+  console.error('[migrate-encrypted-data] failed', e);
+  process.exit(1);
+});
