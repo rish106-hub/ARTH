@@ -6,12 +6,16 @@
  * It processes encrypted data from legacy Postgres tables and inserts into the
  * new Cockroach schema with proper per-user encryption.
  *
+ * Also handles user table migration (app_users -> auth.users) with blind index
+ * conversion for email and phone fields to match the secure Cockroach schema.
+ *
  * Usage:
  *   SOURCE_DATABASE_URL=<old postgres>  \
  *   TARGET_DATABASE_URL=<cockroach>     \
  *   PAN_ENCRYPTION_KEY=<legacy key>     \
  *   DOCUMENT_ENCRYPTION_KEY=<legacy key> \
  *   GCP_KMS_KEY_NAME=<kms key>         \
+ *   DATA_HMAC_KEY=<hmac key>           \
  *   npx tsx src/scripts/migrate-encrypted-data.ts [--dry-run]
  *
  * Safe to re-run: every insert is ON CONFLICT DO NOTHING.
@@ -22,6 +26,7 @@ import {
   createDecipheriv,
   createCipheriv,
   randomBytes,
+  createHmac,
 } from 'node:crypto';
 import { KeyManagementServiceClient } from '@google-cloud/kms';
 import { env } from '../config.js';
@@ -45,10 +50,28 @@ if (!env.GCP_KMS_KEY_NAME) {
   process.exit(1);
 }
 
+if (!env.DATA_HMAC_KEY) {
+  console.error('DATA_HMAC_KEY is required for blind index conversion.');
+  process.exit(1);
+}
+
 // Type assertions after runtime validation
 const PAN_ENCRYPTION_KEY = env.PAN_ENCRYPTION_KEY!;
 const DOCUMENT_ENCRYPTION_KEY = env.DOCUMENT_ENCRYPTION_KEY!;
 const GCP_KMS_KEY_NAME = env.GCP_KMS_KEY_NAME!;
+const DATA_HMAC_KEY = env.DATA_HMAC_KEY!;
+
+// Blind index function for converting plain text to hashed lookups
+function blindIndex(namespace: string, normalizedValue: string): Buffer {
+  const key = Buffer.from(DATA_HMAC_KEY, 'base64');
+  if (key.length < 32) throw new Error('DATA_HMAC_KEY must be at least 32 base64-encoded bytes');
+  return createHmac('sha256', key)
+    .update(Buffer.from([namespace.length]))
+    .update(namespace)
+    .update(Buffer.from([0]))
+    .update(normalizedValue)
+    .digest();
+}
 
 // Legacy decryption functions (matching security.ts)
 function getPanEncryptionKey(): Buffer {
@@ -157,7 +180,14 @@ function encryptWithUserKey(
 }
 
 // Transformation statistics (non-sensitive)
-const transformationStats = {
+interface TransformationStats {
+  copied?: number;
+  decrypted?: number;
+  failed: number;
+}
+
+const transformationStats: Record<string, TransformationStats> = {
+  app_users: { copied: 0, failed: 0 },
   user_private_identity: { decrypted: 0, failed: 0 },
   tax_documents: { decrypted: 0, failed: 0 },
   user_state: { decrypted: 0, failed: 0 },
@@ -165,6 +195,133 @@ const transformationStats = {
 
 function quoteIdent(id: string): string {
   return '"' + id.replace(/"/g, '""') + '"';
+}
+
+async function assertNoUserIdentityConflicts(source: pg.Client, target: pg.Client) {
+  console.log('[migrate-encrypted-data] checking for user identity conflicts...');
+  
+  const [sourceUsers, targetUsers] = await Promise.all([
+    source.query<{ id: string; email: string }>('select id::text, lower(email) as email from app_users'),
+    target.query<{ id: string; email: string }>('select id::text, lower(email_lookup::text) as email from auth.users'),
+  ]);
+  
+  const targetIdsByEmail = new Map(targetUsers.rows.map((row) => [row.email, row.id]));
+  const conflicts = sourceUsers.rows.filter((row) => {
+    const targetId = targetIdsByEmail.get(row.email);
+    return targetId !== undefined && targetId !== row.id;
+  });
+  
+  if (conflicts.length > 0) {
+    throw new Error(
+      `Target has ${conflicts.length} email(s) assigned to different user IDs; resolve them before copying`,
+    );
+  }
+  
+  console.log('[migrate-encrypted-data] no user identity conflicts found');
+}
+
+async function migrateAppUsers(
+  source: pg.Client,
+  target: pg.Client,
+  kms: KmsKeyWrapper,
+): Promise<void> {
+  console.log('[migrate-encrypted-data] Processing app_users -> auth.users');
+
+  await assertNoUserIdentityConflicts(source, target);
+
+  const rows = (await source.query(
+    `select id, email, name, phone_e164, password_hash, google_subject, 
+            auth_provider, email_verified, avatar_initials, avatar_color,
+            created_at, updated_at, last_seen_at
+     from app_users`,
+  )).rows;
+
+  if (rows.length === 0) {
+    console.log('  app_users: 0 rows');
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`  app_users: would migrate ${rows.length} users`);
+    return;
+  }
+
+  let inserted = 0;
+  for (const row of rows) {
+    try {
+      // Create per-user data key for encryption
+      const { plaintext: dataKey, wrapped } = await createPerUserDataKey(kms);
+
+      // Convert email and phone to blind indexes
+      const emailLookup = blindIndex('email', row.email.toLowerCase());
+      const phoneLookup = row.phone_e164 ? blindIndex('phone', row.phone_e164) : null;
+
+      // Create user payload with basic profile data
+      const payload = {
+        name: row.name,
+        avatar_initials: row.avatar_initials,
+        avatar_color: row.avatar_color,
+      };
+
+      const payloadCiphertext = Buffer.from(JSON.stringify(payload), 'utf8');
+      const payloadEncrypted = encryptWithUserKey(
+        dataKey,
+        payloadCiphertext,
+        { userId: row.id, entityType: 'user_profile', recordId: row.id },
+      );
+
+      // Insert user keyring entry
+      await target.query(
+        `insert into auth.user_keyrings (user_id, wrapped_data_key, kms_key_name, kms_key_version, key_version, status, created_at)
+         values ($1, $2, $3, '1', 1, 'active', now())
+         on conflict (user_id) do nothing`,
+        [row.id, wrapped, GCP_KMS_KEY_NAME],
+      );
+
+      // Insert into auth.users with blind indexes and encrypted payload
+      await target.query(
+        `insert into auth.users
+         (id, email_lookup, phone_lookup, password_hash, password_algorithm, 
+          auth_provider, email_verified, token_version, status,
+          payload_ciphertext, payload_nonce, key_version, schema_version,
+          created_at, updated_at, last_seen_at)
+         values ($1, $2, $3, $4, $5, $6, $7, 1, 'active', $8, $9, 1, 1, $10, $11, $12)
+         on conflict (id) do nothing`,
+        [
+          row.id,
+          emailLookup,
+          phoneLookup,
+          row.password_hash,
+          row.password_hash ? 'argon2id' : null,
+          row.auth_provider,
+          row.email_verified,
+          payloadEncrypted.ciphertext,
+          payloadEncrypted.nonce,
+          row.created_at,
+          row.updated_at,
+          row.last_seen_at,
+        ],
+      );
+
+      // Insert auth identity for Google auth users
+      if (row.google_subject) {
+        await target.query(
+          `insert into auth.auth_identities (user_id, id, provider, provider_user_id)
+           values ($1, gen_random_uuid(), 'google', $2)
+           on conflict (user_id, provider, provider_user_id) do nothing`,
+          [row.id, row.google_subject],
+        );
+      }
+
+      inserted++;
+      transformationStats.app_users.copied = (transformationStats.app_users.copied || 0) + 1;
+    } catch (e) {
+      console.error(`  app_users: failed to migrate user ${row.id}: ${(e as Error).message}`);
+      transformationStats.app_users.failed++;
+    }
+  }
+
+  console.log(`  app_users: ${inserted}/${rows.length} users migrated`);
 }
 
 async function migrateUserPrivateIdentity(
@@ -258,7 +415,7 @@ async function migrateUserPrivateIdentity(
       );
 
       inserted++;
-      transformationStats.user_private_identity.decrypted++;
+      transformationStats.user_private_identity.decrypted = (transformationStats.user_private_identity.decrypted || 0) + 1;
     } catch (e) {
       console.error(`  user_private_identity: Failed to transform for user ${userId}: ${(e as Error).message}`);
       transformationStats.user_private_identity.failed++;
@@ -361,7 +518,7 @@ async function migrateTaxDocuments(
       );
 
       inserted++;
-      transformationStats.tax_documents.decrypted++;
+      transformationStats.tax_documents.decrypted = (transformationStats.tax_documents.decrypted || 0) + 1;
     } catch (e) {
       console.error(`  tax_documents: Failed to transform document ${documentId}: ${(e as Error).message}`);
       transformationStats.tax_documents.failed++;
@@ -441,7 +598,7 @@ async function migrateUserState(
       );
 
       inserted++;
-      transformationStats.user_state.decrypted++;
+      transformationStats.user_state.decrypted = (transformationStats.user_state.decrypted || 0) + 1;
     } catch (e) {
       console.error(`  user_state: Failed to transform state for user ${userId}, namespace ${namespace}: ${(e as Error).message}`);
       transformationStats.user_state.failed++;
@@ -513,6 +670,8 @@ async function main() {
 
   try {
     // Process encrypted tables in dependency order
+    // Users first (needed for FK references)
+    await migrateAppUsers(source, target, kms);
     await migrateUserPrivateIdentity(source, target, kms);
     await migrateTaxDocuments(source, target, kms);
     await migrateUserState(source, target, kms);
@@ -520,8 +679,10 @@ async function main() {
     // Output transformation statistics
     console.log('[migrate-encrypted-data] transformation statistics:');
     for (const [table, stats] of Object.entries(transformationStats)) {
-      if (stats.decrypted > 0 || stats.failed > 0) {
-        console.log(`  ${table}: ${stats.decrypted} decrypted, ${stats.failed} failed`);
+      if ((stats.copied && stats.copied > 0) || (stats.decrypted && stats.decrypted > 0) || stats.failed > 0) {
+        const action = stats.copied && stats.copied > 0 ? 'copied' : 'decrypted';
+        const count = stats.copied && stats.copied > 0 ? stats.copied : stats.decrypted;
+        console.log(`  ${table}: ${count} ${action}, ${stats.failed} failed`);
       }
     }
 
@@ -543,7 +704,7 @@ async function main() {
       await target.query(
         `insert into ops.audit_events (id, user_id, event_type, outcome, actor_type, metadata, occurred_at)
          values (gen_random_uuid(), null, 'encryption_migration_complete', 'success', 'system',
-           '{"source": "migrate-encrypted-data.ts", "tables": ["user_private_identity", "tax_documents", "user_state"]}'::jsonb,
+           '{"source": "migrate-encrypted-data.ts", "tables": ["app_users", "user_private_identity", "tax_documents", "user_state"]}'::jsonb,
            now())`,
       );
       console.log('[migrate-encrypted-data] Success marker recorded - safe to proceed with cutover');
