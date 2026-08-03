@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../features/spend_completeness/providers/spend_completeness_provider.dart';
 import '../../../providers/spend_map_provider.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
@@ -21,6 +22,8 @@ class WorkCostLensScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final spend = ref.watch(spendMapProvider);
     final settings = ref.watch(workCostProvider);
+    final completeness = ref.watch(spendCompletenessProvider);
+    final incompleteCoverage = completeness.missingSources.isNotEmpty;
     final map = spend.map;
     final allCandidates = map == null
         ? const <WorkCostCandidate>[]
@@ -59,6 +62,7 @@ class WorkCostLensScreen extends ConsumerWidget {
               _CandidateCard(
                 candidate: candidate,
                 tag: settings.tags[candidate.id],
+                incompleteCoverage: incompleteCoverage,
                 onChoose: () => _chooseKind(context, ref, candidate.id),
                 onRemove: () =>
                     ref.read(workCostProvider.notifier).removeTag(candidate.id),
@@ -114,6 +118,7 @@ class _CandidateCard extends StatelessWidget {
   const _CandidateCard({
     required this.candidate,
     required this.tag,
+    required this.incompleteCoverage,
     required this.onChoose,
     required this.onRemove,
     required this.onDismiss,
@@ -121,6 +126,7 @@ class _CandidateCard extends StatelessWidget {
 
   final WorkCostCandidate candidate;
   final WorkCostTag? tag;
+  final bool incompleteCoverage;
   final VoidCallback onChoose;
   final VoidCallback onRemove;
   final VoidCallback onDismiss;
@@ -148,7 +154,7 @@ class _CandidateCard extends StatelessWidget {
                           PaycheckType.utility(color: PaycheckColors.contract)),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               '${_money(candidate.monthlyAmount)} tracked each month · ${candidate.transactionCount} purchases',
               style: PaycheckType.body(color: PaycheckColors.inkSoft),
@@ -178,6 +184,13 @@ class _CandidateCard extends StatelessWidget {
                 'Try one less each workweek: save about ${_money(candidate.oneLessPerWeekSavings)} per month.',
                 style: PaycheckType.bodyStrong(color: PaycheckColors.matched),
               ),
+              if (incompleteCoverage) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Your SMS coverage looks incomplete, so this saving is an estimate, not a guarantee.',
+                  style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+                ),
+              ],
               TextButton(
                   onPressed: onRemove, child: const Text('Remove work tag')),
             ],
