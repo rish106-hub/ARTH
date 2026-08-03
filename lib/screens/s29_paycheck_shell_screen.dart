@@ -9,13 +9,18 @@ import '../features/money_signals/providers/money_signal_provider.dart';
 import '../features/monthly_close/models/monthly_close_models.dart';
 import '../features/monthly_close/providers/monthly_close_provider.dart';
 import '../features/monthly_close/screens/monthly_close_screen.dart';
+import '../features/work_costs/engine/work_cost_lens_engine.dart';
+import '../features/work_costs/models/work_cost_models.dart';
+import '../features/work_costs/providers/work_cost_provider.dart';
 import '../models/money_signal_models.dart';
 import '../models/paycheck.dart';
+import '../models/spend_map.dart';
 import '../models/tax_document.dart';
 import '../providers/auth_provider.dart';
 import '../providers/paycheck_override_provider.dart';
 import '../providers/paycheck_provider.dart';
 import '../providers/spend_map_adjustments_provider.dart';
+import '../providers/spend_map_provider.dart';
 import '../providers/tax_document_provider.dart';
 import '../services/on_device_document_ocr_service.dart';
 import '../services/server_api_service.dart';
@@ -73,15 +78,11 @@ class _PaycheckShellScreenState extends ConsumerState<PaycheckShellScreen> {
     final pages = [
       _PaycheckHome(
         paycheck: paycheck,
-        onOpenEvidence: () => setState(() => _index = 1),
+        onOpenEvidence: () => setState(() => _index = 2),
         onOpenSettings: () => setState(() => _index = 3),
       ),
-      _InboxView(
-        paycheck: paycheck,
-        exploreMode: widget.exploreMode,
-        onPayslipApplied: () => setState(() => _index = 0),
-      ),
-      _TaxOverviewView(paycheck: paycheck),
+      const _MoneyOverview(),
+      const _PlanOverview(),
       widget.exploreMode
           ? const _ExploreYouView()
           : _YouView(paycheck: paycheck),
@@ -221,6 +222,13 @@ class _PaycheckHome extends ConsumerWidget {
         paycheck.netCredited > 0 ||
         paycheck.salarySmsConnected;
     final income = ref.watch(incomeSignalProvider);
+    final spendMap = ref.watch(spendMapProvider).map;
+    final workCosts = ref.watch(workCostProvider);
+    final confirmedWorkCosts = spendMap == null
+        ? const <WorkCostCandidate>[]
+        : WorkCostLensEngine.candidates(spendMap)
+            .where((item) => workCosts.tags.containsKey(item.id))
+            .toList(growable: false);
     final closeRecord = ref.watch(monthlyCloseProvider);
     final closeSnapshot = ref.watch(monthlyCloseSnapshotProvider);
     FigureAudit? auditFor(String id) =>
@@ -286,10 +294,17 @@ class _PaycheckHome extends ConsumerWidget {
                   ),
                 ),
               const SizedBox(height: 20),
-              _ComparisonStrip(
-                paycheck: paycheck,
-                onAudit: openAudit,
-              ),
+              _ThisMonthCard(income: income, spendMap: spendMap),
+              if (spendMap != null && !spendMap.isEmpty) ...[
+                const SizedBox(height: 12),
+                _SpendPaceCard(spendMap: spendMap),
+              ],
+              if (confirmedWorkCosts.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _WorkdayOpportunityCard(
+                  candidate: confirmedWorkCosts.first,
+                ),
+              ],
               const SizedBox(height: 12),
               if (actionItems.isNotEmpty)
                 SizedBox(
@@ -731,50 +746,37 @@ class _EmptyPaycheck extends StatelessWidget {
   }
 }
 
-class _ComparisonStrip extends StatelessWidget {
-  const _ComparisonStrip({
-    required this.paycheck,
-    required this.onAudit,
-  });
+class _ThisMonthCard extends StatelessWidget {
+  const _ThisMonthCard({required this.income, required this.spendMap});
 
-  final PaycheckState paycheck;
-  final void Function(String id) onAudit;
+  final IncomeSignal income;
+  final SpendMap? spendMap;
 
   @override
   Widget build(BuildContext context) {
-    final canCompare = paycheck.promisedMonthly > 0;
-    final difference =
-        canCompare ? paycheck.promisedMonthly - paycheck.grossReceived : 0;
+    final hasSpend = spendMap != null && !spendMap!.isEmpty;
+    final value = hasSpend ? spendMap!.monthlyNet : income.monthlyIncome;
+    final label = hasSpend ? 'Tracked left this month' : 'Income to plan with';
     return Container(
-      decoration: BoxDecoration(
-        color: PaycheckColors.paper,
-        border: Border.all(color: PaycheckColors.line),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: PaycheckColors.contractSoft,
         borderRadius: AppRadius.card,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ComparisonCell(
-            label: 'Promised',
-            value: canCompare ? _money(paycheck.promisedMonthly) : 'Not added',
-            onTap: canCompare ? () => onAudit('promised-pay') : null,
-          ),
-          Container(width: 1, height: 52, color: PaycheckColors.line),
-          _ComparisonCell(
-            label: 'Paid',
-            value: _money(paycheck.grossReceived),
-            color: PaycheckColors.matched,
-            onTap:
-                paycheck.grossReceived > 0 ? () => onAudit('gross-pay') : null,
-          ),
-          Container(width: 1, height: 52, color: PaycheckColors.line),
-          _ComparisonCell(
-            label: 'Difference',
-            value: canCompare ? _money(difference.abs()) : '—',
-            color:
-                difference == 0 ? PaycheckColors.matched : PaycheckColors.claim,
-            onTap: canCompare && paycheck.grossReceived > 0
-                ? () => onAudit('pay-difference')
-                : null,
+          Text(label,
+              style: PaycheckType.utility(color: PaycheckColors.contract)),
+          const SizedBox(height: 8),
+          Text(_money(value), style: PaycheckType.money(size: 24)),
+          const SizedBox(height: 4),
+          Text(
+            hasSpend
+                ? 'Income minus tracked SMS spend. Not your bank balance.'
+                : 'Scan SMS to add tracked spend and pace.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
           ),
         ],
       ),
@@ -782,46 +784,89 @@ class _ComparisonStrip extends StatelessWidget {
   }
 }
 
-class _ComparisonCell extends StatelessWidget {
-  const _ComparisonCell({
-    required this.label,
-    required this.value,
-    this.color = PaycheckColors.ink,
-    this.onTap,
-  });
+class _SpendPaceCard extends StatelessWidget {
+  const _SpendPaceCard({required this.spendMap});
 
-  final String label;
-  final String value;
-  final Color color;
-  final VoidCallback? onTap;
+  final SpendMap spendMap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: PaycheckType.utility()),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: PaycheckType.money(color: color, size: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final pace = (spendMap.spendPaceVsAverage * 100).round();
+    final comparison = pace == 0
+        ? 'On your usual pace.'
+        : '${pace.abs()}% ${pace > 0 ? 'above' : 'below'} your usual pace.';
+    return _HomeSignalCard(
+      icon: Icons.speed_outlined,
+      title: 'Spend pace',
+      value: _money(spendMap.projectedMonthlySpend),
+      detail: '$comparison Tracked SMS spend only.',
+      onTap: () => context.push('/spend-map'),
     );
   }
+}
+
+class _WorkdayOpportunityCard extends StatelessWidget {
+  const _WorkdayOpportunityCard({required this.candidate});
+
+  final WorkCostCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    return _HomeSignalCard(
+      icon: Icons.work_outline_rounded,
+      title: 'Workday cost opportunity',
+      value: 'Save ${_money(candidate.oneLessPerWeekSavings)}/mo',
+      detail: 'One less ${candidate.merchant} purchase each workweek.',
+      onTap: () => context.push('/work-costs'),
+    );
+  }
+}
+
+class _HomeSignalCard extends StatelessWidget {
+  const _HomeSignalCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final String detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: PaycheckColors.paper,
+        borderRadius: AppRadius.card,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.card,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(icon, color: PaycheckColors.contract),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: PaycheckType.bodyStrong()),
+                      const SizedBox(height: 4),
+                      Text(detail, style: PaycheckType.utility()),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(value, style: PaycheckType.money(size: 14)),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _MatchedPaycheckStatus extends StatelessWidget {
@@ -2621,279 +2666,115 @@ class _YouView extends ConsumerWidget {
   }
 }
 
-class _TaxOverviewView extends ConsumerWidget {
-  const _TaxOverviewView({required this.paycheck});
-
-  final PaycheckState paycheck;
+class _MoneyOverview extends StatelessWidget {
+  const _MoneyOverview();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final impact = ref.watch(paycheckTaxImpactProvider);
-    final hints = ref.watch(paycheckTaxHintsProvider);
-    return _PageFrame(
-      eyebrow: 'Filing',
-      title: 'Plan with confirmed numbers.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: PaycheckColors.paper,
-              border: Border.all(color: PaycheckColors.line),
-              borderRadius: AppRadius.card,
+  Widget build(BuildContext context) => _PageFrame(
+        eyebrow: 'Money',
+        title: 'Make work costs visible.',
+        child: Column(
+          children: [
+            _WorkspaceLink(
+              icon: Icons.work_outline_rounded,
+              title: 'Workday costs',
+              detail: 'Tag repeat commute, food, and work-life costs.',
+              onTap: () => context.push('/work-costs'),
             ),
-            child: Column(
-              children: [
-                _TaxSummaryLine(
-                  label: 'Gross pay this period',
-                  value: paycheck.grossReceived > 0
-                      ? _money(paycheck.grossReceived)
-                      : 'Add payslip',
-                ),
-                _TaxSummaryLine(
-                  label: 'Tax withheld',
-                  value: paycheck.taxWithheld > 0
-                      ? _money(paycheck.taxWithheld)
-                      : 'Not confirmed',
-                  last: true,
-                ),
-              ],
+            _WorkspaceLink(
+              icon: Icons.sms_outlined,
+              title: 'Expenses from SMS',
+              detail: 'Spend map, coverage, and categories.',
+              onTap: () => context.push('/spend-map'),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text('Paycheck tax impact', style: PaycheckType.heading()),
-          const SizedBox(height: 12),
-          _TaxImpactCard(impact: impact),
-          if (hints.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text('Payslip tax signals', style: PaycheckType.heading()),
-            const SizedBox(height: 12),
-            for (var index = 0; index < hints.length; index++)
-              _TaxHintRow(
-                hint: hints[index],
-                last: index == hints.length - 1,
-              ),
+            _WorkspaceLink(
+              icon: Icons.flag_outlined,
+              title: 'Savings goal',
+              detail: 'See what your tracked money can support.',
+              onTap: () => context.push('/money-goal'),
+            ),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Your confirmed documents stay the source of truth.',
-            style: PaycheckType.body(color: PaycheckColors.inkSoft),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FilledButton.icon(
-              key: const Key('open_tax_plan'),
-              onPressed: () => context.push('/tax-plan'),
-              style: FilledButton.styleFrom(
-                backgroundColor: PaycheckColors.ink,
-                foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.control,
-                ),
-              ),
-              icon: const Icon(Icons.calculate_outlined),
-              label: Text(
-                'Open tax plan',
-                style: PaycheckType.bodyStrong(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaxImpactCard extends StatelessWidget {
-  const _TaxImpactCard({required this.impact});
-
-  final PaycheckTaxImpact impact;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, background) = switch (impact.status) {
-      TdsPaceStatus.over || TdsPaceStatus.under => (
-          PaycheckColors.claim,
-          PaycheckColors.claimSoft,
         ),
-      TdsPaceStatus.aligned => (
-          PaycheckColors.matched,
-          PaycheckColors.matchedSoft,
-        ),
-      TdsPaceStatus.calculating ||
-      TdsPaceStatus.unavailable ||
-      TdsPaceStatus.unknown =>
-        (
-          PaycheckColors.inkSoft,
-          PaycheckColors.surfaceMuted,
-        ),
-    };
-    final difference = impact.difference.abs();
-    final detail = switch (impact.status) {
-      TdsPaceStatus.calculating =>
-        'ARTH is calculating the rule estimate for your selected regime.',
-      TdsPaceStatus.unavailable =>
-        'The tax estimate could not load. Open the tax plan to retry.',
-      TdsPaceStatus.unknown =>
-        'Confirm a payslip to compare payroll TDS with ARTH tax rules.',
-      TdsPaceStatus.aligned =>
-        'Payslip TDS is near the monthly estimate for ${impact.regimeLabel}.',
-      TdsPaceStatus.over =>
-        '${_money(difference)} more TDS than the monthly estimate. Check payroll inputs and declared regime.',
-      TdsPaceStatus.under =>
-        '${_money(difference)} less TDS than the monthly estimate. Review before year-end.',
-    };
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: background,
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-        borderRadius: AppRadius.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            impact.status.label,
-            style: PaycheckType.sectionLabel(color: color),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _TaxPaceFigure(
-                  label: 'Payslip TDS',
-                  value: impact.actualMonthlyTds,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _TaxPaceFigure(
-                  label: 'Rule estimate',
-                  value: impact.status == TdsPaceStatus.calculating
-                      ? null
-                      : impact.expectedMonthlyTds,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(detail, style: PaycheckType.body()),
-          const SizedBox(height: 8),
-          Text(
-            'Review signal only. Not a filing instruction.',
-            style: PaycheckType.utility(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaxPaceFigure extends StatelessWidget {
-  const _TaxPaceFigure({required this.label, required this.value});
-
-  final String label;
-  final int? value;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: PaycheckType.utility()),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value == null ? 'Calculating' : _money(value!),
-              style: PaycheckType.money(size: 18),
-            ),
-          ),
-        ],
       );
 }
 
-class _TaxHintRow extends StatelessWidget {
-  const _TaxHintRow({required this.hint, required this.last});
-
-  final PaycheckTaxHint hint;
-  final bool last;
+class _PlanOverview extends StatelessWidget {
+  const _PlanOverview();
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: last
-              ? null
-              : const Border(bottom: BorderSide(color: PaycheckColors.line)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => _PageFrame(
+        eyebrow: 'Plan',
+        title: 'Keep evidence and tax together.',
+        child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: PaycheckColors.contractSoft,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                hint.kind.label,
-                style: PaycheckType.utility(color: PaycheckColors.contract),
-              ),
+            _WorkspaceLink(
+              icon: Icons.folder_copy_outlined,
+              title: 'Evidence',
+              detail: 'Offer letters, payslips, receipts, and tax documents.',
+              onTap: () => context.push('/documents'),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            _WorkspaceLink(
+              icon: Icons.calculate_outlined,
+              title: 'Tax plan',
+              detail: 'Use confirmed numbers for tax review.',
+              onTap: () => context.push('/tax-plan'),
+            ),
+            _WorkspaceLink(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Money recovery',
+              detail: 'Claims, benefits, deadlines, and history.',
+              onTap: () => context.push('/recovery'),
+            ),
+          ],
+        ),
+      );
+}
+
+class _WorkspaceLink extends StatelessWidget {
+  const _WorkspaceLink({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: PaycheckColors.paper,
+          borderRadius: AppRadius.card,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: AppRadius.card,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Text(hint.title, style: PaycheckType.bodyStrong()),
-                  const SizedBox(height: 4),
-                  Text(
-                    hint.detail,
-                    style: PaycheckType.body(color: PaycheckColors.inkSoft),
+                  Icon(icon, color: PaycheckColors.contract),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: PaycheckType.bodyStrong()),
+                        const SizedBox(height: 4),
+                        Text(detail, style: PaycheckType.utility()),
+                      ],
+                    ),
                   ),
+                  const Icon(Icons.chevron_right_rounded),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       );
-}
-
-class _TaxSummaryLine extends StatelessWidget {
-  const _TaxSummaryLine({
-    required this.label,
-    required this.value,
-    this.last = false,
-  });
-
-  final String label;
-  final String value;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: last
-            ? null
-            : const Border(bottom: BorderSide(color: PaycheckColors.line)),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: PaycheckType.body())),
-          const SizedBox(width: 12),
-          Text(value, style: PaycheckType.money()),
-        ],
-      ),
-    );
-  }
 }
 
 class _TopBar extends StatelessWidget {
@@ -3178,8 +3059,8 @@ class _PaycheckNav extends StatelessWidget {
       Icons.account_balance_wallet_rounded,
       'Home'
     ),
-    (Icons.description_outlined, Icons.description_rounded, 'Documents'),
-    (Icons.calculate_outlined, Icons.calculate_rounded, 'Filing'),
+    (Icons.pie_chart_outline, Icons.pie_chart_rounded, 'Money'),
+    (Icons.assignment_outlined, Icons.assignment_rounded, 'Plan'),
     (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
 

@@ -6,6 +6,7 @@ import 'features/monthly_close/screens/monthly_close_screen.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
 import 'features/spend_completeness/screens/spend_completeness_screen.dart';
+import 'features/work_costs/screens/work_cost_lens_screen.dart';
 import 'models/gap_card.dart';
 import 'providers/spend_map_provider.dart';
 import 'screens/s00_auth_screen.dart';
@@ -74,10 +75,18 @@ final appRouter = GoRouter(
     GoRoute(path: '/paycheck/inbox', redirect: (_, __) => '/paycheck/evidence'),
     GoRoute(
       path: '/paycheck/evidence',
-      builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
     ),
     GoRoute(
       path: '/paycheck/tax',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
+    ),
+    GoRoute(
+      path: '/paycheck/money',
+      builder: (_, __) => const PaycheckShellScreen(initialIndex: 1),
+    ),
+    GoRoute(
+      path: '/paycheck/plan',
       builder: (_, __) => const PaycheckShellScreen(initialIndex: 2),
     ),
     GoRoute(
@@ -192,6 +201,10 @@ final appRouter = GoRouter(
           ClaimPackScreen(claimId: state.pathParameters['id'] ?? ''),
     ),
     GoRoute(path: '/control-room-demo', redirect: (_, __) => '/paycheck'),
+    GoRoute(
+      path: '/work-costs',
+      builder: (_, __) => const WorkCostLensScreen(),
+    ),
   ],
 );
 

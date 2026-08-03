@@ -115,6 +115,13 @@ class ProfessionalProfileView extends ConsumerWidget {
                       title: 'Savings goal',
                       detail: 'Build a plan from net pay and observed expenses',
                       onTap: () => context.push('/money-goal'),
+                    ),
+                    _ProfileRow(
+                      key: const Key('profile_work_costs'),
+                      icon: Icons.work_outline_rounded,
+                      title: 'Workday costs',
+                      detail: 'Find repeat commute, meal and work-life costs',
+                      onTap: () => context.push('/work-costs'),
                       isLast: true,
                     ),
                   ],

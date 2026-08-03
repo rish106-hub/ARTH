@@ -57,15 +57,15 @@ void main() {
     expect(find.text('Needs your review'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const Key('paycheck_nav_documents')));
+    await tester.tap(find.byKey(const Key('paycheck_nav_money')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Documents behind your pay'), findsOneWidget);
-    expect(find.text('Your files'), findsOneWidget);
+    expect(find.text('Make work costs visible.'), findsOneWidget);
+    expect(find.text('Workday costs'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('filing shows paycheck tax impact and evidence hints', (
+  testWidgets('plan combines evidence, tax, and recovery entry points', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -73,12 +73,13 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('paycheck_nav_filing')));
+    await tester.tap(find.byKey(const Key('paycheck_nav_plan')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paycheck tax impact'), findsOneWidget);
-    expect(find.text('Payslip tax signals'), findsOneWidget);
-    expect(find.text('Provident fund found'), findsOneWidget);
+    expect(find.text('Keep evidence and tax together.'), findsOneWidget);
+    expect(find.text('Evidence'), findsOneWidget);
+    expect(find.text('Tax plan'), findsOneWidget);
+    expect(find.text('Money recovery'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -206,8 +207,8 @@ void main() {
     await tester.tap(find.byKey(const Key('add_first_payslip')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Documents behind your pay'), findsOneWidget);
-    expect(find.byKey(const Key('add_paycheck_evidence')), findsOneWidget);
+    expect(find.text('Keep evidence and tax together.'), findsOneWidget);
+    expect(find.text('Evidence'), findsOneWidget);
   });
 
   testWidgets('empty paycheck reaches monthly close bills and claims', (
