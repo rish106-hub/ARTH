@@ -1,280 +1,235 @@
-# ARTH
+<p align="center">
+  <img src="assets/icon/arth_mark.svg" width="88" alt="ARTH mark" />
+</p>
 
-ARTH is a paycheck-reconciliation and money-clarity app for salaried Indians in their first few earning years.
+<h1 align="center">ARTH</h1>
 
-It starts with the employment promise, then matches later evidence such as payslips, salary credits, bank SMS, bills, and receipts. The goal is simple: show what was promised, what reached the user, where it went, what is still pending, and what can still be claimed.
+<p align="center"><strong>Know what work costs you. Catch what you are owed. Plan before a decision becomes expensive.</strong></p>
 
-This is not another budgeting app, investment recommender, or tax chatbot. ARTH is built around private payroll evidence, deterministic reconciliation, and user-confirmed records.
+<p align="center">
+  <a href="https://github.com/rish106-hub/ARTH/releases">Android releases</a> ·
+  <a href="https://github.com/rish106-hub/ARTH/actions">Build status</a>
+</p>
 
----
+ARTH is an Android app for early-career salaried Indians. It turns private payroll documents and bank or UPI transaction SMS into a clear money workspace.
 
-## 1. Product thesis
+It starts with the offer and payslip, not a generic budget. Then it helps a user check pay, keep evidence ready, understand tracked spending, find repeat work costs, and test a major life choice before they commit to it.
 
-Young salaried employees in India receive compensation as a messy mix of CTC, fixed pay, variable pay, reimbursements, benefits, deductions, and net salary. Most finance products start *after* money reaches the bank account. ARTH starts earlier, at the offer letter, and follows the money all the way to where it is actually spent.
+> **Product status:** controlled Android beta. The Money workspace updates below are in active development on the current product branch. ARTH is not a bank, lender, broker, or ITR filing service.
 
-The product wedge is **paycheck trust**:
+![ARTH tax journey preview](assets/images/tax_journey.png)
 
-- Did the employer pay what was promised?
-- Which benefits or reimbursements are still unclaimed?
-- Which deductions need review?
-- Where does the money actually go after it lands?
-- Which documents support the answer?
-- What can the user do without giving ARTH authority over their money?
+## The problem
 
-**North Star:** verified money recovered or protected per active user each month.
+An early-career salary is not one number. It is a mix of CTC, fixed pay, variable pay, reimbursements, deductions, benefits, tax documents, rent, commute, food, subscriptions, and decisions that turn into monthly obligations.
 
-### Supporting metrics
+Most tools begin after money lands in an account. They do not help a user answer:
 
-| Metric | Why it matters |
-| --- | --- |
-| Confirmed compensation components per user | Depth of the evidence graph; drives every downstream answer |
-| Documents confirmed / documents uploaded | Extraction quality and review friction |
-| SMS transactions auto-categorised without user edits | Parser + AI accuracy; every manual fix is a UX tax |
-| Users with a detected salary credit | Whether reconciliation is grounded in real data vs estimates |
-| Claimable money surfaced → claim packs prepared | Whether insight converts to recovered money |
-| Monthly returning users after first reconciliation | Whether this is a habit or a one-time novelty |
+- Did my payslip match what I was promised?
+- Is there a reimbursement or benefit I have not claimed?
+- What work-related cost keeps repeating?
+- What does a move, vehicle, or job change do to my monthly room?
+- Which document should I confirm before relying on a tax number?
 
----
+ARTH is built for those decisions. It uses clear sources and deterministic calculations where correctness matters.
 
-## 2. Target user
+## Who it is for
 
-Indian salaried workers in formal private-sector jobs who receive:
+The first user is a salaried Indian in a formal private-sector job who has some mix of:
 
 - an offer letter or compensation annexure
-- monthly payslips
-- salary credit alerts and bank/UPI transaction SMS
-- reimbursement bills or benefit receipts
-- tax documents such as Form 16, AIS/26AS, or deduction proofs
-
-The early ICP is **not** every taxpayer in India. It is a narrower group: early-career employees who have enough payroll complexity for reconciliation to matter, but not enough finance support to catch every mismatch themselves.
-
----
-
-## 3. Main surfaces
-
-The app has four tabs:
-
-| Tab | Purpose |
-| --- | --- |
-| **Home** | Current paycheck reconciliation — promised vs paid vs difference, and money requiring action |
-| **Documents** | Offer letters, payslips, receipts, bills, and other evidence with review state |
-| **Filing** | Contained tax diagnostic — regime comparison and ranked deduction gaps |
-| **Profile** | Identity, permissions, deletion, money tools, and connections |
-
-Two money tools live under Profile:
-
-- **Expenses from SMS** — the spend map (see §5)
-- **Savings goal** — a plan built from net pay and observed expenses
-
----
-
-## 4. Core flow: paycheck reconciliation
-
-1. Add an offer letter or compensation annexure.
-2. Confirm the extracted compensation components.
-3. Add payslips, salary alerts, bills, and receipts.
-4. Review promised, received, pending, and claimable money.
-5. Prepare claim evidence only after explicit approval.
-
-### Editable breakdown
-
-Parsers are never fully right. Every line item in **Gross earnings** and **Deductions** is user-editable: correct an amount, rename a label, add a category the parser missed, or remove one it invented.
-
-Manual edits are stored as a **separate override layer** and re-applied on top of every fresh document parse, so a re-scan never silently wipes a correction. Overrides also work with zero documents, which makes fully manual entry possible.
-
-Net pay stays *derived* (`gross − deductions`) rather than directly editable, so the calculation shown to the user can never contradict its own line items.
-
-**Known gap:** Home shows `Difference: —` until an offer letter is confirmed, because there is no "promised" figure to compare against. Working as designed, but it reads as broken to a new user.
-
----
-
-## 5. Expenses from SMS (spend map)
-
-The newest pillar. ARTH reads **only** bank and UPI transaction SMS on the device to map where money actually goes.
-
-**Scan windows:** 1 month, 3 months, 6 months, 12 months, YTD (3 months recommended as a useful recent baseline).
-
-**Categories:** food, groceries, transport, shopping, bills, entertainment, health, rent, investment, cash, other.
-
-### What it produces
-
-- **Monthly balance** — signed income − spend. Shows a real overspend in red rather than flooring a shortfall to zero.
-- **Where it goes** — category breakdown with a share chart and ranked bars.
-- **Month by month** — spend plotted against income on a shared baseline.
-- **Forecast** — projected month-end spend from the current run-rate, pace vs the user's own average, and biggest per-category movers.
-- **Transactions** — every parsed transaction with date, time, contact, amount and category; tapping one shows the original SMS text and offers to open the messaging app.
-
-### Categorisation: rules first, AI second
-
-1. On-device regex + merchant keyword rules classify most transactions with no network call.
-2. Only transactions the rules leave as `other` go to an AI pass (Gemini), carrying **minimal redacted text** — the merchant name alone where available; otherwise the SMS body with amounts and any 5+ digit run (account/card/phone numbers) stripped.
-3. Low-confidence AI answers are discarded and the transaction stays `other`.
-4. User corrections are marked `manual` and are never re-sent to the AI.
-
-### Direction is interpreted, not taken literally
-
-A message reading *"Payment of ₹15,000 received towards your SBI Credit Card"* contains the word *received*, but from the user's perspective it is money **leaving** their account to pay a card bill. ARTH reclassifies these as debits instead of counting them as income — while still treating a genuine *refund* credited to a card as a credit.
-
-### Unclear-transaction review
-
-Anything still uncategorised goes into a full-screen, one-card-at-a-time review: swipe to skip, tap a category to file it and advance. This replaced a flat wall of chips, because categorising several ambiguous SMS at once is where users disengage.
-
-### Additional income
-
-Immediately after SMS permission is granted, ARTH asks once whether the user has income beyond salary (freelance, rent, a side business). Entries are stored in device secure storage and the account's encrypted durable-state backup. They contribute to on-screen figures but are not added to the aggregate spend-map analytics payload.
-
----
-
-## 6. Tax planning
-
-Tax planning is a contained supporting tool. It does not control the main navigation or turn the product into a second finance dashboard.
-
-The diagnostic covers annual income and employment type, city/rent/HRA, 80C, home-loan interest, NPS, health insurance, education-loan interest, donations and age group — ending in an old-versus-new-regime comparison with ranked deduction gaps and visible calculation assumptions.
-
-The tax calculation is **deterministic and versioned**. No LLM calculates tax, chooses a regime, or invents a deduction.
-
----
-
-## 7. Notifications
-
-Push is live on Android via FCM. The backend signs its own OAuth JWT and calls the FCM HTTP v1 API directly.
-
-- Device tokens are stored **AES-encrypted at rest**, keyed by a fingerprint hash for dedupe.
-- One automatic trigger today: an **overspend alert** when observed monthly spend exceeds detected income.
-- Tapping a notification deep-links into the relevant screen.
-- Ad-hoc campaigns are sent from the Firebase Console rather than a bespoke admin panel.
-
----
-
-## 8. Document intelligence boundary
-
-Users upload offer letters, payslips, receipts, Form 16 files, and other tax documents. New evidence is marked for review — ARTH does not pretend a file has been verified until extracted fields are confirmed.
-
-The production boundary is:
-
-1. A document service extracts typed fields with confidence scores.
-2. The user confirms uncertain fields.
-3. Deterministic reconciliation and tax rules use **only confirmed values**.
-4. An optional language model can explain a result, but cannot change a calculated number.
-
-Images are downscaled and compressed on-device before upload (≤2400px JPEG), which keeps a phone photo of a payslip well under the upload ceiling and reduces OCR noise.
-
----
-
-## 9. Privacy posture
-
-This is the product, not a compliance footnote:
-
-- SMS parsing happens **on-device**. Personal messages are ignored; only bank/UPI transaction patterns are read.
-- Parsed transaction records, including the short SMS preview used in the UI, are encrypted and backed up to the authenticated account.
-- Text sent for AI categorisation is minimised and redacted (merchant only where possible; amounts and long digit runs stripped).
-- User-entered other income is included in the encrypted account backup.
-- Documents are encrypted; PAN is encrypted and separately hashed.
-- The user can review sources, retention and deletion, and can delete tax and paycheck data while keeping their login.
-
----
-
-## 10. Guardrails
-
-ARTH does not:
-
-- hold or move money
-- submit claims silently
-- execute investments or recommend securities
-- file an ITR or represent the user before a tax authority
-- guarantee a deduction, refund, or financial outcome
-- use an LLM as a tax calculator
-
-These exclusions are product decisions, not temporary disclaimers. They keep ARTH away from regulated money movement, investment advice, and silent user representation.
-
----
-
-## 11. Why this is defensible
-
-ARTH is not defensible because it generates better prose. A general chatbot can explain CTC. It cannot maintain a private evidence graph, remember user-confirmed payroll components, match later documents, track deadlines, and show a source for every rupee without the user rebuilding context every time.
-
-The moat is **workflow state**:
-
-- confirmed compensation structure
-- linked payroll evidence
-- source-backed reconciliation
-- deterministic, versioned rules
-- user-controlled permissions and deletion
-- longitudinal monthly history
-
-AI can assist extraction and explanation. It cannot be the system of record.
-
----
-
-## 12. Current build
-
-- Flutter Android app — 28 screens, Riverpod state, GoRouter navigation
-- Single design system (`PaycheckType` / `PaycheckColors`, Anek typeface) across every screen
-- Fastify backend on Railway
-- **CockroachDB**, running the flat schema in `DB_DIALECT=postgres` compatibility mode
-- Email/password and Google auth, JWT access tokens with refresh-token rotation
-- Encrypted document storage, encrypted PAN, encrypted device tokens
-- Gemini for document interpretation and spend categorisation; Sarvam for OCR
-- FCM push notifications
-- Deterministic FY 2025-26 tax rule engine
-- Signed APK releases through GitHub Releases
-
-### Architecture
+- monthly payslips and salary-credit SMS
+- UPI or bank transaction SMS
+- receipts for reimbursements or benefits
+- Form 16, AIS/26AS, or deduction proofs
+
+This is deliberately not a product for every taxpayer or every personal-finance use case. It is for a person whose work creates both income and hidden recurring costs, but who does not have a finance team watching their paperwork.
+
+## What ARTH helps a user do
+
+| Job | What ARTH does | What it does not do |
+| --- | --- | --- |
+| Check pay | Matches confirmed offer, payslip, and salary evidence | Move money or make an employer claim automatically |
+| Prepare recovery | Surfaces claims and assembles an evidence pack after approval | Submit claims silently |
+| See spending | Parses bank and UPI transaction SMS on-device into a spend map | Claim it knows a live bank balance |
+| Plan tax | Runs a deterministic FY 2025-26 comparison and shows gaps | File an ITR or choose a regime for the user |
+| Reduce work costs | Lets users tag repeat costs and see their own arithmetic | Judge a merchant or shame spending |
+| Test decisions | Models a move, vehicle, or job change as a private estimate | Give lending, credit, or investment advice |
+
+## Product map
+
+The beta has Home, Documents, Filing, and Profile. The product map below is the active information architecture now being built: Documents and Filing become one Plan workspace, while spend and life decisions move into Money.
+
+| Surface | User question | Key tools |
+| --- | --- | --- |
+| **Home** | “What matters this month?” | tracked monthly position, spend pace, priority action, recovery status |
+| **Money** | “Where is work and life costing me?” | SMS spend map, workday costs, commitments, savings goal, decision sandbox |
+| **Plan** | “What evidence or tax task is next?” | documents, payslips, tax diagnostic, tax plan, recovery |
+| **Profile** | “What data and permissions does ARTH use?” | account, privacy, permissions, connected tools, deletion |
+
+### Core user loop
 
 ```text
-lib/
-  engine/       Versioned tax and reconciliation rules
-  models/       Paycheck, spend map, evidence, tax-result, and account models
-  providers/    Riverpod state and persistence boundaries
-  screens/      Paycheck shell, spend map, and contained tax-planning flow
-  services/     Auth, secure storage, SMS parsing, OCR, push, and sync
-  theme/        PaycheckType / PaycheckColors design system
-  widgets/      Shared ARTH UI primitives
+Offer / payslip / SMS evidence
+            ↓
+Confirm the facts that matter
+            ↓
+Understand pay, repeat costs, and commitments
+            ↓
+Take one action or test one decision
+            ↓
+Keep the result and evidence ready next month
 ```
+
+## Current product capabilities
+
+### Paycheck and evidence
+
+- Offer-letter and payslip parsing, with an editable override layer.
+- Separate gross earnings, deductions, net pay, pending money, and claimable items.
+- Claims and reimbursement packs are prepared only after explicit user approval.
+- Document upload, OCR, review, confirmation, and encrypted storage.
+- A monthly-close flow for bills, claims, and evidence health.
+
+The rule is simple: a parsed document is not a verified fact. ARTH requires confirmation before a value affects reconciliation or tax calculations.
+
+### SMS spend map
+
+ARTH reads only bank and UPI transaction SMS on the device. It produces a reviewed spend map, categories, monthly trends, forecast pace, and coverage checks.
+
+Categorisation is rules first. Only unresolved transactions may use a minimised, redacted AI classification pass. User corrections stay local and are never sent back for classification.
+
+SMS coverage is incomplete by design. Cash, some cards, and missing notifications can be invisible. Therefore ARTH labels these figures as **tracked**, never as a bank balance or “safe to spend”.
+
+### Workday Cost Lens · in active build
+
+This is the new product wedge.
+
+ARTH finds repeat, identifiable merchant patterns from tracked transactions. The user decides whether each one is a commute, office meal, coffee, work tool, work-social cost, or something else. ARTH does not guess that meaning.
+
+For a confirmed pattern, it shows:
+
+- tracked monthly cost and purchase count
+- twelve-month cost if the pattern continues
+- a small experiment, such as one fewer purchase per workweek
+- the saving arithmetic from the user's median transaction amount
+
+This keeps the feature grounded. It is not generic advice and it does not invent a better lifestyle for the user.
+
+### Monthly Commitments · in active build
+
+Confirmed repeat payments and manual commitments live in one view. It is for rent, EMIs, subscriptions, bills, family support, and other monthly obligations.
+
+Only a confirmed repeat or a user-added item changes the total. Predictions never quietly become commitments.
+
+### Decision Sandbox · in active build
+
+The sandbox helps a user look before they leap. It starts with three decision templates:
+
+1. Move for work
+2. Buy a vehicle
+3. Change jobs
+
+Each scenario compares the change in tracked monthly room, recurring commitment change, one-off cost, and selected savings-goal timing. Scenarios can be saved, edited, duplicated, or deleted locally.
+
+It is a planning estimate. It never says “you can afford this”, recommends a lender, or treats tracked spending as complete spending.
+
+### Tax planning
+
+Tax is a contained tool inside Plan. The diagnostic covers income, employment type, city and rent/HRA, 80C, home-loan interest, NPS, health insurance, education-loan interest, donations, and age group.
+
+The comparison uses a versioned, deterministic rule engine for FY 2025-26. An LLM does not calculate tax, select a regime, or make a deduction claim.
+
+## Trust and privacy
+
+For this product, trust is part of the interface.
+
+- SMS parsing happens on-device. Personal messages are ignored.
+- AI categorisation receives the smallest useful input. Merchant-only text is preferred; long digit runs and amounts are redacted where body text is needed.
+- Documents, PAN data, device tokens, and authenticated user data are encrypted at rest.
+- User corrections remain an override layer. A re-scan cannot silently erase them.
+- Users can inspect privacy settings and delete scoped local data.
+- ARTH does not hold money, execute trades, issue credit, file returns, or submit claims without a user action.
+
+## Design principles
+
+- **One useful next action.** Home should help, not repeat a payroll table.
+- **Show the source.** A number should tell the user whether it came from a payslip, SMS, or a manual input.
+- **Keep the user in control.** Confirm before a record changes the answer.
+- **Use plain math.** Show inputs and arithmetic for a cost or decision estimate.
+- **Do not pretend coverage is complete.** Tracked money is not account balance.
+- **Keep tax contained.** Tax matters, but it should not take over the product.
+
+## What ARTH does not do
+
+- Bank linking without an Account Aggregator flow
+- Investment recommendations or execution
+- Credit underwriting or lender recommendations
+- Automatic employer claim submission
+- Automatic ITR filing or representation before a tax authority
+- A generic “ask anything” finance chatbot
+- Guarantees of savings, refunds, deductions, or financial outcomes
+
+## Technical shape
 
 ```text
-backend/
-  src/          Fastify API, auth, document parsing, push, security, config
-  sql/          Ordered database migrations (15)
-  test/         Backend security, parser, and push tests
+Flutter Android app
+  ├── Riverpod state and GoRouter navigation
+  ├── on-device SMS extraction and review
+  ├── secure local storage and encrypted sync
+  ├── document capture, OCR, confirmation, and claim-pack export
+  └── deterministic payroll, spending, recovery, and tax engines
+
+Fastify backend
+  ├── authentication and account state
+  ├── encrypted document and device-token handling
+  ├── document interpretation pipeline
+  ├── spend-map sync and controlled AI classification
+  ├── FCM push delivery
+  └── CockroachDB / PostgreSQL-compatible migration path
 ```
 
-### API surface
+The app uses Flutter and Dart. The backend uses Node.js, TypeScript, Fastify, and a CockroachDB-compatible PostgreSQL setup. Gemini and Sarvam can assist interpretation, but deterministic app logic remains the source of truth for money and tax calculations.
 
-Auth (`/auth/*`), account and PAN, documents (upload / confirm / download / patch), spend map (`/spend-map`, `/spend-map/categorize`), money goals, employers, devices (`/devices` register + unregister), and health/ping.
+## Delivery and quality
+
+ARTH is distributed as a signed Android APK through [GitHub Releases](https://github.com/rish106-hub/ARTH/releases). Releases include the APK, checksum, update manifest, and beta notes.
+
+The required checks mirror CI:
+
+```bash
+# App, from repo root
+flutter pub get
+dart format --output=none --set-exit-if-changed lib/ test/ && flutter analyze --no-fatal-infos
+flutter test
+
+# Backend, from backend/
+npm ci
+npm run check
+npm test
+npm run build
+```
+
+## Brand assets
+
+The ARTH mark and Android app icon are versioned in the repository:
+
+- [`assets/icon/arth_mark.svg`](assets/icon/arth_mark.svg)
+- [`assets/icon/icon_1024.png`](assets/icon/icon_1024.png)
+- [`assets/icon/icon_foreground.png`](assets/icon/icon_foreground.png)
+
+The product uses the Anek typeface and a restrained black, white, and muted-blue visual system. The goal is clarity under financial stress, not a busy finance dashboard.
+
+## Roadmap boundary
+
+ARTH is moving from a paycheck-reconciliation tool into a work-life money workspace. The direction is deliberate:
+
+1. Help users recover or protect money they are already owed.
+2. Help them see repeat costs created by work.
+3. Help them test a costly decision before it becomes a commitment.
+
+The product will not expand into lending, trading, or a generic personal-finance feed just to add more screens.
 
 ---
 
-## 13. Release process
-
-ARTH is distributed as a signed Android APK through GitHub Releases. Each public release includes the signed APK, a SHA-256 checksum, an update manifest used by the in-app update flow, and release notes for beta users.
-
-The process is intentionally direct because the app is in a controlled beta. Users install from the release artifact, not from local builds.
-
-### Quality bar
-
-Before a signed APK is published, the project is expected to pass:
-
-- Flutter analysis (clean, repo-wide)
-- Flutter unit and widget tests (16 test files)
-- backend type checks
-- backend security, parser, and push tests (8 test files)
-- signed APK verification
-- checksum generation
-- update-manifest generation
-
-Security reporting and backend security details are documented in [SECURITY.md](./SECURITY.md). The internal release procedure is documented in [Direct APK releases](./docs/direct-apk-releases.md). Database design is documented in [database architecture](./docs/database-architecture.md).
-
----
-
-## 14. Open product questions
-
-An honest list of what is unresolved — not a roadmap commitment:
-
-- **Onboarding predates the newest features.** The first-run flow does not mention SMS expenses or additional income, so a new user meets the most differentiated feature by accident.
-- **Empty states read as bugs.** `Difference: —` before an offer letter is the clearest example.
-- **Spend capture is incomplete by construction.** SMS-only means cash, some cards, and any bank that does not send parseable alerts are invisible. Figures are labelled as estimates, but the gap is real.
-- **No dark mode.** Every colour is currently a static light-theme token.
-- **iOS push is inert.** Requires an APNs key and an Apple Developer account.
-- **Type scale is still two-tiered.** Colours are unified; heading sizes inherited from the older system have not been reconciled into one scale.
-- **Notification strategy is one trigger deep.** Overspend alerts exist; bill reminders, deadline nudges and payday prompts do not.
+Built for salaried Indians who want clear facts before a money decision becomes permanent.
