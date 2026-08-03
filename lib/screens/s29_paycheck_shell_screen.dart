@@ -2682,6 +2682,12 @@ class _MoneyOverview extends StatelessWidget {
               onTap: () => context.push('/work-costs'),
             ),
             _WorkspaceLink(
+              icon: Icons.event_repeat_outlined,
+              title: 'Monthly commitments',
+              detail: 'Confirmed repeats and obligations you add.',
+              onTap: () => context.push('/monthly-commitments'),
+            ),
+            _WorkspaceLink(
               icon: Icons.compare_arrows_rounded,
               title: 'Decision sandbox',
               detail: 'Test move, vehicle, and job choices first.',

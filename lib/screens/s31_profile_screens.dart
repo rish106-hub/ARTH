@@ -124,6 +124,13 @@ class ProfessionalProfileView extends ConsumerWidget {
                       onTap: () => context.push('/work-costs'),
                     ),
                     _ProfileRow(
+                      key: const Key('profile_monthly_commitments'),
+                      icon: Icons.event_repeat_outlined,
+                      title: 'Monthly commitments',
+                      detail: 'Confirmed repeats and obligations you add',
+                      onTap: () => context.push('/monthly-commitments'),
+                    ),
+                    _ProfileRow(
                       key: const Key('profile_decision_sandbox'),
                       icon: Icons.compare_arrows_rounded,
                       title: 'Decision sandbox',
