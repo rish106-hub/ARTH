@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'features/decision_sandbox/screens/decision_sandbox_screen.dart';
 import 'features/month_on_month/screens/month_on_month_screen.dart';
 import 'features/monthly_close/screens/monthly_close_screen.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
@@ -204,6 +205,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/work-costs',
       builder: (_, __) => const WorkCostLensScreen(),
+    ),
+    GoRoute(
+      path: '/decision-sandbox',
+      builder: (_, __) => const DecisionSandboxScreen(),
     ),
   ],
 );

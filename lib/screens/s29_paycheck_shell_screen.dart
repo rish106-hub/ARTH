@@ -2682,6 +2682,12 @@ class _MoneyOverview extends StatelessWidget {
               onTap: () => context.push('/work-costs'),
             ),
             _WorkspaceLink(
+              icon: Icons.compare_arrows_rounded,
+              title: 'Decision sandbox',
+              detail: 'Test move, vehicle, and job choices first.',
+              onTap: () => context.push('/decision-sandbox'),
+            ),
+            _WorkspaceLink(
               icon: Icons.sms_outlined,
               title: 'Expenses from SMS',
               detail: 'Spend map, coverage, and categories.',
