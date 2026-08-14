@@ -45,7 +45,7 @@ class AccountProfileService {
   Future<AccountProfile?> fetch() async {
     try {
       final token = await _auth.getValidAccessToken();
-      if (token == null) return loadCached();
+      if (token == null) return await loadCached();
       final response =
           await _api.getJson('/account/profile', bearerToken: token);
       final profile = AccountProfile.fromJson(response);
