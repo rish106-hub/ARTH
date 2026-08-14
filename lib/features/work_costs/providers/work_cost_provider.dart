@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/analytics_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/analytics_service.dart';
 import '../../../services/secure_storage_service.dart';
 import '../../../services/user_scoped_storage.dart';
 import '../models/work_cost_models.dart';
@@ -29,17 +31,34 @@ class WorkCostNotifier extends Notifier<WorkCostState> {
       alternativeUnitCost: alternativeUnitCost,
     ));
     await _persist();
+    await ref.read(analyticsProvider).workCostTagConfirmed(
+          _analyticsKind(kind),
+          hasAlternativeCost: alternativeUnitCost != null,
+        );
   }
 
   Future<void> removeTag(String candidateId) async {
     state = state.withoutTag(candidateId);
     await _persist();
+    await ref.read(analyticsProvider).workCostTagRemoved();
   }
 
   Future<void> dismiss(String candidateId) async {
     state = state.dismiss(candidateId);
     await _persist();
+    await ref.read(analyticsProvider).workCostPatternDismissed();
   }
+
+  /// Maps to the analytics enum so the shared service never imports a feature.
+  static WorkCostAnalyticsKind _analyticsKind(WorkCostKind kind) =>
+      switch (kind) {
+        WorkCostKind.commute => WorkCostAnalyticsKind.commute,
+        WorkCostKind.officeMeals => WorkCostAnalyticsKind.officeMeals,
+        WorkCostKind.coffeeAndSnacks => WorkCostAnalyticsKind.coffeeAndSnacks,
+        WorkCostKind.workTools => WorkCostAnalyticsKind.workTools,
+        WorkCostKind.workSocial => WorkCostAnalyticsKind.workSocial,
+        WorkCostKind.other => WorkCostAnalyticsKind.other,
+      };
 
   Future<void> _load(String uid) async {
     final raw = await _storage.read(UserScopedStorageKeys.workCosts(uid));

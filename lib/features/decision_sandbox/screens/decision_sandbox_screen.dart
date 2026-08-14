@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../providers/analytics_provider.dart';
 import '../../../providers/money_goal_provider.dart';
 import '../../../providers/spend_map_provider.dart';
 import '../../../models/money_goal.dart';
+import '../../../services/analytics_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
 import '../engine/decision_sandbox_engine.dart';
@@ -115,10 +117,34 @@ class DecisionSandboxScreen extends ConsumerWidget {
         goals: goals,
       ),
     );
-    if (saved != null) {
-      await ref.read(decisionSandboxProvider.notifier).save(saved);
-    }
+    if (saved == null) return;
+    await ref.read(decisionSandboxProvider.notifier).save(saved);
+
+    // Recomputed rather than threaded out of the editor: the goal shift is the
+    // one thing worth measuring here — whether testing a decision actually told
+    // the user something about a goal they care about.
+    final goal = saved.goalId == null
+        ? null
+        : goals.where((g) => g.id == saved.goalId).firstOrNull;
+    final projection = DecisionSandboxEngine.project(
+      scenario: saved,
+      trackedMonthlyRoom: trackedRoom,
+      goal: goal,
+      monthlyIncome: income,
+    );
+    await ref.read(analyticsProvider).decisionScenarioSaved(
+          kind: _analyticsKind(kind),
+          isNew: existing == null,
+          goalFinishChangeMonths: projection.goalFinishChangeMonths,
+        );
   }
+
+  static DecisionAnalyticsKind _analyticsKind(DecisionKind kind) =>
+      switch (kind) {
+        DecisionKind.moveForWork => DecisionAnalyticsKind.moveForWork,
+        DecisionKind.buyVehicle => DecisionAnalyticsKind.buyVehicle,
+        DecisionKind.changeJobs => DecisionAnalyticsKind.changeJobs,
+      };
 }
 
 class _TemplateRow extends StatelessWidget {
