@@ -122,6 +122,13 @@ class ProfessionalProfileView extends ConsumerWidget {
                       title: 'Workday costs',
                       detail: 'Find repeat commute, meal and work-life costs',
                       onTap: () => context.push('/work-costs'),
+                    ),
+                    _ProfileRow(
+                      key: const Key('profile_decision_sandbox'),
+                      icon: Icons.compare_arrows_rounded,
+                      title: 'Decision sandbox',
+                      detail: 'Test move, vehicle, and job choices',
+                      onTap: () => context.push('/decision-sandbox'),
                       isLast: true,
                     ),
                   ],
