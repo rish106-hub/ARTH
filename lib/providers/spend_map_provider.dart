@@ -16,6 +16,7 @@ import '../services/spend_map_service.dart';
 import '../features/accounts/providers/account_registry_provider.dart';
 import '../features/spend_completeness/engine/spend_completeness_engine.dart';
 import '../features/spend_completeness/providers/spend_completeness_provider.dart';
+import 'analytics_provider.dart';
 import 'auth_provider.dart';
 import 'custom_spend_categories_provider.dart';
 import 'other_income_provider.dart';
@@ -324,6 +325,7 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
       await _performScan(selected);
     } catch (error) {
       state = state.copyWith(loading: false, error: error.toString());
+      await ref.read(analyticsProvider).smsScanFailed(selected.name);
     }
   }
 
@@ -344,6 +346,9 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
   /// runs the AI categorization fallback, and best-effort syncs a summary.
   /// Assumes SMS permission is already granted.
   Future<void> _performScan(SpendScanPeriod selected) async {
+    // Logged here rather than in [scan] so a started event means the read
+    // actually began — not that a tap was refused for platform or permission.
+    await ref.read(analyticsProvider).smsScanStarted(selected.name);
     await _ensureCategoryMemoryLoaded();
     final since = selected.since(DateTime.now());
     final previous = state.map;
@@ -378,6 +383,12 @@ class SpendMapNotifier extends Notifier<SpendMapState> {
     await _storage.write(_spendMapKey(_uid()), map.toJsonString());
     state = state.copyWith(map: _applyUserContext(map), loading: false);
     _bridgeSalarySms(state.map);
+    // Completed once the map the user can act on exists. The AI category pass
+    // below only upgrades labels, so waiting for it would under-report success.
+    await ref.read(analyticsProvider).smsScanCompleted(
+          periodLabel: selected.name,
+          transactionCount: map.txns.length,
+        );
 
     // Hybrid pass: refine the transactions the on-device rules left as
     // `other` using the AI fallback. Best-effort — the rules result already

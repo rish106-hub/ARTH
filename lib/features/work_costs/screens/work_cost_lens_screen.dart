@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../features/spend_completeness/providers/spend_completeness_provider.dart';
+import '../../../providers/analytics_provider.dart';
 import '../../../providers/spend_map_provider.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/paycheck_theme.dart';
@@ -15,11 +16,21 @@ String _money(int amount) =>
     NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0)
         .format(amount);
 
-class WorkCostLensScreen extends ConsumerWidget {
+class WorkCostLensScreen extends ConsumerStatefulWidget {
   const WorkCostLensScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkCostLensScreen> createState() => _WorkCostLensScreenState();
+}
+
+class _WorkCostLensScreenState extends ConsumerState<WorkCostLensScreen> {
+  /// The candidate count is only meaningful once the spend map has loaded, and
+  /// this screen rebuilds on every tag change — so report the first real count
+  /// and nothing after it, or one visit would look like many.
+  bool _reportedCandidateCount = false;
+
+  @override
+  Widget build(BuildContext context) {
     final spend = ref.watch(spendMapProvider);
     final settings = ref.watch(workCostProvider);
     final completeness = ref.watch(spendCompletenessProvider);
@@ -32,6 +43,15 @@ class WorkCostLensScreen extends ConsumerWidget {
         .where((candidate) =>
             !settings.dismissedCandidateIds.contains(candidate.id))
         .toList(growable: false);
+
+    if (map != null && !_reportedCandidateCount) {
+      _reportedCandidateCount = true;
+      final count = candidates.length;
+      // After the frame: build must stay free of side effects.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(analyticsProvider).workCostCandidatesShown(count);
+      });
+    }
 
     return Scaffold(
       backgroundColor: PaycheckColors.canvas,
