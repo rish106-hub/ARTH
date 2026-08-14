@@ -892,6 +892,12 @@ class _Insights extends ConsumerWidget {
         const SizedBox(height: 16),
         _CoverageEntryCard(map: map),
         const SizedBox(height: 16),
+        // Only offered with two months to compare — one month reaches a screen
+        // that can show a total but no movement, which reads as a broken link.
+        if (map.monthlyTrend.length >= 2) ...[
+          _MonthTrendEntryCard(months: map.monthlyTrend.length),
+          const SizedBox(height: 16),
+        ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1072,6 +1078,51 @@ class _CoverageEntryCard extends StatelessWidget {
             IconButton(
               tooltip: 'Open spend coverage',
               onPressed: () => context.push('/spend-map/coverage'),
+              icon: const Icon(Icons.arrow_forward),
+            ),
+          ],
+        ),
+      );
+}
+
+class _MonthTrendEntryCard extends StatelessWidget {
+  const _MonthTrendEntryCard({required this.months});
+
+  final int months;
+
+  @override
+  Widget build(BuildContext context) => _Card(
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: PaycheckColors.contractSoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.calendar_month_outlined,
+                color: PaycheckColors.contract,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Compare months', style: PaycheckType.bodyStrong()),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$months months tracked. See which categories moved most.',
+                    style: PaycheckType.utility(),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Open month on month',
+              onPressed: () => context.push('/spend-map/months'),
               icon: const Icon(Icons.arrow_forward),
             ),
           ],
