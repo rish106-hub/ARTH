@@ -18,7 +18,7 @@ dependencies:
 
   # Local persistence
   shared_preferences: ^2.3.1
-  flutter_secure_storage: ^10.3.1
+  flutter_secure_storage: ^11.0.0
 
   # Firebase Remote Config
   firebase_core: ^4.13.0
