@@ -22,7 +22,6 @@ import 'screens/s07_deduction_detail_screen.dart';
 import 'screens/s08_action_plan_screen.dart';
 import 'screens/s09_progress_tracker_screen.dart';
 import 'screens/s10_share_card_screen.dart';
-import 'screens/s12_budget_alert_screen.dart';
 import 'screens/s15_document_checklist_screen.dart';
 import 'screens/s16_ais_guide_screen.dart';
 import 'screens/s17_help_center_screen.dart';
@@ -178,10 +177,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/filing-assistant',
       builder: (_, __) => const FilingAssistantScreen(),
-    ),
-    GoRoute(
-      path: '/budget-alert',
-      builder: (_, __) => const BudgetAlertScreen(),
     ),
     GoRoute(path: '/money-goal', builder: (_, __) => const MoneyGoalScreen()),
     GoRoute(
