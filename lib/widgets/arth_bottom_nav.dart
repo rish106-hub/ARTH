@@ -9,10 +9,10 @@ void goToArthTab(BuildContext context, int index) {
       context.go('/paycheck');
       break;
     case 1:
-      context.go('/paycheck/evidence');
+      context.go('/paycheck/money');
       break;
     case 2:
-      context.go('/paycheck/tax');
+      context.go('/paycheck/plan');
       break;
     case 3:
       context.go('/paycheck/you');
@@ -39,12 +39,12 @@ class ArthBottomNav extends StatelessWidget {
     _NavItem(
       icon: Icons.description_outlined,
       activeIcon: Icons.description_rounded,
-      label: 'Documents',
+      label: 'Money',
     ),
     _NavItem(
       icon: Icons.calculate_outlined,
       activeIcon: Icons.calculate_rounded,
-      label: 'Filing',
+      label: 'Plan',
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
