@@ -77,6 +77,29 @@ class AnalyticsService {
   Future<void> workCostPatternDismissed() =>
       _sink.send('work_cost_pattern_dismissed', {});
 
+  /// The user committed to spending less on one tagged repeat cost.
+  ///
+  /// This is the event that separates reading the lens from acting on it, so it
+  /// carries only what kind of cost was chosen — never the saving on offer.
+  Future<void> workCostExperimentStarted(WorkCostAnalyticsKind kind) => _sink
+      .send('work_cost_experiment_started', {'work_kind': kind.eventValue});
+
+  /// The user judged a running experiment. [kept] false means they stopped it.
+  ///
+  /// Paired with [workCostExperimentStarted], this is what tells us whether the
+  /// lens changes behaviour or is merely read. How long it ran is bucketed,
+  /// since the exact figure would place the user on a calendar.
+  Future<void> workCostExperimentDecided(
+    WorkCostAnalyticsKind kind, {
+    required bool kept,
+    required int daysRunning,
+  }) =>
+      _sink.send('work_cost_experiment_decided', {
+        'work_kind': kind.eventValue,
+        'outcome': kept ? 'kept' : 'stopped',
+        'ran_for': experimentAgeBucket(daysRunning),
+      });
+
   // ── Monthly commitments ──────────────────────────────────────────────────
 
   Future<void> commitmentSaved({
@@ -134,6 +157,20 @@ String countBucket(int count) {
   if (count < 50) return '20_49';
   if (count < 200) return '50_199';
   return '200_plus';
+}
+
+/// How long an experiment ran, in ranges rather than days.
+///
+/// A day count plus an event timestamp would reconstruct the start date, which
+/// the privacy contract keeps off the wire, so the buckets are deliberately
+/// coarse. They still answer the question that matters: whether people quit
+/// within days or gave the change a real month.
+@visibleForTesting
+String experimentAgeBucket(int days) {
+  if (days <= 0) return 'same_day';
+  if (days < 7) return 'under_week';
+  if (days < 28) return 'under_month';
+  return 'month_plus';
 }
 
 /// Direction and rough size of a money-goal date shift, never the exact months.

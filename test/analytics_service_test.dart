@@ -36,6 +36,19 @@ void main() {
     });
   });
 
+  group('experimentAgeBucket', () {
+    test('separates quitting immediately from giving it a real month', () {
+      expect(experimentAgeBucket(0), 'same_day');
+      expect(experimentAgeBucket(-2), 'same_day');
+      expect(experimentAgeBucket(1), 'under_week');
+      expect(experimentAgeBucket(6), 'under_week');
+      expect(experimentAgeBucket(7), 'under_month');
+      expect(experimentAgeBucket(27), 'under_month');
+      expect(experimentAgeBucket(28), 'month_plus');
+      expect(experimentAgeBucket(400), 'month_plus');
+    });
+  });
+
   group('goalShiftBucket', () {
     test('keeps "no goal chosen" apart from "goal did not move"', () {
       expect(goalShiftBucket(null), 'no_goal');
@@ -88,6 +101,39 @@ void main() {
       });
     });
 
+    test('starting an experiment carries the kind and no saving', () async {
+      await analytics.workCostExperimentStarted(WorkCostAnalyticsKind.commute);
+
+      expect(sink.events.single.$1, 'work_cost_experiment_started');
+      expect(sink.events.single.$2, {'work_kind': 'commute'});
+    });
+
+    test('deciding an experiment reports outcome and a bucketed run length',
+        () async {
+      await analytics.workCostExperimentDecided(
+        WorkCostAnalyticsKind.coffeeAndSnacks,
+        kept: true,
+        daysRunning: 31,
+      );
+      await analytics.workCostExperimentDecided(
+        WorkCostAnalyticsKind.workSocial,
+        kept: false,
+        daysRunning: 2,
+      );
+
+      expect(sink.events.first.$1, 'work_cost_experiment_decided');
+      expect(sink.events.first.$2, {
+        'work_kind': 'coffee_and_snacks',
+        'outcome': 'kept',
+        'ran_for': 'month_plus',
+      });
+      expect(sink.events.last.$2, {
+        'work_kind': 'work_social',
+        'outcome': 'stopped',
+        'ran_for': 'under_week',
+      });
+    });
+
     test('scan completion buckets the transaction count', () async {
       await analytics.smsScanCompleted(
         periodLabel: 'sixMonths',
@@ -113,6 +159,14 @@ void main() {
       );
       await analytics.workCostTagRemoved();
       await analytics.workCostPatternDismissed();
+      await analytics.workCostExperimentStarted(
+        WorkCostAnalyticsKind.officeMeals,
+      );
+      await analytics.workCostExperimentDecided(
+        WorkCostAnalyticsKind.officeMeals,
+        kept: false,
+        daysRunning: 9,
+      );
       await analytics.commitmentSaved(isNew: true, isManual: true);
       await analytics.commitmentRemoved();
       await analytics.decisionScenarioSaved(
@@ -127,7 +181,7 @@ void main() {
       );
       await analytics.smsScanFailed('oneMonth');
 
-      expect(sink.events, hasLength(10));
+      expect(sink.events, hasLength(12));
       for (final (name, parameters) in sink.events) {
         for (final entry in parameters.entries) {
           expect(

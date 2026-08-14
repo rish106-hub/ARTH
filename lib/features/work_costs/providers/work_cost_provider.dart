@@ -38,9 +38,66 @@ class WorkCostNotifier extends Notifier<WorkCostState> {
   }
 
   Future<void> removeTag(String candidateId) async {
+    // Report the running experiment as stopped before the tag takes it with it:
+    // it ended without being kept, and a start with no end is a hole in the
+    // measurement.
+    final abandoned = state.experiments[candidateId];
+    final kind = state.tags[candidateId]?.kind;
     state = state.withoutTag(candidateId);
     await _persist();
-    await ref.read(analyticsProvider).workCostTagRemoved();
+    final analytics = ref.read(analyticsProvider);
+    if (abandoned != null && !abandoned.status.isDecided && kind != null) {
+      await analytics.workCostExperimentDecided(
+        _analyticsKind(kind),
+        kept: false,
+        daysRunning: abandoned.daysRunning(DateTime.now()),
+      );
+    }
+    await analytics.workCostTagRemoved();
+  }
+
+  /// Commits the user to the "one less each workweek" suggestion.
+  ///
+  /// [monthlyTarget] is the saving shown at the moment of committing, stored so
+  /// the promise stays fixed even if their spending moves afterwards.
+  Future<void> startExperiment(String candidateId, int monthlyTarget) async {
+    final kind = state.tags[candidateId]?.kind;
+    // An experiment belongs to a confirmed work cost. Without a tag there is
+    // nothing to be spending less on.
+    if (kind == null) return;
+    state = state.withExperiment(
+      WorkCostExperiment(
+        candidateId: candidateId,
+        status: WorkCostExperimentStatus.running,
+        monthlyTarget: monthlyTarget,
+        startedAt: DateTime.now(),
+      ),
+    );
+    await _persist();
+    await ref.read(analyticsProvider).workCostExperimentStarted(
+          _analyticsKind(kind),
+        );
+  }
+
+  /// Records whether the change stuck. [kept] false means the user stopped.
+  Future<void> decideExperiment(String candidateId,
+      {required bool kept}) async {
+    final running = state.experiments[candidateId];
+    final kind = state.tags[candidateId]?.kind;
+    if (running == null || running.status.isDecided || kind == null) return;
+    final now = DateTime.now();
+    state = state.withExperiment(
+      running.decide(
+        kept ? WorkCostExperimentStatus.kept : WorkCostExperimentStatus.stopped,
+        now,
+      ),
+    );
+    await _persist();
+    await ref.read(analyticsProvider).workCostExperimentDecided(
+          _analyticsKind(kind),
+          kept: kept,
+          daysRunning: running.daysRunning(now),
+        );
   }
 
   Future<void> dismiss(String candidateId) async {

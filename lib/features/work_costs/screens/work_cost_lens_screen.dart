@@ -82,12 +82,23 @@ class _WorkCostLensScreenState extends ConsumerState<WorkCostLensScreen> {
               _CandidateCard(
                 candidate: candidate,
                 tag: settings.tags[candidate.id],
+                experiment: settings.experiments[candidate.id],
                 incompleteCoverage: incompleteCoverage,
                 onChoose: () => _chooseKind(context, ref, candidate.id),
                 onRemove: () =>
                     ref.read(workCostProvider.notifier).removeTag(candidate.id),
                 onDismiss: () =>
                     ref.read(workCostProvider.notifier).dismiss(candidate.id),
+                onStartExperiment: () =>
+                    ref.read(workCostProvider.notifier).startExperiment(
+                          candidate.id,
+                          candidate.oneLessPerWeekSavings,
+                        ),
+                onDecideExperiment: (kept) =>
+                    ref.read(workCostProvider.notifier).decideExperiment(
+                          candidate.id,
+                          kept: kept,
+                        ),
               ),
               const SizedBox(height: 12),
             ],
@@ -138,18 +149,24 @@ class _CandidateCard extends StatelessWidget {
   const _CandidateCard({
     required this.candidate,
     required this.tag,
+    required this.experiment,
     required this.incompleteCoverage,
     required this.onChoose,
     required this.onRemove,
     required this.onDismiss,
+    required this.onStartExperiment,
+    required this.onDecideExperiment,
   });
 
   final WorkCostCandidate candidate;
   final WorkCostTag? tag;
+  final WorkCostExperiment? experiment;
   final bool incompleteCoverage;
   final VoidCallback onChoose;
   final VoidCallback onRemove;
   final VoidCallback onDismiss;
+  final VoidCallback onStartExperiment;
+  final ValueChanged<bool> onDecideExperiment;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -211,12 +228,103 @@ class _CandidateCard extends StatelessWidget {
                   style: PaycheckType.utility(color: PaycheckColors.inkSoft),
                 ),
               ],
+              const SizedBox(height: 12),
+              _ExperimentControls(
+                experiment: experiment,
+                onStart: onStartExperiment,
+                onDecide: onDecideExperiment,
+              ),
               TextButton(
                   onPressed: onRemove, child: const Text('Remove work tag')),
             ],
           ],
         ),
       );
+}
+
+/// Turns the suggestion into something the user can commit to and then judge.
+///
+/// Reading a saving and acting on one are different events, and only the second
+/// says the lens works, so the commitment is state rather than a nudge.
+class _ExperimentControls extends StatelessWidget {
+  const _ExperimentControls({
+    required this.experiment,
+    required this.onStart,
+    required this.onDecide,
+  });
+
+  final WorkCostExperiment? experiment;
+  final VoidCallback onStart;
+  final ValueChanged<bool> onDecide;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = experiment;
+    if (current == null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: FilledButton(
+          key: const Key('work_cost_experiment_start'),
+          onPressed: onStart,
+          child: const Text('I will try this'),
+        ),
+      );
+    }
+
+    if (!current.status.isDecided) {
+      final days = current.daysRunning(DateTime.now());
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            days < 1
+                ? 'Trying this since today.'
+                : 'Trying this for ${days == 1 ? '1 day' : '$days days'}.',
+            style: PaycheckType.utility(color: PaycheckColors.inkSoft),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              FilledButton(
+                key: const Key('work_cost_experiment_kept'),
+                onPressed: () => onDecide(true),
+                child: const Text('It stuck'),
+              ),
+              TextButton(
+                key: const Key('work_cost_experiment_stopped'),
+                onPressed: () => onDecide(false),
+                child: const Text('I stopped'),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    final kept = current.status == WorkCostExperimentStatus.kept;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          kept
+              ? 'Kept: about ${_money(current.monthlyTarget)} a month less on this.'
+              : 'Stopped. Nothing wrong with that — the cost stays visible.',
+          style: PaycheckType.utility(
+            color: kept ? PaycheckColors.matched : PaycheckColors.inkSoft,
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            key: const Key('work_cost_experiment_restart'),
+            onPressed: onStart,
+            child: const Text('Try it again'),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _EmptyLens extends StatelessWidget {
