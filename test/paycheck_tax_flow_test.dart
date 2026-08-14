@@ -342,9 +342,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('open_tax_plan')));
+    await tester.ensureVisible(find.text('Tax plan'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('open_tax_plan')));
+    await tester.tap(find.text('Tax plan'));
     await tester.pumpAndSettle();
 
     expect(find.text('Plan your tax'), findsOneWidget);
@@ -387,6 +387,6 @@ void main() {
     await tester.tap(find.byKey(const Key('tax_plan_close')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Plan with confirmed numbers.'), findsOneWidget);
+    expect(find.text('Keep evidence and tax together.'), findsOneWidget);
   });
 }
