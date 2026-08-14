@@ -29,6 +29,10 @@ class UserScopedStorageKeys {
   static String spendCategoryAiMemory(String uid) =>
       'arth_spend_category_ai_memory_$uid';
   static String spendCompleteness(String uid) => 'arth_spend_completeness_$uid';
+  static String workCosts(String uid) => 'arth_work_costs_$uid';
+  static String monthlyCommitments(String uid) =>
+      'arth_monthly_commitments_$uid';
+  static String decisionSandbox(String uid) => 'arth_decision_sandbox_$uid';
   static String customSpendCategories(String uid) =>
       'arth_custom_spend_categories_$uid';
 
@@ -52,6 +56,9 @@ class UserScopedStorageKeys {
         'spend-map-adjustments': spendMapAdjustments(uid),
         'spend-category-rules': spendCategoryRules(uid),
         'spend-completeness': spendCompleteness(uid),
+        'work-costs': workCosts(uid),
+        'monthly-commitments': monthlyCommitments(uid),
+        'decision-sandbox': decisionSandbox(uid),
         'custom-spend-categories': customSpendCategories(uid),
         'owned-accounts': ownedAccounts(uid),
         'other-income': otherIncome(uid),
@@ -86,6 +93,9 @@ class UserScopedStorageKeys {
         spendCategoryRules(uid),
         spendCategoryAiMemory(uid),
         spendCompleteness(uid),
+        workCosts(uid),
+        monthlyCommitments(uid),
+        decisionSandbox(uid),
         customSpendCategories(uid),
         ownedAccounts(uid),
         otherIncome(uid),

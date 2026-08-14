@@ -14,6 +14,9 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.spendMapAdjustments(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendCategoryRules(uid)));
     expect(keys, contains(UserScopedStorageKeys.spendCompleteness(uid)));
+    expect(keys, contains(UserScopedStorageKeys.workCosts(uid)));
+    expect(keys, contains(UserScopedStorageKeys.monthlyCommitments(uid)));
+    expect(keys, contains(UserScopedStorageKeys.decisionSandbox(uid)));
     expect(keys, contains(UserScopedStorageKeys.customSpendCategories(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncome(uid)));
     expect(keys, contains(UserScopedStorageKeys.otherIncomeAsked(uid)));
@@ -24,7 +27,7 @@ void main() {
     expect(keys, contains(UserScopedStorageKeys.spendCategoryAiMemory(uid)));
     expect(keys, contains(UserScopedStorageKeys.customSpendCategories(uid)));
     expect(keys, contains(UserScopedStorageKeys.ownedAccounts(uid)));
-    expect(keys.length, 19);
+    expect(keys.length, 22);
   });
 
   test('durable keys include drafts and exclude auth caches and retry queue',
@@ -35,6 +38,15 @@ void main() {
     expect(durable.keys, UserScopedStorageKeys.durableNamespaces);
     expect(durable.values, contains(UserScopedStorageKeys.profile(uid)));
     expect(durable.values, contains(UserScopedStorageKeys.onboarding(uid)));
+    expect(durable.values, contains(UserScopedStorageKeys.workCosts(uid)));
+    expect(
+      durable.values,
+      contains(UserScopedStorageKeys.monthlyCommitments(uid)),
+    );
+    expect(
+      durable.values,
+      contains(UserScopedStorageKeys.decisionSandbox(uid)),
+    );
     expect(durable.values, contains(UserScopedStorageKeys.taxYear(uid)));
     expect(
       durable.values,
