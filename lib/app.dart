@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'features/decision_sandbox/screens/decision_sandbox_screen.dart';
 import 'features/month_on_month/screens/month_on_month_screen.dart';
 import 'features/monthly_close/screens/monthly_close_screen.dart';
+import 'features/monthly_commitments/screens/monthly_commitments_screen.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
 import 'features/spend_completeness/screens/spend_completeness_screen.dart';
@@ -209,6 +210,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/decision-sandbox',
       builder: (_, __) => const DecisionSandboxScreen(),
+    ),
+    GoRoute(
+      path: '/monthly-commitments',
+      builder: (_, __) => const MonthlyCommitmentsScreen(),
     ),
   ],
 );
