@@ -152,7 +152,7 @@ class AuthService {
         '/auth/refresh',
         body: {'refreshToken': refreshToken},
       );
-      return _persistAuthResponse(response);
+      return await _persistAuthResponse(response);
     } on ServerApiException catch (e) {
       if (kDebugMode) {
         debugPrint('[AuthService] refresh failed (${e.statusCode})');
