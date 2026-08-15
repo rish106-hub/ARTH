@@ -57,37 +57,133 @@ class WorkCostTag {
   }
 }
 
+/// Where a "one less each workweek" experiment has got to.
+enum WorkCostExperimentStatus {
+  /// Committed to, not yet judged.
+  running,
+
+  /// The user says the change stuck.
+  kept,
+
+  /// The user says it did not.
+  stopped;
+
+  bool get isDecided => this != WorkCostExperimentStatus.running;
+}
+
+/// A commitment to spend less on one repeat cost, and what came of it.
+///
+/// Without this, the lens can only compute a suggestion and show it. Recording
+/// the commitment is what makes the suggestion measurable: it separates a user
+/// who read the number from a user who acted on it, and then from a user for
+/// whom acting worked.
+class WorkCostExperiment {
+  const WorkCostExperiment({
+    required this.candidateId,
+    required this.status,
+    required this.monthlyTarget,
+    required this.startedAt,
+    this.decidedAt,
+  });
+
+  final String candidateId;
+  final WorkCostExperimentStatus status;
+
+  /// The saving the lens promised when the user committed, held still so a
+  /// later change in spending does not rewrite what they signed up for.
+  final int monthlyTarget;
+
+  final DateTime startedAt;
+
+  /// When the user marked it kept or stopped. Null while it is still running.
+  final DateTime? decidedAt;
+
+  WorkCostExperiment decide(WorkCostExperimentStatus outcome, DateTime at) =>
+      WorkCostExperiment(
+        candidateId: candidateId,
+        status: outcome,
+        monthlyTarget: monthlyTarget,
+        startedAt: startedAt,
+        decidedAt: at,
+      );
+
+  /// How long the experiment ran, up to [now] while it is still running.
+  int daysRunning(DateTime now) =>
+      (decidedAt ?? now).difference(startedAt).inDays;
+
+  Map<String, dynamic> toJson() => {
+        'candidateId': candidateId,
+        'status': status.name,
+        'monthlyTarget': monthlyTarget,
+        'startedAt': startedAt.toIso8601String(),
+        if (decidedAt != null) 'decidedAt': decidedAt!.toIso8601String(),
+      };
+
+  static WorkCostExperiment? fromJson(Map<String, dynamic> json) {
+    final candidateId = json['candidateId']?.toString() ?? '';
+    final startedAt = DateTime.tryParse(json['startedAt']?.toString() ?? '');
+    // A commitment with no owner or no start date cannot be measured, so it is
+    // dropped rather than restored into a shape the UI has to defend against.
+    if (candidateId.isEmpty || startedAt == null) return null;
+    final status = json['status']?.toString();
+    return WorkCostExperiment(
+      candidateId: candidateId,
+      status: WorkCostExperimentStatus.values.firstWhere(
+        (value) => value.name == status,
+        orElse: () => WorkCostExperimentStatus.running,
+      ),
+      monthlyTarget: (json['monthlyTarget'] as num?)?.round() ?? 0,
+      startedAt: startedAt,
+      decidedAt: DateTime.tryParse(json['decidedAt']?.toString() ?? ''),
+    );
+  }
+}
+
 class WorkCostState {
   const WorkCostState({
     this.tags = const {},
     this.dismissedCandidateIds = const {},
+    this.experiments = const {},
   });
 
   final Map<String, WorkCostTag> tags;
   final Set<String> dismissedCandidateIds;
 
+  /// Keyed by candidate id, so one repeat cost carries one experiment.
+  final Map<String, WorkCostExperiment> experiments;
+
   WorkCostState withTag(WorkCostTag tag) => WorkCostState(
         tags: {...tags, tag.candidateId: tag},
         dismissedCandidateIds: {...dismissedCandidateIds}
           ..remove(tag.candidateId),
+        experiments: experiments,
       );
 
-  WorkCostState withoutTag(String candidateId) {
-    final updated = {...tags}..remove(candidateId);
-    return WorkCostState(
-      tags: updated,
-      dismissedCandidateIds: dismissedCandidateIds,
-    );
-  }
+  /// Drops the tag and any experiment on it: an experiment on a cost the user
+  /// no longer calls work-related has nothing left to measure.
+  WorkCostState withoutTag(String candidateId) => WorkCostState(
+        tags: {...tags}..remove(candidateId),
+        dismissedCandidateIds: dismissedCandidateIds,
+        experiments: {...experiments}..remove(candidateId),
+      );
 
   WorkCostState dismiss(String candidateId) => WorkCostState(
         tags: tags,
         dismissedCandidateIds: {...dismissedCandidateIds, candidateId},
+        experiments: experiments,
+      );
+
+  WorkCostState withExperiment(WorkCostExperiment experiment) => WorkCostState(
+        tags: tags,
+        dismissedCandidateIds: dismissedCandidateIds,
+        experiments: {...experiments, experiment.candidateId: experiment},
       );
 
   Map<String, dynamic> toJson() => {
         'tags': tags.values.map((tag) => tag.toJson()).toList(),
         'dismissedCandidateIds': dismissedCandidateIds.toList(),
+        'experiments':
+            experiments.values.map((entry) => entry.toJson()).toList(),
       };
 
   factory WorkCostState.fromJson(Map<String, dynamic> json) {
@@ -97,12 +193,19 @@ class WorkCostState {
       final tag = WorkCostTag.fromJson(raw);
       if (tag.candidateId.isNotEmpty) tags[tag.candidateId] = tag;
     }
+    final experiments = <String, WorkCostExperiment>{};
+    for (final raw in json['experiments'] as List<dynamic>? ?? const []) {
+      if (raw is! Map<String, dynamic>) continue;
+      final experiment = WorkCostExperiment.fromJson(raw);
+      if (experiment != null) experiments[experiment.candidateId] = experiment;
+    }
     return WorkCostState(
       tags: tags,
       dismissedCandidateIds:
           (json['dismissedCandidateIds'] as List<dynamic>? ?? const [])
               .map((value) => value.toString())
               .toSet(),
+      experiments: experiments,
     );
   }
 }
