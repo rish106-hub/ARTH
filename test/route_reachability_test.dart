@@ -9,41 +9,36 @@ import 'package:flutter_test/flutter_test.dart';
 /// Both were found only by hand-auditing `app.dart` against the running app. A
 /// screen no user can open is dead product, so fail the build instead.
 ///
-/// Redirect-only routes are skipped by design — they exist to catch links the
-/// app itself no longer emits, so being unreferenced is the whole point.
+/// A redirect is a real door: `/tax-simulator` redirects to
+/// `/tax-plan/simulator`, so a widget pushing the old path reaches the new
+/// screen. Redirects are therefore followed, not skipped — an unreferenced
+/// redirect simply passes nothing on.
 void main() {
   /// Chosen by the router or the platform rather than by a tap.
   const entryPoints = <String>{'/', '/onboarding', '/auth', '/paycheck'};
-
-  /// Screens that are built and routed but have no entry point yet.
-  ///
-  /// This is a baseline of pre-existing debt, not permission to add more: the
-  /// test fails if a new orphan appears, and also fails if one of these becomes
-  /// reachable and is not removed from the list. Wiring them up is a product
-  /// decision — each needs a home in Home, Money or Plan, or deleting.
-  const knownOrphans = <String>{
-    // Reachable only as `/tax-simulator`; the paycheck-mode variant has no caller.
-    '/tax-plan/simulator',
-    '/deduction-cards',
-    '/tax-calendar',
-    // Gated by the `budget_alert_enabled` Remote Config flag, which currently
-    // turns on a screen with no way in.
-    '/budget-alert',
-  };
 
   late Set<String> orphans;
 
   setUpAll(() {
     final app = File('lib/app.dart').readAsStringSync();
 
-    // Each chunk after the split holds one route's arguments, so a `redirect:`
-    // found here belongs to the path found here.
+    // Each chunk after the split holds one route's arguments, so a `path:` and
+    // a `redirect:` found in the same chunk belong to the same route.
     final declared = <String>{};
+    final redirects = <String, String>{};
     for (final chunk in app.split('GoRoute(').skip(1)) {
       final path = RegExp(r"path: '([^']+)'").firstMatch(chunk)?.group(1);
       if (path == null) continue;
-      if (chunk.contains('redirect:')) continue;
-      declared.add(path);
+      if (!chunk.contains('redirect:')) {
+        declared.add(path);
+        continue;
+      }
+      final target =
+          RegExp(r"redirect:[^\n]*?'(/[^']*)'").firstMatch(chunk)?.group(1);
+      // A redirect whose target is computed rather than literal passes its
+      // reachability nowhere, which is the safe reading: it cannot be the only
+      // door to a screen this test is asked to trust.
+      if (target != null) redirects[path] = target;
     }
     declared.removeAll(entryPoints);
 
@@ -54,29 +49,35 @@ void main() {
         .map((f) => f.readAsStringSync())
         .toList(growable: false);
 
-    orphans = {
+    // Strip `:id`-style segments: callers build those by interpolation, so
+    // only the literal prefix ever appears in source.
+    bool isPushed(String path) =>
+        sources.any((s) => s.contains("'${path.split('/:').first}"));
+
+    final reached = {
       for (final path in declared)
-        // Strip `:id`-style segments: callers build those by interpolation, so
-        // only the literal prefix ever appears in source.
-        if (!sources.any((s) => s.contains("'${path.split('/:').first}"))) path,
+        if (isPushed(path)) path,
     };
+
+    // A redirect passes its own reachability on to its target, and one redirect
+    // can point at another, so keep resolving until nothing new is reached.
+    for (var changed = true; changed;) {
+      changed = false;
+      for (final entry in redirects.entries) {
+        final reachable = isPushed(entry.key) || reached.contains(entry.key);
+        if (reachable && reached.add(entry.value)) changed = true;
+      }
+    }
+
+    orphans = declared.difference(reached);
   });
 
-  test('no new unreachable route', () {
+  test('no unreachable route', () {
     expect(
-      orphans.difference(knownOrphans),
+      orphans,
       isEmpty,
       reason: 'These routes build a screen that nothing in lib/ navigates to, '
           'so no user can reach it. Add an entry point, or delete the route.',
-    );
-  });
-
-  test('knownOrphans lists only routes that are still unreachable', () {
-    expect(
-      knownOrphans.difference(orphans),
-      isEmpty,
-      reason: 'These routes now have an entry point. Remove them from '
-          'knownOrphans so the baseline keeps shrinking.',
     );
   });
 }

@@ -12,7 +12,7 @@ abstract interface class AnalyticsSink {
 /// Sends to Firebase Analytics, and does nothing when Firebase is unavailable.
 ///
 /// Analytics must never be the reason a user action fails, so every failure is
-/// swallowed — the same posture as Remote Config in `feature_flags_provider`.
+/// swallowed and the app carries on reporting nothing.
 class FirebaseAnalyticsSink implements AnalyticsSink {
   const FirebaseAnalyticsSink();
 

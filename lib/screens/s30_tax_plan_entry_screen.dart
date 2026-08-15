@@ -164,7 +164,28 @@ class _TaxActions extends StatelessWidget {
               ),
             ),
           ),
+          // Ranked gaps only exist once the diagnostic has run, so this door
+          // opens with the answers rather than before them.
+          TextButton(
+            key: const Key('tax_plan_deduction_cards'),
+            onPressed: () => context.push('/deduction-cards'),
+            child: Text(
+              'Deduction opportunities',
+              style: PaycheckType.bodyStrong(
+                color: PaycheckColors.contract,
+              ),
+            ),
+          ),
         ],
+        // Deadlines apply whether or not the diagnostic is finished.
+        TextButton(
+          key: const Key('tax_plan_calendar'),
+          onPressed: () => context.push('/tax-calendar'),
+          child: Text(
+            'Tax calendar',
+            style: PaycheckType.bodyStrong(color: PaycheckColors.contract),
+          ),
+        ),
       ],
     );
   }
