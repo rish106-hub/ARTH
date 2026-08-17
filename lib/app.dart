@@ -8,6 +8,7 @@ import 'features/monthly_commitments/screens/monthly_commitments_screen.dart';
 import 'features/recovery/screens/claim_pack_screen.dart';
 import 'features/recovery/screens/recovery_hub_screen.dart';
 import 'features/spend_completeness/screens/spend_completeness_screen.dart';
+import 'features/offer_compare/screens/offer_compare_screen.dart';
 import 'features/work_costs/screens/work_cost_lens_screen.dart';
 import 'models/gap_card.dart';
 import 'providers/spend_map_provider.dart';
@@ -201,6 +202,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/work-costs',
       builder: (_, __) => const WorkCostLensScreen(),
+    ),
+    GoRoute(
+      path: '/offers/compare',
+      builder: (_, __) => const OfferCompareScreen(),
     ),
     GoRoute(
       path: '/decision-sandbox',
