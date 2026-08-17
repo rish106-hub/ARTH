@@ -6,6 +6,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { buildRevision } from './buildRevision.js';
 import { db, Queryable, runSerializableTransaction, setUserDbContext } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
+import { ledgerSpendGuard } from './documentSpendGuard.js';
 import { categorizeTransactions } from './spendCategorizer.js';
 import {
   merchantHash,
@@ -1152,6 +1153,7 @@ export async function registerRoutes(app: FastifyInstance) {
       bytes: buffer,
       ocrText,
       panVaultSuffix,
+      spendGuard: ledgerSpendGuard(userId),
     });
     const detectedDocumentType = parsed.summary.detectedDocumentType;
     const storedDocumentType = documentType === 'offerLetter'

@@ -9,8 +9,31 @@ import {
 } from '../src/documentParser.js';
 import {
   interpretPayslip,
+  type GeminiUsage,
   type PayslipInterpretation,
+  type SpendGuard,
 } from '../src/geminiInterpreter.js';
+
+/// A spend guard that approves or refuses every call, and remembers what it was
+/// asked to record.
+///
+/// The parser takes its guard as an argument, so these tests state their own
+/// budget instead of reaching for a database — which is also why this file can
+/// still use static imports and needs no environment config.
+function stubSpendGuard(allowed = true) {
+  const asked: Array<{ model: string; inputTokens: number; outputTokens: number }> = [];
+  const recorded: Array<{ model: string; usage: GeminiUsage }> = [];
+  const guard: SpendGuard = {
+    allows: async (model, inputTokens, outputTokens) => {
+      asked.push({ model, inputTokens, outputTokens });
+      return allowed;
+    },
+    record: async (model, usage) => {
+      recorded.push({ model, usage });
+    },
+  };
+  return { guard, asked, recorded };
+}
 
 describe('proof document interpretation', () => {
   it('extracts monthly rent from a rent receipt', () => {
@@ -55,6 +78,7 @@ describe('proof document interpretation', () => {
     async () => {
       const result = await parseUploadedDocument({
         documentType: 'donationReceipts',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'text/plain',
         bytes: Buffer.from('n/a'),
         ocrText: '80G Receipt: Donation of Rs 7,500 received.',
@@ -71,6 +95,7 @@ describe('offer letter interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'offerLetter',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'application/pdf',
         bytes: Buffer.from('example offer letter'),
       });
@@ -115,6 +140,7 @@ describe('offer letter interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'offerLetter',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'application/pdf',
         bytes: Buffer.from('example offer letter'),
       });
@@ -133,6 +159,102 @@ describe('offer letter interpretation', () => {
         questionsForUser: string[];
       };
       assert.equal(fields.questionsForUser[0].length, 240);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
+  it('never reaches Gemini when the spend guard refuses the call', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    let calls = 0;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async () => {
+      calls += 1;
+      throw new Error('the budget check should have stopped this call');
+    };
+    const spend = stubSpendGuard(false);
+
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'offerLetter',
+        spendGuard: spend.guard,
+        mimeType: 'application/pdf',
+        bytes: Buffer.from('example offer letter'),
+      });
+
+      assert.equal(calls, 0);
+      assert.equal(spend.recorded.length, 0);
+      assert.equal(result.status, 'metadata_ready');
+      assert.equal(result.summary.reviewRequired, true);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey) process.env.GEMINI_API_KEY = previousKey;
+      else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
+  it('caps the output allowance and records the usage Gemini reports', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    const previousFetch = globalThis.fetch;
+    let requestBody: Record<string, any> | undefined;
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    globalThis.fetch = async (_input, init) => {
+      requestBody = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                employerName: 'Example Technologies',
+                roleTitle: 'Analyst',
+                currency: 'INR',
+                annualCtc: 1200000,
+                fixedAnnualPay: 1100000,
+                variableAnnualPay: 100000,
+                joiningBonus: null,
+                components: [],
+                warnings: [],
+                questionsForUser: [],
+              }),
+            }],
+          },
+        }],
+        usageMetadata: {
+          promptTokenCount: 4321,
+          cachedContentTokenCount: 1000,
+          candidatesTokenCount: 500,
+          thoughtsTokenCount: 250,
+        },
+      }), { status: 200 });
+    };
+    const spend = stubSpendGuard();
+
+    try {
+      const result = await parseUploadedDocument({
+        documentType: 'offerLetter',
+        spendGuard: spend.guard,
+        mimeType: 'application/pdf',
+        bytes: Buffer.from('example offer letter'),
+      });
+
+      assert.equal(result.status, 'needs_confirmation');
+      // The budget must be checked against a real output ceiling, and the same
+      // ceiling has to be sent to Gemini — otherwise the worst case the guard
+      // approved is not the worst case the call can actually reach.
+      assert.equal(
+        requestBody?.generationConfig?.maxOutputTokens,
+        spend.asked[0].outputTokens,
+      );
+      assert.equal(spend.recorded.length, 1);
+      assert.deepEqual(spend.recorded[0].usage, {
+        inputTokens: 4321,
+        cachedInputTokens: 1000,
+        // Thinking tokens bill at the output rate, so they count as output.
+        outputTokens: 750,
+      });
     } finally {
       globalThis.fetch = previousFetch;
       if (previousKey) process.env.GEMINI_API_KEY = previousKey;
@@ -213,6 +335,7 @@ describe('offer letter interpretation', () => {
     try {
       const parsed = await parseUploadedDocument({
         documentType: 'offerLetter',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('example payslip'),
       });
@@ -273,6 +396,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await interpretPayslip({
         documentText: '# Sarvam Markdown\nNET PAY 58443',
+        spendGuard: stubSpendGuard().guard,
       });
       assert.ok(result);
       const parts = requestBody?.contents?.[0]?.parts as Array<
@@ -436,6 +560,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('synthetic payslip image'),
       });
@@ -512,6 +637,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('synthetic payslip image'),
         ocrText: `
@@ -549,6 +675,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('synthetic payslip image'),
         ocrText: 'PAYSLIP OCR\nNET PAY: 58443',
@@ -672,6 +799,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/png',
         bytes: Buffer.from('example payslip'),
       });
@@ -691,6 +819,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('synthetic payslip image'),
         ocrText: `
@@ -792,6 +921,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/png',
         bytes: Buffer.from('example payslip'),
       });
@@ -875,6 +1005,7 @@ describe('payslip interpretation', () => {
     try {
       const result = await parseUploadedDocument({
         documentType: 'payslip',
+        spendGuard: stubSpendGuard().guard,
         mimeType: 'image/jpeg',
         bytes: Buffer.from('image'),
         ocrText: 'PAYSLIP\nBASIC 66703\nITAX 11059\nNET PAY 58443',

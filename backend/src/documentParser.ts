@@ -3,6 +3,7 @@ import {
   interpretOfferLetter,
   interpretPayslip,
   type PayslipInterpretation,
+  type SpendGuard,
 } from './geminiInterpreter.js';
 import { digitizeWithSarvam } from './sarvamDocumentService.js';
 
@@ -95,6 +96,9 @@ export async function parseUploadedDocument(input: {
   bytes: Buffer;
   ocrText?: string;
   panVaultSuffix?: PanVaultSuffix;
+  /// The budget this parse spends from. Required, with no default, so that no
+  /// upload path can reach a paid model without being metered.
+  spendGuard: SpendGuard;
 }): Promise<DocumentParseResult> {
   if (input.documentType === 'payslip') {
     const base = metadataSummary(input.documentType, input.mimeType);
@@ -116,10 +120,11 @@ export async function parseUploadedDocument(input: {
       device: input.ocrText,
     });
     const interpretation = documentText
-      ? await interpretPayslip({ documentText })
+      ? await interpretPayslip({ documentText, spendGuard: input.spendGuard })
       : await interpretPayslip({
           bytes: input.bytes,
           mimeType: input.mimeType,
+          spendGuard: input.spendGuard,
         });
     if (interpretation) {
       const explicitFields = documentText
@@ -206,10 +211,14 @@ export async function parseUploadedDocument(input: {
       mimeType: input.mimeType,
     });
     const interpretation = sarvam
-      ? await interpretOfferLetter({ documentText: sarvam.text })
+      ? await interpretOfferLetter({
+          documentText: sarvam.text,
+          spendGuard: input.spendGuard,
+        })
       : await interpretOfferLetter({
           bytes: input.bytes,
           mimeType: input.mimeType,
+          spendGuard: input.spendGuard,
         });
     if (!interpretation) {
       return {
@@ -225,10 +234,14 @@ export async function parseUploadedDocument(input: {
     }
     if (looksLikePayslip(interpretation)) {
       const payslip = sarvam
-        ? await interpretPayslip({ documentText: sarvam.text })
+        ? await interpretPayslip({
+            documentText: sarvam.text,
+            spendGuard: input.spendGuard,
+          })
         : await interpretPayslip({
             bytes: input.bytes,
             mimeType: input.mimeType,
+            spendGuard: input.spendGuard,
           });
       if (payslip) {
         const checked = withPayslipArithmeticChecks(payslip);

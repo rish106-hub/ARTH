@@ -3,7 +3,7 @@ import { env } from './config.js';
 
 /// Per-million-token list prices in micro-dollars (1 USD = 1_000_000 µUSD).
 /// Integers only — the cap comparison must be exact, and money never touches a
-/// float. Source: OpenAI pricing, standard tier.
+/// float. Sources: OpenAI standard tier, and Gemini Developer API standard tier.
 type ModelPrice = {
   inputPerMillion: number;
   cachedInputPerMillion: number;
@@ -55,6 +55,22 @@ const MODEL_PRICES: Record<string, ModelPrice> = {
     inputPerMillion: 1_250_000,
     cachedInputPerMillion: 125_000,
     outputPerMillion: 10_000_000,
+  },
+  // Gemini Flash carries introductory pricing that is exactly half these rates
+  // until 31 Dec 2026. The standard rates are registered instead, deliberately:
+  // a price that rises on a date nobody is watching would silently start
+  // under-counting the cap, and over-counting is the only safe direction to be
+  // wrong in. Drop these to 750_000 / 75_000 / 3_750_000 only if the extra
+  // headroom is ever actually needed before that date.
+  'gemini-3.6-flash': {
+    inputPerMillion: 1_500_000,
+    cachedInputPerMillion: 150_000,
+    outputPerMillion: 7_500_000,
+  },
+  'gemini-3.7-flash': {
+    inputPerMillion: 1_500_000,
+    cachedInputPerMillion: 150_000,
+    outputPerMillion: 7_500_000,
   },
 };
 
