@@ -38,6 +38,14 @@ const aiSpendPostgres = await readFile(
   new URL('../sql/018_ai_spend_and_merchant_cache.sql', import.meta.url),
   'utf8',
 );
+const offerComparisonsPostgres = await readFile(
+  new URL('../sql/020_offer_comparisons.sql', import.meta.url),
+  'utf8',
+);
+const offerComparisonsCockroach = await readFile(
+  new URL('../sql/cockroach/005_offer_comparisons.sql', import.meta.url),
+  'utf8',
+);
 
 describe('Cockroach secure schema', () => {
   it('contains required domain schemas and ownership controls', () => {
@@ -145,5 +153,77 @@ describe('AI spend ledger and merchant cache', () => {
   it('restricts table access in the idiom of each dialect', () => {
     assert.match(aiSpendPostgres, /REVOKE ALL ON TABLE ai_spend_ledger FROM PUBLIC/);
     assert.match(aiSpendCockroach, /GRANT SELECT, INSERT ON TABLE ai_spend_ledger TO arth_app_runtime/);
+  });
+});
+
+describe('offer comparison sessions', () => {
+  it('creates both tables in both dialects', () => {
+    assert.match(offerComparisonsPostgres, /CREATE TABLE IF NOT EXISTS offer_comparisons/);
+    assert.match(
+      offerComparisonsPostgres,
+      /CREATE TABLE IF NOT EXISTS offer_comparison_offers/,
+    );
+    assert.match(
+      offerComparisonsCockroach,
+      /CREATE TABLE IF NOT EXISTS payroll\.offer_comparisons/,
+    );
+    assert.match(
+      offerComparisonsCockroach,
+      /CREATE TABLE IF NOT EXISTS payroll\.offer_comparison_offers/,
+    );
+  });
+
+  it('keeps no readable salary figures in either dialect', () => {
+    // A comparison payload holds normalized pay. tax_documents already refuses to
+    // keep extracted salary fields readable (storedParseSummary encrypts them),
+    // so a plaintext comparison column here would quietly undo that decision.
+    assert.match(offerComparisonsPostgres, /state_encrypted\s+JSONB NOT NULL/);
+    assert.match(offerComparisonsCockroach, /payload_ciphertext\s+BYTES NOT NULL/);
+    assert.match(offerComparisonsCockroach, /payload_nonce\s+BYTES NOT NULL/);
+    for (const sql of [offerComparisonsPostgres, offerComparisonsCockroach]) {
+      assert.doesNotMatch(sql, /annual_ctc|fixed_pay|variable_pay|take_home/i);
+    }
+  });
+
+  it('isolates sessions per user, unlike the global spend ledger', () => {
+    // Every column here belongs to exactly one candidate, so this table gets the
+    // isolation the spend ledger deliberately does without.
+    assert.match(offerComparisonsPostgres, /ENABLE ROW LEVEL SECURITY/);
+    assert.match(
+      offerComparisonsPostgres,
+      /CREATE POLICY tenant_isolation ON offer_comparisons/,
+    );
+    assert.match(
+      offerComparisonsPostgres,
+      /CREATE POLICY tenant_isolation ON offer_comparison_offers/,
+    );
+    assert.match(
+      offerComparisonsPostgres,
+      /REVOKE ALL ON TABLE offer_comparisons FROM PUBLIC/,
+    );
+    assert.match(
+      offerComparisonsCockroach,
+      /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE payroll\.offer_comparisons TO arth_app_runtime/,
+    );
+  });
+
+  it('cascades a session away with the document it compared', () => {
+    // A comparison that outlives one of its own offer letters would keep
+    // answering with a figure the user believes they deleted.
+    assert.match(
+      offerComparisonsPostgres,
+      /document_id\s+UUID NOT NULL REFERENCES tax_documents\(id\) ON DELETE CASCADE/,
+    );
+    assert.match(
+      offerComparisonsCockroach,
+      /REFERENCES vault\.documents\(user_id, id\) ON DELETE CASCADE/,
+    );
+  });
+
+  it('bounds the session lifecycle and the offer count', () => {
+    for (const sql of [offerComparisonsPostgres, offerComparisonsCockroach]) {
+      assert.match(sql, /status IN \('questions_pending', 'answered', 'advised'\)/);
+      assert.match(sql, /position BETWEEN 0 AND 9/);
+    }
   });
 });
