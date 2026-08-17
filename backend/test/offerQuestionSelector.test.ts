@@ -3,11 +3,8 @@ import { describe, it } from 'node:test';
 
 import type { OfferLetterInterpretation } from '../src/geminiInterpreter.js';
 import { compareOffers } from '../src/offerComparisonEngine.js';
-import {
-  MAX_QUESTIONS,
-  formatOfferMoney,
-  selectQuestions,
-} from '../src/offerQuestionSelector.js';
+import { formatOfferMoney } from '../src/offerMoneyFormat.js';
+import { MAX_QUESTIONS, selectQuestions } from '../src/offerQuestionSelector.js';
 
 function offerLetter(
   fields: Partial<OfferLetterInterpretation> = {},

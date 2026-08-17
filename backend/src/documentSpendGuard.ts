@@ -4,7 +4,7 @@ import {
   tryReadSpend,
   worstCaseMicroUsd,
 } from './aiSpendLedger.js';
-import type { GeminiUsage, SpendGuard } from './geminiInterpreter.js';
+import type { GeminiUsage, SpendGuard } from './geminiStructuredCall.js';
 
 /// The production spend guard for document interpretation: the AI spend ledger,
 /// adapted to the interface the Gemini client asks for.

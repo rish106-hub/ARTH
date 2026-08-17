@@ -3,8 +3,8 @@ import {
   interpretOfferLetter,
   interpretPayslip,
   type PayslipInterpretation,
-  type SpendGuard,
 } from './geminiInterpreter.js';
+import type { SpendGuard } from './geminiStructuredCall.js';
 import { digitizeWithSarvam } from './sarvamDocumentService.js';
 
 export type PanVaultSuffix = {

@@ -9,10 +9,12 @@ import {
 } from '../src/documentParser.js';
 import {
   interpretPayslip,
-  type GeminiUsage,
   type PayslipInterpretation,
-  type SpendGuard,
 } from '../src/geminiInterpreter.js';
+import type {
+  GeminiUsage,
+  SpendGuard,
+} from '../src/geminiStructuredCall.js';
 
 /// A spend guard that approves or refuses every call, and remembers what it was
 /// asked to record.
