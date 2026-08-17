@@ -124,6 +124,13 @@ class ProfessionalProfileView extends ConsumerWidget {
                       onTap: () => context.push('/work-costs'),
                     ),
                     _ProfileRow(
+                      key: const Key('profile_offer_compare'),
+                      icon: Icons.balance_rounded,
+                      title: 'Compare job offers',
+                      detail: 'Rank uploaded offers and plan the negotiation',
+                      onTap: () => context.push('/offers/compare'),
+                    ),
+                    _ProfileRow(
                       key: const Key('profile_monthly_commitments'),
                       icon: Icons.event_repeat_outlined,
                       title: 'Monthly commitments',

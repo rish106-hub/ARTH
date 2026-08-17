@@ -122,7 +122,14 @@ Q1 through Q4 fire in almost every real session. Q5 to Q7 fill remaining slots.
 
 ## Verdict and negotiation
 
-`backend/src/offerAdvisor.ts` — the single Gemini call.
+`backend/src/offerAdvisor.ts` — the single Gemini call, over the metered call in
+`backend/src/geminiStructuredCall.ts`.
+
+That shared call was extracted from the document interpreter so the budget check,
+the output ceiling, the usage accounting and the untrusted-input wrapper exist
+once rather than three times. It reads `process.env` directly and imports no
+config, which is what keeps the document parser testable with no environment set
+— the backend CI job provides none.
 
 Input: engine output plus the answers. Output is structured JSON, validated with
 zod exactly as the existing interpreters are, and the same untrusted-input guard
@@ -153,48 +160,78 @@ is copied out of the encrypted vault.
 
 ## Routes
 
+`backend/src/offerComparisonRoutes.ts`, registered from `routes.ts`. Its own
+module because `routes.ts` already carries every other product area.
+
 - `POST /offers/compare` — open a session over a set of vault document ids.
-  Returns normalized comparison plus the selected questions.
+  Returns the normalized comparison plus the selected questions.
 - `POST /offers/compare/:id/answers` — submit answers, receive verdict and
-  negotiation play.
+  negotiation play. Returns 503 carrying the session when advice is unavailable:
+  the answers are saved either way, so an outage never costs the candidate five
+  answers.
 - `GET /offers/compare/:id` — read a past session.
 
-All three sit behind the existing auth wrapper and `dataRateLimit`.
+All three sit behind the existing auth wrapper and `dataRateLimit`. The question
+selection rationale is stripped from every response — it exists to make the
+choice reviewable and to brief the advice call, not to be read by the candidate.
 
 ## App
 
-`lib/features/offer_compare/{models,engine,providers,screens}`, mirroring the
-existing `lib/features/work_costs` layout. No feature imports another feature's
-internals.
+`lib/features/offer_compare/{models,engine,providers,screens,services}`,
+mirroring the existing `lib/features/work_costs` layout. No feature imports
+another feature's internals.
 
-Screens:
+One screen at `/offers/compare` with three stages, because this is one decision
+made in one sitting:
 
-1. Offers list — upload, see what was extracted, flag anything wrong.
-2. Questions — one per card, at most five, answerable in under a minute.
-3. Verdict and negotiation — the two outputs, with the caveat visible, not buried.
+1. Pick the offer letters, in the order they should appear.
+2. Answer the questions, one per card, at most five.
+3. Read the verdict and the negotiation play, with the caveat inside the verdict
+   card rather than below it.
 
-Entry point from the paycheck shell, alongside the existing work-costs entry.
+Take-home is the only figure the app computes, using the existing tax engine on a
+deliberately bare basis: a full year of salary, no deductions claimed, cheaper
+regime. Those assumptions sit behind a disclosure beside the figure, and live as
+constants next to the calculation so the caveat cannot drift from the maths. Only
+rupee offers are estimated.
+
+Entry point is the profile screen, beside the existing work-costs entry.
 
 ## Tests
 
 - `backend/test/offerComparisonEngine.test.ts` — normalization and ranking.
 - `backend/test/offerQuestionSelector.test.ts` — which questions fire, and the
   five-question cap.
-- `backend/test/aiSpendLedger.test.ts` — extend for Gemini pricing.
-- `test/offer_compare_engine_test.dart` — app-side display logic.
+- `backend/test/offerAdvisor.test.ts` — that the model is never asked to pick a
+  winner, that figures are handed over pre-formatted, that an injection attempt
+  in an answer stays data, and that advice naming an unknown offer is rejected.
+- `backend/test/cockroachSchema.test.ts` — the new migrations, in both dialects.
+- `backend/test/aiSpendLedger.test.ts` — Gemini pricing.
+- `backend/test/documentParser.test.ts` — the metered path, including refusal.
+- `backend/test/security.test.ts` — the three routes end to end.
+- `test/offer_compare_test.dart` — app-side parsing and flow state.
 
-Engine and selector are pure, so they test with no network and no API key.
+The engine and the selector are pure, so they test with no network and no API key.
 
-## Sequence
+## What is built
 
-1. Gemini prices in the spend ledger, and meter `interpretOfferLetter`.
-2. `020_offer_comparisons.sql`.
-3. Comparison engine plus tests.
-4. Question selector plus tests.
-5. Advisor call plus routes.
-6. App feature module and screens.
+1. Gemini prices in the spend ledger, and `interpretOfferLetter` metered.
+2. `020_offer_comparisons.sql` and its Cockroach counterpart.
+3. Comparison engine.
+4. Question selector.
+5. Advisor call and the three routes.
+6. App feature module, screen, and profile entry point.
 
 Steps 1 to 4 need no API key to build or test.
+
+## Still needed to run it
+
+- `GEMINI_API_KEY` set in the deployed backend. Without it the feature degrades to
+  "advice unavailable" and the comparison still works.
+- `AI_SPEND_CAP_USD` raised from its $1.50 default. The cap is global and
+  lifetime, and the precheck refuses a call whose worst case does not fit, so the
+  default allows roughly ten document interpretations in total.
+- The migrations applied. `npm run migrate` picks them up by filename.
 
 ## Out of scope
 
