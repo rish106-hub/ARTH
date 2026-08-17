@@ -7,6 +7,7 @@ import { buildRevision } from './buildRevision.js';
 import { db, Queryable, runSerializableTransaction, setUserDbContext } from './db.js';
 import { parseUploadedDocument, type PanVaultSuffix } from './documentParser.js';
 import { ledgerSpendGuard } from './documentSpendGuard.js';
+import { registerOfferComparisonRoutes } from './offerComparisonRoutes.js';
 import { categorizeTransactions } from './spendCategorizer.js';
 import {
   merchantHash,
@@ -663,6 +664,8 @@ export async function registerRoutes(app: FastifyInstance) {
     timeWindow: '1 minute',
   });
   app.get('/health', async () => ({ ok: true }));
+  // Registered after the rate limiter so the offer routes' own limits apply.
+  await registerOfferComparisonRoutes(app);
   app.get('/ping', async () => ({
     ok: true,
     commit: process.env.RAILWAY_GIT_COMMIT_SHA

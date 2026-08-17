@@ -36,6 +36,18 @@ const offerLetterInterpretationSchema = z.object({
 
 export type OfferLetterInterpretation = z.infer<typeof offerLetterInterpretationSchema>;
 
+/// Re-validates an interpretation read back out of storage.
+///
+/// It was validated on the way in, but a stored shape can predate a schema change,
+/// and a comparison built from a half-read letter is worse than one that refuses
+/// to build.
+export function parseStoredOfferLetterInterpretation(
+  value: unknown,
+): OfferLetterInterpretation | null {
+  const parsed = offerLetterInterpretationSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 const payslipInterpretationSchema = z.object({
   employerName: z.string().max(160).nullable(),
   employeeName: z.string().max(160).nullable(),
