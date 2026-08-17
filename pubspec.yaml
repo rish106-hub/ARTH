@@ -28,7 +28,7 @@ dependencies:
   firebase_analytics: ^12.1.0
   # Push notifications
   firebase_messaging: ^16.5.0
-  flutter_local_notifications: ^22.2.0
+  flutter_local_notifications: ^22.3.0
   # Animations
   flutter_animate: ^4.5.0
   lottie: ^3.5.1
