@@ -85,6 +85,23 @@ describe('ai spend pricing', () => {
     assert.ok(unknown.outputPerMillion > priceForModel('gpt-5.4-nano').outputPerMillion);
   });
 
+  it('prices the default Gemini model, so document parsing is not throttled by the fallback', () => {
+    // Document interpretation runs on GEMINI_MODEL. If that model were missing
+    // from the price table it would be charged at the deliberately-expensive
+    // fallback rate and every upload would refuse itself, so this is a guard
+    // against a silently broken feature rather than against overspending.
+    const flash = priceForModel('gemini-3.6-flash');
+    assert.ok(flash.outputPerMillion < priceForModel('gpt-5.5-pro').outputPerMillion);
+    // The registered rates are Gemini's standard tier, not the introductory
+    // pricing that halves them until 31 Dec 2026. Over-counting is the only safe
+    // direction to be wrong about a cap.
+    assert.deepEqual(flash, {
+      inputPerMillion: 1_500_000,
+      cachedInputPerMillion: 150_000,
+      outputPerMillion: 7_500_000,
+    });
+  });
+
   it('charges the worst case as fully uncached input plus the whole output allowance', () => {
     const worst = worstCaseMicroUsd('gpt-5.4-nano', 1_000_000, 1_000_000);
     assert.equal(worst, 200_000 + 1_250_000);

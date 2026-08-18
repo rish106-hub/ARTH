@@ -8,6 +8,7 @@ import {
   worstCaseMicroUsd,
   type TokenUsage,
 } from './aiSpendLedger.js';
+import { estimateTokens } from './tokenEstimate.js';
 
 /// Spend categories — MUST stay in sync with SpendCategory in the Flutter app
 /// (lib/models/spend_map.dart). These are persisted/synced, so keep them stable.
@@ -407,10 +408,6 @@ function needsSecondOpinion(vote: ModelVote, item: CategorizeItem): boolean {
 /// Rough token count for budgeting only — never for billing, which uses the
 /// usage the provider reports. Four characters per token is the usual English
 /// approximation and errs high on dense upper-case merchant strings.
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
 type ModelCall = {
   model: string;
   items: CategorizeItem[];

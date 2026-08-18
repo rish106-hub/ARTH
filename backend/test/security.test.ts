@@ -57,6 +57,8 @@ class FakeDb {
   private doneGaps = new Map<string, Set<string>>();
   private identities = new Map<string, Row>();
   private documents = new Map<string, Row>();
+  private offerComparisons = new Map<string, Row>();
+  private offerComparisonOffers: Row[] = [];
   private moneyGoals = new Map<string, Row>();
   private spendMaps = new Map<string, Row>();
   private userState = new Map<string, Row>();
@@ -76,6 +78,8 @@ class FakeDb {
     this.doneGaps.clear();
     this.identities.clear();
     this.documents.clear();
+    this.offerComparisons.clear();
+    this.offerComparisonOffers = [];
     this.moneyGoals.clear();
     this.spendMaps.clear();
     this.userState.clear();
@@ -774,6 +778,55 @@ class FakeDb {
       return rows();
     }
 
+    if (normalized.startsWith('select id, document_type, parse_status, parse_summary')) {
+      const wanted = new Set(params[1] as string[]);
+      return rows([...this.documents.values()].filter(
+        (doc) => doc.user_id === params[0] && wanted.has(doc.id as string),
+      ));
+    }
+
+    if (normalized.startsWith('insert into offer_comparisons')) {
+      const now = new Date();
+      const session = {
+        id: this.nextId('offer-comparison'),
+        user_id: params[0],
+        fy: params[1],
+        status: 'questions_pending',
+        state_encrypted: JSON.parse(params[2] as string),
+        advice_fingerprint: null,
+        created_at: now,
+        updated_at: now,
+      };
+      this.offerComparisons.set(session.id, session);
+      return rows([session]);
+    }
+
+    if (normalized.startsWith('insert into offer_comparison_offers')) {
+      this.offerComparisonOffers.push({
+        comparison_id: params[0],
+        document_id: params[1],
+        user_id: params[2],
+        position: params[3],
+      });
+      return rows();
+    }
+
+    if (normalized.startsWith('select id, status, state_encrypted, advice_fingerprint')
+      || normalized.startsWith('select id, status, state_encrypted, created_at')) {
+      const session = this.offerComparisons.get(params[0] as string);
+      return session && session.user_id === params[1] ? rows([session]) : rows();
+    }
+
+    if (normalized.startsWith('update offer_comparisons set status =')) {
+      const session = this.offerComparisons.get(params[0] as string);
+      if (!session || session.user_id !== params[1]) return rows();
+      session.status = params[2];
+      session.state_encrypted = JSON.parse(params[3] as string);
+      session.advice_fingerprint = params[4];
+      session.updated_at = new Date();
+      return rows([session]);
+    }
+
     if (normalized.startsWith('insert into user_events')) {
       this.events.push({
         user_id: params[0],
@@ -802,7 +855,7 @@ class FakeDb {
 
   private nextId(prefix: string) {
     this.ids += 1;
-    if (prefix === 'doc' || prefix === 'goal') {
+    if (prefix === 'doc' || prefix === 'goal' || prefix === 'offer-comparison') {
       return `00000000-0000-4000-8000-${String(this.ids).padStart(12, '0')}`;
     }
     return `${prefix}-${this.ids}`;
@@ -2118,6 +2171,197 @@ describe('backend security harness', () => {
     assert.equal(limitedStatus, 429);
 
     await app.close();
+  });
+
+  async function seedOfferLetter(
+    userId: string,
+    id: string,
+    fields: Record<string, unknown>,
+  ) {
+    const { encryptDocument } = await import('../src/security.js');
+    return fakeDb.seedDocument(userId, {
+      id,
+      document_type: 'offerLetter',
+      parse_status: 'needs_confirmation',
+      parse_summary: {
+        parser: 'gemini-offer-letter-v1',
+        llmUsed: true,
+        confirmationStatus: 'pending',
+        encryptedExtractedFields: encryptDocument(
+          Buffer.from(JSON.stringify({
+            employerName: 'Employer',
+            roleTitle: 'Analyst',
+            currency: 'INR',
+            annualCtc: null,
+            fixedAnnualPay: null,
+            variableAnnualPay: null,
+            joiningBonus: null,
+            components: [],
+            warnings: [],
+            questionsForUser: [],
+            ...fields,
+          }), 'utf8'),
+        ),
+      },
+    });
+  }
+
+  it('compares stored offer letters and asks at most five questions', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const zeta = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a1',
+      {
+        employerName: 'Zeta',
+        annualCtc: 1_500_000,
+        fixedAnnualPay: 1_000_000,
+        variableAnnualPay: 500_000,
+      },
+    );
+    const orbit = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a2',
+      {
+        employerName: 'Orbit',
+        annualCtc: 1_400_000,
+        fixedAnnualPay: 1_250_000,
+        variableAnnualPay: 150_000,
+      },
+    );
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/offers/compare',
+      headers: bearer(alice.accessToken),
+      payload: { documentIds: [zeta.id, orbit.id] },
+    });
+
+    assert.equal(created.statusCode, 201);
+    const body = created.json().comparison;
+    assert.equal(body.rankedDocumentIds[0], orbit.id);
+    assert.equal(body.largestCtcIsNotBestGuaranteed, true);
+    assert.ok(body.questions.length <= 5);
+    // The rationale for choosing each question is briefing material for the
+    // advice call, not something the candidate reads.
+    assert.ok(body.questions.every((question: Record<string, unknown>) =>
+      question.because === undefined));
+
+    await app.close();
+  });
+
+  it('refuses to compare a document that is not an offer letter', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const offer = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a3',
+      { fixedAnnualPay: 1_000_000 },
+    );
+    const form16 = fakeDb.seedDocument(alice.user.id, {
+      id: '00000000-0000-4000-8000-0000000000a4',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/offers/compare',
+      headers: bearer(alice.accessToken),
+      payload: { documentIds: [offer.id, form16.id] },
+    });
+
+    assert.equal(response.statusCode, 409);
+    await app.close();
+  });
+
+  it('does not compare another account\'s offer letters', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const bob = await createSession(app, 'Bob', 'bob@example.com');
+    const aliceOffer = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a5',
+      { fixedAnnualPay: 1_000_000 },
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/offers/compare',
+      headers: bearer(bob.accessToken),
+      payload: { documentIds: [aliceOffer.id] },
+    });
+
+    assert.equal(response.statusCode, 404);
+    await app.close();
+  });
+
+  it('rejects an answer to a question this comparison never asked', async () => {
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const offer = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a6',
+      { fixedAnnualPay: 1_000_000 },
+    );
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/offers/compare',
+      headers: bearer(alice.accessToken),
+      payload: { documentIds: [offer.id] },
+    });
+    const comparisonId = created.json().comparison.id;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/offers/compare/${comparisonId}/answers`,
+      headers: bearer(alice.accessToken),
+      // A single offer never gets the leverage question, so answering it would
+      // brief the advice call with a premise the comparison does not support.
+      payload: { answers: [{ id: 'leverage', answer: 'Both of them know' }] },
+    });
+
+    assert.equal(response.statusCode, 400);
+    await app.close();
+  });
+
+  it('keeps the answers when advice is unavailable, so they are not re-entered', async () => {
+    const previousKey = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    const app = await buildApp();
+    const alice = await createSession(app, 'Alice', 'alice@example.com');
+    const offer = await seedOfferLetter(
+      alice.user.id,
+      '00000000-0000-4000-8000-0000000000a7',
+      { fixedAnnualPay: 1_000_000, joiningBonus: 200_000 },
+    );
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/offers/compare',
+      headers: bearer(alice.accessToken),
+      payload: { documentIds: [offer.id] },
+    });
+    const comparisonId = created.json().comparison.id;
+
+    const answered = await app.inject({
+      method: 'POST',
+      url: `/v1/offers/compare/${comparisonId}/answers`,
+      headers: bearer(alice.accessToken),
+      payload: { answers: [{ id: 'tenure', answer: 'three_plus' }] },
+    });
+    assert.equal(answered.statusCode, 503);
+
+    const reread = await app.inject({
+      method: 'GET',
+      url: `/v1/offers/compare/${comparisonId}`,
+      headers: bearer(alice.accessToken),
+    });
+    assert.equal(reread.statusCode, 200);
+    assert.deepEqual(reread.json().comparison.answers, [
+      { id: 'tenure', answer: 'three_plus' },
+    ]);
+    assert.equal(reread.json().comparison.advice, null);
+
+    await app.close();
+    if (previousKey) process.env.GEMINI_API_KEY = previousKey;
   });
 });
 

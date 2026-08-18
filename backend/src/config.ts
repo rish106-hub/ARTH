@@ -41,9 +41,15 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().default('gpt-5.4-nano'),
   OPENAI_ESCALATION_MODEL: z.string().default('gpt-5.4-mini'),
   OPENAI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(20_000),
-  // Hard lifetime ceiling on paid categorization, in USD. Enforced server-side
+  // Hard lifetime ceiling on every paid model call, in USD. Enforced server-side
   // against recorded usage — see aiSpendLedger.
-  AI_SPEND_CAP_USD: z.coerce.number().min(0).max(1_000).default(1.5),
+  //
+  // Two things draw on it: spend categorization, and document interpretation
+  // (payslips, offer letters). The ledger records what a call actually cost, but
+  // refuses to start one whose worst case would not fit, so the last fraction of
+  // the cap is unusable by design. Keep it comfortably above the most expensive
+  // single call, which is a byte-uploaded document at roughly $0.15.
+  AI_SPEND_CAP_USD: z.coerce.number().min(0).max(1_000).default(3),
   // Per-account daily item allowance, so one inbox cannot drain the shared cap.
   AI_ITEMS_PER_USER_PER_DAY: z.coerce.number().int().min(0).max(10_000).default(200),
   SARVAM_API_KEY: z.string().min(10).optional(),
