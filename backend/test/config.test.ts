@@ -39,6 +39,18 @@ describe('env validation', () => {
     assert.equal(parsed.DB_POOL_MAX, 5);
   });
 
+  it('defaults the AI spend cap above the most expensive single call', () => {
+    const parsed = parseEnv(baseEnv);
+
+    // A deploy that never sets the variable still has to be able to make a call.
+    // The ledger refuses one whose worst case would not fit in what is left, and
+    // the worst case is a byte-uploaded document at roughly $0.15, so a cap at or
+    // below that would refuse every document interpretation from the first one.
+    assert.equal(parsed.AI_SPEND_CAP_USD, 3);
+    assert.ok(parsed.AI_SPEND_CAP_USD > 0.15);
+    assert.equal(parsed.AI_ITEMS_PER_USER_PER_DAY, 200);
+  });
+
   it('rejects wildcard production CORS', () => {
     assert.throws(() => parseEnv({ ...baseEnv, CORS_ORIGIN: '*' }), /CORS_ORIGIN/);
   });

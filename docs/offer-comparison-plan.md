@@ -30,18 +30,18 @@ This feature is mostly assembly, not new machinery.
 Missing, and therefore the scope of this plan: comparison, questions, verdict,
 negotiation.
 
-## Two defects to fix first
+## Two defects found on the way in, both now fixed
 
-Both are pre-existing, and both get worse the moment we invite five uploads
-instead of one.
+Both were pre-existing, and both got worse the moment the product invited five
+uploads instead of one.
 
-1. `interpretOfferLetter()` calls Gemini directly. It never consults
-   `aiSpendLedger`, so offer extraction is unmetered and uncapped. Every other
-   paid path in the backend is metered.
-2. `MODEL_PRICES` in `backend/src/aiSpendLedger.ts` contains no Gemini entries.
+1. `interpretOfferLetter()` called Gemini directly and never consulted
+   `aiSpendLedger`, so offer extraction was unmetered and uncapped while every
+   other paid path in the backend was metered.
+2. `MODEL_PRICES` in `backend/src/aiSpendLedger.ts` held no Gemini entries, and
    `FALLBACK_PRICE` is deliberately the most expensive model known
    (`gpt-5.5-pro`, $30/M input). Metering Gemini without adding its prices would
-   throttle the feature immediately rather than overspend — safe, but unusable.
+   have refused every upload rather than overspent — safe, but unusable.
 
 ## Model policy
 
@@ -57,7 +57,8 @@ OpenAI stays where it is, on spend categorization. Sarvam stays as the OCR
 fallback it already is. No new AI provider, no new API key.
 
 Cost per user session: N extraction calls plus one advice call. For three offers
-that is four calls of a few thousand tokens each.
+that is four calls of a few thousand tokens each, around $0.04 in total. See the
+Spend section for how that lands against the cap.
 
 ## Comparison engine
 
@@ -68,16 +69,21 @@ Normalizes each offer onto one axis set so the numbers are actually comparable:
 - **Guaranteed annual pay** — fixed pay, plus allowances paid regardless of
   performance.
 - **At-risk annual pay** — variable, bonus, commission. Recorded with its share
-  of CTC, because a 30% at-risk offer and a 5% at-risk offer are not the same
-  product even at identical CTC.
+  of *recurring* pay, because a 30% at-risk offer and a 5% at-risk offer are not
+  the same product even at identical CTC. One-time money is left out of that
+  denominator: it would otherwise make conditional pay look like a smaller share
+  of an ongoing month than it is.
 - **One-time pay** — joining bonus, relocation, retention. Separated out because
   it flatters year-one CTC and vanishes in year two.
 - **Employer contributions** — PF and gratuity accrual. Counted, but never as
   take-home.
-- **Estimated monthly take-home** — reuses the existing tax engine. Never
-  recalculated here.
-- **Unknowns** — every component the extractor marked low confidence, or that
-  has no stated payout schedule.
+- **Unknowns** — every component the extractor marked low confidence, that fits
+  no pay category, or that has no stated payout schedule and so cannot be
+  annualized.
+
+Take-home is deliberately *not* computed here. The tax engine lives in the app
+(`lib/engine/tax_engine.dart`), and duplicating slab logic in the backend to save
+a hop would leave two tax engines to keep in step. See the App section.
 
 The engine ranks the offers. It is unit-testable without a network, and its
 output is the input to everything downstream.
@@ -95,13 +101,13 @@ ranked by how much the answer moves the verdict.
 
 | # | Fires when | Question |
 |---|---|---|
-| Q1 | at-risk share differs by more than 8pp between offers | If **{employer}**'s ₹{atRisk} variable pay ({share}% of CTC) paid zero this year, could you still cover rent and EMIs? *Comfortably / Tight / No* |
+| Q1 | at-risk shares differ by more than 8pp across the offers | If **{employer}**'s ₹{atRisk} variable pay ({share}% of ongoing pay) paid nothing this year, could you still cover rent and any EMIs? *Comfortably / Tight, but survivable / No* |
 | Q2 | a joining bonus, clawback, or equity cliff is present | Honestly, how long do you expect to stay? *Under a year / 1-2 years / 3+ years* |
-| Q3 | always | Ignore the money. Which role's day-to-day work is closer to what you want to be doing in two years? *{roleA} / {roleB} / Neither* |
+| Q3 | two or more offers (asked **first** when guaranteed pay ties) | Set the money aside. Which of these is closer to the work you want to be doing in two years? *{roleA} / {roleB} / Neither* |
 | Q4 | two or more offers are live | Which of these employers already knows you hold another offer, and has any of them given you a deadline? |
-| Q5 | offer locations differ | Which city for each, and are you paying rent yourself? |
+| Q5 | two or more offers — never by detection, see below | Which city would you be living in for each offer, and would you be paying rent yourself? |
 | Q6 | a slot remains free | Your current or last fixed CTC, and your notice period? |
-| Q7 | any component was extracted at low confidence | **{employer}** lists "{component} ₹{amount}" with no stated payout date. Do you have that commitment in writing? |
+| Q7 | any component could not be counted | **{employer}** lists "{component} ₹{amount}" without enough detail to count it. Do you have that commitment in writing, with a payout date? |
 
 Why these and not others:
 
@@ -113,12 +119,18 @@ Why these and not others:
   Kept unconditional for that reason.
 - Q4 is the entire negotiation lever. Without it the negotiation output is
   generic advice.
-- Q5 stops the tool from calling ₹18L in Bengaluru a win over ₹16L in Indore.
+- Q5 stops the tool from calling ₹18L in Bengaluru a win over ₹16L in Indore. It
+  is always eligible and never detected: offer letters do not reliably state the
+  posting and the extraction carries no location field, so claiming to detect a
+  difference would have been a lie in code. Asking last is the honest version.
 - Q6 supplies the anchor and the urgency a negotiation ask needs.
 - Q7 turns an extraction weakness into a useful prompt instead of a silent
   guess.
 
 Q1 through Q4 fire in almost every real session. Q5 to Q7 fill remaining slots.
+Every selected question also records *why* it earned its slot; that rationale is
+never sent to the app, but it is what briefs the advice call so the verdict is
+explained in the terms it was decided on.
 
 ## Verdict and negotiation
 
@@ -135,16 +147,22 @@ Input: engine output plus the answers. Output is structured JSON, validated with
 zod exactly as the existing interpreters are, and the same untrusted-input guard
 is applied to any text originating from a document.
 
-- **Verdict** — the chosen offer, the deciding number stated plainly, and the
-  honest caveat. Example shape: *"Zeta, on ₹1.1L more guaranteed annual pay —
-  not on its ₹3L larger CTC, which is 30% at risk."*
+- **Verdict** — the deciding number stated plainly, and the honest caveat.
+  Example shape: *"Zeta, on ₹1.1L more guaranteed annual pay — not on its ₹3L
+  larger CTC, which is 30% at risk."* The response schema has **no field** for
+  naming a winner, so the model cannot pick a different offer even if it
+  disagrees.
 - **Negotiation play** — which employer to push, which component to ask on
   (fixed pay, not CTC), a specific number, the script, and the walk-away line.
   This runs even when the verdict is unambiguous, because that is where the
   money actually is.
 
-The model phrases the decision. The engine makes it. No number in the output
-originates from the model.
+The model phrases the decision. The engine makes it. Every figure is handed over
+pre-formatted so restating one is quoting rather than calculating. The one number
+the model may originate is the negotiation ask, because a target to push for is a
+recommendation rather than a claim about the letters. Advice naming an offer id
+that is not in the comparison is rejected outright rather than retargeted: a
+script written for one employer addressed to another is worse than nothing.
 
 ## Data model
 
@@ -224,14 +242,34 @@ The engine and the selector are pure, so they test with no network and no API ke
 
 Steps 1 to 4 need no API key to build or test.
 
+## Spend
+
+Two distinct numbers, and confusing them makes the cap look far tighter than it is.
+
+The ledger **charges** what a call actually cost, from Gemini's reported usage. A
+two-page offer letter runs about 3k input and 800 output tokens, so roughly
+$0.011. The advice call is text only and lands in the same range.
+
+The ledger separately **refuses to start** a call whose worst case would not fit
+in what is left — every input token uncached, the whole output allowance spent.
+For a document uploaded as bytes that worst case is about $0.15, because a PDF is
+billed per page and its size cannot be measured before it is sent.
+
+So the cap depletes at the actual rate and only stops issuing calls once the
+remaining balance drops under one worst case. At the $3 default that is on the
+order of 250 document interpretations, with the last $0.15 unusable by design.
+
+`AI_ITEMS_PER_USER_PER_DAY` stays at 200. Each document and each advice call
+counts as one item, so no single account can drain the shared cap in a day.
+
 ## Still needed to run it
 
 - `GEMINI_API_KEY` set in the deployed backend. Without it the feature degrades to
   "advice unavailable" and the comparison still works.
-- `AI_SPEND_CAP_USD` raised from its $1.50 default. The cap is global and
-  lifetime, and the precheck refuses a call whose worst case does not fit, so the
-  default allows roughly ten document interpretations in total.
 - The migrations applied. `npm run migrate` picks them up by filename.
+
+`AI_SPEND_CAP_USD` now defaults to $3, so a deploy that does not set it is already
+workable.
 
 ## Out of scope
 
