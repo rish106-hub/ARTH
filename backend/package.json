@@ -22,7 +22,7 @@
     "@fastify/helmet": "^13.1.0",
     "@fastify/multipart": "^10.1.0",
     "@fastify/rate-limit": "^11.2.0",
-    "@google-cloud/kms": "^5.7.0",
+    "@google-cloud/kms": "^6.0.0",
     "@neondatabase/serverless": "^1.1.0",
     "@node-rs/argon2": "^2.0.2",
     "dotenv": "^17.4.2",
