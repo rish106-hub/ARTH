@@ -52,7 +52,7 @@ dependencies:
   # SMS reading (Android) for on-device spend-map extraction
   another_telephony: ^0.4.1
   google_mlkit_text_recognition: ^0.16.0
-  image: ^4.9.1
+  image: ^4.9.2
   pdf: ^3.13.0
   archive: ^4.0.9
 dev_dependencies:
