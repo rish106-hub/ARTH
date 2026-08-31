@@ -22,7 +22,7 @@ dependencies:
 
   # Firebase Remote Config
   firebase_core: ^4.13.0
-  firebase_remote_config: ^6.5.5
+  firebase_remote_config: ^6.6.0
   # Product analytics (event names and bucketed context only — never amounts,
   # merchant names, or anything else that identifies a user or a transaction)
   firebase_analytics: ^12.1.0
