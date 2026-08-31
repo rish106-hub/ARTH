@@ -27,7 +27,7 @@ dependencies:
   # merchant names, or anything else that identifies a user or a transaction)
   firebase_analytics: ^12.1.0
   # Push notifications
-  firebase_messaging: ^16.5.0
+  firebase_messaging: ^16.6.0
   flutter_local_notifications: ^22.2.0
   # Animations
   flutter_animate: ^4.5.0
