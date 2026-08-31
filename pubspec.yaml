@@ -21,7 +21,7 @@ dependencies:
   flutter_secure_storage: ^11.0.0
 
   # Firebase Remote Config
-  firebase_core: ^4.13.0
+  firebase_core: ^4.14.0
   firebase_remote_config: ^6.5.5
   # Product analytics (event names and bucketed context only — never amounts,
   # merchant names, or anything else that identifies a user or a transaction)
