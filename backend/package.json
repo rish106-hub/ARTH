@@ -20,7 +20,7 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
-    "@fastify/multipart": "^10.1.0",
+    "@fastify/multipart": "^10.1.4",
     "@fastify/rate-limit": "^11.2.0",
     "@google-cloud/kms": "^5.7.0",
     "@neondatabase/serverless": "^1.1.0",
